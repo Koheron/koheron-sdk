@@ -54,28 +54,14 @@
           <label><input type="radio" name="channel" value="1" class="channel-input" data-valuestr="1" data-command="setChannel"><span>|Y|²</span></label>
         <label><input type="radio" name="channel" value="2" class="channel-input" data-valuestr="2" data-command="setChannel"><span>X·Y*</span></label>
       </div></div>
-        <label class="control-field">Sample rate
-          <select id="sample-rate" disabled><option value="200000000">200 MS/s</option><option value="250000000">250 MS/s</option></select>
-        </label><span id="sample-rate-status" class="sr-only" role="status"></span>
-        <label class="control-field" title="Even CIC rates from 4 to 8192">Decimation (even)<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="2" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
+        <label class="control-field" title="Even CIC rates from 4 to 8192">Decimation<span class="pna-digit-control"><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20" min="4" step="2" max="8192" required data-command="setCicRate" class="cic-rate-input"></span></label>
         <label class="control-field">Averages<span class="pna-digit-control pna-average-control"><span id="average-status" role="status" data-state="unknown" title="Actual spectra in the rolling average">—/</span><input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1" min="1" step="1" max="200" required class="plot-navg-input"></span></label>
-        <button type="button" class="reset-cumulative-averager-btn" hidden>Reset XY average</button><div id="reference-clock"></div>
-        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
-          <select id="phase-precision">
-            <option value="0">Standard</option>
-            <option value="1">+1 bit</option><option value="2">+2 bits</option>
-            <option value="3">+3 bits</option><option value="4">+4 bits</option>
-            <option value="5">+5 bits</option><option value="6">+6 bits</option>
-            <option value="7">+7 bits</option><option value="8">+8 bits</option>
-          </select>
-        </label>
-        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
+        <button type="button" class="reset-cumulative-averager-btn" hidden>Reset XY average</button>
       </div>
       <div class="display-controls"><div class="segmented">
         <label><input type="radio" name="laser-plot-type" value="phase" checked class="laser-plot-type"><span>Phase noise</span></label>
         <label><input type="radio" name="laser-plot-type" value="frequency" class="laser-plot-type"><span>Frequency noise</span></label>
       </div><span id="spectrum-unit" class="spectrum-unit">dBc/Hz</span><label class="toggle"><input type="checkbox" id="show-smoothed-trace">Smoothed</label></div>
-      <div class="config-actions"><button type="button" class="save-cfg" title="Save analyzer and local oscillator settings on the board.">Save settings</button><span id="save-config-status" class="sr-only" role="status"></span></div>
       <div id="dds-frequency" class="oscillator-controls"></div>
     </fieldset>
     <fieldset id="plot-controls" disabled class="spectrum-toolbar">
@@ -96,6 +82,31 @@
     </div>
   </section>
   <aside class="pna-sidebar" aria-label="Measurement details">
+    <details class="acquisition-settings">
+      <summary>Acquisition settings</summary>
+      <fieldset id="settings-controls" disabled>
+        <legend class="sr-only">Clock, phase precision and tracking settings</legend>
+        <label class="control-field">Sample rate
+          <select id="sample-rate" disabled><option value="200000000">200 MS/s</option><option value="250000000">250 MS/s</option></select>
+        </label><span id="sample-rate-status" class="sr-only" role="status"></span>
+        <div id="reference-clock"></div>
+        <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
+          <select id="phase-precision">
+            <option value="0">Standard</option>
+            <option value="1">+1 bit</option><option value="2">+2 bits</option>
+            <option value="3">+3 bits</option><option value="4">+4 bits</option>
+            <option value="5">+5 bits</option><option value="6">+6 bits</option>
+            <option value="7">+7 bits</option><option value="8">+8 bits</option>
+          </select>
+        </label>
+        <span id="precision-status" class="precision-status" role="status">Waiting…</span>
+        <div class="tracking-controls">
+          <label class="toggle" title="Track X and Y phase differences slowly; corrections apply to the corresponding DUT local oscillators."><input type="checkbox" class="tracking-enabled-input">Slow tracking</label>
+          <span class="tracking-readout"><span class="tracking-state">Off</span><span>BW ≤ <span class="tracking-effective-bandwidth">---</span> Hz</span><span>X <span class="tracking-correction-x">---</span> Hz</span><span>Y <span class="tracking-correction-y">---</span> Hz</span></span>
+        </div>
+        <div class="config-actions"><button type="button" class="save-cfg" title="Save analyzer and local oscillator settings on the board.">Save settings</button><span id="save-config-status" class="sr-only" role="status"></span></div>
+      </fieldset>
+    </details>
     <div class="measurement-details">
       <div id="reference-info" class="reference-info" hidden><span class="readout-label">Reference</span><strong id="reference-status"></strong></div>
       <details class="noise-offsets">

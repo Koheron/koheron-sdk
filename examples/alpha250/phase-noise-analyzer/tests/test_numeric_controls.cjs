@@ -39,6 +39,7 @@ async function fixture(t, board = 'alpha250') {
     const app = new w.PhaseNoiseAnalyzerApp(w.document, driver); t.after(() => app.dispose());
     await app.init(); await settle();
     w.document.querySelector('#instrument-controls').disabled = false;
+    w.document.querySelector('#settings-controls').disabled = false;
     w.document.querySelector('#laser-controls').disabled = false;
     w.document.querySelector('#plot-controls').disabled = false;
     const key = (input, key) => input.dispatchEvent(new w.KeyboardEvent('keydown', {key, bubbles: true}));

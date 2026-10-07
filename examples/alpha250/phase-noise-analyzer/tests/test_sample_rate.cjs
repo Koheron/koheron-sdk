@@ -30,6 +30,7 @@ async function fixture(t, supported = true) {
     await widget.init();
     const select = w.document.querySelector('#sample-rate');
     w.document.querySelector('#instrument-controls').disabled = false;
+    w.document.querySelector('#settings-controls').disabled = false;
     const choose = async rate => { select.value = String(rate); select.dispatchEvent(new w.Event('change')); await settle(); };
     return {w, widget, driver, select, choose, calls, rendered, errors, poll: async () => { poll(); await settle(); }};
 }

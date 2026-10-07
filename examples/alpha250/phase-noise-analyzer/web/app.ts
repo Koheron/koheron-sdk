@@ -56,7 +56,7 @@ class App {
                 this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "Offset frequency (Hz)");
                 this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics, error => this.connectionFailed(document, error));
                 this.exportFile = new ExportFile(document, this.plot);
-                for (const id of ['instrument-controls', 'plot-controls', 'laser-controls']) {
+                for (const id of ['instrument-controls', 'settings-controls', 'plot-controls', 'laser-controls']) {
                     (document.getElementById(id) as HTMLFieldSetElement).disabled = false;
                 }
                 const status = document.getElementById('connection-status');
@@ -132,7 +132,7 @@ class App {
         if (this.plot) { this.plot.dispose(); }
         if (this.phasePrecision) { this.phasePrecision.dispose(); }
         if (this.phaseNoiseAnalyzerApp) { this.phaseNoiseAnalyzerApp.dispose(); }
-        for (const id of ['instrument-controls', 'plot-controls', 'laser-controls']) {
+        for (const id of ['instrument-controls', 'settings-controls', 'plot-controls', 'laser-controls']) {
             (document.getElementById(id) as HTMLFieldSetElement).disabled = true;
         }
         this.client.exit();
