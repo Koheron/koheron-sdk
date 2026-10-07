@@ -22,7 +22,7 @@ phys_opt_design -force_replication_on_nets $nets
 source [file normalize [file join [file dirname [info script]] gain_programming_timing.tcl]]
 
 # The acceptance-state decode also controls the applied bank registers.
-set state_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/fast_state_reg*}]
+set state_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/*fast_state_reg*}]
 if {![llength $state_sources]} {error "Missing gain programming state registers"}
 set state_nets [get_nets -of_objects [get_pins -of_objects $state_sources -filter {REF_PIN_NAME == Q}]]
 set_property FORCE_MAX_FANOUT 4 $state_nets
