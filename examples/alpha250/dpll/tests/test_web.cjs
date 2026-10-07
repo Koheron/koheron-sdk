@@ -100,7 +100,7 @@ async function host(t, options = {}) {
     const paths = {
       'reference-clock.html': 'examples/alpha250/dpll/web/clock-generator/reference-clock.html',
       'plot-basics.html': 'web/plot-basics/plot-basics.html',
-      'export-file.html': 'examples/alpha250/phase-noise-analyzer/web/export-file/export-file.html'
+      'export-file.html': 'web/phase-noise/export-file/export-file.html'
     };
     link.import = new window.DOMParser().parseFromString(read(paths[link.getAttribute('href')]), 'text/html');
   }
@@ -110,8 +110,8 @@ async function host(t, options = {}) {
   // Mount using the actual shared import implementation, with the real drivers and editors.
   const koheron = read('web/koheron.ts');
   const sources = koheron.slice(koheron.indexOf('class Imports {')) + '\n' + [
-    'web/phase-modulator/frequency-input.ts', 'examples/alpha250/dpll/web/dpll.ts',
-    'examples/alpha250/dpll/web/clock-generator/clock-generator.ts',
+    'web/inputs/digit-input.ts', 'examples/alpha250/dpll/web/dpll.ts',
+    'web/clock-generator/clock-generator.ts',
     'examples/alpha250/dpll/web/gain-display.ts', 'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
   ].map(read).join('\n');
   window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText);

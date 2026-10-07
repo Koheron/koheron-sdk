@@ -13,7 +13,7 @@ function fixture(t) {
   for (const [file, names] of [
     ['web/koheron.ts', ['Client']], ['web/phase-noise/spectrum.ts', ['readPnaSpectrum']],
     ['web/phase-noise/plot.ts', ['PnaPlot']],
-    ['examples/alpha250/phase-noise-analyzer/web/plot.ts', ['Plot']]
+    ['web/phase-noise/analyzer/plot.ts', ['Plot']]
   ]) {
     w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'),
       {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText
@@ -24,7 +24,7 @@ function fixture(t) {
 
 test('browser decodes the production C++ spectrum frame including signed bins', async t => {
   const w = fixture(t);
-  const wire = fs.readFileSync(path.join(root, 'tmp/tests/alpha250-phase-noise-analyzer/spectrum-frame.bin'));
+  const wire = fs.readFileSync(path.join(root, 'tmp/tests/phase-noise/spectrum-frame.bin'));
   const bytes = new w.Uint8Array(wire);
   const client = Object.create(w.Client.prototype);
   client._readBaseAsync = async () => new w.DataView(bytes.buffer, 8);

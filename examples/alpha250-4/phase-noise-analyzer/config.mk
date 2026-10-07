@@ -30,14 +30,8 @@ DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.cpp
 include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
-WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts $(SDK_PATH)/web/phase-noise/plot.ts
-WEB_FILES += $(SDK_PATH)/web/phase-noise/sample-rate.ts
-WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts
-WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.css
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
-WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
+include $(SDK_PATH)/web/phase-noise/components.mk
+include $(SDK_PATH)/web/phase-noise/reference-clock/components.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
 
 # Board Tcl changes must invalidate the generated Vivado project as well.

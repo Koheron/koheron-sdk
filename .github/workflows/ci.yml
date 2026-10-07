@@ -1,4 +1,4 @@
-name: Configuration check
+name: SDK checks
 
 on:
   pull_request:
@@ -68,3 +68,43 @@ jobs:
         run: |
           python3 -m unittest discover -s server/tests -p test_driver_locking.py -v
           python3 -m unittest discover -s server/tests -p 'test_websocket*.py' -v
+
+  instrument-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CXX: g++-13
+      PNA_TEST_MODE: native
+      PNA_PYTHON: python3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package.json
+      - name: Install host test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y g++-13 libeigen3-dev
+          python3 -m pip install -r python/requirements.txt numpy scipy
+          npm install --prefix web --no-package-lock
+      - name: Compile instrument web assets
+        run: |
+          for project in alpha250/phase-noise-analyzer alpha250-4/phase-noise-analyzer red-pitaya/phase-noise-analyzer alpha250/dpll alpha250/fft red-pitaya/fft alpha250-4/fft alpha15/signal-analyzer alpha250/phase-modulator; do
+            make CFG="examples/$project/config.mk" WEB_DOWNLOADS_MK=/dev/null \
+              TSC='web/node_modules/.bin/tsc --target ES5 --lib es6,dom --alwaysStrict --skipLibCheck --module system --incremental --typeRoots web/node_modules/@types' web
+          done
+      - name: Check PNA processing, clients and shared PNA, DPLL and FFT interfaces
+        run: bash server/drivers/phase-noise/tests/run-host.sh
+      - name: Check ALPHA15 acquisition snapshots with sanitizers
+        run: |
+          "$CXX" -std=c++20 -Wall -Wextra -Werror -g -fsanitize=address,undefined \
+            -fno-omit-frame-pointer -no-pie -I. -Iserver/external_libs -I/usr/include/eigen3 \
+            examples/alpha15/signal-analyzer/tests/test_acquisition.cpp -o /tmp/alpha15-test-acquisition
+          /tmp/alpha15-test-acquisition

@@ -24,6 +24,8 @@ requirements, plus the `cross-armhf:24.04` and `koheron-web:node20` Docker image
 C++ image must also provide native `g++-13`, since these tests run on the host CPU.
 Browser workspace tests use TypeScript 5.6.3 and jsdom 26.1.0, installed on first
 run into the ignored `tmp/tests` dependency directory.
+The wrapper delegates to the [shared host runner](../../../../server/drivers/phase-noise/tests/README.md),
+which supports `PNA_TEST_MODE=native` and separate Python/C++/browser stages.
 
 Coverage includes:
 

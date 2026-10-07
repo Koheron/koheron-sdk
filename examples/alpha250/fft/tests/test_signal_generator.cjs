@@ -28,7 +28,7 @@ async function host(t, failure = false, board = 'alpha250', connectionFailure = 
     window.Client = class { async init() { if (connectionFailure) { throw new Error('Unavailable'); } } exit() { client.exits++; } };
     window.Imports = class {
         constructor(document) {
-            const assets = ['web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file',
+            const assets = ['web/temperature-sensor', 'web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file',
                 'web/plot-basics', `examples/${board}/fft/web/clock-generator`,
                 `examples/${board}/fft/web/precision-channels`, `examples/${board}/fft/web/temperature-sensor`,
                 `examples/${board}/fft/web/power-monitor`];
@@ -55,7 +55,7 @@ async function host(t, failure = false, board = 'alpha250', connectionFailure = 
     window.PhaseModulatorDriver = class { constructor() { return port; } };
     window.$ = () => ({trigger() {}});
     for (const [file, exports] of [
-        ['web/phase-modulator/frequency-input.ts', ['FrequencyInput', 'NumberInput']],
+        ['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']],
         ['web/phase-modulator/phase-modulator-widget.ts', ['PhaseModulatorWidget']],
         ['web/fft/workspace.ts', ['FFTWorkspace']],
         [`examples/${board}/fft/web/board-controls.ts`, [board === 'alpha250' ? 'Alpha250FFTControls' : 'RedPitayaFFTControls']],

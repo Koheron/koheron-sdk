@@ -1,5 +1,9 @@
 # Host regression tests
 
+`bash web/tests/run.sh fft` runs the shared clock/plot checks and all FFT browser
+regressions below, including the ALPHA15 workspace suite. The CI host job also
+builds all FFT web applications and runs these suites.
+
 From the repository root, with the SDK Python dependencies installed:
 
 ```sh
@@ -28,7 +32,7 @@ Shared PNA DAC integration (requires `typescript` and `jsdom` on `NODE_PATH`):
 
 ```sh
 node --test examples/alpha250/fft/tests/test_signal_generator.cjs
-node --test examples/alpha250/fft/tests/test_precision_channels.cjs
+node --test web/precision-channels/tests/test_precision_channels.cjs
 node --test examples/alpha250/phase-modulator/tests/test_web_widget.js
 PYTHONPATH=python .venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/test_phase_modulator.py
 PYTHONPATH=python .venv/bin/python3 -m pytest fpga/ip/awg_v1_0/tests/test_client.py
@@ -115,7 +119,7 @@ regressions check clipped segments, sharp extrema, gaps, line styles, cursor
 ownership and sparse-zoom fallback:
 
 ```sh
-node --test examples/alpha250/phase-noise-analyzer/tests/test_rendering.cjs
+node --test web/plot-basics/tests/test_rendering.cjs
 ```
 
 Received history regression:

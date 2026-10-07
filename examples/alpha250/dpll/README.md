@@ -194,8 +194,11 @@ averages and start a new acquisition epoch.
 The server uses the shared PNA `Core`, cyclic DMA reader, 32768-point Hann FFTs
 with 50% overlap, three-periodogram Welch estimate, rolling averager, calibration
 and atomic spectrum snapshots. The web UI uses the shared PNA driver adapter,
-plot, precision widget, numeric editors and exports. A separate ordered socket
-keeps monitor replies out of the feedback-control command queue.
+passive monitor lifecycle, plot, precision widget, numeric editors and exports.
+The local `DpllMonitor` adapter supplies a separate ordered socket and the `Dma`
+driver to `PnaMonitor`, keeping monitor replies out of the feedback-control
+command queue. The clock RPC adapter is also shared with the ALPHA PNA pages;
+DPLL retains its own clock template and feedback-control lifecycle.
 
 DMA acquisition continues while the CPU computes spectra or the browser is
 closed. Slow consumers can skip FFT windows; the existing PNA status reports
@@ -245,10 +248,15 @@ bash examples/alpha250/dpll/tests/run-dac-mux.sh
 bash examples/alpha250/dpll/tests/run-monitor.sh
 ```
 
-The host script requires a C++20 compiler and `typescript` and `jsdom`
+The host script requires g++-13, Eigen, NumPy/SciPy, and `typescript` and `jsdom`
 (listed in `web/package.json`, install there with `npm install`). Set `NODE_PATH`
 if they are installed elsewhere. It tests coefficient generation and the
 acknowledged programming protocol with address/undefined-behavior sanitizers.
+It delegates to the [shared host runner](../../../server/drivers/phase-noise/tests/README.md)
+and also covers monitor acquisition and Python clients without Vivado. Set
+`PNA_TEST_MODE=docker` to use the SDK test images. The historical detector and
+integer-gain references live in `tests/reference/`; production feedback wiring
+checks instantiate `split_detector::create`.
 The web tests mount the actual templates, driver adapters and shared
 frequency editor with a simulated transport. They check read-only startup,
 channel isolation, signed/zero gain validation, frequency units and limits,

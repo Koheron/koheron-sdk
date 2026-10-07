@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '../../../..');
 function environment(t) {
     const dom = new JSDOM('<div id="first"></div><div id="second"></div>', {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
-    for (const file of ['web/koheron.ts', 'web/phase-modulator/frequency-input.ts', 'web/phase-modulator/phase-modulator.ts', 'web/phase-modulator/phase-modulator-widget.ts']) {
+    for (const file of ['web/koheron.ts', 'web/inputs/digit-input.ts', 'web/phase-modulator/phase-modulator.ts', 'web/phase-modulator/phase-modulator-widget.ts']) {
         dom.window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
             compilerOptions: {target: ts.ScriptTarget.ES2020}
         }).outputText + '\nwindow.TestDriver = typeof PhaseModulatorDriver !== "undefined" ? PhaseModulatorDriver : window.TestDriver;' +

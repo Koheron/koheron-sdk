@@ -1,6 +1,6 @@
 # One component list for every FFT board. Board entry points follow this include.
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
+include $(SDK_PATH)/web/inputs/components.mk
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.css
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts

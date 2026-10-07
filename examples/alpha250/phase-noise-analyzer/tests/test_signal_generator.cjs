@@ -66,7 +66,7 @@ async function host(t, failGenerator = false, failConnection = false) {
     window.$ = () => ({});
     for (const [file, exported] of [
         ['web/phase-noise/phase-precision.ts', 'PhasePrecision'],
-        ['web/phase-modulator/frequency-input.ts', 'FrequencyInput'],
+        ['web/inputs/digit-input.ts', 'FrequencyInput'],
         ['web/phase-modulator/phase-modulator-widget.ts', 'PhaseModulatorWidget'],
         ['web/phase-noise/sample-rate.ts', 'PnaSampleRate'],
         ['examples/alpha250/phase-noise-analyzer/web/app.ts', null]

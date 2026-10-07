@@ -40,8 +40,12 @@ def reference(x,y,fs,remove_drift=True):
 def cpp(frames,fs,detrend,label):
     inp=OUT/f'audit-{label}-input.bin';out=OUT/f'audit-{label}-output.bin'
     np.asarray(frames,dtype='<f4').tofile(inp)
-    subprocess.run(['docker','run','--rm','-u',f'{os.getuid()}:{os.getgid()}',
-        '-v',f'{ROOT}:/review','-w','/review',os.environ.get('PNA_CPP_IMAGE','cross-armhf:24.04'),str(EXE),str(inp),str(out),str(fs),str(int(detrend))],check=True)
+    command = [str(EXE), str(inp), str(out), str(fs), str(int(detrend))]
+    if os.environ.get('PNA_TEST_MODE', 'docker') == 'docker':
+        command = ['docker', 'run', '--rm', '-u', f'{os.getuid()}:{os.getgid()}',
+                   '-v', f'{ROOT}:/review', '-w', '/review',
+                   os.environ.get('PNA_CPP_IMAGE', 'cross-armhf:24.04'), *command]
+    subprocess.run(command, check=True)
     values=np.fromfile(out,dtype='<f4').reshape(len(frames),15001,2)
     return values[:,:,0].astype(float)+1j*values[:,:,1].astype(float)
 

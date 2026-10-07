@@ -12,7 +12,7 @@ Add these shared assets to the instrument's `config.mk`:
 
 ```make
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts
-WEB_FILES += $(SDK_PATH)/web/phase-modulator/frequency-input.ts
+include $(SDK_PATH)/web/inputs/components.mk
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator-widget.ts
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.css
 ```
