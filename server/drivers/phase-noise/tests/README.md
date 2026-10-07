@@ -41,6 +41,7 @@ Shared publication, cyclic DMA and streaming Welch tests run once per invocation
 Instrument C++ fixtures stay with their examples. The workflow in
 `.github/workflows/ci.yml` compiles nine web applications (PNA, DPLL, FFT,
 ALPHA15 and the standalone generator) and runs the complete host suite natively.
+CI also runs ALPHA15's existing C++ acquisition regression with sanitizers.
 `bash web/tests/run.sh fft` runs just the shared/FFT browser checks, without
 requiring PNA C++ payloads.
 

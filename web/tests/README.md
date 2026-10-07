@@ -4,12 +4,14 @@ Run shared clock/plot checks and the selected interface suites from the SDK root
 
 ```sh
 bash web/tests/run.sh fft
+bash web/tests/run.sh alpha15
 bash web/tests/run.sh phase-modulator
 bash web/tests/run.sh pna
 ```
 
 The default is `all`. `alpha250`, `alpha250-4` and `dpll` select a PNA/DPLL suite.
-Shared clock and plot checks run once. FFT checks cover the protocol, controls,
+Shared clock, plot and precision-DAC checks run once. `alpha15` runs these and
+the ALPHA15 signal-analyzer workspace suite. FFT checks cover the protocol, controls,
 plot, scheduling, references, CSV/PNG/history exports, generator integration,
 precision DACs and ALPHA15 workspace. The standalone generator suite also checks
 the shared digit editor's asynchronous tuning and disposal.

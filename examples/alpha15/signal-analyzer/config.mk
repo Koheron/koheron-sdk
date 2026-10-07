@@ -23,13 +23,15 @@ DRIVERS += $(PROJECT_PATH)/fft.cpp
 DRIVERS += $(PROJECT_PATH)/dma.hpp
 
 include $(SDK_PATH)/web/fft/components.mk
+include $(SDK_PATH)/web/precision-channels/components.mk
 # Alpha15 supplies voltage units, four channel modes, and its own board controls.
 WEB_FILES := $(filter-out $(SDK_PATH)/web/fft/controls/input-channel.html $(SDK_PATH)/web/fft/plot/yunit.html,$(WEB_FILES))
 WEB_FILES += $(PROJECT_PATH)/web/fft.ts $(PROJECT_PATH)/web/decimator.ts
 WEB_FILES += $(PROJECT_PATH)/web/fft/input-channel.html $(PROJECT_PATH)/web/plot/yunit.html
 WEB_FILES += $(wildcard $(PROJECT_PATH)/web/adc-range/*.html) $(PROJECT_PATH)/web/adc-range/ltc2387.ts
 WEB_FILES += $(PROJECT_PATH)/web/clock-generator/clock-generator.ts $(PROJECT_PATH)/web/clock-generator/reference-clock.html
-WEB_FILES += $(PROJECT_PATH)/web/precision-channels/precision-dac.ts $(PROJECT_PATH)/web/precision-channels/precision-channels.html
-WEB_FILES += $(PROJECT_PATH)/web/temperature-sensor/temperature-sensor.ts $(PROJECT_PATH)/web/temperature-sensor/temperature-sensor.html
+WEB_FILES += $(PROJECT_PATH)/web/precision-channels/precision-channels.html
+WEB_FILES += $(PROJECT_PATH)/web/temperature-sensor/temperature-sensor.ts
 WEB_FILES += $(PROJECT_PATH)/web/power-monitor/power-monitor.ts $(PROJECT_PATH)/web/power-monitor/power-monitor.html
 WEB_FILES += $(PROJECT_PATH)/web/board-controls.ts $(PROJECT_PATH)/web/index.html $(PROJECT_PATH)/web/app.ts
+WEB_FILES += $(SDK_PATH)/web/temperature-sensor/temperature-sensor.html

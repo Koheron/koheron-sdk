@@ -67,8 +67,8 @@ The regression suite requires Node.js, `typescript` and `jsdom` (see
 `web/package.json`), resolved through `NODE_PATH` if installed outside the repo:
 
 ```sh
-node --test examples/alpha15/signal-analyzer/tests/test_workspace.cjs
-g++ -std=c++20 -Wall -Wextra -Werror -I. -Iserver/external_libs \
+bash web/tests/run.sh alpha15
+g++ -std=c++20 -Wall -Wextra -Werror -I. -Iserver/external_libs -I/usr/include/eigen3 \
     examples/alpha15/signal-analyzer/tests/test_acquisition.cpp \
     -o /tmp/alpha15-test-acquisition
 /tmp/alpha15-test-acquisition
@@ -82,5 +82,9 @@ frame metadata ownership, fresh-band sequence gating, acquisition generations,
 and logarithmic rendering reduction. The C++ regression checks clearing and
 refilling the 16-frame average, publication readiness and snapshot ownership.
 Shared FFT regressions are documented in `examples/alpha250/fft/tests/README.md`.
+Precision-DAC transport and editing are shared under `web/precision-channels`;
+the temperature readout template is under `web/temperature-sensor`. Input-range,
+clock, supply and multiband acquisition adapters remain local. CI builds this
+interface and runs both the browser suite and sanitized C++ acquisition checks.
 These are host checks; numerical calibration, board acquisition and FPGA timing
 need separate hardware/build validation.

@@ -32,7 +32,7 @@ Shared PNA DAC integration (requires `typescript` and `jsdom` on `NODE_PATH`):
 
 ```sh
 node --test examples/alpha250/fft/tests/test_signal_generator.cjs
-node --test examples/alpha250/fft/tests/test_precision_channels.cjs
+node --test web/precision-channels/tests/test_precision_channels.cjs
 node --test examples/alpha250/phase-modulator/tests/test_web_widget.js
 PYTHONPATH=python .venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/test_phase_modulator.py
 PYTHONPATH=python .venv/bin/python3 -m pytest fpga/ip/awg_v1_0/tests/test_client.py

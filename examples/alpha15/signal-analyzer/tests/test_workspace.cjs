@@ -15,7 +15,7 @@ async function host(t, failure = false) {
     });
     t.after(() => dom.window.close());
     const w = dom.window, d = w.document;
-    const state = {writes: [], reads: [], exits: 0, window: 1, channel: 0, operation: 0, ranges: [0, 0], reference: 2, errors: [], generations: {FFT: 1, Decimator: 1}, sequences: [1, 1, 1], noise: 1e-16};
+    const state = {writes: [], reads: [], exits: 0, window: 1, channel: 0, operation: 0, ranges: [0, 0], reference: 2, dac: [.1, .2, .3, .4], errors: [], generations: {FFT: 1, Decimator: 1}, sequences: [1, 1, 1], noise: 1e-16};
     w.console.error = (...args) => state.errors.push(args);
     const timers = new Map(), frames = new Map();
     let id = 0, time = 0;
@@ -37,7 +37,7 @@ async function host(t, failure = false) {
         constructor(document) {
             const assets = [`${project}/web`, `${project}/web/fft`, `${project}/web/plot`, `${project}/web/adc-range`,
                 `${project}/web/clock-generator`, `${project}/web/precision-channels`, `${project}/web/temperature-sensor`, `${project}/web/power-monitor`,
-                'web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file', 'web/plot-basics'];
+                'web/temperature-sensor', 'web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file', 'web/plot-basics'];
             for (const link of document.querySelectorAll('link[rel="import"]')) {
                 const file = assets.map(dir => path.join(root, dir, link.getAttribute('href'))).find(fs.existsSync);
                 assert(file, `Missing import ${link.getAttribute('href')}`);
@@ -53,7 +53,12 @@ async function host(t, failure = false) {
         async init() { if (failure) throw new Error('Board offline'); }
         exit() { state.exits++; }
         getDriver(name) { return {id: name, getCmds: () => new Proxy({}, {get: (_, key) => key})}; }
-        send(command) { state.writes.push(command); }
+        send(command) {
+            state.writes.push(command);
+            if (command.driver === 'PrecisionDac' && command.name === 'set_dac_value_volts') {
+                state.dac[command.args[0]] = command.args[1];
+            }
+        }
         async readUint32(command) {
             state.reads.push(command);
             switch (command.name) {
@@ -78,7 +83,7 @@ async function host(t, failure = false) {
             state.reads.push(command);
             switch (command.name) {
                 case 'read_psd': { const data = new w.Float32Array(4096).fill(1e-16); data[1311] = 1e-8; return data; }
-                case 'get_dac_values': return new w.Float32Array([.1, .2, .3, .4]);
+                case 'get_dac_values': return new w.Float32Array(state.dac);
                 case 'get_temperatures': return new w.Float32Array([30, 40, 50]);
                 case 'get_supplies_ui': return new w.Float32Array([.1, 12, .02, 3.3]);
                 default: throw new Error(command.name);
@@ -103,10 +108,10 @@ async function host(t, failure = false) {
         setVisibleRangeX(from, to) { range = {from, to}; }
         redraw(data, count, peak, label, cb) { drawn = {data, count, peak, label}; cb(); }
     };
-    const files = ['web/fft/driver.ts', 'web/fft/controls/fft-app.ts', 'web/fft/controls/precision-channels.ts',
+    const files = ['web/precision-channels/precision-dac.ts', 'web/fft/driver.ts', 'web/fft/controls/fft-app.ts', 'web/precision-channels/precision-channels-app.ts',
         'web/inputs/digit-input.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/spectrum-views.ts',
         'web/fft/plot/plot.ts', 'web/fft/export-file/export-file.ts', 'web/fft/workspace.ts',
-        ...['adc-range/ltc2387.ts', 'clock-generator/clock-generator.ts', 'precision-channels/precision-dac.ts',
+        ...['adc-range/ltc2387.ts', 'clock-generator/clock-generator.ts',
             'temperature-sensor/temperature-sensor.ts', 'power-monitor/power-monitor.ts', 'decimator.ts', 'fft.ts', 'board-controls.ts', 'app.ts'].map(file => `${project}/web/${file}`)];
     w.eval(ts.transpileModule(files.map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
@@ -132,6 +137,35 @@ test('Alpha15 mounts shared UX with four inputs, voltage units, ranges and read-
     assert.equal(h.d.querySelectorAll('input[type="range"]').length, 0);
     assert.equal(h.d.getElementById('connection-status').textContent, 'Live spectrum');
     assert.equal(h.drawn.label, 'Voltage noise (dBV/√Hz)');
+});
+
+test('Alpha15 shared DAC edits preserve acquisition and references while telemetry retains drafts', async t => {
+    const h = await host(t), plot = h.app.plot;
+    plot.captureReference();
+    const reference = plot.referenceStatus, epoch = plot.history.epoch;
+    const restarts = h.state.reads.filter(c => c.name === 'restart_acquisition').length;
+    const input = h.d.querySelector(".precision-dac-input[data-channel='3']");
+    input.value = '123.456 mV';
+    input.dispatchEvent(new h.w.Event('input', {bubbles: true}));
+    await h.app.board.poll();
+    assert.equal(input.value, '123.456 mV', 'Board telemetry must preserve a pending DAC edit');
+    assert.equal(h.state.writes.length, 0);
+    const pendingTimers = new Set(h.timers.keys());
+    input.dispatchEvent(new h.w.KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    // Advance the newly queued edit; the fixture freezes background poll timers.
+    for (const [id, callback] of h.timers) {
+        if (!pendingTimers.has(id)) { h.timers.delete(id); callback(); }
+    }
+    await h.flush();
+    assert.deepEqual(h.state.writes.map(c => [c.driver, c.name, ...c.args]), [
+        ['PrecisionDac', 'set_dac_value_volts', 3, .123456]
+    ]);
+    assert.equal(input.value, '123.456');
+    assert.equal(plot.history.epoch, epoch);
+    assert.strictEqual(plot.referenceStatus, reference);
+    assert.equal(h.state.reads.filter(c => c.name === 'restart_acquisition').length, restarts);
+    assert.deepEqual(Array.from(h.d.querySelectorAll('.temperature-span'), node => node.textContent), ['30.0', '40.0', '50.0']);
+    assert.deepEqual(Array.from(h.d.querySelectorAll('.supply-span'), node => node.textContent), ['12.000', '3.300', '100.0', '20.0']);
 });
 
 test('multiband grid is zero based, strictly ordered, covers RF, and uses each band ENBW', async t => {

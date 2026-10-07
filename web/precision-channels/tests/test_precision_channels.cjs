@@ -4,8 +4,62 @@ const path = require('node:path');
 const test = require('node:test');
 const ts = require('typescript');
 const {JSDOM} = require('jsdom');
-const root = path.resolve(__dirname, '../../../..');
+const root = path.resolve(__dirname, '../../..');
 const settle = () => new Promise(resolve => setTimeout(resolve, 25));
+
+function transport(client) {
+    const vm = require('node:vm');
+    const context = vm.createContext({
+        client,
+        Command: (id, name, ...args) => ({id, name, args})
+    });
+    vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, 'web/precision-channels/precision-dac.ts'), 'utf8'), {
+        compilerOptions: {target: ts.ScriptTarget.ES2020}
+    }).outputText + '\nglobalThis.dac = new PrecisionDac(client);', context);
+    return context.dac;
+}
+
+test('shared DAC transport preserves voltage commands, Promise reads and rejected readbacks', async () => {
+    const calls = [], values = Float32Array.from([.1, .2, .3, .4]);
+    let reply = Promise.resolve(values);
+    const client = {
+        getDriver(name) {
+            assert.equal(name, 'PrecisionDac');
+            return {id: 7, getCmds: () => ({set_dac_value_volts: 'write', get_dac_values: 'read'})};
+        },
+        send(command) { calls.push(JSON.parse(JSON.stringify(command))); },
+        readFloat32Array(command, callback) {
+            assert.equal(callback, undefined);
+            calls.push(JSON.parse(JSON.stringify(command)));
+            return reply;
+        }
+    };
+    const dac = transport(client);
+    assert.equal(calls.length, 0, 'Constructing the transport must not write outputs');
+    dac.setDac(3, 2.5);
+    assert.strictEqual(dac.getDacValues(), reply);
+    assert.strictEqual(await reply, values);
+    assert.deepEqual(calls, [{id: 7, name: 'write', args: [3, 2.5]}, {id: 7, name: 'read', args: []}]);
+    reply = Promise.reject(new Error('Disconnected'));
+    await assert.rejects(dac.getDacValues(), /Disconnected/);
+});
+
+test('shared DAC transport retains the legacy callback contract and typed readback', () => {
+    const values = Float32Array.from([.1, .2, .3, .4]);
+    let callback, received;
+    const dac = transport({
+        getDriver: () => ({id: 9, getCmds: () => ({get_dac_values: 'read'})}),
+        readFloat32Array(command, cb) {
+            assert.equal(command.id, 9); assert.equal(command.name, 'read');
+            callback = cb;
+            return Promise.resolve(values); // Callback API previously discards this result.
+        }
+    });
+    assert.equal(dac.getDacValues(value => { received = value; }), undefined);
+    assert.equal(received, undefined);
+    callback(values);
+    assert.strictEqual(received, values);
+});
 
 async function host(t) {
     const markup = fs.readFileSync(path.join(root, 'examples/alpha250/fft/web/precision-channels/precision-channels.html'), 'utf8');
@@ -21,7 +75,7 @@ async function host(t) {
     };
     for (const [file, exports] of [
         ['web/inputs/digit-input.ts', ['NumberInput']],
-        ['web/fft/controls/precision-channels.ts', ['PrecisionChannelsApp']]
+        ['web/precision-channels/precision-channels-app.ts', ['PrecisionChannelsApp']]
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
             compilerOptions: {target: ts.ScriptTarget.ES2020}
