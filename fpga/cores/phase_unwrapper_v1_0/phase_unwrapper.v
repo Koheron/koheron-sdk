@@ -53,7 +53,11 @@ module phase_unwrapper #
     // The custom extractor sign-extends its canonical [-pi,pi) angle.
     // Subtraction modulo 2*pi already wraps the low bits. Preserve the
     // original positive-pi difference tie rather than sign-extending it.
-    wire [LOW_WIDTH-1:0] difference=phase_in[LOW_WIDTH-1:0]-phase_in0[LOW_WIDTH-1:0];
+    wire [LOW_WIDTH-1:0] difference;
+    // The extractor's final scale/zero selection shares this clock budget.
+    // Short local carries preserve the fused subtraction's one-clock delay.
+    phase_unwrapper_adder #(.WIDTH(LOW_WIDTH),.BLOCK(8)) difference_add(
+        phase_in[LOW_WIDTH-1:0],~phase_in0[LOW_WIDTH-1:0],1'b1,difference);
     wire positive_pi_tie=~phase_in[LOW_WIDTH-1] && phase_in0[LOW_WIDTH-1] &&
                         phase_in[LOW_WIDTH-2:0]==phase_in0[LOW_WIDTH-2:0];
     wire difference_sign=difference[LOW_WIDTH-1] && !positive_pi_tie;

@@ -19,7 +19,7 @@ module gain_programmer (
     output reg [63:0] data = 0
 );
     localparam F_DRAIN=0, F_IDLE=1, F_WAIT=2, F_APPLIED=3, F_RETURN=4,
-               F_STROBE=5, F_WRITE=6;
+               F_STROBE=5, F_WRITE=6, F_ACCEPT=7;
     localparam S_DRAIN=0, S_IDLE=1, S_WAIT=2, S_RETURN=3;
     reg [2:0] fast_state=F_DRAIN;
     reg [1:0] slow_state=S_DRAIN;
@@ -29,6 +29,9 @@ module gain_programmer (
     reg request_send=0, response_send=0;
     reg request_ack=0, response_ack=0;
     reg [31:0] pending_ack=0;
+    reg rejected=0, commit_requested=0, loop_requested=0;
+    reg [7:0] destinations=0;
+    integer k;
     wire request_received, response_received;
     wire request_valid, response_valid;
     wire [95:0] request_word;
@@ -127,22 +130,34 @@ module gain_programmer (
                 end
                 F_WAIT: if (response_valid) begin
                     pending_ack<=response_word[31:0] | (reject_request ? 32'h40000000 : 32'd0);
-                    if (!reject_request) begin
-                        if (response_word[105]) begin
-                            active_banks[target]<=response_word[5];
-                            coefficients[64*target +: 64]<=response_word[95:32];
+                    // Register acceptance and the one-hot destination before
+                    // they drive the replicated RAM and coefficient controls.
+                    // The handshake holds response_word until F_APPLIED.
+                    rejected<=reject_request;
+                    commit_requested<=response_word[105];
+                    loop_requested<=response_word[8];
+                    destinations<=8'b1<<target;
+                    fast_state<=F_ACCEPT;
+                end
+                F_ACCEPT: begin
+                    if (!rejected) begin
+                        if (commit_requested) begin
+                            for(k=0;k<8;k=k+1) if(destinations[k]) begin
+                                active_banks[k]<=response_word[5];
+                                coefficients[64*k +: 64]<=response_word[95:32];
+                            end
                         end else begin
                             data<=response_word[95:32];
                             // Hold payload/address before asserting the write
                             // strobe, retaining the two-clock RAM setup budget.
-                            if (response_word[8]) command1<={1'b0,response_word[103:96]};
+                            if (loop_requested) command1<={1'b0,response_word[103:96]};
                             else command0<={1'b0,response_word[103:96]};
                         end
                     end
-                    fast_state<=(!reject_request && !response_word[105]) ? F_STROBE : F_APPLIED;
+                    fast_state<=(!rejected && !commit_requested) ? F_STROBE : F_APPLIED;
                 end
                 F_STROBE: begin
-                    if (response_word[8]) command1[8]<=1;
+                    if (loop_requested) command1[8]<=1;
                     else command0[8]<=1;
                     fast_state<=F_WRITE;
                 end
@@ -152,7 +167,7 @@ module gain_programmer (
                 end
                 F_APPLIED: begin
                     // Writes have reached RAM before acknowledgement. Commits
-                    // apply bank and coefficient atomically in F_WAIT.
+                    // apply bank and coefficient atomically in F_ACCEPT.
                     ack<=pending_ack;
                     response_ack<=1;
                     fast_state<=F_RETURN;

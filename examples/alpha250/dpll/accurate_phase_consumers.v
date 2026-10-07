@@ -9,10 +9,14 @@ module accurate_phase_consumers(
     output reg signed [63:0] monitor_phase=0
 );
     wire signed [64:0] rounded=$signed({phase[63],phase})+$signed({57'b0,random_round});
+    // Bound the local carry chains without adding a feedback register.
+    wire [39:0] next_feedback;
+    phase_unwrapper_adder #(.WIDTH(40),.BLOCK(8)) feedback_add(
+        feedback_phase,{{15{frequency[24]}},frequency},1'b0,next_feedback);
     always @(posedge clk) begin
         if(!resetn) begin feedback_phase<=0; monitor_phase<=0; end
         else begin
-            if(acc_on) feedback_phase<=feedback_phase+frequency;
+            if(acc_on) feedback_phase<=next_feedback;
             monitor_phase<=rounded>>>8;
         end
     end

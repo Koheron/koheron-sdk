@@ -81,7 +81,7 @@ module test_p_frontend_tb;
         if(($signed(fast)-fast_before)-(accurate_delayed-accurate_before)>6 ||
            ($signed(fast)-fast_before)-(accurate_delayed-accurate_before)<-6)
             $fatal(1,"Fast/accurate response scale mismatch");
-        $display("Generated mixer/boxcar/CORDIC P latency: fast=%0d clocks accurate=%0d clocks saving=%0d clocks",fast_arrival,accurate_arrival,accurate_arrival-fast_arrival);
+        $display("Generated mixer/filter/extractor P response: fast=%0d clocks accurate=%0d clocks saving=%0d clocks",fast_arrival,accurate_arrival,accurate_arrival-fast_arrival);
         @(negedge clk);request=0;wait(!status[0]);repeat(20) @(negedge clk);
         $display("P front-end checks passed: 31.25 MHz carrier, arbitrary lock phase, 10-degree step, both handoffs");
         $finish;

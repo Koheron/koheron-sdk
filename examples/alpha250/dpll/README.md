@@ -287,7 +287,9 @@ Gain requests are validated and decoded at 143 MHz, using PR 780's registered
 CDC handshakes and reset draining. RAM writes and atomic bank/coefficient commits
 remain at 250 MHz. Address and payload precede the registered write strobe,
 preserving PR 782's two-clock RAM setup budget. Acknowledgement follows the write
-or commit. Reset preserves committed gains while cancelling pending transfers.
+or commit. The acceptance decision and one-hot gain destination are registered
+before driving table controls; that extra programming clock does not affect
+feedback latency. Reset preserves committed gains while cancelling pending transfers.
 Only these held RAM programming inputs use two-clock timing constraints; the
 write strobe, bank commits, lookup addresses and feedback remain at 250 MHz.
 
@@ -328,6 +330,10 @@ before writing the bitstream. The additional design check verifies the full
 instrument top, 250 MHz clocks, both selected controllers and all eight table
 gain paths. Physical optimization adds no pipeline stages and retains the
 startup clock-phase timing constraints.
+The fused canonical subtraction and 40-bit feedback accumulator use short local
+carry chains with unchanged register delays. Gain acceptance has its own
+programming stage. The former vendor-CORDIC netlist's fixed register placements
+are removed so the combined instrument can be placed and qualified afresh.
 The monitor stream simulation uses the shared CIC RTL and imports the production
 clock converter and FIR configurations. It checks ordering, sustained throughput at R=4/20/8192,
 sample-gap reporting under backpressure and recovery after an epoch reset.

@@ -8,6 +8,9 @@ if {[llength $data_sources] < 48} {error "Expected the 48 used gain table payloa
 set bank_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/active_banks_reg*}]
 if {[llength $bank_sources] < 8} {error "Expected eight applied gain banks"}
 set sources [concat $sources $data_sources $bank_sources]
+set acceptance_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/* && (NAME =~ *destinations_reg* || NAME =~ *rejected_reg* || NAME =~ *commit_requested_reg* || NAME =~ *loop_requested_reg*)}]
+if {[llength $acceptance_sources] < 11} {error "Expected registered gain acceptance and one-hot destinations"}
+set sources [concat $sources $acceptance_sources]
 set nets [get_nets -of_objects [get_pins -of_objects $sources -filter {REF_PIN_NAME == Q}]]
 set_property FORCE_MAX_FANOUT 16 $nets
 phys_opt_design -force_replication_on_nets $nets
