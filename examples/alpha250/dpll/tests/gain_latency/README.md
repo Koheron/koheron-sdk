@@ -275,7 +275,7 @@ For the current Q8 interfaces, set `DPLL_GAIN_PHASE_FRAC=8`,
 integer products, including exact four-clock table and three-clock DSP latencies.
 The corrector benchmark's first argument selects fused (1) or separate (0).
 Optional final arguments set initial gain stages, final CSA levels, carry-block
-width and I2/I3 gain stages. **`2 2 0 3` is the selected mixed pipeline**;
+width and I2/I3 gain stages. **`2 2 0 3` reproduces the historical narrow mixed pipeline**;
 `3 0 0 3` reproduces the slower all-three-clock fallback. `2 2 0` selects the
 all-two-clock ripple-carry variant, which fails timing.
 

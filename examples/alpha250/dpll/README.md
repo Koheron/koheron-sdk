@@ -348,6 +348,44 @@ sample-gap reporting under backpressure and recovery after an epoch reset.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).
 
+### Combined PR 780/782 build (2026-10-07)
+
+The complete ALPHA250 instrument builds at 250 MHz with Vivado 2025.1.
+Strict timing enforcement passes before writing `dpll.bit` and packaging
+`dpll.zip`: setup slack **+0.006867 ns**, hold slack **+0.024832 ns**, zero total
+negative slack and all **10 bus-skew constraints** passing. Setup margin is
+small; subsequent logic or placement changes require qualification again.
+The full design was synthesized and placed afresh. After adding the guarded
+reference-launch routing hook, post-route optimization was rerun from the same
+route checkpoint, followed by the normal strict build and packaging steps.
+The routing hook checks identical data, clock, enable, reset and initialization
+before using an existing projection register for two reference-carry inputs.
+It adds no latency.
+
+The final critical path is programming-state control to an applied-bank
+register's enable, with a 4 ns requirement. Held programming address/data
+inputs have a 12 ns requirement and +3.405 ns setup margin; the write strobe
+and bank commits retain 4 ns requirements. Routed utilization is **22,338 LUTs**,
+**31,089 flip-flops**, **101 DSPs** and **36.5 BRAM tiles**.
+
+The single additional feedback clock is the RF DAC output register: Fast P/I
+and accurate P/I register delays are **60/84/136/140 ns**, respectively.
+All accurate gains retain four-clock latency. The generated configuration and
+both controllers' extractor, gain, detector and selector timing checks pass.
+Explicit DAC checks pass at startup phase 0 (setup +1.022 ns, hold +0.090 ns)
+and the normal 56-step phase (setup +0.022 ns, hold +1.090 ns).
+
+The DAC mux regression covers both its unchanged one-clock default and the
+DPLL two-clock selection, each for 10,002 cycles. Independent four-clock gain
+vectors pass 55,408 cycles; controller arithmetic passes 33,890 cycles, mapped
+DSP controllers pass 19,548 cycles, and the two-controller programming test
+passes 200,452 cycles with 4,352 transactions, 4,096 writes and 128 commits.
+The production frontend, phase/history, host/web and monitor regressions pass.
+No instrument has been installed or tested on hardware. External I/O timing
+coverage remains at the board constraints' existing 14 inputs and 41 outputs
+without delay constraints; lock, stability, phase noise and analog latency
+still require hardware measurements.
+
 ### Historical PR 782 Fast P + I build (2026-10-07)
 
 Before integrating PR 780, the ALPHA250 instrument built with Vivado 2025.1 at
