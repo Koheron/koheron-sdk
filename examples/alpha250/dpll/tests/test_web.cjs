@@ -13,6 +13,12 @@ async function host(t, options = {}) {
   const {window} = dom;
   const {document} = window;
   t.after(() => { window.dispatchEvent(new window.Event('pagehide')); window.close(); });
+  let resolveSvg;
+  window.fetch = async () => {
+    if (options.holdSvg) { await new Promise(resolve => { resolveSvg = resolve; }); }
+    if (options.failSvg) { throw new Error('SVG unavailable'); }
+    return {ok: true, text: async () => read('examples/alpha250/dpll/web/p_path.svg')};
+  };
   const writes = [];
   const reads = [];
   const state = {
@@ -106,7 +112,7 @@ async function host(t, options = {}) {
   const sources = koheron.slice(koheron.indexOf('class Imports {')) + '\n' + [
     'web/phase-modulator/frequency-input.ts', 'examples/alpha250/dpll/web/dpll.ts',
     'examples/alpha250/dpll/web/clock-generator/clock-generator.ts',
-    'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
+    'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
   ].map(read).join('\n');
   window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText);
   window.dispatchEvent(new window.Event('HTMLImportsLoaded'));
@@ -115,7 +121,7 @@ async function host(t, options = {}) {
   const row = (channel = 0, status = 'p_gain') => document.querySelector(`.gain-row[data-channel="${channel}"][data-status="${status}"]`);
   const type = (input, value) => { input.value = value; input.dispatchEvent(new window.Event('input', {bubbles: true})); };
   const key = (input, key) => input.dispatchEvent(new window.KeyboardEvent('keydown', {key, bubbles: true}));
-  return {window, document, state, writes, reads, inputs, row, type, key, resolveInit};
+  return {window, document, state, writes, reads, inputs, row, type, key, resolveInit, resolveSvg};
 }
 
 test('startup reads both loops, signed gains, routing and clock without writes', async t => {
@@ -339,4 +345,68 @@ test('gain arrow tuning supports fine and octave steps without applying until En
   assert.equal(input.value, '30.9375');
   h.type(input, '0'); h.key(input, 'ArrowDown'); assert.equal(input.value, '0');
   h.key(input, 'Escape'); await settle(); assert.equal(input.value, '2.0625');
+});
+
+test('live schematic follows applied channel settings without writes or draft leakage', async t => {
+  const h = await host(t);
+  const svg = h.document.querySelector('#live-diagram svg');
+  assert.ok(svg);
+  const label = name => svg.querySelector(`[data-label="${name}"]`).textContent;
+  assert.equal(label('adc'), 'ADC0');
+  assert.equal(label('mode'), 'Accurate selected');
+  assert.equal(svg.querySelector('[data-gain="p_gain"] text').textContent, '−P');
+  assert.equal(svg.querySelector('[data-gain="pi_gain"]').getAttribute('data-state'), 'disabled');
+  for (const block of svg.querySelectorAll('[data-integrator="2"]')) {
+    assert.equal(block.getAttribute('data-state'), 'enabled');
+  }
+  h.type(h.row().querySelector('.gain-input'), '12');
+  h.row().querySelector('.gain-button[value="0"]').click();
+  await settle(280);
+  assert.equal(svg.querySelector('[data-gain="p_gain"] title').textContent, 'P = -8 (applied)');
+  h.state.paths[1] = 1;
+  const select = h.document.querySelector('#diagram-channel');
+  select.value = '1'; select.dispatchEvent(new h.window.Event('change'));
+  await settle(280);
+  assert.equal(label('adc'), 'ADC1');
+  assert.equal(label('mode'), 'Fast selected');
+  assert.equal(label('range'), 'Outside estimate range');
+  assert.equal(svg.querySelector('[data-mode="fast"]').getAttribute('data-selected'), 'true');
+  assert.equal(svg.querySelector('[data-mode="accurate"]').getAttribute('data-selected'), 'false');
+  assert.equal(svg.querySelector('[data-gain="i3_gain"]').getAttribute('data-state'), 'enabled');
+  for (const block of svg.querySelectorAll('[data-integrator]')) {
+    assert.equal(block.getAttribute('data-state'), [1,3].includes(Number(block.getAttribute('data-integrator'))) ? 'enabled' : 'disabled');
+  }
+  assert.equal(label('routes'), 'DAC0: DDS 0 · DAC1: Loop 1');
+  assert.equal(h.writes.length, 0);
+  h.state.failed = true; await settle(280);
+  assert.equal(svg.hasAttribute('data-live'), false);
+  assert.equal(label('mode'), 'Mode selection');
+  assert.match(label('header'), /UNAVAILABLE/);
+});
+
+
+test('late SVG load uses the latest selected channel and settings', async t => {
+  const h = await host(t, {holdSvg: true});
+  assert.ok(h.document.querySelector('#live-diagram img'));
+  h.state.paths[1] = 3;
+  const select = h.document.querySelector('#diagram-channel');
+  select.value = '1'; select.dispatchEvent(new h.window.Event('change'));
+  await settle(280);
+  h.resolveSvg(); await settle();
+  assert.equal(h.document.querySelector('[data-label="adc"]').textContent, 'ADC1');
+  assert.equal(h.document.querySelector('[data-label="mode"]').textContent, 'Fast selected');
+  assert.equal(h.writes.length, 0);
+});
+
+test('SVG failure retains the static fallback without disconnecting controls', async t => {
+  const h = await host(t, {failSvg: true});
+  assert.ok(h.document.querySelector('#live-diagram img'));
+  assert.equal(h.document.querySelector('#connection-status').dataset.state, 'live');
+});
+
+test('SVG resolving after shutdown cannot display stale live settings', async t => {
+  const h = await host(t, {holdSvg: true});
+  h.window.dispatchEvent(new h.window.Event('pagehide'));
+  h.resolveSvg(); await settle();
+  assert.equal(h.document.querySelector('#live-diagram svg'), null);
 });

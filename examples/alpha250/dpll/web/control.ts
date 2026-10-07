@@ -1,5 +1,6 @@
 // Each loop owns its editors so polling never moves a draft between channels.
 class Control {
+  private diagram: DpllDiagram;
   private frequencies: FrequencyInput[] = [];
   private gainRows: HTMLTableRowElement[];
   private removers: Array<() => void> = [];
@@ -12,6 +13,7 @@ class Control {
 
   constructor(private document: Document, private dpll: Dpll,
               private fail: (error: unknown) => void) {
+    this.diagram = new DpllDiagram(document);
     for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.frequency-input'))) {
       const channel = Number(input.dataset.channel);
       const unit = document.querySelector<HTMLSelectElement>(`.frequency-unit[data-channel="${channel}"]`);
@@ -149,6 +151,7 @@ class Control {
 
   render(status: IDpllStatus, routes: number[], sampleRate: number): void {
     if (this.disposed) { return; }
+    this.diagram.render(status, routes, sampleRate);
     if (sampleRate !== this.sampleRate) {
       this.sampleRate = sampleRate;
       this.frequencies.forEach(frequency => frequency.setLimits(sampleRate / 2, sampleRate / Math.pow(2, 48)));
@@ -181,6 +184,7 @@ class Control {
 
   dispose(): void {
     this.disposed = true;
+    this.diagram.dispose();
     this.frequencies.forEach(frequency => frequency.dispose());
     this.removers.forEach(remove => remove());
   }
