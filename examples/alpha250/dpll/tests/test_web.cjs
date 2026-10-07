@@ -100,7 +100,7 @@ async function host(t, options = {}) {
     const paths = {
       'reference-clock.html': 'examples/alpha250/dpll/web/clock-generator/reference-clock.html',
       'plot-basics.html': 'web/plot-basics/plot-basics.html',
-      'export-file.html': 'web/phase-noise/analyzer/export-file/export-file.html'
+      'export-file.html': 'web/phase-noise/export-file/export-file.html'
     };
     link.import = new window.DOMParser().parseFromString(read(paths[link.getAttribute('href')]), 'text/html');
   }

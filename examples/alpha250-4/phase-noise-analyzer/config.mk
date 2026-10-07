@@ -31,6 +31,7 @@ include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
 include $(SDK_PATH)/web/phase-noise/components.mk
+include $(SDK_PATH)/web/phase-noise/reference-clock/components.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
 
 # Board Tcl changes must invalidate the generated Vivado project as well.

@@ -8,12 +8,11 @@ const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
 const settle = () => new Promise(resolve => setTimeout(resolve, 15));
 async function fixture(t, board = 'alpha250') {
-    const project = 'examples/alpha250/phase-noise-analyzer/';
     const dom = new JSDOM(fs.readFileSync(path.join(root, `examples/${board}/phase-noise-analyzer/web/index.html`), 'utf8'), {runScripts: 'outside-only'});
     const w = dom.window; t.after(() => w.close());
     w.document.querySelector('#dds-frequency').innerHTML = fs.readFileSync(path.join(root, 'web/phase-noise/analyzer/dds-frequency/dds-frequency.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     const referenceClock = w.document.querySelector('#reference-clock');
-    if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, project + 'web/clock-generator/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
+    if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, 'web/phase-noise/reference-clock/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.requestAnimationFrame = () => 0;
     for (const [file, exports] of [['web/phase-modulator/frequency-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
         w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + exports.map(name => `\nwindow.${name} = ${name};`).join(''));
@@ -131,8 +130,8 @@ test('LO unit entry tunes only the reference and accepts 100 MHz; laser delay st
 test('CSV uses the displayed frame metadata when editable controls have changed', async t => {
     const h = await fixture(t); const {w} = h;
     const file = 'web/phase-noise/analyzer/export-file/';
-    w.document.querySelector('#export-file').innerHTML = fs.readFileSync(path.join(root, file + 'export-file.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
-    w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file + 'export-file.ts'), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
+    w.document.querySelector('#export-file').innerHTML = fs.readFileSync(path.join(root, 'web/phase-noise/export-file/export-file.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(root, 'web/phase-noise/export-file/export-file.ts'), 'utf8') + '\n' + fs.readFileSync(path.join(root, file + 'export-file.ts'), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
     let blob;
     w.Blob = Blob;
     w.URL.createObjectURL = value => { blob = value; return 'blob:http://test/download'; };

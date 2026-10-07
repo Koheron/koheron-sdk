@@ -10,9 +10,9 @@ if ! node -e 'require.resolve("jsdom"); require.resolve("typescript")' >/dev/nul
     npm install --prefix "$deps" --no-save --package-lock=false typescript@5.6.3 jsdom@26.1.0
     export NODE_PATH="$repo/$deps/node_modules:$NODE_PATH"
 fi
-tests=(web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs)
+tests=(web/plot-basics/tests/test_rendering.cjs web/phase-noise/tests/test_export.cjs web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs)
 if [[ $suite == all || $suite == alpha250 ]]; then
-    for name in plot rendering numeric_controls signal_generator sample_rate; do
+    for name in plot numeric_controls signal_generator sample_rate; do
         tests+=("examples/alpha250/phase-noise-analyzer/tests/test_$name.cjs")
     done
 fi

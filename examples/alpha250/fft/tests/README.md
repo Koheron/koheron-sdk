@@ -115,7 +115,7 @@ regressions check clipped segments, sharp extrema, gaps, line styles, cursor
 ownership and sparse-zoom fallback:
 
 ```sh
-node --test examples/alpha250/phase-noise-analyzer/tests/test_rendering.cjs
+node --test web/plot-basics/tests/test_rendering.cjs
 ```
 
 Received history regression:

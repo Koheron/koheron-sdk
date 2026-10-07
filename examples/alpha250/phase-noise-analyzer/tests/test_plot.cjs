@@ -127,7 +127,7 @@ test('CSV exports raw and smoothed display values plus the original linear PSD',
     w.URL.createObjectURL = value => { blob = value; return 'blob:http://test/download'; };
     w.URL.revokeObjectURL = () => {};
     w.HTMLAnchorElement.prototype.click = function () { filename = this.download; };
-    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/analyzer/export-file/export-file.ts'), 'utf8'),
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/export-file/export-file.ts'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/analyzer/export-file/export-file.ts'), 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
     new w.ExportFile(w.document, plot);
     w.document.querySelector('.export-data').click();
@@ -257,7 +257,7 @@ test('web driver strips the vector byte-length prefix and preserves DC through N
 test('exports wait for a valid frame and become unavailable again after a read failure', async t => {
     const {plot, window: w} = fixture(t);
     w.document.body.insertAdjacentHTML('beforeend', '<button class="export-data"></button><button class="export-plot"></button>');
-    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/analyzer/export-file/export-file.ts'), 'utf8'),
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/export-file/export-file.ts'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/analyzer/export-file/export-file.ts'), 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
     let downloads = 0;
     w.URL.createObjectURL = () => { downloads++; return 'blob:http://test/download'; };
@@ -302,7 +302,7 @@ test('PNG includes a white background, measurement units and every trace label a
     w.URL.revokeObjectURL = () => {};
     w.HTMLAnchorElement.prototype.click = () => {};
     plot.plotBasics.plot = {getData: () => [{label: 'Raw', color: 'blue'}, {label: 'Smoothed', color: 'green'}]};
-    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/analyzer/export-file/export-file.ts'), 'utf8'),
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/export-file/export-file.ts'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/analyzer/export-file/export-file.ts'), 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
     new w.ExportFile(w.document, plot);
     w.document.querySelector('.export-plot').click();

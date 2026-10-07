@@ -31,6 +31,7 @@ include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
 include $(SDK_PATH)/web/phase-noise/analyzer/workspace.mk
+include $(SDK_PATH)/web/phase-noise/reference-clock/components.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
 
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
