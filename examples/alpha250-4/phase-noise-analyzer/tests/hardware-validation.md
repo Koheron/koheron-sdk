@@ -979,5 +979,29 @@ and reported phase sample rates 746268.656716 and 932835.820896 Hz respectively.
 Unsupported 240 MS/s was rejected. The starting 250 MS/s rate and saved +8-bit
 precision were retained. Acquisition reported Valid, 22 processed segments,
 zero overflows, DMA errors and ring overruns at the end of the short check.
-This verifies live switching and acquisition; no analog calibration or
-noise-floor comparison between rates was performed.
+This initial check verifies live switching and acquisition; no analog calibration
+or noise-floor comparison between rates was performed at this stage.
+
+An additional stimulus check used ALPHA250 PNA 1.5.1 on 192.168.1.105, with DAC0
+feeding ADC1/ADC3 on the quad board and a 10 MHz reference feeding ADC0/ADC2.
+DAC0 generated a 10 MHz carrier with 0.1-degree peak sine PM at 1, 10 and
+100 kHz. Its sample clock remained at 200 MS/s. Quad LOs were temporarily set
+to 10 MHz, tracking disabled, CIC retained at 134 and precision retained at +8.
+Each X/Y/XY spectrum accumulated at least 32 estimates. Integrating the signed
+phase PSD around the PM line, with a local background subtraction, gave:
+
+| PM offset | Recovered peak deviation, 200 MS/s (X/Y/XY) | Recovered peak deviation, 250 MS/s (X/Y/XY) |
+| --- | --- | --- |
+| 1 kHz | 0.099934 / 0.099929 / 0.099933 degrees | 0.099933 / 0.099932 / 0.099937 degrees |
+| 10 kHz | 0.099755 / 0.099751 / 0.099738 degrees | 0.099745 / 0.099741 / 0.099743 degrees |
+| 100 kHz | 0.099593 / 0.099618 / 0.099607 degrees | 0.099726 / 0.099719 / 0.099710 degrees |
+
+All 18 measurements were within 0.036 dB of the programmed PM variance; no new
+overflows, DMA errors or ring overruns were reported. This checks response to the
+programmed DAC stimulus, without independently calibrating its analog PM or the
+absolute instrument noise floor. DAC0's exact original setting words (10 MHz,
+10 kHz square PM, 0.1 degrees) were restored. The quad's starting 200 MS/s rate,
+four nominal 10.001 MHz LOs, XY channel, averaging length and enabled tracking
+were restored. Subsequent readback confirmed Valid acquisition and tracking lock.
+Raw spectra, settings and the check script are retained locally under
+`tmp/examples/alpha250-4/phase-noise-analyzer/external-pm/` and its parent directory.
