@@ -93,19 +93,18 @@
         <section class="channel-panel" aria-labelledby="channel-title-0">
           <details open><summary id="channel-title-0">ADC 0 loop</summary>
           <div class="frequency-row">
-            <label for="frequency-0">Reference frequency</label>
+            <label for="frequency-0" title="Reference frequency">Reference</label>
             <div class="frequency-control digit-control">
-              <input id="frequency-0" class="frequency-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-channel="0">
+              <input id="frequency-0" class="frequency-input" aria-label="Reference frequency" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-channel="0">
               <select class="frequency-unit" data-channel="0" aria-label="ADC 0 frequency unit"><option>Hz</option><option>kHz</option><option selected>MHz</option><option>GHz</option></select>
             </div>
           </div>
           <div class="p-mode-row">
-            <label for="p-mode-0">P + I phase estimate</label>
-            <select id="p-mode-0" class="p-mode" data-channel="0">
+            <label for="p-mode-0" title="P + I phase estimate">P + I</label>
+            <select id="p-mode-0" class="p-mode" aria-label="P + I phase estimate" title="Fast: select after lock to calibrate phase and amplitude. I² and I³ stay accurate." data-channel="0">
               <option value="0">Accurate</option><option value="1">Fast · near lock</option>
             </select>
             <output class="p-mode-status" data-channel="0" role="status"></output>
-            <small>Select Fast after lock; captures the current phase and amplitude. I² and I³ remain accurate.</small>
           </div>
           <div class="integrator-row"><span class="control-label">Integrators</span><div class="integrators">
             <label><input type="checkbox" class="integrator-switch" data-channel="0" data-integratorindex="0"> 1</label>
@@ -113,8 +112,8 @@
             <label><input type="checkbox" class="integrator-switch" data-channel="0" data-integratorindex="2"> 3</label>
             <label><input type="checkbox" class="integrator-switch" data-channel="0" data-integratorindex="3"> 4</label>
           </div></div>
-          <table class="gain-table">
-            <caption>16 steps per octave</caption>
+          <table class="gain-table" title="Gain = sign × 2^exponent; 16 steps per octave">
+            <caption class="sr-only">16 steps per octave</caption>
             <thead><tr><th scope="col">Gain</th><th scope="col">Sign</th><th scope="col">Exponent</th><th scope="col"><span class="sr-only">Apply</span></th></tr></thead>
             <tbody>
               <tr class="gain-row" data-channel="0" data-status="p_gain" data-gain="0">
@@ -164,19 +163,18 @@
         <section class="channel-panel" aria-labelledby="channel-title-1">
           <details open><summary id="channel-title-1">ADC 1 loop</summary>
           <div class="frequency-row">
-            <label for="frequency-1">Reference frequency</label>
+            <label for="frequency-1" title="Reference frequency">Reference</label>
             <div class="frequency-control digit-control">
-              <input id="frequency-1" class="frequency-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-channel="1">
+              <input id="frequency-1" class="frequency-input" aria-label="Reference frequency" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-channel="1">
               <select class="frequency-unit" data-channel="1" aria-label="ADC 1 frequency unit"><option>Hz</option><option>kHz</option><option selected>MHz</option><option>GHz</option></select>
             </div>
           </div>
           <div class="p-mode-row">
-            <label for="p-mode-1">P + I phase estimate</label>
-            <select id="p-mode-1" class="p-mode" data-channel="1">
+            <label for="p-mode-1" title="P + I phase estimate">P + I</label>
+            <select id="p-mode-1" class="p-mode" aria-label="P + I phase estimate" title="Fast: select after lock to calibrate phase and amplitude. I² and I³ stay accurate." data-channel="1">
               <option value="0">Accurate</option><option value="1">Fast · near lock</option>
             </select>
             <output class="p-mode-status" data-channel="1" role="status"></output>
-            <small>Select Fast after lock; captures the current phase and amplitude. I² and I³ remain accurate.</small>
           </div>
           <div class="integrator-row"><span class="control-label">Integrators</span><div class="integrators">
             <label><input type="checkbox" class="integrator-switch" data-channel="1" data-integratorindex="0"> 1</label>
@@ -184,8 +182,8 @@
             <label><input type="checkbox" class="integrator-switch" data-channel="1" data-integratorindex="2"> 3</label>
             <label><input type="checkbox" class="integrator-switch" data-channel="1" data-integratorindex="3"> 4</label>
           </div></div>
-          <table class="gain-table">
-            <caption>16 steps per octave</caption>
+          <table class="gain-table" title="Gain = sign × 2^exponent; 16 steps per octave">
+            <caption class="sr-only">16 steps per octave</caption>
             <thead><tr><th scope="col">Gain</th><th scope="col">Sign</th><th scope="col">Exponent</th><th scope="col"><span class="sr-only">Apply</span></th></tr></thead>
             <tbody>
               <tr class="gain-row" data-channel="1" data-status="p_gain" data-gain="0">

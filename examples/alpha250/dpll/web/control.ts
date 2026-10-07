@@ -175,6 +175,7 @@ class Control {
       output.textContent = this.pathErrors.get(channel) || (bits & 1 ?
         (bits & 2 ? 'Fast · within estimate range' : 'Fast · outside estimate range') :
         'Accurate · full phase range');
+      output.title = output.textContent;
     }
   }
 

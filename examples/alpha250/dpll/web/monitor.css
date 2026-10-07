@@ -1,7 +1,7 @@
-.dpll-workspace #main { grid-template-columns: minmax(0, 1fr) 560px; max-width: none; gap: 20px; padding-top: 12px; }
-.dpll-workspace .loop-controls-panel { border-left: 1px solid var(--border-light); padding-left: 16px; }
+.dpll-workspace #main { grid-template-columns: minmax(0, 1fr) 520px; max-width: none; gap: 12px; padding-top: 8px; }
+.dpll-workspace .loop-controls-panel { border-left: 1px solid var(--border-light); padding-left: 10px; }
 .dpll-workspace .monitor-panel { min-width: 0; }
-.dpll-workspace .monitor-acquisition, .dpll-workspace .display-controls, .dpll-workspace .plot-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.dpll-workspace .monitor-acquisition, .dpll-workspace .display-controls, .dpll-workspace .plot-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 6px; }
 .dpll-workspace .display-controls { border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
 .dpll-workspace .plot-actions { gap: 8px; }
 .dpll-workspace #reference-actions, .dpll-workspace #export-file, .dpll-workspace .export-actions { display: inline-flex; gap: 6px; }
@@ -29,8 +29,8 @@
 .dpll-workspace .loop-controls-panel summary::before { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(-45deg); flex: none; }
 .dpll-workspace .loop-controls-panel details[open] > summary::before { transform: rotate(45deg); }
 
-.dpll-workspace .loop-controls-panel summary { min-height: 30px; font-weight: 600; }
-.dpll-workspace .loop-controls-panel details[open] > summary { margin-bottom: 8px; }
+.dpll-workspace .loop-controls-panel summary { min-height: 24px; font-weight: 600; }
+.dpll-workspace .loop-controls-panel details[open] > summary { margin-bottom: 4px; }
 .dpll-workspace .channel-grid { align-items: start; }
 .dpll-workspace .channel-panel { padding-top: 0; }
 .dpll-workspace .reference-panel { border-bottom: 1px solid var(--border-light); margin-bottom: 6px; }
