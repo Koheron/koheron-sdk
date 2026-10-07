@@ -13,6 +13,11 @@ class PhaseNoiseAnalyzerApp {
     Object.keys(this.numbers).forEach(key => this.numbers[key].dispose());
   }
 
+  setSampleRate(rate: number): void {
+    for (const channel of [0, 1, 2, 3])
+      this.numbers['lo' + channel]?.setLimits(rate / 2, 1E-3);
+  }
+
   async init(): Promise<void> {
     const p = await this.driver.getParameters();
     const nominal = await this.driver.getNominalFrequencies();

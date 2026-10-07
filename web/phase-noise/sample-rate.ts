@@ -54,7 +54,7 @@ class PnaSampleRate {
             const accepted = await this.driver.setSamplingFrequency(Number(this.select.value));
             this.render(await this.driver.getSamplingFrequency());
             if (!this.disposed) this.status.textContent = accepted ? '' :
-                'Rate change rejected. Check LO/DAC frequencies and the sample clock.';
+                'Rate change rejected. Check oscillator frequencies and the sample clock.';
         } catch (error) {
             if (!this.disposed) { this.onError(error); }
         } finally {

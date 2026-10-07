@@ -100,6 +100,11 @@ puts $input_clock_file [format {create_clock -name adc1_clk_in -period %.6f [get
 close $input_clock_file
 add_files -norecurse -fileset constrs_1 $input_clock_xdc
 
+# Keep PNA phase commands accessible while the ADC MMCM is held in reset.
+set mmcm_phase_clock mmcm/clk_out1
+if {[info exists alpha250_4_mmcm_ps_control] && $alpha250_4_mmcm_ps_control} {
+    set mmcm_phase_clock ps_clk
+}
 # Mixed-mode clock manager
 cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     PRIMITIVE              MMCM
@@ -122,8 +127,8 @@ cell xilinx.com:ip:clk_wiz:6.0 mmcm {
     clk_out1 adc_clk
     clk_in_sel [get_slice_pin ctl 0 0]
     reset [get_slice_pin ctl 1 1]
-    psclk mmcm/clk_out1
-    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] mmcm/clk_out1]
+    psclk $mmcm_phase_clock
+    psen [get_edge_detector_pin [get_slice_pin ctl 2 2] $mmcm_phase_clock]
     psincdec [get_slice_pin ctl 3 3]
 }
 

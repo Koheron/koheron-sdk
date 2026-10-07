@@ -134,6 +134,12 @@ test('all four nominal LO fields commit in Hz, reject invalid integers and show 
   const cic=w.document.querySelector('.cic-rate-input');cic.value='4.5';cic.dispatchEvent(new w.Event('input'));
   cic.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));await new Promise(resolve=>setImmediate(resolve));
   assert.equal(calls.length,1);
+  app.setSampleRate(200e6);
+  for (let channel=0;channel<4;++channel)
+    assert.equal(w.document.querySelector('.dds-input'+channel).getAttribute('aria-valuemax'),'100000000');
+  app.setSampleRate(250e6);
+  for (let channel=0;channel<4;++channel)
+    assert.equal(w.document.querySelector('.dds-input'+channel).getAttribute('aria-valuemax'),'125000000');
   app.dispose();
 });
 
@@ -165,4 +171,19 @@ test('Y requires its own two LOs, XY requires all four, and hidden pages stop po
   p.fdds0=p.fdds1=1e7;
   Object.defineProperty(w.document,'hidden',{value:true});plot._lastTick=-Infinity;
   await plot.updatePlot();assert.equal(reads,1);
+});
+
+test('settings read the explicit CIC rate at either sample clock and retain legacy decoding', async t => {
+  const dom=new JSDOM('',{runScripts:'outside-only'}); t.after(()=>dom.window.close());
+  const w=dom.window; w.Command=(_id,cmd)=>cmd;
+  w.eval(ts.transpileModule(fs.readFileSync(path.join(project,'web/phase-noise-analyzer.ts'),'utf8'),
+    {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText+'\nwindow.Analyzer=PhaseNoiseAnalyzer;');
+  for (const [rate,supported] of [[250e6,true],[200e6,true],[200e6,false]]) {
+    const client={getDriver(){return {id:1,getCmds(){return supported?{get_parameters:1,get_cic_rate:2}:{get_parameters:1};}};},
+      async readTuple(){return [16385,rate/268,2,rate/268/16384,1,1e7,1e7,1e7,1e7,2,0];},
+      async readUint32(){return 134;}};
+    const parameters=await new w.Analyzer(client).getParameters();
+    assert.equal(parameters.cic_rate,134);
+    assert.equal(parameters.fs,rate/268);
+  }
 });

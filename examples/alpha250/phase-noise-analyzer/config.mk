@@ -31,6 +31,7 @@ include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 
 # Web assets
 WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts $(SDK_PATH)/web/phase-noise/plot.ts
+WEB_FILES += $(SDK_PATH)/web/phase-noise/sample-rate.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.css
 WEB_FILES += $(SDK_PATH)/web/phase-modulator/phase-modulator.ts

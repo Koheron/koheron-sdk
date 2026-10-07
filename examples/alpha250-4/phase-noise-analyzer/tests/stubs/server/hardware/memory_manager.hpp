@@ -13,7 +13,7 @@ constexpr uint32_t cic_decimation_rate_default=20, cic_decimation_rate_min=4,
 }
 namespace reg {
 constexpr uint32_t phase_incr0=0, cordic=32, cic_rate=36, phase_precision=40,
-    scaling0=44, scaling1=48, scaling2=52, scaling3=56, acquisition_run=60;
+    mmcm_ps=64, scaling0=44, scaling1=48, scaling2=52, scaling3=56, acquisition_run=60;
 constexpr uint32_t demod0=0, demod2=8, fifo_wr_data_count0=16,
     fifo_wr_data_count1=20, sample_gap=24;
 }

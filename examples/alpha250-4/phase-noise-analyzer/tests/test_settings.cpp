@@ -1,12 +1,19 @@
 // Exercise production settings against the descriptor-ring hardware stub.
 #include "../phase-noise-analyzer.hpp"
 #include "simulated_dma.hpp"
+#include "server/runtime/config_manager.hpp"
+#include "server/runtime/services.hpp"
 #include <cassert>
 #include <iostream>
 #include <memory>
 
-int main() {
+int main(int argc, char**) {
+    auto& clock = rt::get_driver<ClockGenerator>();
+    clock.switchable = true;
+    auto& cfg = services::require<rt::ConfigManager>();
+    if (argc > 1) cfg.set("PhaseNoiseAnalyzer", "sampling_frequency", 200000000u);
     PhaseNoiseAnalyzer analyzer;
+    assert(analyzer.get_sampling_frequency() == (argc > 1 ? 200000000u : 250000000u));
     analyzer.set_tracking_enabled(false);
     analyzer.set_cic_rate(68);
     analyzer.set_channel(0); // X
@@ -64,6 +71,35 @@ int main() {
     analyzer.set_local_oscillator(2, 10e6 + 2*.637);
     assert(hw::simulated_epoch.load()>epoch);
     assert(std::abs(rt::get_driver<Dds>().get_dds_freq(2) - (10e6+2*.637)) < 1e-6);
+
+    // Switching preserves all four nominal/applied LOs and starts a new
+    // paired DMA/calibration epoch. Repeated and invalid requests are no-ops.
+    for (uint32_t rate : {200000000u, 250000000u, 200000000u, 250000000u}) {
+        std::array<double, 4> applied;
+        for (unsigned i = 0; i < 4; ++i) applied[i] = rt::get_driver<Dds>().get_dds_freq(i);
+        const auto previous_rate = analyzer.get_sampling_frequency();
+        const auto before = hw::simulated_epoch.load();
+        assert(analyzer.set_sampling_frequency(rate));
+        assert(analyzer.get_sampling_frequency() == rate && analyzer.get_cic_rate() == 68);
+        assert(std::abs(std::get<1>(analyzer.get_parameters()).eval() - rate / 136.) < 1e-6);
+        assert((hw::simulated_epoch.load() > before) == (rate != previous_rate));
+        for (unsigned i = 0; i < 4; ++i)
+            assert(std::abs(rt::get_driver<Dds>().get_dds_freq(i) - applied[i]) < 1e-6);
+        const auto publication = std::get<0>(analyzer.get_spectrum_snapshot());
+        assert(analyzer.set_sampling_frequency(rate));
+        assert(!analyzer.set_sampling_frequency(240000000));
+        assert(std::get<0>(analyzer.get_spectrum_snapshot()) == publication);
+    }
+    for (unsigned i = 0; i < 4; ++i) {
+        analyzer.set_local_oscillator(i, 110e6);
+        const auto before = hw::simulated_epoch.load();
+        assert(!analyzer.set_sampling_frequency(200000000));
+        assert(hw::simulated_epoch.load() == before && analyzer.get_sampling_frequency() == 250000000);
+        analyzer.set_local_oscillator(i, 10e6 + .637 * i);
+    }
+    assert(analyzer.set_sampling_frequency(200000000));
+    analyzer.save_config();
+    assert(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "sampling_frequency") == 200000000);
 
     const auto changed_epoch=hw::simulated_epoch.load();
     analyzer.set_cic_rate(20);

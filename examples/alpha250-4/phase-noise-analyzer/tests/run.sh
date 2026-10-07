@@ -38,6 +38,7 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
         examples/alpha250-4/phase-noise-analyzer/dds.cpp \
         server/external_libs/pffft/pffft.cpp -o "$output/settings"
     "$output/settings"
+    "$output/settings" --saved
     g++-13 "${flags[@]}" server/drivers/phase-noise/tests/test_streaming_welch.cpp \
         server/external_libs/pffft/pffft.cpp -o "$output/streaming-welch"
     "$output/streaming-welch" "$output/streaming-welch.bin"
@@ -55,6 +56,7 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$pna_root:/review" -w /review \
     if ! node -e "require.resolve(\"jsdom\"); require.resolve(\"typescript\")" >/dev/null 2>&1; then
         npm install --prefix "$deps" --no-save --package-lock=false typescript@5.6.3 jsdom@26.1.0
     fi
+    PNA_SAMPLE_RATE_BOARD=alpha250-4 node --test examples/alpha250/phase-noise-analyzer/tests/test_sample_rate.cjs
     node --test examples/alpha250-4/phase-noise-analyzer/tests/test_workspace.cjs web/phase-noise/tests/test_phase_precision.cjs
 '
 

@@ -42,6 +42,7 @@ PhaseNoiseAnalyzer::PhaseNoiseAnalyzer()
               1_V * ltc2157.get_input_voltage_range(1, 0) };
 
     auto& clk_gen = rt::get_driver<ClockGenerator>();
+    clk_gen.use_ps_phase_control(reg::mmcm_ps);
     clk_gen.set_sampling_frequency(1); // 250 MHz
     fs_adc = Frequency(clk_gen.get_adc_sampling_freq()[0]); // Assume both ADCs have same frequency
 
@@ -68,6 +69,7 @@ void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
+    cfg.set("PhaseNoiseAnalyzer", "sampling_frequency", static_cast<uint32_t>(fs_adc.eval()));
     cfg.set("PhaseNoiseAnalyzer", "phase_precision", phase_precision);
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[DUTX]", base_dds_freq[DdsChannel::DUTX].eval());
     cfg.set("PhaseNoiseAnalyzer", "dds_freq[REFX]", base_dds_freq[DdsChannel::REFX].eval());
@@ -151,6 +153,40 @@ void PhaseNoiseAnalyzer::set_cic_rate(uint32_t rate) {
     configure_cic_rate(rate);
 }
 
+bool PhaseNoiseAnalyzer::set_sampling_frequency(uint32_t rate) {
+    if (rate != 200000000 && rate != 250000000) return false;
+    std::unique_lock lk(data_mtx);
+    std::lock_guard clock_lock(clock_cfg::sampling_mutex);
+    if (rate == static_cast<uint32_t>(fs_adc.eval())) return true;
+    std::array<double, 4> applied;
+    for (uint32_t i = 0; i < applied.size(); ++i) {
+        applied[i] = dds.get_dds_freq(i);
+        if (base_dds_freq[i].eval() > rate / 2.0 || applied[i] > rate / 2.0) return false;
+    }
+    auto& clock = rt::get_driver<ClockGenerator>();
+    const auto new_fs = Frequency(double(rate)) / (2.0 * cic_rate);
+    bool changed = false;
+    dma.configure_sampling(new_fs, [&] {
+        clock.set_sampling_frequency(rate == 200000000 ? 0 : 1);
+        const auto actual = clock.get_adc_sampling_freq();
+        changed = std::abs(actual[0] - rate) < .5 && std::abs(actual[1] - rate) < .5;
+        if (!changed) return;
+        fs_adc = Frequency(double(rate));
+        fs = new_fs;
+        min_frequency = 2.0 * fs / double(spectrum_samples);
+        dma_transfer_duration = data_size / fs;
+        for (uint32_t i = 0; i < applied.size(); ++i) {
+            dds.set_dds_freq(i, applied[i], false);
+            tracking_correction[i] = Frequency(dds.get_dds_freq(i)) - base_dds_freq[i];
+        }
+        set_frequency_scalings();
+        set_power_conversion_factor();
+    });
+    if (!changed) dma.configure_sampling(fs, [] {});
+    invalidate_acquisition();
+    return changed;
+}
+
 void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
     if (rate < prm::cic_decimation_rate_min ||
         rate > prm::cic_decimation_rate_max || rate % 2 != 0) {
@@ -162,7 +198,7 @@ void PhaseNoiseAnalyzer::configure_cic_rate(uint32_t rate) {
     if (spectrum_analyzer_started.load(std::memory_order_acquire) && rate == cic_rate) return;
     cic_rate = rate;
     cic_output_scale = cic_gain_compensation(rate, prm::cic_n_stages, prm::cic_differential_delay);
-    fs = fs_adc / (2.0f * cic_rate); // Sampling frequency (factor of 2 because of FIR)
+    fs = fs_adc / (2.0 * cic_rate); // Sampling frequency (factor of 2 because of FIR)
     min_frequency = 2.0 * fs / double(spectrum_samples);
     logf("Sampling frequency = {} Hz\n", fs.eval());
     logf("Minimum frequency = {} Hz (cic_rate = {})\n", min_frequency.eval(), cic_rate);
@@ -349,6 +385,10 @@ void PhaseNoiseAnalyzer::load_config() {
     } else {
         set_local_oscillator(DdsChannel::REFY, 10E6);
     }
+
+    if (cfg.has("PhaseNoiseAnalyzer", "sampling_frequency") &&
+        !set_sampling_frequency(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "sampling_frequency")))
+        log<WARNING>("PhaseNoiseAnalyzer: Saved sample clock could not be applied; retaining 250 MS/s\n");
 
     if (cfg.has("PhaseNoiseAnalyzer", "tracking_enabled")) {
         set_tracking_enabled(cfg.get<bool>("PhaseNoiseAnalyzer", "tracking_enabled"));

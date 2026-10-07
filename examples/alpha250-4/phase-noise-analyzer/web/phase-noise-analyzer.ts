@@ -52,6 +52,18 @@ class PhaseNoiseAnalyzer {
     this.cmds = this.driver.getCmds();
   }
 
+  supportsSampleRate(): boolean {
+    return !!this.cmds['set_sampling_frequency'] && !!this.cmds['get_sampling_frequency'];
+  }
+
+  async getSamplingFrequency(): Promise<number> {
+    return await this.client.readUint32(Command(this.id, this.cmds['get_sampling_frequency']));
+  }
+
+  async setSamplingFrequency(rate: number): Promise<boolean> {
+    return await this.client.readBool(Command(this.id, this.cmds['set_sampling_frequency'], rate));
+  }
+
   async getParameters(): Promise<IParameters> {
     const [data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkin, avgxy_count] =
       await this.client.readTuple<TupleGetParameters>(
@@ -65,7 +77,9 @@ class PhaseNoiseAnalyzer {
       clkIndex = "2";
     }
 
-    this.parameters = { data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex, avgxy_count, cic_rate: Math.round(100E6 / fs) };
+    this.parameters = { data_size, fs, channel, min_freq, fft_navg, fdds0, fdds1, fdds2, fdds3, clkIndex, avgxy_count, cic_rate: this.cmds['get_cic_rate']
+      ? await this.client.readUint32(Command(this.id, this.cmds['get_cic_rate']))
+      : Math.round(100E6 / fs) };
     return this.parameters;
   }
 

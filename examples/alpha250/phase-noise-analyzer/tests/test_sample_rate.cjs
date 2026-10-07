@@ -5,10 +5,11 @@ const test = require('node:test');
 const ts = require('typescript');
 const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
+const board = process.env.PNA_SAMPLE_RATE_BOARD || 'alpha250';
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
 
 async function fixture(t, supported = true) {
-    const dom = new JSDOM(fs.readFileSync(path.join(root, 'examples/alpha250/phase-noise-analyzer/web/index.html'), 'utf8'), {runScripts: 'outside-only'});
+    const dom = new JSDOM(fs.readFileSync(path.join(root, `examples/${board}/phase-noise-analyzer/web/index.html`), 'utf8'), {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
     const w = dom.window, calls = [], rendered = [], errors = [];
     let poll;
@@ -21,7 +22,7 @@ async function fixture(t, supported = true) {
         async getSamplingFrequency() { return this.rate; },
         async setSamplingFrequency(rate) { calls.push(rate); if (this.accepted) this.rate = rate; return this.accepted; }
     };
-    w.eval(ts.transpileModule(fs.readFileSync(path.join(root, 'examples/alpha250/phase-noise-analyzer/web/sample-rate.ts'), 'utf8'), {
+    w.eval(ts.transpileModule(fs.readFileSync(path.join(root, 'web/phase-noise/sample-rate.ts'), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText + '\nwindow.PnaSampleRate = PnaSampleRate;');
     const widget = new w.PnaSampleRate(w.document, driver, rate => rendered.push(rate), error => errors.push(error));

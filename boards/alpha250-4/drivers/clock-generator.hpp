@@ -2,12 +2,15 @@
 #define __ALPHA250_4_DRIVERS_CLOCK_GENERATOR_HPP__
 
 #include <array>
+#include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <string_view>
 
 using namespace std::string_view_literals;
 
 namespace clock_cfg {
+    inline std::recursive_mutex sampling_mutex;
     // Input clock selection
     constexpr uint32_t EXT_CLOCK = 0;
     constexpr uint32_t FPGA_CLOCK = 1;
@@ -101,6 +104,7 @@ class ClockGenerator
     void set_sampling_frequency(uint32_t fs_select);
 
     auto get_adc_sampling_freq() const {
+        std::lock_guard lock(clock_cfg::sampling_mutex);
         return fs_adc;
     }
 
@@ -109,13 +113,19 @@ class ClockGenerator
     }
 
   private:
+    friend class PhaseNoiseAnalyzer;
+    void use_ps_phase_control(uint32_t offset);
+    uint32_t read_phase_control();
+    void write_phase_control(uint32_t value);
+    bool phase_control_ps = false;
+    uint32_t phase_control_offset = 0;
     Eeprom& eeprom;
     SpiConfig& spi_cfg;
 
     static constexpr auto filename = "/tmp/clock-generator-initialized"sv;
     bool is_clock_generator_initialized = true;
 
-    uint32_t clkin = clock_cfg::TCXO_CLOCK; // Current input clock
+    std::atomic<uint32_t> clkin{clock_cfg::TCXO_CLOCK}; // Current input clock
     uint32_t fs_selected = clock_cfg::configs.size(); // Current frequency configuration
     std::array<uint32_t, clock_cfg::num_params> clk_cfg;
 

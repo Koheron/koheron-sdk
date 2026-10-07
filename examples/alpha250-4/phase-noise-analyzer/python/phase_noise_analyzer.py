@@ -107,6 +107,18 @@ class PhaseNoiseAnalyzer(object):
             self.npts = self.get_phase_sample_count()
 
     @command()
+    def set_sampling_frequency(self, rate):
+        return self.client.recv_bool()
+
+    @command()
+    def get_sampling_frequency(self):
+        return self.client.recv_uint32()
+
+    @command()
+    def get_cic_rate(self):
+        return self.client.recv_uint32()
+
+    @command()
     def get_phase_sample_count(self):
         return self.client.recv_uint32()
 
