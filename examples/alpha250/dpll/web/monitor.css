@@ -24,12 +24,6 @@
 
 .dpll-workspace .diagram-panel img[src="p_path.svg"] { width: 100%; max-width: 560px; }
 
-.dpll-workspace .loop-controls-panel summary { display: flex; align-items: center; gap: 8px; list-style: none; }
-.dpll-workspace .loop-controls-panel summary::-webkit-details-marker { display: none; }
-.dpll-workspace .loop-controls-panel summary::before { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(-45deg); flex: none; }
-.dpll-workspace .loop-controls-panel details[open] > summary::before { transform: rotate(45deg); }
-
-.dpll-workspace .loop-controls-panel summary { min-height: 24px; font-weight: 600; }
 .dpll-workspace .loop-controls-panel details[open] > summary { margin-bottom: 4px; }
 .dpll-workspace .channel-grid { align-items: start; }
 .dpll-workspace .channel-panel { padding-top: 0; }
@@ -73,3 +67,9 @@
 
 .dpll-workspace .frequency-row[data-linked="true"] { background: #e5f5fb; }
 .dpll-workspace #diagram-editor .frequency-row > label { display: none; }
+
+.dpll-workspace .loop-controls-panel { --disclosure-gap: 8px; }
+.dpll-workspace .loop-controls-panel summary { font-weight: 600; }
+.dpll-workspace #average-status { display: inline-block; width: 4ch; text-align: right; }
+
+.dpll-workspace .monitor-status { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-left: auto; max-width: 100%; }

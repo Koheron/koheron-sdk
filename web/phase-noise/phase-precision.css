@@ -1,5 +1,5 @@
-.pna-workspace .precision-status { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-.pna-workspace .precision-status[data-state="error"] { color: #a53e25; }
+.instrument-workspace .precision-status { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.instrument-workspace .precision-status[data-state="error"] { color: #a53e25; }
 
 .coverage-status { display: inline-flex; align-items: center; white-space: nowrap; padding: 2px 6px; border: 1px solid #ddd; border-radius: 2px; font-variant-numeric: tabular-nums; }
 .coverage-status[data-state="live"] { color: #287b36; }
@@ -7,3 +7,9 @@
 .coverage-status[data-state="waiting"], .coverage-status[data-state="unknown"] { color: #777; }
 
 .coverage-status[hidden] { display: none; }
+
+/* These readouts must not move controls as telemetry arrives. */
+.instrument-workspace #coverage-status { width: 116px; flex: none; }
+.instrument-workspace #performance-status { width: 104px; flex: none; }
+.instrument-workspace #performance-status[hidden] { display: inline-flex !important; visibility: hidden; }
+.instrument-workspace .precision-status { flex: 0 0 148px; width: 148px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
