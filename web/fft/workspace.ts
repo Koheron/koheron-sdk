@@ -21,6 +21,7 @@ class FFTWorkspace {
     private generator: PhaseModulatorWidget;
     private board: FFTBoardControls;
     private exportFile: ExportFile;
+    private referencePanel: FFTReferencePanel;
     private client: Client;
     private stopped = false;
 
@@ -52,6 +53,7 @@ class FFTWorkspace {
                     -200, 170, this.fft, '', 'Frequency (' + (grid ? grid.unit : 'MHz') + ')');
                 if (grid?.logarithmic) { plotBasics.setLogX(true); }
                 this.plot = new Plot(document, this.fft, plotBasics);
+                this.referencePanel = new FFTReferencePanel(document, this.plot.references, () => this.plot.refreshReferences(), item => this.plot.replaceReference(item));
                 await this.board.init();
                 if (this.stopped) { return; }
                 this.exportFile = new ExportFile(document, this.plot, options.boardName, options.instrumentName || 'FFT');
@@ -92,6 +94,7 @@ class FFTWorkspace {
     private shutdown(): void {
         if (this.stopped) { return; }
         this.stopped = true;
+        this.referencePanel?.dispose();
         this.plot?.dispose();
         this.fftApp?.dispose();
         this.generator?.dispose();

@@ -110,7 +110,7 @@ async function host(t, failure = false) {
     };
     const files = ['web/instrument/events.ts', 'web/instrument/poller.ts', 'web/power-monitor/readout.ts', 'web/temperature-sensor/readout.ts', 'web/precision-channels/precision-dac.ts', 'web/fft/driver.ts', 'web/fft/controls/fft-app.ts', 'web/precision-channels/precision-channels-app.ts',
         'web/inputs/digit-input.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/spectrum-views.ts',
-        'web/fft/plot/plot.ts', 'web/fft/export-file/export-file.ts', 'web/fft/workspace.ts',
+        'web/fft/plot/references.ts', 'web/fft/plot/plot.ts', 'web/fft/export-file/export-file.ts', 'web/fft/workspace.ts',
         'web/clock-generator/clock-generator.ts', 'web/clock-generator/clock-generator-app.ts', 'web/temperature-sensor/temperature-sensor.ts', 'web/power-monitor/power-monitor.ts',
         ...['adc-range/ltc2387.ts', 'decimator.ts', 'fft.ts', 'board-controls.ts', 'app.ts'].map(file => `${project}/web/${file}`)];
     w.eval(ts.transpileModule(files.map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n'), {
@@ -142,7 +142,7 @@ test('Alpha15 mounts shared UX with four inputs, voltage units, ranges and read-
 test('Alpha15 shared DAC edits preserve acquisition and references while telemetry retains drafts', async t => {
     const h = await host(t), plot = h.app.plot;
     plot.captureReference();
-    const reference = plot.referenceStatus, epoch = plot.history.epoch;
+    const reference = plot.references.items[0].status, epoch = plot.history.epoch;
     const restarts = h.state.reads.filter(c => c.name === 'restart_acquisition').length;
     const input = h.d.querySelector(".precision-dac-input[data-channel='3']");
     input.value = '123.456 mV';
@@ -162,7 +162,7 @@ test('Alpha15 shared DAC edits preserve acquisition and references while telemet
     ]);
     assert.equal(input.value, '123.456');
     assert.equal(plot.history.epoch, epoch);
-    assert.strictEqual(plot.referenceStatus, reference);
+    assert.strictEqual(plot.references.items[0].status, reference);
     assert.equal(h.state.reads.filter(c => c.name === 'restart_acquisition').length, restarts);
     assert.deepEqual(Array.from(h.d.querySelectorAll('.temperature-span'), node => node.textContent), ['30.0', '40.0', '50.0']);
     assert.deepEqual(Array.from(h.d.querySelectorAll('.supply-span'), node => node.textContent), ['12.000', '3.300', '100.0', '20.0']);
@@ -199,7 +199,7 @@ test('channel/window commands preserve Alpha15 semantics; ranges reset history a
         ['FFT', 'set_fft_window', 2], ['Decimator', 'set_fft_window', 2]
     ]);
     plot.captureReference();
-    const reference = plot.referenceStatus;
+    const reference = plot.references.items[0].status;
     const epoch = plot.history.epoch;
     h.state.channel = 2; h.state.operation = 1; h.state.ranges = [1, 0]; h.state.reference = 0;
     await fft.getControlParameters();
