@@ -67,3 +67,8 @@ and measurement polling remain with each host.
 `showPnaConnectionError` gives the three PNA pages the same disconnect message,
 stale readouts and unavailable acquisition statuses. Each page still owns its
 error guard, plot disposal, control disabling and connection shutdown.
+
+`pnaIntegerInput` shares acquisition-number editing across PNA controls and the
+DPLL monitor. Fields provide `min`, `max` and `step`; hosts supply commands and
+accepted readbacks. All four interfaces use even CIC rates from 4 to 8192. Board averaging limits
+and delay units remain in each host's field metadata and adapter.

@@ -3,6 +3,7 @@ include $(SDK_PATH)/web/instrument/components.mk
 include $(SDK_PATH)/web/instrument/events.mk
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 include $(SDK_PATH)/web/inputs/components.mk
+WEB_FILES += $(SDK_PATH)/web/phase-noise/integer-input.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts

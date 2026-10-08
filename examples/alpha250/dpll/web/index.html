@@ -43,8 +43,8 @@
             <label><input type="radio" name="monitor-channel" value="0" checked><span>ADC 0</span></label>
             <label><input type="radio" name="monitor-channel" value="1"><span>ADC 1</span></label>
           </div></div>
-          <label class="control-field">Decimation (even)<span class="digit-control"><input id="monitor-decimation" class="digit-input" type="text" inputmode="numeric" value="20" aria-label="Monitor decimation (even rates from 4 to 8192)"></span></label>
-          <label class="control-field">Averages<span class="average-control digit-control"><span id="average-status">—/</span><input id="monitor-averages" class="digit-input" type="text" inputmode="numeric" value="1" aria-label="Monitor averaging window"></span></label>
+          <label class="control-field">Decimation (even)<span class="digit-control"><input id="monitor-decimation" min="4" max="8192" step="2" class="digit-input" type="text" inputmode="numeric" value="20" aria-label="Monitor decimation (even rates from 4 to 8192)"></span></label>
+          <label class="control-field">Averages<span class="average-control digit-control"><span id="average-status">—/</span><input id="monitor-averages" min="1" max="100" step="1" class="digit-input" type="text" inputmode="numeric" value="1" aria-label="Monitor averaging window"></span></label>
           <button id="reset-average" type="button">Restart average</button>
         <label class="control-field" title="Extra fractional bits preserve smaller phase changes, at the cost of phase range.">Phase precision
           <select id="phase-precision">

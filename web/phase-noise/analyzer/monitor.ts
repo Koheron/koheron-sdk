@@ -19,25 +19,17 @@ class PnaMonitor {
     this.driver = new PhaseNoiseAnalyzer(this.client, this.driverName);
     const p = await this.driver.getParameters();
     if (this.stopped) { return; }
-    const number = (id: string, value: number, minimum: number, maximum: number, command: (value: number) => void) => {
-      const editor = new NumberInput(this.document.getElementById(id) as HTMLInputElement, {
-        value, minimum, maximum, integer: true, resolution: 1,
-        step: id === 'monitor-decimation' ? 2 : 1,
-        validate: next => {
-          if (id === 'monitor-decimation' && next % 2 !== 0) throw new Error('Use an even decimation rate.');
-        },
-        commit: async next => {
-          try {
-            command(next);
-            const accepted = await this.driver.getParameters();
-            return id === 'monitor-decimation' ? accepted.cic_rate : accepted.fft_navg;
-          } catch (error) { this.fail(error); throw error; }
-        }
-      });
-      this.editors.push(editor);
+    const number = (id: string, value: number, command: (value: number) => void) => {
+      this.editors.push(pnaIntegerInput(this.document.getElementById(id) as HTMLInputElement, value, async next => {
+        try {
+          command(next);
+          const accepted = await this.driver.getParameters();
+          return id === 'monitor-decimation' ? accepted.cic_rate : accepted.fft_navg;
+        } catch (error) { this.fail(error); throw error; }
+      }));
     };
-    number('monitor-decimation', p.cic_rate, 4, 8192, value => this.driver.setCicRate(value));
-    number('monitor-averages', p.fft_navg, 1, 100, value => this.driver.setFFTNavg(value));
+    number('monitor-decimation', p.cic_rate, value => this.driver.setCicRate(value));
+    number('monitor-averages', p.fft_navg, value => this.driver.setFFTNavg(value));
     const listen = (element: Element, type: string, callback: () => void) => {
       const guarded = () => {
         if (this.stopped) { return; }

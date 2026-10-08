@@ -30,6 +30,7 @@ async function host(t, options = {}) {
     'web/phase-noise/analyzer/plot.ts',
     'web/phase-noise/export-file/export-file.ts',
     'web/phase-noise/analyzer/export-file/export-file.ts',
+    'web/phase-noise/integer-input.ts',
     'web/phase-noise/analyzer/monitor.ts',
     'examples/alpha250/dpll/web/monitor.ts'];
   w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText + '\nwindow.PnaMonitor = PnaMonitor; window.DpllMonitor = DpllMonitor;');
@@ -107,16 +108,18 @@ test('disconnect and disposal stop reads, clear readouts and disable monitor con
   assert.equal(state.closed, 1);
 });
 
-test('monitor decimation rejects odd entry and tunes by two without loop writes', async t => {
+test('monitor decimation validates even-rate bounds and tunes by two without loop writes', async t => {
   const {d, w, state} = await host(t);
   const input = d.getElementById('monitor-decimation');
   input.focus();
-  input.value = '21';
-  input.dispatchEvent(new w.Event('input', {bubbles: true}));
-  input.dispatchEvent(new w.KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
-  await settle();
-  assert.deepEqual(state.writes, []);
-  assert.equal(input.getAttribute('aria-invalid'), 'true');
+  for (const value of ['21', '2', '8194']) {
+    input.value = value;
+    input.dispatchEvent(new w.Event('input', {bubbles: true}));
+    input.dispatchEvent(new w.KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+    await settle();
+    assert.deepEqual(state.writes, []);
+    assert.equal(input.getAttribute('aria-invalid'), 'true');
+  }
   input.dispatchEvent(new w.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
   input.dispatchEvent(new w.KeyboardEvent('keydown', {key: 'ArrowUp', bubbles: true}));
   await settle();

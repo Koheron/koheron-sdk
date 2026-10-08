@@ -14,7 +14,7 @@ async function fixture(t, board = 'alpha250') {
     const referenceClock = w.document.querySelector('#reference-clock');
     if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, 'web/clock-generator/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.requestAnimationFrame = () => 0;
-    for (const [file, exports] of [['web/phase-noise/measurements.ts', ['PnaMeasurementReadout']], ['web/instrument/events.ts', ['InstrumentEvents']], ['web/phase-noise/save-config.ts', ['PnaSaveConfig']], ['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
+    for (const [file, exports] of [['web/phase-noise/measurements.ts', ['PnaMeasurementReadout']], ['web/instrument/events.ts', ['InstrumentEvents']], ['web/phase-noise/save-config.ts', ['PnaSaveConfig']], ['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/integer-input.ts', ['pnaIntegerInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
         w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + exports.map(name => `\nwindow.${name} = ${name};`).join(''));
     }
     const parameters = {data_size: 16384, fs: 5e6, channel: 0, cic_rate: 20, fft_navg: 1, fdds0: 10e6, fdds1: 10e6, analyzer_mode: 'RF', interferometer_delay: 1e-9, clkIndex: 2};
@@ -64,20 +64,18 @@ test('analyzer numbers select a digit by default and wheel works anywhere on the
     assert.equal(calls.length, count);
 });
 
-test('Red Pitaya accepts odd CIC rates while ALPHA250 requires even rates', async t => {
-    const redp = await fixture(t, 'red-pitaya');
-    const input = redp.w.document.querySelector('.cic-rate-input');
-    input.focus(); redp.enter(input, '67'); await settle();
-    assert.deepEqual(redp.calls, [['cic', 67]]);
-    redp.key(input, 'ArrowUp');
-    await new Promise(resolve => setTimeout(resolve, 120));
-    assert.deepEqual(redp.calls.at(-1), ['cic', 68]);
-    const alpha = await fixture(t);
-    const evenInput = alpha.w.document.querySelector('.cic-rate-input');
-    evenInput.focus(); alpha.enter(evenInput, '67'); await settle();
-    assert.equal(alpha.calls.length, 0);
-    alpha.enter(evenInput, '68'); await settle();
-    assert.deepEqual(alpha.calls, [['cic', 68]]);
+test('Red Pitaya and ALPHA250 share even CIC validation and tuning', async t => {
+    for (const board of ['red-pitaya', 'alpha250']) {
+        const h = await fixture(t, board), input = h.w.document.querySelector('.cic-rate-input');
+        input.focus(); h.enter(input, '67'); await settle();
+        assert.equal(h.calls.length, 0);
+        assert.equal(input.getAttribute('aria-invalid'), 'true');
+        h.enter(input, '68'); await settle();
+        assert.deepEqual(h.calls, [['cic', 68]]);
+        h.key(input, 'ArrowUp');
+        await new Promise(resolve => setTimeout(resolve, 120));
+        assert.deepEqual(h.calls.at(-1), ['cic', 70]);
+    }
 });
 
 test('tracking is opt-in and telemetry does not overwrite nominal LO edits', async t => {

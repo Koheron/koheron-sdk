@@ -32,14 +32,9 @@ class PhaseNoiseAnalyzerApp {
     const number = (selector: string, value: number, commit: (value: number) => void,
         read: (p: IParameters) => number) => {
       const input = this.document.querySelector<HTMLInputElement>(selector);
-      return new NumberInput(input, {value, minimum: Number(input.min), maximum: Number(input.max),
-        resolution: 1, integer: true, step: selector === '.cic-rate-input' ? 2 : 1,
-        validate: value => {
-          if (selector === '.cic-rate-input' && value % 2 !== 0) throw new Error('Use an even decimation rate.');
-        },
-        commit: async value => {
-          commit(value); return read(await this.driver.getParameters());
-        }});
+      return pnaIntegerInput(input, value, async next => {
+        commit(next); return read(await this.driver.getParameters());
+      });
     };
     this.numbers.cic = number('.cic-rate-input', p.cic_rate,
       value => this.driver.setCicRate(value), p => p.cic_rate);
