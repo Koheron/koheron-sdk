@@ -10,6 +10,7 @@ WEB_FILES += $(SDK_PATH)/web/phase-noise/export-file/export-file.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/export-file/export-file.html
 WEB_FILES += $(SDK_PATH)/web/phase-noise/plot.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/sample-rate.ts
+WEB_FILES += $(SDK_PATH)/web/phase-noise/connection-status.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/save-config.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/measurements.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/phase-precision.ts

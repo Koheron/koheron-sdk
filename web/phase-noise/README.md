@@ -3,7 +3,7 @@
 Include the appropriate component list before an instrument's local web assets:
 
 - `components.mk`: spectrum framing, base plot, numeric editors, precision and
-  sample-rate controls, CSV/PNG export engine and template, plot
+  sample-rate controls, connection-error presentation, CSV/PNG export engine and template, plot
   templates and common workspace styles.
 - `analyzer/components.mk`: the common assets plus the single-stream driver,
   plot adapter and CSV/PNG export used by ALPHA250, Red Pitaya and the DPLL monitor.
@@ -63,3 +63,7 @@ places. Missing readings show an em dash. Jitter-band endpoints use compact Hz
 units, retain fractional values, and expose the exact Hz interval in a tooltip.
 Disposal clears measurements and interval details. Board RPCs, integration bands
 and measurement polling remain with each host.
+
+`showPnaConnectionError` gives the three PNA pages the same disconnect message,
+stale readouts and unavailable acquisition statuses. Each page still owns its
+error guard, plot disposal, control disabling and connection shutdown.

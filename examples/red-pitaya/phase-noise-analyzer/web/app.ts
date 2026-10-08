@@ -60,38 +60,7 @@ class App {
 
     private connectionFailed(document: Document, error: unknown): void {
         if (this.stopped) { return; }
-        const status = document.getElementById('connection-status');
-        const wasConnected = status.dataset.state === 'live';
-        status.textContent = 'Disconnected';
-        status.dataset.state = 'error';
-        document.getElementById('connection-error').hidden = false;
-        const message = document.getElementById('connection-error-message');
-        if (message) { message.textContent = wasConnected
-            ? 'Connection lost. The spectrum and readings are stale.'
-            : 'Unable to connect to the phase-noise analyzer.'; }
-        const average = document.getElementById('average-status');
-        if (average) {
-            average.textContent = '—/';
-            average.dataset.state = 'unknown';
-            average.title = 'Disconnected';
-            average.setAttribute('aria-label', 'Average progress unavailable: disconnected');
-        }
-        document.querySelectorAll('.carrier-power-span, .phase-jitter-span, .time-jitter-span, #jitter-range, .tracking-state, .tracking-effective-bandwidth, .tracking-correction-0, .tracking-correction-1, #decade-values-table tbody td:last-child')
-            .forEach(node => { node.textContent = '—'; });
-        const performanceStatus = document.getElementById('performance-status');
-        if (performanceStatus) { performanceStatus.textContent = 'Queue —'; performanceStatus.dataset.state = 'unknown'; performanceStatus.title = 'Processing status unavailable while disconnected'; }
-        const coverage = document.getElementById('coverage-status');
-        if (coverage) {
-            coverage.textContent = 'Coverage —';
-            coverage.dataset.state = 'unknown';
-            coverage.title = 'Coverage unavailable while disconnected';
-        }
-        const precision = document.getElementById('precision-status');
-        if (precision) {
-            precision.textContent = '—';
-            precision.dataset.state = 'unknown';
-            precision.title = 'Acquisition status unavailable while disconnected';
-        }
+        showPnaConnectionError(document);
         if (this.plot) { this.plot.markUnavailable('Disconnected'); }
         console.error('Analyzer connection failed:', error);
         this.shutdown(document);
