@@ -556,3 +556,66 @@ test('disconnect restores an open editor and removes its interactive overlay', a
   assert.equal(h.document.querySelectorAll('#p_gain-0').length,1);
   assert.equal(h.writes.length,0);
 });
+
+test('integrator editor reuses all enables and updates repeated blocks without opening the loop panel', async t => {
+  const h = await host(t);
+  const input = h.document.querySelector('.integrator-switch[data-channel="0"][data-integratorindex="2"]');
+  const row = input.closest('.integrator-row'), parent = row.parentElement;
+  parent.open = false;
+  const blocks = Array.from(h.document.querySelectorAll('svg [data-integrator="2"]'));
+  blocks[0].dispatchEvent(new h.window.MouseEvent('click', {bubbles:true}));
+  assert.equal(parent.open, false);
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
+  assert.equal(h.document.querySelectorAll('.integrator-switch').length, 8);
+  assert.equal(h.document.activeElement, input);
+  assert.ok(blocks.every(block => block.getAttribute('data-linked') === 'true'));
+  assert.equal(h.writes.length, 0);
+  input.click(); await settle(280);
+  assert.deepEqual(h.writes, [{name:'set_integrator', args:[0,2,false]}]);
+  assert.ok(blocks.every(block => block.getAttribute('data-state') === 'disabled'));
+  h.key(input, 'Escape');
+  assert.equal(row.parentElement, parent);
+  assert.equal(input.checked, false); // Immediate controls keep their applied setting on dismissal.
+  assert.equal(h.document.activeElement, blocks[0]);
+  assert.equal(blocks[0].getAttribute('aria-expanded'), 'false');
+});
+
+test('mode editor preserves recoverable calibration errors and restores its original control', async t => {
+  const h = await host(t, {failPath:true});
+  const select = h.document.querySelector('.p-mode[data-channel="0"]');
+  const row = select.closest('.p-mode-row'), parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-control="mode"]');
+  h.key(block, 'Enter');
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
+  assert.equal(h.document.activeElement, select);
+  assert.equal(h.writes.length, 0);
+  select.value = '1'; select.dispatchEvent(new h.window.Event('change')); await settle();
+  assert.deepEqual(h.writes, [{name:'set_p_mode', args:[0,1]}]);
+  assert.equal(select.value, '0');
+  assert.equal(select.disabled, false);
+  assert.match(row.querySelector('output').textContent, /integrators|signal/i);
+  assert.equal(h.document.querySelector('#connection-status').dataset.state, 'live');
+  h.document.querySelector('#diagram-editor-close').click();
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.activeElement, block);
+});
+
+test('routing editor addresses the chosen DAC and does not select a different ADC channel', async t => {
+  const h = await host(t);
+  const row = h.document.querySelector('.routing-controls'), parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-control="routing"]');
+  h.key(block, ' ');
+  assert.equal(h.document.querySelector('#diagram-editor-title').textContent, 'RF DAC routing');
+  assert.equal(h.writes.length, 0);
+  const select = row.querySelector('.dac-output[data-channel="1"]');
+  select.focus(); select.value = '7'; select.dispatchEvent(new h.window.Event('change')); await settle(280);
+  assert.equal(h.document.querySelector('#diagram-channel').value, '0');
+  assert.deepEqual(h.writes, [{name:'set_dac_output', args:[1,7]}]);
+  assert.match(block.textContent, /DAC1: DDS 1/);
+  assert.equal(h.document.querySelectorAll('.dac-output').length, 2);
+  h.state.failed=true; await settle(280);
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+  assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
+  assert.equal(block.hasAttribute('aria-haspopup'), false);
+});

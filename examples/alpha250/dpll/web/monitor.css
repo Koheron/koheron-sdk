@@ -63,3 +63,10 @@
 .dpll-workspace .gain-placeholder { color: #7d8b91; background: #f4f8fa; font-variant-numeric: tabular-nums; }
 .dpll-workspace .gain-placeholder td:nth-child(2) { text-align: center; }
 .dpll-workspace .gain-placeholder td:nth-child(3) { text-align: right; padding-right: 9px; }
+
+.dpll-workspace .diagram-placeholder { overflow: hidden; white-space: nowrap; color: #7d8b91; background: #f4f8fa; display: flex; align-items: center; font-variant-numeric: tabular-nums; }
+.dpll-workspace #diagram-editor .integrator-row, .dpll-workspace #diagram-editor .p-mode-row { margin: 0; }
+.dpll-workspace #diagram-editor .routing-controls { display: grid; gap: 6px; }
+.dpll-workspace #diagram-editor .routing-controls select { flex: 1; min-width: 0; }
+.dpll-workspace .p-mode-row[data-linked="true"], .dpll-workspace .routing-controls[data-linked="true"] { background: #e5f5fb; }
+.dpll-workspace #diagram-editor .integrator-row > .control-label { display: none; }

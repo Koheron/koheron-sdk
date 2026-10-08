@@ -37,16 +37,22 @@ Startup reads existing settings without changing them. Connection failures
 disable controls and expose Retry. Closing the page stops polling and cancels
 queued frequency edits. The collapsible signal diagram follows applied readback for its selected channel,
 including signed dB gains, enabled integrators, mode, reference and routing.
-Focusing a loop control selects that channel in the diagram. Matching gains and
-integrators highlight together; clicking a block (or Enter/Space when focused)
-opens its gain editor at the block, sharing the exact draft and Apply action with
-the standard table. Closing the editor retains a draft; Escape cancels it, and a
-successful Apply closes it after readback. The original row displays applied
-values while editing. Integrator blocks focus their standard checkbox without
-toggling it. On wide screens the two loops sit beside the diagram; compact
-screens retain the stacked layout. The diagram keeps
-applied values while an editor contains a draft. Its geometry stays fixed, and
-motion follows the browser's reduced-motion preference.
+Focusing a loop control selects that channel in the diagram. Matching gains,
+integrators, mode and routing controls highlight together. Click a gain,
+integrator, mode selector or RF routing block (or press Enter/Space when focused)
+to open its existing controls beside the block. Opening an editor never changes
+a setting or expands a collapsed loop panel. Repeated Int 3 blocks share the
+same enable control.
+
+The gain editor shares the exact draft and Apply action with the standard table.
+Closing retains its draft; Escape cancels it, and a successful Apply closes after
+readback. Integrator enables, mode selection and routing apply directly, as in
+the standard controls; closing their editor leaves applied settings in place.
+The original control's space shows applied values while editing, preserving the
+layout. On wide screens both loops sit beside the diagram; compact screens
+retain the stacked layout. The diagram keeps applied values while a gain editor
+contains a draft. Its geometry stays fixed, and motion follows the browser's
+reduced-motion preference.
 
 ## Manual Accurate / Fast P + I
 
