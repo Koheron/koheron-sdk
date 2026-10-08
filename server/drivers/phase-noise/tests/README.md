@@ -53,3 +53,6 @@ shared 64-bit monitor history and the 40-bit/25-bit controller interface.
 
 Host and FPGA simulation checks do not establish hardware lock, analog noise,
 loop stability or converter latency.
+
+Red Pitaya measurements for the NEON processing changes are recorded in
+[critical-path-validation.md](critical-path-validation.md).

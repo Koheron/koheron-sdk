@@ -53,6 +53,7 @@ inline void accumulate_welch_power(const float* transformed, float* power,
         std::max(std::numeric_limits<float>::min(),
                  float(double(std::numeric_limits<float>::min()) / (2.0 * double(normalization)))),
         std::numeric_limits<float>::infinity());
+    auto all_valid = vdupq_n_u32(UINT32_MAX);
     for (; i < fft_size; i += 8) {
         const auto real = vld1q_f32(transformed + i);
         const auto imaginary = vld1q_f32(transformed + i + 4);
@@ -70,26 +71,32 @@ inline void accumulate_welch_power(const float* transformed, float* power,
         auto valid = vandq_u32(safe(magnitude(real), 0x20000000u),
                               safe(magnitude(imaginary), 0x20000000u)); // sqrt(FLT_MIN)
         valid = vandq_u32(valid, safe(magnitude(old), 0x00800000u)); // FLT_MIN
-        const auto halves = vreinterpretq_u64_u32(valid);
-        bool valid_lanes = (vgetq_lane_u64(halves, 0) & vgetq_lane_u64(halves, 1)) == UINT64_MAX;
+        const auto norm = vaddq_f32(vmulq_f32(real, real), vmulq_f32(imaginary, imaginary));
         if constexpr (!Accumulate) {
             // The fused normalization must also preserve nonzero subnormals.
             // Raw products are checked above before using the NEON result.
-            const auto norm = vaddq_f32(vmulq_f32(real, real), vmulq_f32(imaginary, imaginary));
             const auto bits = vreinterpretq_u32_f32(norm);
             const auto mask = vorrq_u32(vceqq_u32(bits, vdupq_n_u32(0)),
                 vcgeq_u32(bits, vreinterpretq_u32_f32(vdupq_n_f32(normalized_minimum))));
-            const auto lanes = vreinterpretq_u64_u32(mask);
-            valid_lanes &= normal_factor && (vgetq_lane_u64(lanes, 0) & vgetq_lane_u64(lanes, 1)) == UINT64_MAX;
-        }
-        if (valid_lanes) {
-            const auto norm = vaddq_f32(vmulq_f32(real, real), vmulq_f32(imaginary, imaginary));
-            if constexpr (Accumulate) vst1q_f32(power + i / 2, vaddq_f32(old, norm));
-            else vst1q_f32(power + i / 2, vmulq_n_f32(norm, 2.f * normalization));
+            all_valid = vandq_u32(all_valid, vandq_u32(valid, mask));
+            vst1q_f32(power + i / 2, vmulq_n_f32(norm, 2.f * normalization));
         } else {
-            for (std::size_t j = i; j < i + 4; ++j)
+            const auto halves = vreinterpretq_u64_u32(valid);
+            if ((vgetq_lane_u64(halves, 0) & vgetq_lane_u64(halves, 1)) == UINT64_MAX)
+                vst1q_f32(power + i / 2, vaddq_f32(old, norm));
+            else for (std::size_t j = i; j < i + 4; ++j)
                 store(i / 2 + j - i, transformed[j] * transformed[j] + transformed[j + 4] * transformed[j + 4]);
         }
+    }
+    if constexpr (!Accumulate) {
+        // Keep the safety reduction in NEON until the complete owned output is
+        // ready. Cortex-A9 scalar/NEON transfers on every four bins are costly.
+        // Exceptional spectra are recomputed with scalar gradual underflow.
+        const auto halves = vreinterpretq_u64_u32(all_valid);
+        if (!normal_factor || (vgetq_lane_u64(halves, 0) & vgetq_lane_u64(halves, 1)) != UINT64_MAX)
+            for (std::size_t offset = 8; offset < fft_size; offset += 8)
+                for (std::size_t j = offset; j < offset + 4; ++j)
+                    store(offset / 2 + j - offset, transformed[j] * transformed[j] + transformed[j + 4] * transformed[j + 4]);
     }
 #endif
     for (; i < fft_size; i += 8)
