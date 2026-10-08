@@ -19,8 +19,11 @@ DRIVERS += $(PROJECT_PATH)/fft.hpp
 DRIVERS += $(PROJECT_PATH)/fft.cpp
 
 include $(SDK_PATH)/web/fft/components.mk
-include $(SDK_PATH)/web/precision-channels/components.mk
-include $(SDK_PATH)/web/clock-generator/components.mk
+include $(SDK_PATH)/web/board-controls/alpha-fft.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
 WEB_FILES := $(filter-out $(PROJECT_PATH)/web/app.ts,$(WEB_FILES)) $(PROJECT_PATH)/web/app.ts
 WEB_FILES += $(SDK_PATH)/web/temperature-sensor/temperature-sensor.html
+include $(SDK_PATH)/web/power-monitor/components.mk
+include $(SDK_PATH)/web/precision-channels/io-template.mk
+include $(SDK_PATH)/web/clock-generator/reference-clock.mk
+include $(SDK_PATH)/web/clock-generator/sampling-frequency.mk

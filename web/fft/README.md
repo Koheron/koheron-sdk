@@ -1,7 +1,8 @@
 # Shared FFT interface
 
-ALPHA250 FFT, Red Pitaya FFT and ALPHA15 signal analyzer include `components.mk`. It packages one
-workspace template, stylesheet, lifecycle, transport, acquisition controls,
+ALPHA250 FFT, ALPHA250-4 FFT, Red Pitaya FFT and ALPHA15 signal analyzer include
+`components.mk`. It packages one
+workspace template, layout stylesheet, lifecycle, transport, acquisition controls,
 spectrum/history views, exports and the shared PNA DDS/PM widget and digit inputs.
 
 Each board supplies a small entry point, its FFT response decoder and board
@@ -21,8 +22,8 @@ tests mount both board pages with these actual templates and the actual PNA
 widget, including failure and teardown paths.
 
 Numeric editors are packaged from `web/inputs`; the ALPHA250 clock adapter and
-bindings come from `web/clock-generator`, shared with PNA/DPLL. Clock templates
-stay board-specific. `bash web/tests/run.sh fft` runs the generic clock/plot and
+bindings come from `web/clock-generator`, shared with PNA/DPLL. The 10 MHz reference and ALPHA250/ALPHA250-4 sampling selectors also come from
+`web/clock-generator`. `bash web/tests/run.sh fft` runs the generic clock/plot and
 FFT browser regressions; `web/fft/tests/run.sh` runs just the FFT suites.
 
 ALPHA15 opts out of the RF DAC generator and supplies a voltage spectrum grid
@@ -36,3 +37,22 @@ remains board-specific. The temperature readout template is shared under
 and ALPHA15 workspace checks without requiring PNA fixtures.
 See `examples/alpha15/signal-analyzer/README.md` for acquisition limitations and
 host tests.
+
+ALPHA250-4 uses this same workspace without the RF DAC generator. Its four
+input buttons map to the two acquisition engines through a board decoder, which
+uses the selected pair's sampling frequency and preserves the existing RPC
+protocol. Clock controls, precision digit editors and board presentation are
+shared with ALPHA250 through `web/board-controls/alpha-fft.mk`. Board telemetry
+is read once per second through the decoder. See
+`examples/alpha250-4/fft/README.md` for the acquisition mapping and host checks.
+
+FFT pages opt into `web/instrument` for common headers, buttons, segmented
+controls, focus and validation states, connection-status geometry and disclosure
+markers. `fft.css` owns the spectrum/sidebar grid, responsive breakpoints and
+control sizing. Precision editor styling comes from `web/precision-channels`.
+
+FFT acquisition controls refresh independently of slow board telemetry. ALPHA250
+and ALPHA250-4 use `InstrumentPoller` for non-overlapping readbacks, a one-second
+delay after each reply, hidden-page suspension, retries and disposal. ALPHA15
+uses the same poller in its board controls. Telemetry failures do not delay
+channel, window or clock readbacks.

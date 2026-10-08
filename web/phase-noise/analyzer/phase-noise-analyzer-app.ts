@@ -3,12 +3,12 @@
 
 class PhaseNoiseAnalyzerApp {
   private disposed = false;
+  private events = new InstrumentEvents();
+  private saveConfig: PnaSaveConfig;
   private cicRateInput: HTMLInputElement;
   private nAvgInput: HTMLInputElement;
   private channelInputs: HTMLInputElement[];
-  private carrierPowerSpan: HTMLElement;
-  private phaseJitterSpan: HTMLElement;
-  private timeJitterSpan: HTMLElement;
+  private measurements: PnaMeasurementReadout;
 
   private laserModeEnableCheckbox: HTMLInputElement;
   private interferometerDelayInput: HTMLInputElement;
@@ -24,7 +24,13 @@ class PhaseNoiseAnalyzerApp {
   constructor(private document: Document, private driver: PhaseNoiseAnalyzer,
       private onConnectionError: (error: unknown) => void = () => {}) {}
 
-  dispose(): void { this.disposed = true; Object.keys(this.numbers).forEach(key => this.numbers[key].dispose()); }
+  dispose(): void {
+    this.disposed = true;
+    this.events.dispose();
+    this.measurements?.clear();
+    this.saveConfig?.dispose();
+    Object.keys(this.numbers).forEach(key => this.numbers[key].dispose());
+  }
 
   setSampleRate(rate: number): void {
     for (const channel of [0, 1])
@@ -39,18 +45,16 @@ class PhaseNoiseAnalyzerApp {
     this.nPoints = parameters.data_size;
 
     this.channelInputs = <HTMLInputElement[]><any>this.document.getElementsByClassName("channel-input");
-    this.carrierPowerSpan = <HTMLElement>this.document.getElementsByClassName("carrier-power-span")[0];
-    this.phaseJitterSpan = <HTMLElement>this.document.getElementsByClassName("phase-jitter-span")[0];
-    this.timeJitterSpan = <HTMLElement>this.document.getElementsByClassName("time-jitter-span")[0];
+    this.measurements = new PnaMeasurementReadout(this.document);
 
     this.ddsInputs = [0, 1].map(i =>
       this.document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
     this.initNumbers(parameters, tracking);
-    this.initSaveConfig();
+    this.saveConfig = new PnaSaveConfig(this.document, () => this.driver.saveConfig(), this.onConnectionError);
     this.averageStatus = this.document.querySelector('#average-status');
     this.trackingEnabledInput = this.document.querySelector('.tracking-enabled-input');
     this.trackingEnabledInput.checked = tracking.enabled;
-    this.trackingEnabledInput.addEventListener('change', () =>
+    this.events.listen(this.trackingEnabledInput, 'change', () =>
       this.driver.setTrackingEnabled(this.trackingEnabledInput.checked));
     this.initChannelInput();
     this.initLaserMode();
@@ -91,32 +95,12 @@ class PhaseNoiseAnalyzerApp {
     });
   }
 
-  private initSaveConfig(): void {
-    const button = this.document.querySelector<HTMLButtonElement>('.save-cfg');
-    button?.addEventListener('click', () => {
-      if (this.disposed) { return; }
-      const status = this.document.getElementById('save-config-status');
-      try {
-        this.driver.saveConfig();
-        // The existing save RPC has no acknowledgement. Describe the request
-        // honestly instead of claiming that the file write was verified.
-        button.textContent = 'Save requested';
-        if (status) { status.textContent = 'Analyzer settings save requested.'; }
-      } catch (error) {
-        button.textContent = 'Save failed';
-        if (status) { status.textContent = 'Unable to send the save request.'; }
-        this.onConnectionError(error);
-      }
-      setTimeout(() => { if (!this.disposed) { button.textContent = 'Save settings'; } }, 2000);
-    });
-  }
-
   initChannelInput(): void {
     for (let i = 0; i < this.channelInputs.length; i++) {
-      this.channelInputs[i].addEventListener('change', (event) => {
+      this.events.listen(this.channelInputs[i], 'change', (event) => {
         this.channel = parseInt((<HTMLInputElement>event.currentTarget).value);
-          this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
-      })
+        this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
+      });
     }
   }
 
@@ -124,38 +108,12 @@ class PhaseNoiseAnalyzerApp {
     this.laserModeEnableCheckbox = <HTMLInputElement>this.document.getElementsByClassName("laser-mode-input")[0];
     this.interferometerDelayInput = <HTMLInputElement>this.document.getElementsByClassName("interferometer-delay")[0];
 
-    this.laserModeEnableCheckbox.addEventListener("change", () => {
+    this.events.listen(this.laserModeEnableCheckbox, "change", () => {
       const enabled: 0 | 1 = this.laserModeEnableCheckbox.checked ? 1 : 0;
       this.driver.setAnalyzerMode(enabled);
       this.interferometerDelayInput.disabled = !enabled;
     });
 
-  }
-
-  private formatFrequency(freq: number): string {
-    if (Number.isNaN(freq)) {
-      return "---";
-    }
-
-    const absFreq = Math.abs(freq);
-
-    if (absFreq >= 1e9) {
-      return `${(freq / 1e9).toFixed(0)} GHz`;
-    } else if (absFreq >= 1e6) {
-      return `${(freq / 1e6).toFixed(0)} MHz`;
-    } else if (absFreq >= 1e3) {
-      return `${(freq / 1e3).toFixed(0)} kHz`;
-    } else {
-      return `${freq.toFixed(0)} Hz`;
-    }
-  }
-
-  private formatMeasurement(value: number, unit: string, digits: number = 2): string {
-    if (!Number.isFinite(value)) {
-      return '—';
-    } else {
-      return `${value.toFixed(digits)}  ${unit}`;
-    }
   }
 
   private async updateMeasurements() {
@@ -165,16 +123,7 @@ class PhaseNoiseAnalyzerApp {
       const meas = await this.driver.getMeasurements(navg);
       if (this.disposed) { return; }
 
-      this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
-      this.phaseJitterSpan.innerHTML =
-        this.formatMeasurement(meas.phase_jitter * 1E3, 'mrad<sub>rms</sub>');
-      this.timeJitterSpan.innerHTML =
-        this.formatMeasurement(meas.time_jitter * 1E12, 'ps<sub>rms</sub>');
-      const range = this.document.getElementById('jitter-range');
-      if (range) {
-        range.textContent = Number.isFinite(meas.freq_lo) && Number.isFinite(meas.freq_hi)
-          ? `${this.formatFrequency(meas.freq_lo)} – ${this.formatFrequency(meas.freq_hi)}` : '—';
-      }
+      this.measurements.render(meas);
     } catch (error) {
       if (!this.disposed) { this.onConnectionError(error); }
     } finally {

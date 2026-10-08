@@ -133,7 +133,7 @@ class Plot {
     private setStatus(state: string, text: string): void {
         const status = this.document.getElementById('connection-status');
         if (status.dataset.state !== state) { status.dataset.state = state; }
-        if (status.textContent !== text) { status.textContent = text; }
+        if (status.textContent !== text) { status.textContent = text; status.title = text; }
     }
 
     private schedule(delay: number): void {

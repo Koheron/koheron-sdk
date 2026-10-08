@@ -28,7 +28,7 @@ async function host(t, failure = false, board = 'alpha250', connectionFailure = 
     window.Client = class { async init() { if (connectionFailure) { throw new Error('Unavailable'); } } exit() { client.exits++; } };
     window.Imports = class {
         constructor(document) {
-            const assets = ['web/temperature-sensor', 'web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file',
+            const assets = ['web/clock-generator', 'web/precision-channels', 'web/temperature-sensor', 'web/power-monitor', 'web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file',
                 'web/plot-basics', `examples/${board}/fft/web/clock-generator`,
                 `examples/${board}/fft/web/precision-channels`, `examples/${board}/fft/web/temperature-sensor`,
                 `examples/${board}/fft/web/power-monitor`];
@@ -49,7 +49,7 @@ async function host(t, failure = false, board = 'alpha250', connectionFailure = 
     };
     window.PrecisionChannelsApp = class { async init() {} setValues() {} dispose() {} };
     for (const name of ['PrecisionDac', 'ClockGenerator', 'ClockGeneratorApp', 'PlotBasics', 'ExportFile']) {
-        window[name] = class {};
+        window[name] = class { dispose() {} };
     }
     window.Plot = class { constructor() { trace.push('plot-ready'); } dispose() { trace.push('plot-stopped'); } };
     window.PhaseModulatorDriver = class { constructor() { return port; } };
@@ -58,7 +58,7 @@ async function host(t, failure = false, board = 'alpha250', connectionFailure = 
         ['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']],
         ['web/phase-modulator/phase-modulator-widget.ts', ['PhaseModulatorWidget']],
         ['web/fft/workspace.ts', ['FFTWorkspace']],
-        [`examples/${board}/fft/web/board-controls.ts`, [board === 'alpha250' ? 'Alpha250FFTControls' : 'RedPitayaFFTControls']],
+        [board === 'alpha250' ? 'web/board-controls/alpha-fft.ts' : `examples/${board}/fft/web/board-controls.ts`, [board === 'alpha250' ? 'AlphaFFTControls' : 'RedPitayaFFTControls']],
         [`examples/${board}/fft/web/app.ts`, []]
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {

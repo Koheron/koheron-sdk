@@ -51,3 +51,47 @@ test('clock read failures propagate to the connection owner', async () => {
     await assert.rejects(clock.getReferenceClock(), /Disconnected/);
     await assert.rejects(clock.getDacSamplingFrequency(), /Disconnected/);
 });
+
+test('clock bindings preserve board commands, acquisition notification order and teardown', () => {
+    const {JSDOM} = require('jsdom');
+    for (const project of ['alpha15/signal-analyzer', 'alpha250/fft', 'alpha250-4/fft']) {
+        const root = path.resolve(__dirname, '../../..');
+        const dom = new JSDOM('<main></main>', {runScripts: 'outside-only'});
+        try {
+            const {window} = dom;
+            for (const file of ['reference-clock.html', 'sampling-frequency.html']) {
+                if (file === 'sampling-frequency.html' && project.startsWith('alpha15')) { continue; }
+                const templatePath = path.join(root, 'web/clock-generator', file);
+                if (!fs.existsSync(templatePath)) { continue; }
+                const fragment = new JSDOM(fs.readFileSync(templatePath, 'utf8'));
+                window.document.querySelector('main').append(window.document.importNode(
+                    fragment.window.document.querySelector('template').content, true));
+                fragment.window.close();
+            }
+            const source = fs.readFileSync(path.join(root, 'web/instrument/events.ts'), 'utf8') + '\n'
+                + fs.readFileSync(path.join(__dirname, '../clock-generator-app.ts'), 'utf8');
+            window.eval(ts.transpileModule(source, {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText
+                + '\nwindow.ClockGeneratorApp = ClockGeneratorApp;');
+            const calls = [];
+            const driver = {
+                setReferenceClock(value) { calls.push(['reference', value]); },
+                setSamplingFrequency(value) { calls.push(['sampling', value]); }
+            };
+            const notify = project.startsWith('alpha15') ? () => calls.push(['invalidate']) : undefined;
+            const controls = new window.ClockGeneratorApp(window.document, driver, notify);
+            assert.deepEqual(calls, []);
+            const inputs = Array.from(window.document.querySelectorAll('.clkgen-input'));
+            const expected = [];
+            for (const input of inputs) {
+                if (notify) { expected.push(['invalidate']); }
+                expected.push([input.dataset.command === 'setReferenceClock' ? 'reference' : 'sampling', Number(input.value)]);
+                input.dispatchEvent(new window.Event('change'));
+            }
+            assert.deepEqual(calls, expected, project);
+            controls.dispose();
+            controls.dispose();
+            for (const input of inputs) { input.dispatchEvent(new window.Event('change')); }
+            assert.deepEqual(calls, expected, 'disposed controls send no commands');
+        } finally { dom.window.close(); }
+    }
+});

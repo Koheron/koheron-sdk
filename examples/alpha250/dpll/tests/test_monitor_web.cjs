@@ -24,7 +24,7 @@ async function host(t, options = {}) {
     const template = new w.DOMParser().parseFromString(read(p), 'text/html').querySelector('template');
     d.getElementById(id).appendChild(d.importNode(template.content, true));
   }
-  const files = ['web/inputs/digit-input.ts', 'web/phase-noise/spectrum.ts',
+  const files = ['web/instrument/events.ts', 'web/phase-noise/measurements.ts', 'web/inputs/digit-input.ts', 'web/phase-noise/spectrum.ts',
     'web/phase-noise/plot.ts', 'web/phase-noise/phase-precision.ts',
     'web/phase-noise/analyzer/phase-noise-analyzer.ts',
     'web/phase-noise/analyzer/plot.ts',
@@ -59,7 +59,7 @@ test('monitor uses the shared PNA frame, precision and controls without loop wri
   assert.deepEqual(state.writes, []);
   assert.equal(d.getElementById('monitor-controls').disabled, false);
   assert.equal(d.getElementById('average-status').textContent, '4/');
-  assert.equal(d.querySelector('.phase-jitter-span').textContent, '12.34 mrad');
+  assert.equal(d.querySelector('.phase-jitter-span').textContent, '12.34 mrad rms');
   assert.equal(monitor.plot.phase_psd.length, 16385);
   assert.equal(monitor.plot.frameStatus.fs, 6250000);
   assert.equal(d.getElementById('coverage-status').textContent, 'Coverage 100%');
@@ -136,4 +136,21 @@ test('live zero spectrum explains precision limit and recovers when noise is res
   await settle();
   assert.equal(status.hidden, true);
   assert.equal(d.getElementById('capture-reference').disabled, false);
+});
+
+test('monitor command listeners forward send errors and remain removed after disposal', async t => {
+  const {d, w, state, monitor, errors} = await host(t, {driverName:'PassivePhase'});
+  const channel = d.querySelector('[name="monitor-channel"][value="1"]');
+  const reset = d.getElementById('reset-average');
+  const send = monitor.client.send.bind(monitor.client);
+  monitor.client.send = command => {
+    if (command.name === 'set_channel') throw new Error('Expected send failure');
+    return send(command);
+  };
+  channel.checked = true; channel.dispatchEvent(new w.Event('change'));
+  assert.equal(errors.length, 1); assert.match(errors[0].message, /Expected send failure/);
+  assert.equal(state.closed, 1);
+  const commands = state.writes.length;
+  reset.dispatchEvent(new w.Event('click')); channel.dispatchEvent(new w.Event('change'));
+  assert.equal(state.writes.length, commands); assert.equal(errors.length, 1);
 });

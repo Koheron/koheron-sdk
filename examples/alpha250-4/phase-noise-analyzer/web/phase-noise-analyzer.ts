@@ -21,14 +21,6 @@ interface IParameters {
 type TupleGetMeasurements = [number, number, number, number, number];
 type TupleGetTrackingParameters = [boolean, number, number, number, number, number, number, boolean];
 
-interface IMeasurements {
-  phase_jitter: number; // rad rms
-  time_jitter: number;  // s rms
-  freq_lo: number; // Integration interval start
-  freq_hi: number; // Integration interval end
-  carrier_power: number;
-}
-
 interface ITrackingParameters {
   tracking_enabled: boolean;
   tracking_bandwidth: number;

@@ -97,6 +97,12 @@ class FFTWorkspace {
         this.fftApp?.dispose();
         this.generator?.dispose();
         this.board?.dispose();
+        for (const id of ['instrument-controls', 'board-controls']) {
+            (this.document.getElementById(id) as HTMLFieldSetElement).disabled = true;
+        }
+        for (const id of ['pause-display', 'reset-view', 'spectrum-view']) {
+            (this.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement).disabled = true;
+        }
         this.client.exit();
     }
 }

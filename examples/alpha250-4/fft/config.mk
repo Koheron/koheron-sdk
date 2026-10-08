@@ -16,12 +16,16 @@ include $(SDK_PATH)/boards/alpha250-4/drivers/drivers.mk
 DRIVERS += $(PROJECT_PATH)/fft.hpp
 DRIVERS += $(PROJECT_PATH)/fft.cpp
 
-include $(SDK_PATH)/web/clock-generator/driver.mk
-include $(SDK_PATH)/web/precision-channels/driver.mk
-WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
-WEB_FILES += $(SDK_PATH)/web/dds-frequency/dds-frequency.html
-WEB_FILES += $(SDK_PATH)/web/dds-frequency/dds-frequency.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
-WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
-WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
+include $(SDK_PATH)/web/fft/components.mk
+include $(SDK_PATH)/web/board-controls/alpha-fft.mk
+include $(SDK_PATH)/web/temperature-sensor/driver.mk
+include $(SDK_PATH)/web/power-monitor/driver.mk
+include $(SDK_PATH)/web/precision-channels/adc-driver.mk
+WEB_FILES := $(filter-out $(SDK_PATH)/web/fft/controls/input-channel.html,$(WEB_FILES))
+WEB_FILES += $(PROJECT_PATH)/web/fft.ts $(PROJECT_PATH)/web/fft/input-channel.html
+WEB_FILES += $(PROJECT_PATH)/web/index.html $(PROJECT_PATH)/web/app.ts
 WEB_FILES += $(SDK_PATH)/web/temperature-sensor/temperature-sensor.html
+include $(SDK_PATH)/web/power-monitor/components.mk
+include $(SDK_PATH)/web/precision-channels/io-template.mk
+include $(SDK_PATH)/web/clock-generator/reference-clock.mk
+include $(SDK_PATH)/web/clock-generator/sampling-frequency.mk

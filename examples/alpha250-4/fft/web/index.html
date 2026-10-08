@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Koheron</title>
+  <title>FFT · ALPHA250-4 · Koheron</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -16,17 +16,20 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" href="instrument.css">
+  <link rel="stylesheet" href="precision-channels.css">
+  <link rel="stylesheet" href="fft.css">
+  <link rel="stylesheet" href="phase-modulator.css">
 
   <script type="text/javascript" src="html-imports.min.js"></script>
 
   <script type="text/javascript" src="jquery.min.js"></script>
   <script type="text/javascript" src="bootstrap.min.js"></script>
 
-  <link rel="import" href="navigation.html" data-parent="navigation">
+  <link rel="import" href="workspace.html" data-parent="fft-workspace-root">
   <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="yunit.html" data-parent="yunit">
   <link rel="import" href="fft-window.html" data-parent="fft-window">
-  <link rel="import" href="input-adc.html" data-parent="input-adc">
   <link rel="import" href="input-channel.html" data-parent="input-channel">
   <link rel="import" href="reference-clock.html" data-parent="reference-clock">
   <link rel="import" href="sampling-frequency.html" data-parent="sampling-frequency">
@@ -38,50 +41,7 @@
 
 </head>
 
-<body>
-
-<div id="navigation"></div>
-
-<div id="main" class="container-fluid" style="padding: 10px">
-
-  <div class="row">
-
-    <div class="col-md-8">
-      <div id="plot-placeholder" class="plot-placeholder"></div>
-      <div id="plot-basics"></div>
-    </div>
-
-    <div class="col-md-4">
-
-      <section style="margin-bottom: 20px;">
-        <div id="yunit"></div>
-        <div id="fft-window"></div>
-        <div id="input-adc"></div>
-        <div id="input-channel"></div>
-        <div id="reference-clock"></div>
-        <div id="sampling-frequency"></div>
-        <div id="peak-detection"></div>
-      </section>
-
-      <section id="export-file"></section>
-    </div>
-
-  </div>
-
-  <div class="row">
-    <div class="col-md-8">
-      <section id="precision-channels"></section>
-    </div>
-    <div class="col-md-2">
-      <section id="temperature-sensor"></section>
-    </div>
-    <div class="col-md-2">
-      <section id="power-monitor"></section>
-    </div>
-  </div>
-
-</div>
-
+<body id="fft-workspace-root" class="instrument-workspace fft-workspace" data-board="alpha250-4">
   <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.resize.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.selection.js"></script>
@@ -89,9 +49,7 @@
   <script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
   <script language="javascript" type="text/javascript" src="jquery.flot.canvas.js"></script>
 
-  <script src="app.js?random=<?php echo uniqid(); ?>"></script>
-
-</div>
+  <script src="app.js"></script>
 
 </body>
 

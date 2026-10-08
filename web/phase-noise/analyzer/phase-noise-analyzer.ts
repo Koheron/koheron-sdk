@@ -35,14 +35,6 @@ interface IParameters {
 
 type TupleGetMeasurements = [number, number, number, number, number];
 
-interface IMeasurements {
-  phase_jitter: number; // rad rms
-  time_jitter: number;  // s rms
-  freq_lo: number; // Integration interval start
-  freq_hi: number; // Integration interval end
-  carrier_power: number;
-}
-
 interface IAverageStatus {
   count: number;
   target: number;

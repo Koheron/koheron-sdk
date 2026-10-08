@@ -1,0 +1,4 @@
+ifndef SDK_INSTRUMENT_EVENTS_INCLUDED
+SDK_INSTRUMENT_EVENTS_INCLUDED := 1
+WEB_FILES += $(SDK_PATH)/web/instrument/events.ts
+endif

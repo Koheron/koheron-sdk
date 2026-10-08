@@ -99,7 +99,7 @@ async function host(t, options = {}) {
   window.console.error = () => {};
   for (const link of document.querySelectorAll('link[rel="import"]')) {
     const paths = {
-      'reference-clock.html': 'examples/alpha250/dpll/web/clock-generator/reference-clock.html',
+      'reference-clock.html': 'web/clock-generator/reference-clock.html',
       'plot-basics.html': 'web/plot-basics/plot-basics.html',
       'export-file.html': 'web/phase-noise/export-file/export-file.html'
     };

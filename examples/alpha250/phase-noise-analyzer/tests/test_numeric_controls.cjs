@@ -12,9 +12,9 @@ async function fixture(t, board = 'alpha250') {
     const w = dom.window; t.after(() => w.close());
     w.document.querySelector('#dds-frequency').innerHTML = fs.readFileSync(path.join(root, 'web/phase-noise/analyzer/dds-frequency/dds-frequency.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     const referenceClock = w.document.querySelector('#reference-clock');
-    if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, 'web/phase-noise/reference-clock/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
+    if (referenceClock) referenceClock.innerHTML = fs.readFileSync(path.join(root, 'web/clock-generator/reference-clock.html'), 'utf8').replace(/<\/?template[^>]*>/g, '');
     w.requestAnimationFrame = () => 0;
-    for (const [file, exports] of [['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
+    for (const [file, exports] of [['web/phase-noise/measurements.ts', ['PnaMeasurementReadout']], ['web/instrument/events.ts', ['InstrumentEvents']], ['web/phase-noise/save-config.ts', ['PnaSaveConfig']], ['web/inputs/digit-input.ts', ['FrequencyInput', 'NumberInput']], ['web/phase-noise/analyzer/phase-noise-analyzer-app.ts', ['PhaseNoiseAnalyzerApp']]]) {
         w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + exports.map(name => `\nwindow.${name} = ${name};`).join(''));
     }
     const parameters = {data_size: 16384, fs: 5e6, channel: 0, cic_rate: 20, fft_navg: 1, fdds0: 10e6, fdds1: 10e6, analyzer_mode: 'RF', interferometer_delay: 1e-9, clkIndex: 2};
@@ -182,3 +182,30 @@ test('average progress distinguishes waiting, initial fill and a full rolling wi
     await app.updateAverageProgress();
     assert.equal(status.textContent, '—/');
 });
+
+for (const board of ['alpha250', 'red-pitaya']) {
+    test(`${board} analyzer mounts and disposes the shared save action`, async t => {
+        const h = await fixture(t, board); let saves = 0;
+        h.driver.saveConfig = () => saves++;
+        const button = h.w.document.querySelector('.save-cfg');
+        button.click(); assert.equal(saves, 1);
+        assert.equal(button.textContent, 'Save requested');
+        h.app.dispose(); button.click(); assert.equal(saves, 1);
+    });
+}
+
+for (const board of ['alpha250', 'red-pitaya']) {
+    test(`${board} channel, tracking and analyzer mode stop sending after disposal`, async t => {
+        const h = await fixture(t, board);
+        h.driver.setChannel = value => h.calls.push(['channel', value]);
+        const inputs = [h.w.document.querySelector('.channel-input'),
+            h.w.document.querySelector('.tracking-enabled-input'), h.w.document.querySelector('.laser-mode-input')];
+        for (const input of inputs) input.dispatchEvent(new h.w.Event('change'));
+        assert.deepEqual(h.calls.map(call => call[0]), ['channel', 'tracking', 'laser']);
+        const delay = h.w.document.querySelector('.interferometer-delay');
+        h.app.dispose(); const commands = h.calls.length, disabled = delay.disabled;
+        inputs[2].checked = !inputs[2].checked;
+        for (const input of inputs) input.dispatchEvent(new h.w.Event('change'));
+        assert.equal(h.calls.length, commands); assert.equal(delay.disabled, disabled);
+    });
+}

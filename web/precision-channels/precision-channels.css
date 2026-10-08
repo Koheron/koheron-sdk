@@ -1,0 +1,18 @@
+/* Shared precision I/O presentation, including hosts outside the FFT workspace. */
+.precision-table { width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; table-layout: fixed; }
+.precision-table td { padding: 3px; }
+.precision-digit-control, .precision-digit-control * { box-sizing: border-box; }
+.precision-table th { padding: 3px; color: var(--muted, #666); font-weight: 400; }
+.precision-table thead th { border-bottom: 1px solid var(--border-light, #e6e6e6); text-align: left; }
+.precision-table th:first-child { width: 36px; }
+.precision-table th:nth-child(2) { width: 140px; }
+.precision-table th:last-child { width: 80px; }
+.precision-table td:last-child, .precision-table thead th:last-child { text-align: right; }
+.precision-table td input[type="number"] { width: 100%; text-align: right; }
+.precision-digit-control { position: relative; display: block; min-width: 0; }
+.precision-digit-control .digit-input { width: 100%; min-width: 0; height: var(--control-height, 26px); padding: 2px 6px; border: 1px solid var(--border-light, #e6e6e6); border-radius: 2px; background: #fafafa; color: #333; font: 15px/20px ui-monospace, SFMono-Regular, Consolas, monospace; text-align: right; font-variant-numeric: tabular-nums; }
+.precision-digit-control .digit-input[aria-invalid="true"] { border-color: #bc4828; }
+.precision-digit-control .pm-frequency-help { display: none; position: absolute; top: calc(100% + 3px); right: 0; z-index: 10; max-width: 240px; padding: 3px 6px; border: 1px solid #ddad9f; border-radius: 2px; background: white; color: #a53e25; font-size: 11px; pointer-events: none; }
+.precision-digit-control .pm-frequency-help[data-state="error"] { display: block; }
+.precision-digit-control .digit-input::selection { background: var(--accent, #019cd5); color: white; }
+.precision-digit-control .digit-input:focus-visible { outline: 2px solid var(--accent, #019cd5); outline-offset: 2px; }

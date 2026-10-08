@@ -37,7 +37,7 @@ async function host(t, failure = false) {
         constructor(document) {
             const assets = [`${project}/web`, `${project}/web/fft`, `${project}/web/plot`, `${project}/web/adc-range`,
                 `${project}/web/clock-generator`, `${project}/web/precision-channels`, `${project}/web/temperature-sensor`, `${project}/web/power-monitor`,
-                'web/temperature-sensor', 'web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file', 'web/plot-basics'];
+                'web/clock-generator', 'web/temperature-sensor', 'web/power-monitor', 'web/fft', 'web/fft/controls', 'web/fft/plot', 'web/fft/export-file', 'web/plot-basics'];
             for (const link of document.querySelectorAll('link[rel="import"]')) {
                 const file = assets.map(dir => path.join(root, dir, link.getAttribute('href'))).find(fs.existsSync);
                 assert(file, `Missing import ${link.getAttribute('href')}`);
@@ -108,11 +108,11 @@ async function host(t, failure = false) {
         setVisibleRangeX(from, to) { range = {from, to}; }
         redraw(data, count, peak, label, cb) { drawn = {data, count, peak, label}; cb(); }
     };
-    const files = ['web/precision-channels/precision-dac.ts', 'web/fft/driver.ts', 'web/fft/controls/fft-app.ts', 'web/precision-channels/precision-channels-app.ts',
+    const files = ['web/instrument/events.ts', 'web/instrument/poller.ts', 'web/power-monitor/readout.ts', 'web/temperature-sensor/readout.ts', 'web/precision-channels/precision-dac.ts', 'web/fft/driver.ts', 'web/fft/controls/fft-app.ts', 'web/precision-channels/precision-channels-app.ts',
         'web/inputs/digit-input.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/spectrum-views.ts',
         'web/fft/plot/plot.ts', 'web/fft/export-file/export-file.ts', 'web/fft/workspace.ts',
-        ...['adc-range/ltc2387.ts', 'clock-generator/clock-generator.ts',
-            'temperature-sensor/temperature-sensor.ts', 'power-monitor/power-monitor.ts', 'decimator.ts', 'fft.ts', 'board-controls.ts', 'app.ts'].map(file => `${project}/web/${file}`)];
+        'web/clock-generator/clock-generator.ts', 'web/clock-generator/clock-generator-app.ts', 'web/temperature-sensor/temperature-sensor.ts', 'web/power-monitor/power-monitor.ts',
+        ...['adc-range/ltc2387.ts', 'decimator.ts', 'fft.ts', 'board-controls.ts', 'app.ts'].map(file => `${project}/web/${file}`)];
     w.eval(ts.transpileModule(files.map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText + '\nwindow.workspace = app;');
@@ -147,7 +147,7 @@ test('Alpha15 shared DAC edits preserve acquisition and references while telemet
     const input = h.d.querySelector(".precision-dac-input[data-channel='3']");
     input.value = '123.456 mV';
     input.dispatchEvent(new h.w.Event('input', {bubbles: true}));
-    await h.app.board.poll();
+    await h.app.board.telemetry.poll();
     assert.equal(input.value, '123.456 mV', 'Board telemetry must preserve a pending DAC edit');
     assert.equal(h.state.writes.length, 0);
     const pendingTimers = new Set(h.timers.keys());
@@ -478,4 +478,17 @@ test('a restart by another client refreshes controls and resumes without repeate
     assert(frame);
     assert.deepEqual(Array.from(fft.generations), [h.state.generations.Decimator, h.state.generations.Decimator, h.state.generations.FFT]);
     assert.equal(h.state.reads.filter(c => c.name === 'restart_acquisition').length, restarts);
+});
+
+test('Alpha15 removes range and acquisition listeners on page exit', async t => {
+    const h = await host(t);
+    const range = h.d.querySelector('.adc-range');
+    range.dispatchEvent(new h.w.Event('change'));
+    assert.equal(h.state.writes.at(-1).name, 'range_select');
+    h.w.dispatchEvent(new h.w.Event('pagehide'));
+    const commands = h.state.writes.length;
+    for (const input of h.d.querySelectorAll('.adc-range, .fft-input, .fft-select, .clkgen-input')) {
+        input.dispatchEvent(new h.w.Event('change'));
+    }
+    assert.equal(h.state.writes.length, commands);
 });

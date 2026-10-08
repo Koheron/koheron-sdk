@@ -62,10 +62,11 @@ test('shared DAC transport retains the legacy callback contract and typed readba
 });
 
 async function host(t) {
-    const markup = fs.readFileSync(path.join(root, 'examples/alpha250/fft/web/precision-channels/precision-channels.html'), 'utf8');
+    const markup = fs.readFileSync(path.join(root, 'web/precision-channels/precision-channels.html'), 'utf8');
     const dom = new JSDOM(markup, {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
     const window = dom.window;
+    Object.defineProperty(window.document, 'hidden', {value: false, configurable: true});
     window.document.body.append(window.document.querySelector('template').content.cloneNode(true));
     const values = Float32Array.from([.1, .2, .3, .4]);
     const writes = [];
@@ -74,6 +75,7 @@ async function host(t) {
         async getDacValues() { return values.slice(); }
     };
     for (const [file, exports] of [
+        ['web/instrument/poller.ts', ['InstrumentPoller']],
         ['web/inputs/digit-input.ts', ['NumberInput']],
         ['web/precision-channels/precision-channels-app.ts', ['PrecisionChannelsApp']]
     ]) {

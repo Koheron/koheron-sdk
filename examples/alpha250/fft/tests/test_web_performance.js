@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert});
-for (const file of ['web/fft/controls/fft-app.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
+for (const file of ['web/power-monitor/readout.ts', 'web/temperature-sensor/readout.ts', 'web/fft/controls/fft-app.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);
@@ -19,7 +19,7 @@ vm.runInContext(`
     globalThis.document = {activeElement: null, querySelector: () => ({textContent: ''}), querySelectorAll: () => []};
     const widget = Object.assign(Object.create(FFTApp.prototype), {
         running: true, channelNum: 0, _busyControls: false, _controlsHz: 4,
-        _lastControlsTick: 0, _lastBoardTick: -Infinity, _supplySpans: [], _temperatureSpans: [],
+        _lastControlsTick: 0, document: globalThis.document, _supplySpans: [], _temperatureSpans: [],
         ensureControlsCache() {}, setCheckedIfNeeded() {}, setValueIfNeeded() {},
         driver: {
             async getControlParameters() { controls++; return {fs: 250e6, channel: 0, window_index: 1, clkIndex: '0'}; },
@@ -28,12 +28,12 @@ vm.runInContext(`
     });
     for (const time of [250, 500, 750, 1000, 1250]) { now = time; await widget.updateControls(); }
     assert.equal(controls, 5);
-    assert.equal(board, 2); // Initial telemetry, then at one second; controls remain 4 Hz.
+    assert.equal(board, 0); // Slow board telemetry has its own shared poller.
     // Red Pitaya has no ALPHA250 precision-I/O telemetry endpoint.
     delete widget.driver.getBoardParameters;
     now += 1000; await widget.updateControls();
     assert.equal(controls, 6);
-    assert.equal(board, 2);
+    assert.equal(board, 0);
     widget.dispose(); now += 1000; await widget.updateControls();
     assert.equal(controls, 6);
 
