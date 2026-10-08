@@ -4,53 +4,54 @@
     --control-height: 26px;
     --control-padding: 2px 8px;
     --instrument-font: 'DDS PM Lato', Arial, sans-serif;
+    container: fft / inline-size;
+    min-height: 100dvh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
 }
-.fft-workspace #main { margin: 0; padding: 6px 12px; width: 100%; max-width: none; }
+.fft-workspace #main { margin: 0; padding: 6px 12px; width: 100%; max-width: none; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fft-workspace .muted, .fft-workspace .readout-label { color: var(--muted); }
-.fft-workspace .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
+.fft-workspace .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding-bottom: 6px; border-bottom: 0; }
 .fft-workspace .acquisition-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .fft-workspace .generator-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .fft-workspace label, .fft-workspace .control-label { white-space: nowrap; }
 .fft-workspace #yunit .control-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .fft-workspace select { width: 148px; }
 .fft-workspace input[type="checkbox"] { accent-color: var(--accent); }
-.fft-workspace .spectrum-panel { margin: 0; min-width: 0; }
-.fft-workspace .spectrum-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 6px 0; }
+.fft-workspace .spectrum-panel { margin: 0; min-width: 0; flex: 1; display: flex; flex-direction: column; min-height: 300px; }
+.fft-workspace .spectrum-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 0; }
 .fft-workspace .display-controls, .fft-workspace .plot-actions { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
-.fft-workspace .plot-actions { flex-wrap: wrap; }
-.fft-workspace .reference-info strong { color: #8a589d; }
+.fft-workspace .reference-info strong { color: #8a589d; font-weight: 400; font-variant-numeric: tabular-nums; }
 .fft-workspace .reference-info[hidden] { display: none; }
 .fft-workspace .toolbar-actions { display: flex; align-items: center; gap: 0; }
 .fft-workspace .toolbar-actions button + button { border-left: 0; border-radius: 0 2px 2px 0; }
 .fft-workspace .toolbar-actions button:first-child { border-radius: 2px 0 0 2px; }
 .fft-workspace .peak-toggle { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.fft-workspace .spectrum-canvas { position: relative; margin: 4px 0 0; }
-.fft-workspace .plot-placeholder { height: clamp(260px, calc(100dvh - 240px), 1000px); width: 100%; }
-.fft-workspace #plot-title { margin: 3px 0; color: var(--muted); font-size: 11px; }
+.fft-workspace .spectrum-canvas { position: relative; margin: 4px 0 0; flex: 1; min-height: 250px; max-height: 1000px; }
+.fft-workspace .plot-placeholder { width: 100%; position: absolute; inset: 0; }
+.fft-workspace #plot-title { color: var(--muted); font-size: 11px; position: absolute; bottom: -22px; width: 100%; margin: 0; }
 .fft-workspace #peak-datapoint, .fft-workspace #hover-datapoint, .fft-workspace #click-datapoint { pointer-events: none; border: 1px solid var(--border); border-radius: 2px; font-size: 11px; padding: 2px 4px !important; z-index: 1; }
-.fft-workspace .spectrum-readouts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 20px; padding: 5px 0; }
+.fft-workspace .spectrum-readouts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 20px; padding: 5px 0; flex: none; padding-top: 26px; }
 .fft-workspace .spectrum-readouts > div { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 .fft-workspace .spectrum-readouts strong { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .fft-workspace .plot-help { margin-left: auto; color: var(--muted); font-size: 11px; }
 .fft-workspace .board-details { margin-top: 3px; border-top: 1px solid var(--border-light); }
 .fft-workspace summary { cursor: pointer; padding: 5px 0; color: #555; }
-.fft-workspace .board-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr) minmax(160px, 1fr); gap: 14px; padding: 6px 0; }
+.fft-workspace .board-grid { display: grid; padding: 6px 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .fft-workspace .board-grid > section { margin: 0; }
 .fft-workspace .crossed { text-align: left; border: 0; line-height: normal; margin: 0 0 6px; }
 .fft-workspace .crossed > span { padding: 0; font-size: 12px; }
 .fft-workspace table { font-size: 12px; width: 100%; font-variant-numeric: tabular-nums; }
 .fft-workspace td { padding: 3px; }
-.fft-workspace td input[type="number"] { width: 90px; }
 .fft-workspace #plot-placeholder table { width: auto; }
 .fft-workspace #plot-placeholder td { padding: 2px; }
 .fft-workspace #plot-placeholder .legend b { font-size: 12px !important; font-weight: 600; }
 @media (max-width: 900px) {
-    .fft-workspace .board-grid { grid-template-columns: 1fr 1fr; }
-    .fft-workspace #precision-channels { grid-column: 1 / -1; }
     .fft-workspace .plot-help { display: none; }
 }
 @media (max-width: 600px) {
-    .fft-workspace .app-header { flex-wrap: wrap; gap: 4px 10px; }
+    .fft-workspace .app-header { flex-wrap: wrap; }
     .fft-workspace nav { font-size: 11px; }
     .fft-workspace #main { padding: 6px 8px; }
     .fft-workspace .acquisition-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; }
@@ -62,61 +63,34 @@
     .fft-workspace .segmented span { padding: 2px 7px; }
     .fft-workspace .generator-controls { gap: 6px; }
     .fft-workspace .generator-controls, .fft-workspace .acquisition-controls { width: 100%; }
-    .fft-workspace .plot-placeholder { height: 46dvh; min-height: 250px; }
     .fft-workspace .spectrum-readouts { gap: 3px 14px; }
-    .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
-
 }
 
 .fft-workspace .history-toolbar, .fft-workspace #trace-controls, .fft-workspace #history-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
-.fft-workspace .history-toolbar { padding-bottom: 3px; }
+.fft-workspace .history-toolbar { flex: none; padding: 6px 0 3px; }
 .fft-workspace #clear-history { margin-left: auto; }
 .fft-workspace #spectrum-view { width: 124px; }
 .fft-workspace #history-controls label { display: inline-flex; align-items: center; gap: 5px; }
 .fft-workspace #history-duration { width: 62px; }
 .fft-workspace #history-controls input[type="number"] { width: 82px; }
-.fft-workspace #history-canvas { display: block; width: 100%; height: clamp(260px, calc(100dvh - 270px), 1000px); touch-action: pan-y pinch-zoom; }
+.fft-workspace #history-canvas { display: block; width: 100%; touch-action: pan-y pinch-zoom; }
 .fft-workspace #history-cursor { color: var(--muted); font-variant-numeric: tabular-nums; }
-@media (max-width: 600px) {
-    .fft-workspace #history-canvas { height: 46dvh; min-height: 250px; }
-}
 
-.fft-workspace #history-view { position: relative; }
 .fft-workspace #history-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
 /* Shared PNA signal-generator widget, contained by the FFT workspace. */
-.fft-workspace .fft-generator { margin: 0; border-bottom: 1px solid var(--border-light); }
+.fft-workspace .fft-generator { margin: 0; border-bottom: 0; }
 .fft-workspace .fft-generator[open] > summary { margin-bottom: 4px; }
 .fft-workspace .fft-generator > .dds-pm-widget { max-width: 1100px; }
 .fft-workspace .dds-pm-widget { font: inherit; --pm-border: var(--border-light); }
-.fft-workspace .dds-pm-widget .pm-footnote { display: none; }
 .fft-workspace .dds-pm-widget select { width: auto; }
 
-/* Shared FFT workspace follows the PNA layout on every board. */
-.fft-workspace {
-    container: fft / inline-size;
-    min-height: 100dvh;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-}
-.fft-workspace #main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.fft-workspace .instrument-toolbar { border-bottom: 0; }
+/* Workspace sidebar, history panels and acquisition metadata. */
 .fft-workspace .measurement-toolbar { border-bottom: 1px solid var(--border-light); padding-bottom: 6px; }
-.fft-workspace .spectrum-toolbar { padding: 0; }
-.fft-workspace .spectrum-panel { flex: 1; display: flex; flex-direction: column; min-height: 300px; }
-.fft-workspace .history-toolbar { flex: none; padding: 6px 0 3px; }
-.fft-workspace .spectrum-canvas { flex: 1; min-height: 250px; max-height: 1000px; }
 .fft-workspace :is(.plot-placeholder, #history-view, #history-canvas) { height: 100%; min-height: 250px; }
-.fft-workspace .plot-placeholder { position: absolute; inset: 0; }
 .fft-workspace #history-view { position: absolute; inset: 0; }
-.fft-workspace .spectrum-readouts { flex: none; padding-top: 26px; }
-.fft-workspace #plot-title { position: absolute; bottom: -22px; width: 100%; margin: 0; }
 .fft-workspace .fft-sidebar { min-width: 0; }
-.fft-workspace .fft-generator { border-bottom: 0; }
 .fft-workspace .reference-info { display: flex; flex-wrap: wrap; gap: 3px 8px; padding: 5px 0; border-top: 1px solid var(--border-light); font-size: 11px; }
-.fft-workspace .reference-info strong { font-weight: 400; font-variant-numeric: tabular-nums; }
-.fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .fft-workspace #precision-channels { grid-column: 1 / -1; }
 
 /* Match PNA's compact presentation of the shared DAC widget. */
