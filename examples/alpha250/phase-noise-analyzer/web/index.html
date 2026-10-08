@@ -16,6 +16,7 @@
   <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="stylesheet" href="instrument.css">
   <link rel="stylesheet" href="phase-noise-plot.css">
   <link rel="stylesheet" href="workspace.css">
   <link rel="stylesheet" href="generator.css">
@@ -33,7 +34,7 @@
   <link rel="import" href="export-file.html" data-parent="export-file">
 </head>
 
-<body class="pna-workspace" data-board="alpha250">
+<body class="instrument-workspace pna-workspace" data-board="alpha250">
 <header class="app-header">
   <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
   <h1>Phase noise</h1><span class="board-tag">ALPHA250 · <span id="sample-rate-label">—</span> MS/s</span>
@@ -82,7 +83,7 @@
       <span class="jitter-range"><span class="readout-label">Jitter band</span> <span id="jitter-range">—</span></span>
     </div>
   </section>
-  <aside class="pna-sidebar" aria-label="Signal generator and measurement details">
+  <aside class="pna-sidebar instrument-disclosures" aria-label="Signal generator and measurement details">
     <details class="acquisition-settings">
       <summary>Acquisition settings</summary>
       <fieldset id="settings-controls" disabled>

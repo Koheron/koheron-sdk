@@ -20,7 +20,9 @@ Include the appropriate component list before an instrument's local web assets:
 ALPHA250-4 includes `components.mk` and supplies its own cross-spectrum driver,
 plot, export metadata and controls. Its local `phase-noise.css` adds cumulative averaging
 styles after `workspace.css`. ALPHA250 and Red Pitaya load `generator.css` after
-`workspace.css`. The DPLL monitor uses its own page and monitor styles.
+`workspace.css`. The DPLL monitor uses its own page and monitor layout. All four pages load
+`instrument.css` for shared controls before their workspace styles; see
+[`../instrument/README.md`](../instrument/README.md).
 
 Keep board entry points, clock controls and board-specific templates in their
 examples when they differ. Reusable assets belong here. The shared `PnaExportFile`
