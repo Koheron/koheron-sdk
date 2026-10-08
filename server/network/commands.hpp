@@ -333,7 +333,14 @@ class Command
             // Keep borrowed return storage protected until transmission finishes.
             // This preserves direct payload sends without a reply-sized snapshot.
             decltype(auto) r = invoke();
-            return send(std::forward<decltype(r)>(r));
+            if constexpr (std::is_reference_v<Ret> &&
+                          is_std_tuple_v<std::remove_cvref_t<Ret>>) {
+                // Even an rvalue-reference return refers to external storage.
+                // Keep referenced mixed replies on the snapshot-copy path.
+                return send(r);
+            } else {
+                return send(std::forward<decltype(r)>(r));
+            }
         }
     }
 

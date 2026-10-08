@@ -1,11 +1,11 @@
 #include "server/network/session.hpp"
 #include "server/network/socket_write.hpp"
+#include "server/network/socket_session.hpp"
 #include "server/network/websocket.hpp"
 
 #include <algorithm>
 #include <atomic>
 #include <iostream>
-#include <memory>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -54,7 +54,7 @@ void compare(T&& reply, std::span<const std::byte> first, std::span<const std::b
     builder.reset_into(packed);
     builder.write_header(0xbeef, 0x1234);
     builder.push(reply);
-    check(session.send(0xbeef, 0x1234, reply) == static_cast<int>(packed.size()), "send return value");
+    check(session.send(0xbeef, 0x1234, std::forward<T>(reply)) == static_cast<int>(packed.size()), "send return value");
     check(std::equal(packed.begin(), packed.end(), session.bytes.begin(), session.bytes.end()), "wire bytes changed");
     check(session.segmented, "large mixed reply was packed");
     auto borrowed = [&](auto source) {
@@ -74,18 +74,20 @@ void serialization() {
     for (std::size_t i = 0; i < vector.size(); ++i) vector[i] = static_cast<uint16_t>(13 * i + 5);
     // Metadata after a borrowed part grows the vector beyond its initial storage.
     auto nested = std::tuple{int32_t{-1234}, true, std::tuple{std::cref(array).get(),
-        std::string(12000, 'z'), std::span<const uint16_t>{vector}}, 1.25,
+        std::string(12000, 'z'), vector}, 1.25,
         std::complex<float>{2.5f, -3.0f}, std::array<uint8_t, 0>{}, uint16_t{0xabcd}};
-    compare(nested, std::as_bytes(std::span{std::get<0>(std::get<2>(nested))}), std::as_bytes(std::span{vector}));
-    auto vectors = std::tuple<const std::vector<uint16_t>&, uint8_t, const std::array<uint32_t, 2048>&>{vector, 19, array};
-    compare(vectors, std::as_bytes(std::span{vector}), std::as_bytes(std::span{array}));
+    compare(std::move(nested), std::as_bytes(std::span{std::get<0>(std::get<2>(nested))}),
+            std::as_bytes(std::span{std::get<2>(std::get<2>(nested))}));
+    auto vectors = std::tuple{vector, uint8_t{19}, array};
+    compare(std::move(vectors), std::as_bytes(std::span{std::get<0>(vectors)}),
+            std::as_bytes(std::span{std::get<2>(vectors)}));
     Capture small;
     small.send(1, 2, std::tuple{uint32_t{3}, std::vector<uint8_t>(4095), uint16_t{4}});
     check(!small.segmented, "small payload entered scatter path");
     Capture many;
     auto lots = std::tuple{vector, vector, vector, vector, vector, vector, vector, vector,
                           vector, vector, vector, vector, vector, vector, vector, vector};
-    many.send(1, 2, lots);
+    many.send(1, 2, std::move(lots));
     check(!many.segmented, "descriptor limit did not fall back to packing");
     struct LegacyCapture : Capture {
         int write_segments(std::span<const std::span<const std::byte>> parts) override {
@@ -95,8 +97,114 @@ void serialization() {
     std::pmr::vector<unsigned char> packed;
     net::CommandBuilder builder;
     builder.reset_into(packed); builder.write_header(1, 2); builder.push(vectors);
-    legacy.send(1, 2, vectors);
+    legacy.send(1, 2, std::move(vectors));
     check(std::equal(packed.begin(), packed.end(), legacy.bytes.begin(), legacy.bytes.end()), "legacy transport fallback changed bytes");
+}
+
+struct MutatingCapture : Capture {
+    std::vector<uint8_t>& source;
+    explicit MutatingCapture(std::vector<uint8_t>& source_) : source(source_) {}
+    int write_bytes(std::span<const std::byte> part) override {
+        std::fill(source.begin(), source.end(), 0x22);
+        return Capture::write_bytes(part);
+    }
+};
+
+template<class T>
+void check_snapshot(T&& reply, std::vector<uint8_t>& source, bool segmented = false) {
+    std::pmr::vector<unsigned char> packed;
+    net::CommandBuilder builder;
+    builder.reset_into(packed); builder.write_header(2, 3); builder.push(reply);
+    MutatingCapture session(source);
+    session.send(2, 3, std::forward<T>(reply));
+    check(session.segmented == segmented, "incorrect ownership classification");
+    check(std::equal(packed.begin(), packed.end(), session.bytes.begin(), session.bytes.end()),
+          "borrowed data changed after serialization");
+    check(source.front() == 0x22, "mutation did not run");
+}
+
+void ownership() {
+    using Vector = std::vector<uint8_t>;
+    using Owned = std::tuple<uint32_t, Vector>;
+    static_assert(net::mixed_reply_containers<Owned>() == 1);
+    static_assert(net::mixed_reply_containers<Owned&>() == 0);
+    static_assert(net::mixed_reply_containers<const Owned&>() == 0);
+    static_assert(net::mixed_reply_containers<std::tuple<Owned&&, Vector>>() == 1);
+    static_assert(net::mixed_reply_containers<std::tuple<std::span<const uint8_t>>>() == 0);
+
+    Vector source(8192, 0x11);
+    auto reset = [&] { std::fill(source.begin(), source.end(), 0x11); };
+    check_snapshot(std::tuple{uint32_t{7}, std::span<const uint8_t>{source}}, source);
+    reset();
+    check_snapshot(std::tuple<uint32_t, const Vector&>{7, source}, source);
+    reset();
+    check_snapshot(std::tuple<uint32_t, Vector&&>{7, std::move(source)}, source);
+    reset();
+    auto referenced = std::tuple{uint32_t{7}, source};
+    check_snapshot(referenced, std::get<1>(referenced));
+    std::fill(std::get<1>(referenced).begin(), std::get<1>(referenced).end(), 0x11);
+    check_snapshot(std::as_const(referenced), std::get<1>(referenced));
+    reset();
+    // Borrowed fields must still be packed when owned siblings use scatter/gather.
+    auto inner = std::tuple{std::span<const uint8_t>{source}, uint16_t{19}};
+    auto mixed = std::tuple<Vector, Vector&, Vector&&, decltype(inner)&>{source, source, std::move(source), inner};
+    check_snapshot(std::move(mixed), source, true);
+    reset();
+    auto owned = std::tuple{uint32_t{7}, source};
+    check_snapshot(std::move(owned), source, true);
+    reset();
+    const auto const_owned = std::tuple{uint32_t{7}, source};
+    check_snapshot(std::move(const_owned), source, true);
+}
+
+void reference_returns() {
+    using Reply = std::tuple<uint32_t, std::vector<uint8_t>>;
+    struct Driver {
+        Reply reply{7, std::vector<uint8_t>(8192, 0x11)};
+        Reply& lvalue() { return reply; }
+        const Reply& const_lvalue() const { return reply; }
+        Reply&& rvalue() { return std::move(reply); }
+        Reply owned() const { return reply; }
+    } driver;
+    struct Probe : net::SocketSession<net::TCP> {
+        using net::Session::read_command;
+        Driver& driver;
+        Bytes received;
+        bool segmented = false;
+        Probe(int fd, Driver& driver_) : SocketSession(fd, 0), driver(driver_) {}
+        int write_bytes(std::span<const std::byte> part) override {
+            auto& source = std::get<1>(driver.reply);
+            std::fill(source.begin(), source.end(), 0x22);
+            const auto* p = reinterpret_cast<const unsigned char*>(part.data());
+            received.insert(received.end(), p, p + part.size());
+            return static_cast<int>(part.size());
+        }
+        int write_segments(std::span<const std::span<const std::byte>> parts) override {
+            segmented = true;
+            int n = 0;
+            for (auto part : parts) n += write_bytes(part);
+            return n;
+        }
+    };
+    auto run = [&](auto method, bool owned) {
+        std::fill(std::get<1>(driver.reply).begin(), std::get<1>(driver.reply).end(), 0x11);
+        int fd[2];
+        check(socketpair(AF_UNIX, SOCK_STREAM, 0, fd) == 0, "socketpair");
+        Probe session(fd[0], driver);
+        const std::array<unsigned char, 8> header{};
+        check(::write(fd[1], header.data(), header.size()) == 8, "command write");
+        net::Command cmd;
+        check(session.read_command(cmd) == 8, "command read");
+        check(cmd.op_invoke(driver, method) == 8208, "reply length");
+        check(session.segmented == owned, "reference return treated as owned");
+        check(std::all_of(session.received.begin() + 16, session.received.end(),
+                         [](auto byte) { return byte == 0x11; }), "reference return lost its snapshot");
+        close(fd[0]); close(fd[1]);
+    };
+    run(&Driver::lvalue, false);
+    run(&Driver::const_lvalue, false);
+    run(&Driver::rvalue, false);
+    run(&Driver::owned, true);
 }
 
 enum class Mode { normal, partial, interrupt, failure, zero };
@@ -140,12 +248,10 @@ void limits() {
     calls = 0;
     check(net::write_iovecs(-1, overflowing, MSG_NOSIGNAL) == -1 && calls == 0, "overflow reached socket");
     net::WebSocket ws;
-    // Reuse a valid range to exceed the aggregate limit without touching 2 GiB.
-    const auto part_size = max / net::max_reply_parts + 1;
-    auto storage = std::make_unique_for_overwrite<std::byte[]>(part_size);
-    std::array<std::span<const std::byte>, net::max_reply_parts> parts;
-    parts.fill({storage.get(), part_size});
-    check(ws.send_parts(parts) == -1 && calls == 0, "WebSocket overflow reached socket");
+    // Repeated valid spans exceed the packed WebSocket limit before any write.
+    std::vector<std::byte> storage(net::WEBSOCK_SEND_BUF_LEN / 2);
+    const std::array<std::span<const std::byte>, 2> parts{storage, storage};
+    check(ws.send_parts(parts) == -1 && calls == 0, "WebSocket limit reached socket");
     std::array<std::span<const std::byte>, net::max_reply_parts + 1> too_many{};
     check(ws.send_parts(too_many) == -1 && calls == 0, "too many descriptors reached socket");
     check(!ws.is_closed(), "validation error closed connection");
@@ -177,6 +283,11 @@ void transport(bool websocket, Mode selected, std::size_t size) {
         result = net::write_iovecs(fd[0], iov, MSG_NOSIGNAL);
     }
     shutdown(fd[0], SHUT_WR); reader.join(); close(fd[0]); close(fd[1]);
+    if (websocket && size + prefix.size() + suffix.size() > net::WEBSOCK_SEND_BUF_LEN - 10) {
+        check(result == -1 && calls == 0 && received.empty() && !ws.is_closed(),
+              "oversized mixed WebSocket reply changed behavior");
+        return;
+    }
     if (selected == Mode::failure || selected == Mode::zero) {
         if (result != (selected == Mode::failure ? -1 : 0)) {
             std::cerr << "ws=" << websocket << " mode=" << static_cast<int>(selected)
@@ -216,13 +327,15 @@ int main(int argc, char** argv) {
         check(argc == 2, "expected case");
         const std::string test = argv[1];
         if (test == "serialization") serialization();
+        else if (test == "ownership") ownership();
+        else if (test == "reference-returns") reference_returns();
         else if (test == "limits") limits();
         else if (test == "boundaries") {
             for (auto size : {0u, 115u, 116u, 65525u, 65526u, 262123u, 262124u, 262125u, 1048576u})
                 for (bool ws : {false, true}) transport(ws, Mode::normal, size);
         } else if (test == "partial") {
             for (bool ws : {false, true}) for (auto m : {Mode::partial, Mode::interrupt})
-                transport(ws, m, 262200);
+                transport(ws, m, 262124);
         } else if (test == "failures") {
             for (bool ws : {false, true}) for (auto m : {Mode::failure, Mode::zero}) transport(ws, m, 4096);
         } else throw std::runtime_error("unknown case");

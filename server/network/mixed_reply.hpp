@@ -5,21 +5,23 @@
 
 namespace net {
 
-// Small fields stay packed together; only sizeable raw containers are borrowed.
+// Only owned, sizeable containers in a value reply may bypass serialization.
 constexpr std::size_t mixed_reply_min_bytes = 4096;
 constexpr std::size_t max_reply_parts = 32;
 
 template<class T>
 consteval std::size_t mixed_reply_containers() {
     using U = std::remove_cvref_t<T>;
-    if constexpr (is_std_tuple_v<U>) {
+    if constexpr (std::is_reference_v<T>) {
+        return 0;
+    } else if constexpr (is_std_tuple_v<U>) {
         return []<std::size_t... I>(std::index_sequence<I...>) {
             return (std::size_t{0} + ... + mixed_reply_containers<std::tuple_element_t<I, U>>());
         }(std::make_index_sequence<std::tuple_size_v<U>>{});
     } else if constexpr (is_std_array_v<U>) {
         return std::is_trivially_copyable_v<typename U::value_type> &&
                sizeof(typename U::value_type) * std::tuple_size_v<U> >= mixed_reply_min_bytes;
-    } else if constexpr (is_std_vector_v<U> || is_std_span_v<U>) {
+    } else if constexpr (is_std_vector_v<U>) {
         return std::is_trivially_copyable_v<typename U::value_type>;
     } else {
         return 0;
@@ -34,11 +36,15 @@ class MixedReply {
     template<class T>
     void push(T&& value) {
         using U = std::remove_cvref_t<T>;
-        if constexpr (is_std_tuple_v<U>) {
-            std::apply([&](auto&&... fields) {
-                (push(std::forward<decltype(fields)>(fields)), ...);
-            }, std::forward<T>(value));
-        } else if constexpr (mixed_reply_containers<U>() > 0) {
+        if constexpr (mixed_reply_containers<T>() == 0) {
+            // Includes spans, referenced containers and referenced tuple trees.
+            builder.push_one(std::forward<T>(value));
+        } else if constexpr (is_std_tuple_v<U>) {
+            [&]<std::size_t... I>(std::index_sequence<I...>) {
+                (push_field<std::tuple_element_t<I, U>>(
+                    std::get<I>(std::forward<T>(value))), ...);
+            }(std::make_index_sequence<std::tuple_size_v<U>>{});
+        } else {
             const auto bytes = std::as_bytes(std::span{value.data(), value.size()});
             if (bytes.size() >= mixed_reply_min_bytes) {
                 // Within a mixed reply, dynamic containers have a 32-bit length,
@@ -51,8 +57,6 @@ class MixedReply {
                 borrowed = true;
                 return;
             }
-            builder.push_one(std::forward<T>(value));
-        } else {
             builder.push_one(std::forward<T>(value));
         }
     }
@@ -71,6 +75,14 @@ class MixedReply {
     }
 
   private:
+    template<class Field, class T>
+    void push_field(T&& value) {
+        // An rvalue-reference tuple member is borrowed too, even though get()
+        // produces an rvalue. Inspect its declared type before forwarding it.
+        if constexpr (std::is_reference_v<Field>) builder.push_one(value);
+        else push(std::forward<T>(value));
+    }
+
     struct Part {
         std::span<const std::byte> bytes{};
         std::size_t offset = 0, length = 0;

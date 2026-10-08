@@ -32,7 +32,7 @@ struct LockingInstrument {
     const std::vector<uint32_t>& get_vector() const { ++readers; return data; }
     auto get_mixed() const {
         ++readers;
-        return std::tuple<uint16_t, std::span<const uint32_t>, uint32_t>{0xbeef, data, 0xabcdef01};
+        return std::tuple{uint16_t{0xbeef}, std::vector<uint32_t>(data.begin(), data.begin() + 32768), uint32_t{0xabcdef01}};
     }
     std::span<const uint32_t> get_span() const { ++readers; return data; }
     const std::array<uint32_t, 4>& get_array() const { return array; }

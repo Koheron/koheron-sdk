@@ -32,7 +32,9 @@ class MixedReplyTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_wire_format_and_borrowed_storage(self): self.run_case('serialization')
-    def test_frame_and_fragment_boundaries(self): self.run_case('boundaries')
+    def test_owned_and_borrowed_fields(self): self.run_case('ownership')
+    def test_driver_reference_returns(self): self.run_case('reference-returns')
+    def test_frame_and_size_boundaries(self): self.run_case('boundaries')
     def test_partial_writes_and_interrupts(self): self.run_case('partial')
     def test_zero_writes_and_disconnects(self): self.run_case('failures')
     def test_size_and_descriptor_limits(self): self.run_case('limits')
