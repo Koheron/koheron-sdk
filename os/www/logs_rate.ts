@@ -4,473 +4,256 @@ interface LogRateSession {
     rx_total: number;
     tx_total: number;
     rx_mean: number;
-    rx_win: number;
     rx_inst: number;
-    rx_ewma: number;
     rx_max: number;
     tx_mean: number;
-    tx_win: number;
     tx_inst: number;
-    tx_ewma: number;
     tx_max: number;
 }
 
 interface LogRateResponse {
-    ts: number;
+    ts: number; // Server steady-clock seconds, not a Unix timestamp.
     sessions: LogRateSession[];
 }
 
 type LogsRateCallback = (payload: LogRateResponse) => void;
 type LogsRateErrorCallback = (err: Error) => void;
 
-class LogsRateClient {
-    private endpoint: string;
-    private pollInterval: number;
-    private timer: number | null;
-    private onUpdate: LogsRateCallback;
-    private onError?: LogsRateErrorCallback;
+function rateNumber(value: number): number {
+    return typeof value === 'number' && isFinite(value) && value > 0 ? value : 0;
+}
 
-    constructor(endpoint: string, pollInterval: number, onUpdate: LogsRateCallback, onError?: LogsRateErrorCallback) {
-        this.endpoint = endpoint;
-        this.pollInterval = pollInterval;
-        this.timer = null;
-        this.onUpdate = onUpdate;
-        this.onError = onError;
-    }
+// Rates arrive in bits/s, totals in bytes. Convert rates once at the caller.
+function formatRateBytes(value: number, perSecond = false): string {
+    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+    let current = rateNumber(value);
+    let unit = 0;
+    while (current >= 1024 && unit < units.length - 1) { current /= 1024; unit++; }
+    return current.toFixed(unit === 0 ? 0 : current < 10 ? 2 : 1) + ' ' + units[unit] + (perSecond ? '/s' : '');
+}
+
+class LogsRateClient {
+    private timer: number | null = null;
+    private running = false;
+    private busy = false;
+    private generation = 0;
+
+    constructor(private endpoint: string, private pollInterval: number,
+                private onUpdate: LogsRateCallback, private onError?: LogsRateErrorCallback) {}
 
     public start(): void {
-        if (this.timer !== null) {
-            return;
-        }
-        this.poll();
+        if (this.running) { return; }
+        this.running = true;
+        void this.poll();
     }
 
     public stop(): void {
-        if (this.timer !== null) {
-            window.clearTimeout(this.timer);
-            this.timer = null;
-        }
-    }
-
-    private scheduleNext(): void {
-        this.timer = window.setTimeout(() => this.poll(), this.pollInterval);
+        this.running = false;
+        this.generation++;
+        if (this.timer !== null) { window.clearTimeout(this.timer); this.timer = null; }
     }
 
     private async poll(): Promise<void> {
+        if (!this.running || this.busy) { return; }
+        this.busy = true;
+        const generation = this.generation;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 8000);
         try {
-            const resp = await fetch(this.endpoint, { cache: "no-store" });
-            if (!resp.ok) {
-                throw new Error("HTTP " + resp.status);
+            if (document.hidden) { return; }
+            const response = await fetch(this.endpoint, { cache: 'no-store', signal: controller.signal });
+            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+            const data = await response.json() as LogRateResponse;
+            if (!data || typeof data.ts !== 'number' || !isFinite(data.ts) || !Array.isArray(data.sessions) ||
+                data.sessions.some(session => !session || typeof session.id !== 'number' ||
+                    !isFinite(session.id) || typeof session.name !== 'string')) {
+                throw new Error('Invalid rate data');
             }
-            const data = await resp.json() as LogRateResponse;
-            if (!data || !data.sessions || !Array.isArray(data.sessions)) {
-                throw new Error("Invalid payload");
-            }
-            this.onUpdate(data);
-        } catch (err) {
-            if (this.onError) {
-                const error = err instanceof Error ? err : new Error(String(err));
-                this.onError(error);
+            if (this.running && generation === this.generation) { this.onUpdate(data); }
+        } catch (error) {
+            if (this.running && generation === this.generation && this.onError) {
+                this.onError(error instanceof Error ? error : new Error(String(error)));
             }
         } finally {
-            this.scheduleNext();
+            window.clearTimeout(timeout);
+            this.busy = false;
+            if (this.running) { this.timer = window.setTimeout(() => this.poll(), this.pollInterval); }
         }
     }
 }
 
 class LogsRateChart {
-    private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
-    private maxPoints: number;
-    private rxSeries: number[];
-    private txSeries: number[];
+    private width = 0;
+    private height = 0;
+    private samples: { ts: number; rx: number; tx: number }[] = [];
+    private readonly windowSeconds = 240;
 
-    constructor(canvas: HTMLCanvasElement, maxPoints: number) {
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-            throw new Error("Cannot initialize chart context");
-        }
-        this.canvas = canvas;
-        this.ctx = ctx;
-        this.maxPoints = maxPoints;
-        this.rxSeries = [];
-        this.txSeries = [];
+    constructor(private canvas: HTMLCanvasElement, private maxPoints = 120) {
+        const context = canvas.getContext('2d');
+        if (!context) { throw new Error('Cannot initialize chart context'); }
+        this.ctx = context;
     }
 
     public resize(): void {
-        const parent = this.canvas.parentElement;
-        if (parent) {
-            const width = parent.clientWidth;
-            if (width > 0) {
-                this.canvas.width = width;
-            }
-            const height = parent.clientHeight;
-            if (height > 0) {
-                this.canvas.height = height;
-            }
-        }
-
-        if (this.canvas.width === 0) {
-            this.canvas.width = 600;
-        }
-        if (this.canvas.height === 0) {
-            this.canvas.height = 240;
-        }
-
+        const rect = this.canvas.getBoundingClientRect();
+        this.width = rect.width;
+        this.height = rect.height;
+        if (!this.width || !this.height) { return; }
+        const ratio = window.devicePixelRatio || 1;
+        this.canvas.width = Math.round(this.width * ratio);
+        this.canvas.height = Math.round(this.height * ratio);
+        this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         this.render();
     }
 
-    public addSample(rxInst: number, txInst: number): void {
-        this.rxSeries.push(rxInst);
-        this.txSeries.push(txInst);
-
-        if (this.rxSeries.length > this.maxPoints) {
-            this.rxSeries.shift();
-        }
-        if (this.txSeries.length > this.maxPoints) {
-            this.txSeries.shift();
-        }
-
+    public addSample(rx: number, tx: number, ts: number): void {
+        const last = this.samples[this.samples.length - 1];
+        if (last && ts === last.ts) { return; }
+        if (last && ts < last.ts) { this.samples = []; }
+        this.samples.push({ ts, rx: rateNumber(rx), tx: rateNumber(tx) });
+        this.samples = this.samples.filter(sample => ts - sample.ts <= this.windowSeconds).slice(-this.maxPoints);
         this.render();
     }
 
     private render(): void {
         const ctx = this.ctx;
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-
+        const width = this.width;
+        const height = this.height;
+        if (width < 120 || height < 60) { return; }
+        const left = 82, right = width - 12, top = 12, bottom = height - 30;
         ctx.clearRect(0, 0, width, height);
-
-        const count = this.rxSeries.length;
-        if (count === 0) {
-            ctx.fillStyle = "#777777";
-            ctx.font = "14px sans-serif";
-            ctx.fillText("Waiting for data…", 12, height / 2);
+        const maximum = Math.max(4, ...this.samples.map(sample => Math.max(sample.rx, sample.tx))) * 1.1;
+        ctx.font = '11px Lato, Arial, sans-serif';
+        ctx.fillStyle = '#666'; ctx.strokeStyle = '#e6e6e6'; ctx.lineWidth = 1;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 4; i++) {
+            const y = bottom - (bottom - top) * i / 4;
+            ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+            ctx.fillText(formatRateBytes(maximum * i / 4, true), left - 8, y);
+        }
+        ctx.textBaseline = 'top';
+        for (let i = 0; i <= 4; i++) {
+            ctx.textAlign = i === 0 ? 'left' : i === 4 ? 'right' : 'center';
+            ctx.fillText(i === 4 ? 'Latest' : `−${4 - i} min`, left + (right - left) * i / 4, bottom + 10);
+        }
+        if (!this.samples.length) {
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Waiting for rate data…', (left + right) / 2, (top + bottom) / 2);
             return;
         }
-
-        let maxValue = 0;
-        for (let i = 0; i < count; i++) {
-            if (this.rxSeries[i] > maxValue) {
-                maxValue = this.rxSeries[i];
-            }
-            if (this.txSeries[i] > maxValue) {
-                maxValue = this.txSeries[i];
-            }
-        }
-        if (maxValue <= 0) {
-            maxValue = 1;
-        }
-        maxValue *= 1.1;
-
-        this.drawGrid(maxValue);
-        this.drawSeries(this.rxSeries, "#1f77b4", maxValue);
-        this.drawSeries(this.txSeries, "#ff7f0e", maxValue);
-    }
-
-    private drawGrid(maxValue: number): void {
-        const ctx = this.ctx;
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-        const steps = 4;
-
+        const latest = this.samples[this.samples.length - 1].ts;
+        const x = (ts: number) => right - (latest - ts) / this.windowSeconds * (right - left);
+        const y = (value: number) => bottom - value / maximum * (bottom - top);
         ctx.save();
-        ctx.strokeStyle = "#e0e0e0";
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-
-        for (let i = 0; i <= steps; i++) {
-            const y = height - (height * i / steps);
+        ctx.beginPath(); ctx.rect(left, top - 2, right - left + 2, bottom - top + 4); ctx.clip();
+        for (const series of [{ key: 'rx', color: '#1f77b4' }, { key: 'tx', color: '#cf791d' }]) {
+            ctx.strokeStyle = series.color; ctx.fillStyle = series.color; ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
+            this.samples.forEach((sample, index) => {
+                const value = series.key === 'rx' ? sample.rx : sample.tx;
+                if (index === 0 || sample.ts - this.samples[index - 1].ts > 6) { ctx.moveTo(x(sample.ts), y(value)); }
+                else { ctx.lineTo(x(sample.ts), y(value)); }
+            });
             ctx.stroke();
-        }
-
-        ctx.restore();
-
-        ctx.save();
-        ctx.fillStyle = "#555555";
-        ctx.font = "12px sans-serif";
-        for (let i = 0; i <= steps; i++) {
-            const value = maxValue * i / steps;
-            const label = this.formatRate(value);
-            const y = height - (height * i / steps) - 4;
-            ctx.fillText(label, 6, y);
+            // A marker also makes the first sample visible before a line exists.
+            const sample = this.samples[this.samples.length - 1];
+            ctx.beginPath(); ctx.arc(x(sample.ts), y(series.key === 'rx' ? sample.rx : sample.tx), 2, 0, 2 * Math.PI); ctx.fill();
         }
         ctx.restore();
-    }
-
-    private drawSeries(series: number[], color: string, maxValue: number): void {
-        const ctx = this.ctx;
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-        const count = series.length;
-        if (count === 0) {
-            return;
-        }
-
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-
-        ctx.beginPath();
-        for (let i = 0; i < count; i++) {
-            const x = count === 1 ? width : (width * i / (count - 1));
-            const value = series[i];
-            const ratio = maxValue > 0 ? value / maxValue : 0;
-            const y = height - (height * ratio);
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        }
-        ctx.stroke();
-        ctx.restore();
-    }
-
-    private formatRate(value: number): string {
-        if (!isFinite(value) || value < 0) {
-            return "0 B/s";
-        }
-        const units = ["B/s", "KiB/s", "MiB/s", "GiB/s", "TiB/s"];
-        let idx = 0;
-        let current = value;
-        while (current >= 1024 && idx < units.length - 1) {
-            current /= 1024;
-            idx++;
-        }
-        const digits = idx === 0 ? 0 : (current < 10 ? 2 : 1);
-        return current.toFixed(digits) + " " + units[idx];
     }
 }
 
 class LogsRateTable {
-    private table: HTMLTableElement;
-
-    constructor(table: HTMLTableElement) {
-        this.table = table;
-    }
+    constructor(private table: HTMLTableElement) {}
 
     public render(sessions: LogRateSession[]): void {
-        const header = [
-            "<thead><tr>",
-            "<th>ID</th>",
-            "<th>Socket</th>",
-            "<th>RX inst</th>",
-            "<th>RX mean</th>",
-            // "<th>RX EWMA</th>",
-            "<th>RX max</th>",
-            "<th>RX total</th>",
-            "<th>TX inst</th>",
-            "<th>TX mean</th>",
-            // "<th>TX EWMA</th>",
-            "<th>TX max</th>",
-            "<th>TX total</th>",
-            "</tr></thead>"
-        ].join("");
-
-        const bodyParts: string[] = [];
-        bodyParts.push("<tbody>");
-        if (sessions.length === 0) {
-            bodyParts.push("<tr><td colspan=13 style='text-align:center;color:#777;'>No sessions</td></tr>");
-        } else {
-            for (let i = 0; i < sessions.length; i++) {
-                const s = sessions[i];
-                bodyParts.push("<tr>");
-                bodyParts.push("<td>" + s.id + "</td>");
-                bodyParts.push("<td>" + this.escapeHtml(s.name) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.rx_inst) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.rx_mean) + "</td>");
-                // bodyParts.push("<td>" + this.formatRate(s.rx_ewma) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.rx_max) + "</td>");
-                bodyParts.push("<td>" + this.formatBytes(s.rx_total) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.tx_inst) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.tx_mean) + "</td>");
-                // bodyParts.push("<td>" + this.formatRate(s.tx_ewma) + "</td>");
-                bodyParts.push("<td>" + this.formatRate(s.tx_max) + "</td>");
-                bodyParts.push("<td>" + this.formatBytes(s.tx_total) + "</td>");
-                bodyParts.push("</tr>");
-            }
+        this.table.innerHTML = '<caption class="sr-only">Session receive and transmit statistics</caption>' +
+            '<thead><tr><th rowspan="2" scope="col">ID</th><th rowspan="2" scope="col">Socket</th>' +
+            '<th colspan="4" scope="colgroup" class="rate-rx">RX · received by board</th>' +
+            '<th colspan="4" scope="colgroup" class="rate-tx">TX · sent by board</th></tr>' +
+            '<tr><th scope="col">Current</th><th scope="col">Mean</th><th scope="col">Peak</th><th scope="col">Total</th>' +
+            '<th scope="col">Current</th><th scope="col">Mean</th><th scope="col">Peak</th><th scope="col">Total</th></tr></thead>';
+        const body = this.table.createTBody();
+        if (!sessions.length) {
+            const cell = body.insertRow().insertCell();
+            cell.colSpan = 10; cell.className = 'rate-empty'; cell.textContent = 'No connected sessions';
         }
-        bodyParts.push("</tbody>");
-
-        this.table.innerHTML = header + bodyParts.join("");
-    }
-
-    private escapeHtml(value: string): string {
-        return value.replace(/[&<>"]/g, (c) => {
-            switch (c) {
-                case "&": return "&amp;";
-                case "<": return "&lt;";
-                case ">": return "&gt;";
-                case '"': return "&quot;";
-                default: return c;
+        sessions.slice().sort((a, b) => a.id - b.id).forEach(session => {
+            const row = body.insertRow();
+            row.insertCell().textContent = String(session.id);
+            row.insertCell().textContent = session.name;
+            for (const direction of ['rx', 'tx']) {
+                for (const metric of ['inst', 'mean', 'max', 'total']) {
+                    const value = session[direction + '_' + metric];
+                    row.insertCell().textContent = formatRateBytes(metric === 'total' ? value : value / 8, metric !== 'total');
+                }
             }
         });
-    }
-
-    private formatRate(value: number): string {
-        if (!isFinite(value) || value <= 0) {
-            return "0 B/s";
-        }
-
-        // The backend reports rates in bits/second; convert to bytes/second for display.
-        const bytesPerSecond = value / 8.0;
-
-        const units = ["B/s", "KiB/s", "MiB/s", "GiB/s", "TiB/s"];
-        let idx = 0;
-        let current = bytesPerSecond;
-        while (current >= 1024 && idx < units.length - 1) {
-            current /= 1024;
-            idx++;
-        }
-        const digits = idx === 0 ? 0 : (current < 10 ? 2 : 1);
-        return current.toFixed(digits) + " " + units[idx];
-    }
-
-    private formatBytes(value: number): string {
-        if (!isFinite(value) || value <= 0) {
-            return "0 B";
-        }
-
-        // Totals are already reported in bytes by the backend.
-        const units = ["B", "KiB", "MiB", "GiB", "TiB"];
-        let idx = 0;
-        let current = value;
-        while (current >= 1024 && idx < units.length - 1) {
-            current /= 1024;
-            idx++;
-        }
-        const digits = idx === 0 ? 0 : (current < 10 ? 2 : 1);
-        return current.toFixed(digits) + " " + units[idx];
     }
 }
 
 class LogsRatePage {
     private table: LogsRateTable;
     private chart: LogsRateChart;
-    private summaryEl: HTMLElement | null;
-    private statusEl: HTMLElement | null;
     private client: LogsRateClient;
-    private lastError: string | null;
+    private lastTimestamp: number | null = null;
+    private lastChange = 0;
+    private lastUpdate = '';
 
-    constructor(document: Document) {
-        const tableEl = document.getElementById("logs-rate-table") as HTMLTableElement;
-        const canvas = document.getElementById("logs-rate-chart") as HTMLCanvasElement;
-        this.summaryEl = document.getElementById("logs-rate-summary");
-        this.statusEl = document.getElementById("logs-rate-status");
-
-        this.table = new LogsRateTable(tableEl);
-        this.chart = new LogsRateChart(canvas, 120);
+    constructor(private document: Document) {
+        const canvas = document.getElementById('logs-rate-chart') as HTMLCanvasElement;
+        this.table = new LogsRateTable(document.getElementById('logs-rate-table') as HTMLTableElement);
+        this.chart = new LogsRateChart(canvas);
         this.chart.resize();
-
-        window.addEventListener("resize", () => {
-            this.chart.resize();
+        const resize = () => this.chart.resize();
+        window.addEventListener('resize', resize);
+        this.client = new LogsRateClient('/run/rates/sessions.json', 2000,
+            payload => this.handleUpdate(payload), error => this.handleError(error));
+        const pause = document.getElementById('logs-rate-pause');
+        pause.addEventListener('click', () => {
+            const paused = pause.getAttribute('aria-pressed') !== 'true';
+            pause.setAttribute('aria-pressed', String(paused)); pause.textContent = paused ? 'Resume' : 'Pause';
+            this.status(paused ? 'Paused' : 'Connecting…', paused ? 'paused' : 'connecting');
+            if (paused) { this.client.stop(); } else { this.client.start(); }
         });
-
-        this.lastError = null;
-
-        this.client = new LogsRateClient(
-            "/run/rates/sessions.json",
-            2000,
-            (payload) => this.handleUpdate(payload),
-            (error) => this.handleError(error)
-        );
+        window.addEventListener('pagehide', event => {
+            if (!event.persisted) { this.client.stop(); window.removeEventListener('resize', resize); }
+        });
         this.client.start();
     }
 
+    private status(message: string, state: string): void {
+        const element = this.document.getElementById('logs-rate-status');
+        element.textContent = message; element.dataset.state = state;
+        this.document.getElementById('logs-rate-readouts').dataset.stale = String(state !== 'live');
+    }
+
     private handleUpdate(payload: LogRateResponse): void {
-        const sessions = Array.isArray(payload.sessions) ? payload.sessions : [];
-        this.table.render(sessions);
-
-        let rxInstSum = 0;
-        let txInstSum = 0;
-        let rxTotal = 0;
-        let txTotal = 0;
-        let active = 0;
-
-        for (let i = 0; i < sessions.length; i++) {
-            const s = sessions[i];
-            if (s.rx_inst > 0 || s.tx_inst > 0 || s.rx_total > 0 || s.tx_total > 0) {
-                active += 1;
-            }
-
-            rxInstSum += this.safeNumber(s.rx_inst);
-            txInstSum += this.safeNumber(s.tx_inst);
-            rxTotal += this.safeNumber(s.rx_total);
-            txTotal += this.safeNumber(s.tx_total);
+        if (this.lastTimestamp === payload.ts) {
+            const stale = performance.now() - this.lastChange > 6000;
+            this.status(stale ? 'No new data · last update ' + this.lastUpdate : 'Live', stale ? 'error' : 'live');
+            return;
         }
-
-        this.chart.addSample(rxInstSum / 8.0, txInstSum / 8.0); // bits to Bytes
-
-        if (this.summaryEl) {
-            const parts: string[] = [];
-            parts.push("Active sessions: " + active + " / " + sessions.length);
-            parts.push("TX inst: " + this.formatRate(txInstSum));
-            parts.push("RX inst: " + this.formatRate(rxInstSum));
-            parts.push("TX total: " + this.formatBytes(txTotal));
-            parts.push("RX total: " + this.formatBytes(rxTotal));
-            this.summaryEl.textContent = parts.join("  •  ");
-        }
-
-        if (this.statusEl) {
-            const now = new Date();
-            this.statusEl.textContent = "Last update: " + now.toLocaleTimeString();
-            this.statusEl.style.color = "#555555";
-        }
-
-        this.lastError = null;
+        this.lastTimestamp = payload.ts;
+        this.lastChange = performance.now();
+        this.lastUpdate = new Date().toLocaleTimeString();
+        this.table.render(payload.sessions);
+        let rx = 0, tx = 0, rxTotal = 0, txTotal = 0, active = 0;
+        payload.sessions.forEach(session => {
+            rx += rateNumber(session.rx_inst); tx += rateNumber(session.tx_inst);
+            rxTotal += rateNumber(session.rx_total); txTotal += rateNumber(session.tx_total);
+            if (rateNumber(session.rx_inst) || rateNumber(session.tx_inst)) { active++; }
+        });
+        this.chart.addSample(rx / 8, tx / 8, payload.ts);
+        const values = { 'rate-sessions': String(payload.sessions.length), 'rate-active': String(active),
+            'rate-rx': formatRateBytes(rx / 8, true), 'rate-tx': formatRateBytes(tx / 8, true),
+            'rate-rx-total': formatRateBytes(rxTotal), 'rate-tx-total': formatRateBytes(txTotal) };
+        Object.keys(values).forEach(id => this.document.getElementById(id).textContent = values[id]);
+        this.status('Live', 'live');
     }
 
     private handleError(error: Error): void {
-        this.lastError = error.message;
-        if (this.statusEl) {
-            this.statusEl.textContent = "Failed to load data: " + error.message;
-            this.statusEl.style.color = "#b94a48";
-        }
-    }
-
-    private safeNumber(value: number): number {
-        if (!isFinite(value)) {
-            return 0;
-        }
-        return value;
-    }
-
-    private formatRate(value: number): string {
-        if (!isFinite(value) || value <= 0) {
-            return "0 B/s";
-        }
-
-        value /= 8.0; // bits to Bytes
-        const units = ["B/s", "KiB/s", "MiB/s", "GiB/s", "TiB/s"];
-        let idx = 0;
-        let current = value;
-        while (current >= 1024 && idx < units.length - 1) {
-            current /= 1024;
-            idx++;
-        }
-        const digits = idx === 0 ? 0 : (current < 10 ? 2 : 1);
-        return current.toFixed(digits) + " " + units[idx];
-    }
-
-    private formatBytes(value: number): string {
-        if (!isFinite(value) || value <= 0) {
-            return "0 B";
-        }
-
-        const units = ["B", "KiB", "MiB", "GiB", "TiB"];
-        let idx = 0;
-        let current = value;
-        while (current >= 1024 && idx < units.length - 1) {
-            current /= 1024;
-            idx++;
-        }
-        const digits = idx === 0 ? 0 : (current < 10 ? 2 : 1);
-        return current.toFixed(digits) + " " + units[idx];
+        this.status((error.message === 'HTTP 404' ? 'Rate data unavailable' : 'Cannot load rates') + ' · retrying…', 'error');
     }
 }

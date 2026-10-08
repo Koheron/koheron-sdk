@@ -30,7 +30,7 @@ class InstrumentSummaryWidget {
     private getInstrumentName(): string | null {
         const params = new URLSearchParams(window.location.search);
         const name = params.get('name');
-        return name ? decodeURIComponent(name) : null;
+        return name || null;
     }
 
     private loadInstrumentDetails(): void {
@@ -51,7 +51,7 @@ class InstrumentSummaryWidget {
                 const version = instrument['version'] || 'Unknown';
                 this.versionElement.textContent = version;
             }
-        });
+        }, error => this.setStatus(error));
     }
 
     private loadCommands(): void {

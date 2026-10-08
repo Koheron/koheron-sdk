@@ -1,123 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="author" content="Koheron">
-    <meta charset="utf-8">
-
-    <!--http://stackoverflow.com/questions/49547/making-sure-a-web-page-is-not-cached-across-all-browsers-->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-
-    <link rel="shortcut icon" href="/koheron/kbird.ico">
-    <link rel="stylesheet" type="text/css" href="/koheron/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="/koheron/koheron.css">
-    <link rel="stylesheet" type="text/css" href="main.css">
-
-    <script type="text/javascript" src="html-imports.min.js"></script>
-    <link rel="import" href="/koheron/navigation.html" data-parent="navigation">
-
-    <script type="text/javascript" src="/koheron/jquery.min.js"></script>
-    <script type="text/javascript" src="/koheron/bootstrap.min.js"></script>
-  </head>
-
-  <style>
-    #koheron-log {
-      background: #0b0b0b !important;
-      color: #f1f1f1 !important;          /* brighter than #ddd */
-      border: 0px solid #222 !important;  /* optional edge */
-      opacity: 1 !important;              /* kill any inherited dimming */
-      filter: none !important;            /* kill grayscale/blur if any */
-      text-shadow: none !important;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-            "Liberation Mono", "Courier New", monospace;
-      white-space: pre-wrap;               /* optional: wrap long lines */
-      word-break: break-word;              /* optional: wrap very long tokens */
-
-      display: block;
-      max-width: 1000px;       /* limit the width — pick value that fits your layout */
-      height: 400px;          /* fixed height for vertical space */
-      overflow-y: auto;       /* vertical scroll bar */
-      overflow-x: auto;       /* horizontal scroll if long lines */
-      margin: 0 0 1rem 0;     /* add some bottom spacing */
-      padding: 10px;
-      border-radius: 0px;
-      white-space: pre-wrap;  /* wrap long lines if you prefer */
-      word-break: break-word;
-    }
-
-    #system-info-content {
-      transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-      overflow: hidden;
-    }
-
-    #system-info-content.collapsed {
-      max-height: 0;
-      opacity: 0;
-      pointer-events: none;
-    }
-  </style>
-
-  <body>
-
-  <div id="navigation"></div>
-
-  <div id="main" class="container-fluid" style="padding: 20px;">
-    <h1 style="font-size: 120%; padding-bottom: 20px;">Instruments</h1>
-
-    <div class="row">
-      <div class="col-md-6">
-        <table id="instruments-table" class="table"></table>
+<head>
+  <title>System · Koheron</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/koheron/kbird.ico">
+  <link rel="stylesheet" href="/koheron/main.css">
+  <link rel="stylesheet" href="/koheron/instrument.css">
+  <link rel="stylesheet" href="/koheron/system.css">
+</head>
+<body class="instrument-workspace system-workspace">
+  <header class="app-header">
+    <a class="brand" href="/koheron/" aria-label="Koheron system"><img src="/koheron/koheron_logo.svg" alt="Koheron"></a>
+    <h1>System</h1><span id="board-name" class="board-tag"></span>
+    <span id="board-connection" class="connection-status" data-state="connecting" role="status">Connecting…</span>
+    <nav aria-label="Board navigation"><a href="/koheron/" aria-current="page">Instruments</a><a href="/koheron/logs_rate.html">Data rates</a><a href="/">Instrument ↗</a></nav>
+  </header>
+  <main class="system-main">
+    <section class="live-strip" aria-label="Running instrument">
+      <span id="live-label" class="muted">Instrument</span><strong id="live-name">Connecting…</strong><span id="live-version" class="muted"></span><a id="open-instrument" href="/" hidden>Open instrument ↗</a>
+    </section>
+    <div class="system-grid">
+      <div class="system-primary">
+        <section aria-labelledby="instruments-heading">
+          <div class="section-heading"><h2 id="instruments-heading">Installed instruments <span id="instrument-count" class="muted"></span></h2><div class="toolbar"><button id="refresh-instruments" type="button">Refresh</button><button id="upload-btn" type="button">Add instrument</button></div></div>
+          <input type="file" id="upload-input" accept=".zip" hidden>
+          <p id="instruments-status" class="status-line" role="status" hidden></p>
+          <p id="upload-status" class="status-line" role="status" hidden></p>
+          <div class="table-scroll"><table id="instruments-table"><caption class="sr-only">Installed instruments and available actions</caption><thead><tr><th scope="col">Instrument</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col" class="actions-heading">Actions</th></tr></thead><tbody></tbody></table></div>
+          <p class="table-note">Default instruments start automatically when the board boots.</p>
+        </section>
+        <section class="log-section" aria-labelledby="log-heading">
+          <div class="section-heading"><h2 id="log-heading">Instrument log</h2><div class="toolbar"><span id="log-status" class="connection-status" role="status">Connecting…</span><button id="log-pause" type="button" aria-pressed="false">Pause</button><button id="log-download" type="button">Download</button></div></div>
+          <pre id="koheron-log" tabindex="0" aria-label="Instrument log"></pre>
+          <div class="log-footer"><span class="muted">Latest 1,000 messages · repeated messages grouped</span><label><input id="log-follow" type="checkbox" checked> Follow latest</label></div>
+        </section>
       </div>
+      <aside class="system-sidebar" aria-labelledby="system-heading">
+        <h2 id="system-heading">System information</h2>
+        <p id="system-info-status" class="status-line" role="status">Loading…</p><button id="system-info-retry" type="button" hidden>Retry</button>
+        <table id="release-table"><caption class="sr-only">Board and operating system details</caption></table>
+      </aside>
     </div>
-
-    <div style="margin-top: 1rem;">
-      <input type="button" id="upload-btn" class="btn btn-primary" value="Add instrument" onclick="document.getElementById('upload-input').click();" style="width: auto; border: 0; display: inline-block; height: auto;">
-      <input type="file" id="upload-input" name="file" onchange="instruments_widget.uploadInstrumentClick(); return false;" style="display: none;">
-      <span style="color: red; margin: 0px 10px;" id="upload-status"></span>
-    </div>
-
-    <div style="margin-top: 1rem;">
-      <h1 style="font-size: 120%; padding-bottom: 20px;">Instrument log</h1>
-      <pre id="koheron-log"></pre>
-    </div>
-
-    <div style="margin-top: 1rem;">
-      <h1 id="system-info-header"
-          style="font-size:120%; margin-top: 40px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-        <span>System info</span>
-        <span id="system-info-arrow" style="font-size: 80%;">▼</span>
-      </h1>
-
-      <div id="system-info-content" class="row">
-        <div class="col-md-6">
-          <div class="card" style="margin-bottom:16px;">
-            <div class="card-body" style="padding:12px;">
-              <table class="table table-sm" id="release-table" style="margin:0;">
-                <!-- rows injected -->
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  </main>
   <script src="/koheron/instruments.js"></script>
-
   <script>
-    window.addEventListener('HTMLImportsLoaded', () => {
-      new Imports(document);
-      new InstrumentsWidget(document);
-      new KoheronLogWidget(document);
-      new SystemInfoWidget(document);
-    }, false);
+    new InstrumentsWidget(document);
+    new KoheronLogWidget(document);
+    new SystemInfoWidget(document);
   </script>
-
-  </body>
-
+</body>
 </html>

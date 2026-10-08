@@ -53,6 +53,8 @@ WWW_ASSETS := \
   $(TMP_WWW_PATH)/instrument_summary.html \
   $(TMP_WWW_PATH)/logs_rate.html \
   $(TMP_WWW_PATH)/main.css \
+  $(TMP_WWW_PATH)/instrument.css \
+  $(TMP_WWW_PATH)/system.css \
   $(TMP_WWW_PATH)/bootstrap.min.js \
   $(TMP_WWW_PATH)/bootstrap.min.css \
   $(TMP_WWW_PATH)/jquery.min.js \
@@ -79,6 +81,7 @@ clean_www:
 	rm -rf $(TMP_WWW_PATH)
 
 WWW_TS_FILES := $(WEB_PATH)/koheron.ts
+WWW_TS_FILES += $(WEB_PATH)/instrument/poller.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
 WWW_TS_FILES += $(WWW_PATH)/instrument_summary.ts
@@ -108,6 +111,14 @@ $(TMP_WWW_PATH)/logs_rate.html: $(WWW_PATH)/logs_rate.html
 	cp $< $@
 
 $(TMP_WWW_PATH)/navigation.html: $(WEB_PATH)/navigation.html
+	mkdir -p $(@D)
+	cp $< $@
+
+$(TMP_WWW_PATH)/instrument.css: $(WEB_PATH)/instrument/instrument.css
+	mkdir -p $(@D)
+	cp $< $@
+
+$(TMP_WWW_PATH)/system.css: $(WWW_PATH)/system.css
 	mkdir -p $(@D)
 	cp $< $@
 
