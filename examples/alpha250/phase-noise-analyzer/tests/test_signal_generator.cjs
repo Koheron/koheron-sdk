@@ -42,7 +42,6 @@ async function host(t, failGenerator = false, failConnection = false) {
     };
     window.Command = (...args) => args;
     window.Imports = class {};
-    window.DDS = class {};
     window.ClockGenerator = class {};
     window.ClockGeneratorApp = class {};
     window.PhaseNoiseAnalyzer = class {

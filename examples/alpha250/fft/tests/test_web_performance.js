@@ -161,6 +161,6 @@ vm.runInContext(`
     assert.equal(spectrum.length, 4096); // Full samples remain intact for exports/cursors.
 
 })()
-`, context).then(() => console.log('Independent acquisition/paint, latest-frame ownership, FPS, telemetry and retry backoff: PASS')).catch(error => {
+`, context).then(() => console.log('Independent acquisition/paint, latest-frame ownership, FPS and retry backoff: PASS')).catch(error => {
     console.error(error); process.exitCode = 1;
 });

@@ -6,7 +6,6 @@ include $(SDK_PATH)/web/inputs/components.mk
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.ts
 WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts
-WEB_FILES += $(SDK_PATH)/web/phase-noise/dds.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/export-file/export-file.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/export-file/export-file.html
 WEB_FILES += $(SDK_PATH)/web/phase-noise/plot.ts

@@ -1,21 +1,11 @@
 class App {
-    private imports: Imports;
     private signalGenerator: PhaseModulatorWidget;
     private stopped = false;
     private client: Client;
-    public dds: DDS;
     private phaseNoiseAnalyzer: PhaseNoiseAnalyzer;
     private phaseNoiseAnalyzerApp: PhaseNoiseAnalyzerApp;
     private phasePrecision: PhasePrecision;
     public plot: Plot;
-    private plotBasics: PlotBasics;
-    private exportFile: ExportFile;
-
-    private n_pts: number;
-    private x_min: number;
-    private x_max: number;
-    private y_min: number;
-    private y_max: number;
 
     constructor(window: Window, document: Document,
                 ip: string, plot_placeholder: JQuery) {
@@ -26,8 +16,7 @@ class App {
             try {
                 await client.init();
                 if (this.stopped) { return; }
-                this.imports = new Imports(document);
-                this.dds = new DDS(client);
+                new Imports(document);
                 this.phaseNoiseAnalyzer = new PhaseNoiseAnalyzer(client);
 
                 this.phaseNoiseAnalyzerApp = new PhaseNoiseAnalyzerApp(document, this.phaseNoiseAnalyzer, error => this.connectionFailed(document, error));
@@ -36,15 +25,11 @@ class App {
                 this.phasePrecision = new PhasePrecision(client, document);
                 await this.phasePrecision.init();
                 if (this.stopped) { return; }
-                this.n_pts = this.phaseNoiseAnalyzerApp.nPoints;
-                this.x_min = 100;
-                this.x_max = 2E6;
-                this.y_min = -200;
-                this.y_max = 0;
-
-                this.plotBasics = new PlotBasics(document, plot_placeholder, this.n_pts, this.x_min, this.x_max, this.y_min, this.y_max, this.phaseNoiseAnalyzer, "", "Offset frequency (Hz)");
-                this.plot = new Plot(document, this.phaseNoiseAnalyzer, this.plotBasics, error => this.connectionFailed(document, error));
-                this.exportFile = new ExportFile(document, this.plot);
+                const plotBasics = new PlotBasics(document, plot_placeholder,
+                    this.phaseNoiseAnalyzerApp.nPoints, 100, 2E6, -200, 0,
+                    this.phaseNoiseAnalyzer, "", "Offset frequency (Hz)");
+                this.plot = new Plot(document, this.phaseNoiseAnalyzer, plotBasics, error => this.connectionFailed(document, error));
+                new ExportFile(document, this.plot);
                 for (const id of ['instrument-controls', 'settings-controls', 'plot-controls', 'laser-controls']) {
                     (document.getElementById(id) as HTMLFieldSetElement).disabled = false;
                 }

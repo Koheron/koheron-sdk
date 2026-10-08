@@ -3,7 +3,7 @@
 Include the appropriate component list before an instrument's local web assets:
 
 - `components.mk`: spectrum framing, base plot, numeric editors, precision and
-  sample-rate controls, DDS adapter, CSV/PNG export engine and template, plot
+  sample-rate controls, CSV/PNG export engine and template, plot
   templates and common workspace styles.
 - `analyzer/components.mk`: the common assets plus the single-stream driver,
   plot adapter and CSV/PNG export used by ALPHA250, Red Pitaya and the DPLL monitor.
