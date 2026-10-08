@@ -128,20 +128,7 @@ class FFTApp {
             (<HTMLSpanElement>this.document.querySelector(".precision-adc-span[data-channel='" + i.toString() + "']")).textContent = (brdParams.adcValues[i] * 1000).toFixed(4);
         }
 
-        if (this.precisionDacChanged) { this.precisionDacChanged(brdParams.dacValues); }
-        else for (let i = 0; i < 4; i++) {
-            let inputs = <HTMLInputElement[]><any>this.document.querySelectorAll(".precision-dac-input[data-command='setDac'][data-channel='" + i.toString() + "']");
-            let inputsArray = [];
-            for (let j = 0; j < inputs.length; j++) {
-                inputsArray.push(inputs[j]);
-            }
-
-            if (inputsArray.indexOf(<HTMLInputElement>this.document.activeElement) == -1) {
-                for (let j = 0; j < inputs.length; j++) {
-                  inputs[j].value = (brdParams.dacValues[i] * 1000).toFixed(3).toString();
-                }
-            }
-        }
+        this.precisionDacChanged?.(brdParams.dacValues);
     }
 
     // Setters

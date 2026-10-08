@@ -31,7 +31,7 @@ vm.runInContext(`
         document: doc, history: new SpectrumHistory(), running: true, paused: false, busy: false, animation: 0,
         lastFrameTime: -Infinity, rateStarted: 0, acquiredFrames: 0, renderedFrames: 0, paintedFrames: 0,
         plotBasics: {needsRedraw: () => false},
-        fft: {status, read_psd() { reads++; return new Promise(resolve => { finishRead = resolve; }); }},
+        fft: {status, readSpectrum() { reads++; return new Promise(resolve => { finishRead = psd => resolve({psd, status}); }); }},
         displaySpectrum() { drawn.push({psd: Array.from(this.psd), status: this.frameStatus}); },
         setStatus() {}, schedule(delay) { scheduled = delay; }
     });
@@ -133,7 +133,7 @@ vm.runInContext(`
     const pausedReads = reads; await plot.updatePlot(); assert.equal(reads, pausedReads);
     plot.paused = false; doc.hidden = true; await plot.updatePlot(); assert.equal(reads, pausedReads);
     doc.hidden = false;
-    plot.fft.read_psd = async () => { throw new Error('expected acquisition failure'); };
+    plot.fft.readSpectrum = async () => { throw new Error('expected acquisition failure'); };
     plot.pending = {psd: new Float32Array([9]), status};
     plot.animation = 1;
     const savedError = console.error; console.error = () => {};

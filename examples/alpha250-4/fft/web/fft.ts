@@ -59,10 +59,6 @@ class FFT extends FFTDriver {
         return this.client.readFloat32Array(Command(this.id, this.cmds['read_psd'], this.adc));
     }
 
-    read_psd_raw(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw'], this.adc), cb);
-    }
-
     async readSpectrum(): Promise<SpectrumFrame | undefined> {
         if (this.controlsPending) { return undefined; }
         const revision = this.revision, status = this.status;
