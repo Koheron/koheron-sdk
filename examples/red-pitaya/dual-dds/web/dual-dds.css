@@ -1,0 +1,2 @@
+/* Keep the legacy navigation margin inside the available viewport width. */
+.dual-dds-workspace #main { width: auto; }

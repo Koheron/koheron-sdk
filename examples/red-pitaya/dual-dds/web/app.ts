@@ -1,24 +1,39 @@
 class App {
-    public control: Control;
-    private driver: DualDDS;
-    private imports: Imports;
-    private ddsFrequency: DDSFrequency;
+    public control: DDSFrequency;
+    private client: Client;
+    private stopped = false;
 
-    constructor(window: Window, document: Document,
-                ip: string, plot_placeholder: JQuery) {
-        let client = new Client(ip, 5);
+    constructor(private window: Window, private document: Document, ip: string) {
+        this.client = new Client(ip, 5);
+        window.addEventListener('HTMLImportsLoaded', () => { void this.init(); });
+        window.addEventListener('pagehide', () => this.dispose());
+        window.addEventListener('pageshow', event => {
+            if ((event as PageTransitionEvent).persisted && this.stopped) { window.location.reload(); }
+        });
+    }
 
-        window.addEventListener('HTMLImportsLoaded', () => {
-            client.init( () => {
-                this.imports = new Imports(document);
-                this.driver = new DualDDS(client);
-                this.control = new Control(document, this.driver);
-                this.ddsFrequency = new DDSFrequency(document, this.driver);
-            });
-        }, false);
+    private async init(): Promise<void> {
+        try {
+            new Imports(this.document);
+            await this.client.init();
+            if (this.stopped) { return; }
+            this.control = new DDSFrequency(this.document, new DualDDS(this.client));
+            await this.control.init();
+        } catch (error) {
+            if (this.stopped) { return; }
+            const status = this.document.getElementById('dds-frequency-status');
+            status.textContent = 'DDS unavailable';
+            status.title = String(error);
+            this.dispose();
+        }
+    }
 
-        window.onbeforeunload = () => { client.exit(); };
+    private dispose(): void {
+        if (this.stopped) { return; }
+        this.stopped = true;
+        this.control?.dispose();
+        this.client.exit();
     }
 }
 
-let app = new App(window, document, location.hostname, $('#plot-placeholder'));
+let app = new App(window, document, location.hostname);

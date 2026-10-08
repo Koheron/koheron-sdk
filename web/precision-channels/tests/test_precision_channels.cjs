@@ -44,7 +44,7 @@ test('shared DAC transport preserves voltage commands, Promise reads and rejecte
     await assert.rejects(dac.getDacValues(), /Disconnected/);
 });
 
-test('shared DAC transport retains the legacy callback contract and typed readback', () => {
+test('shared DAC transport retains the callback contract and typed readback', () => {
     const values = Float32Array.from([.1, .2, .3, .4]);
     let callback, received;
     const dac = transport({
@@ -66,7 +66,6 @@ async function host(t) {
     const dom = new JSDOM(markup, {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
     const window = dom.window;
-    Object.defineProperty(window.document, 'hidden', {value: false, configurable: true});
     window.document.body.append(window.document.querySelector('template').content.cloneNode(true));
     const values = Float32Array.from([.1, .2, .3, .4]);
     const writes = [];
@@ -75,7 +74,6 @@ async function host(t) {
         async getDacValues() { return values.slice(); }
     };
     for (const [file, exports] of [
-        ['web/instrument/poller.ts', ['InstrumentPoller']],
         ['web/inputs/digit-input.ts', ['NumberInput']],
         ['web/precision-channels/precision-channels-app.ts', ['PrecisionChannelsApp']]
     ]) {

@@ -1,33 +1,19 @@
-# Shared clock adapter
+# Clock controls
 
-Include `driver.mk` for the `ClockGenerator` RPC adapter, or `components.mk` for
-the adapter and `ClockGeneratorApp` event bindings. Hosts supply their own clock
-lifecycle. The adapter supports both callback and Promise forms of
-`getReferenceClock`, plus the existing sample-clock selector and DAC-rate read.
-Construction sends no commands.
+| Include | Provides |
+| --- | --- |
+| `driver.mk` | `ClockGenerator` RPC adapter; callback/Promise reference reads, sample-clock selection and DAC-rate reads |
+| `components.mk` | Adapter and `ClockGeneratorApp` bindings |
+| `reference-clock.mk` | Labelled 10 MHz selector: internal = 2, external = 0 |
+| `sampling-frequency.mk` | ALPHA250/ALPHA250-4 200/250 MHz selector |
 
-ALPHA PNA, ALPHA15 and ALPHA250/ALPHA250-4 FFT share the event bindings. DPLL
-uses only the adapter.
-ALPHA250-4 reads its reference clock through its FFT control decoder; ALPHA15 uses the shared adapter's Promise reads. Board-specific
-templates are shared through the selector-only includes below.
-The optional third constructor argument runs before a clock write, allowing
-ALPHA15 to invalidate acquisition before settings change. `dispose()` removes
-the event bindings; construction only attaches listeners and sends no commands.
+Construction sends no commands. `ClockGeneratorApp` accepts an optional third
+argument called before a clock write to invalidate acquisition. Call `dispose()`
+on exit; listener cleanup uses [InstrumentEvents](../instrument/README.md).
 
-`tests/test_clock.cjs` checks RPC IDs, arguments, read contracts, errors, board
-templates, acquisition notification order and listener disposal. It
-runs once alongside the generic plot checks in `bash web/tests/run.sh`.
+ALPHA15, ALPHA250/ALPHA250-4 FFT and ALPHA PNAs share the bindings. DPLL uses the
+adapter and reference template with its own asynchronous lifecycle. ALPHA15
+keeps its fixed 15 MS/s acquisition rate.
 
-Include `reference-clock.mk` for the canonical internal/external 10 MHz
-selector used by ALPHA15, ALPHA250/ALPHA250-4 FFT, both ALPHA PNAs and DPLL.
-It retains command values 2 (internal) and 0 (external), wraps each radio in its
-label and names the group for assistive technology. It adds no event bindings.
-DPLL continues to own its asynchronous clock-change lifecycle.
-
-Include `sampling-frequency.mk` for the identical 200/250 MHz selector used by
-ALPHA250 and ALPHA250-4 FFT. ALPHA15 keeps its fixed 15 MS/s acquisition rate.
-
-Clock bindings register their selectors with `InstrumentEvents`, included by
-`components.mk`, and dispose that shared listener lifecycle on exit. The
-settings-change callback still precedes the clock command. Driver-only consumers
-continue to include `driver.mk` without UI dependencies.
+`tests/test_clock.cjs` checks RPC contracts, templates, notification order and
+teardown through the [browser runner](../tests/README.md).

@@ -4,7 +4,6 @@
 class FFTApp {
     private running: boolean = true;
     private events = new InstrumentEvents();
-    private channelNum: number = 2;
     private fftSelects: HTMLSelectElement[];
     private fftInputs: HTMLInputElement[];
     private onChange = (event: Event): void => {
@@ -33,28 +32,11 @@ class FFTApp {
     private _controlsHz = 4;            // throttle UI refresh rate
     private _lastControlsTick = 0;
     private boardPoller?: InstrumentPoller<IBoardParameters>;
-    private _ddsInputsByChannel?: HTMLInputElement[][];
     private _supplySpans?: HTMLSpanElement[];
     private _temperatureSpans?: HTMLSpanElement[];
 
     // Build & cache DOM references once
     private ensureControlsCache() {
-        if (!this._ddsInputsByChannel) {
-            const all = Array.from(this.document.querySelectorAll<HTMLInputElement>(
-                ".dds-channel-input[data-command='setDDSFreq']"
-            ));
-
-            const byChan: Record<string, HTMLInputElement[]> = {};
-
-            for (const el of all) {
-                const ch = el.dataset.channel!;
-                (byChan[ch] ||= []).push(el);
-            }
-
-            const maxChan = Math.max(...Object.keys(byChan).map(Number), this.channelNum - 1);
-            this._ddsInputsByChannel = Array.from({ length: maxChan + 1 }, (_, i) => byChan[String(i)] || []);
-        }
-
         if (!this._supplySpans) {
             this._supplySpans = Array.from(this.document.getElementsByClassName("supply-span")) as HTMLSpanElement[];
         }
@@ -71,10 +53,6 @@ class FFTApp {
 
     private setValueIfNeeded(el: HTMLInputElement | HTMLSelectElement, v: string) {
       if (el.value !== v) el.value = v;
-    }
-
-    private setMaxIfNeeded(el: HTMLInputElement, v: string) {
-      if (el.max !== v) el.max = v;
     }
 
     private async updateControls() {
@@ -103,23 +81,6 @@ class FFTApp {
             const sts: IFFTStatus = await this.driver.getControlParameters();
             if (!this.running) { this._busyControls = false; return; }
             if (this.samplingRateChanged) { this.samplingRateChanged(sts.fs); }
-
-            // Update DDS inputs per channel, but skip the channel if any of its inputs is focused
-            const active = this.document.activeElement as HTMLElement | null;
-
-            for (let ch = 0; ch < this.channelNum; ch++) {
-                const inputs = this._ddsInputsByChannel![ch] || [];
-                if (!inputs.length) continue;
-
-                const maxMHz = (sts.fs / 1e6 / 2).toFixed(1);
-                for (const inp of inputs) { this.setMaxIfNeeded(inp, maxMHz); }
-
-                // Keep an edit intact, but always refresh its hardware limit.
-                if (active && inputs.includes(active as HTMLInputElement)) continue;
-
-                const freqMHz = (sts.dds_freq[ch] / 1e6).toFixed(6);
-                for (const inp of inputs) { this.setValueIfNeeded(inp, freqMHz); }
-            }
 
             // Sampling frequency radio
             this.setCheckedIfNeeded(
