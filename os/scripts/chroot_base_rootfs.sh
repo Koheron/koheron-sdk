@@ -60,12 +60,16 @@ cat >> /etc/hosts <<'EOF_HOSTS'
 127.0.1.1    koheron
 EOF_HOSTS
 
-# Ubuntu Noble on ARM sources
-cat > /etc/apt/sources.list <<'EOF_SOURCES'
-deb http://ports.ubuntu.com/ubuntu-ports noble main universe
-deb http://ports.ubuntu.com/ubuntu-ports noble-updates main universe
-deb http://ports.ubuntu.com/ubuntu-ports noble-security main universe
-# deb http://ports.ubuntu.com/ubuntu-ports noble-backports main universe
+# Use the extracted rootfs release, including when UBUNTU_VERSION is overridden.
+source /etc/os-release
+if [[ ${ID:-} != ubuntu || ! ${VERSION_CODENAME:-} =~ ^[a-z]+$ ]]; then
+  echo 'Expected an Ubuntu rootfs with a valid VERSION_CODENAME' >&2
+  exit 1
+fi
+cat > /etc/apt/sources.list <<EOF_SOURCES
+deb http://ports.ubuntu.com/ubuntu-ports ${VERSION_CODENAME} main universe
+deb http://ports.ubuntu.com/ubuntu-ports ${VERSION_CODENAME}-updates main universe
+deb http://ports.ubuntu.com/ubuntu-ports ${VERSION_CODENAME}-security main universe
 EOF_SOURCES
 rm -f /etc/apt/sources.list.d/ubuntu.sources
 

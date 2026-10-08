@@ -22,6 +22,7 @@ SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 SERVER_CCXXFLAGS += -Wno-psabi
 SERVER_CCXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/runtime -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_CCXXFLAGS += -isystem /usr/include/eigen3
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++20 -pthread
@@ -71,6 +72,10 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/hardware/%.cpp $(TMP_SERVER_PATH)/memory.
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/utilities/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
+SERVER_COMPILER_STAMP := $(TMP_SERVER_PATH)/.compiler-settings
+$(eval $(call compiler_settings_stamp,$(SERVER_COMPILER_STAMP),$(GCC_ARCH)-g++-$(GCC_VERSION)))
+$(OBJ): $(SERVER_COMPILER_STAMP)
 
 $(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm

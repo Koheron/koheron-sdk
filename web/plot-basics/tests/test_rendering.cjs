@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
-const ts = require('typescript');
+const ts = require('../../transpile.cjs');
 const context = vm.createContext({});
 vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../plot-basics.ts'), 'utf8'),
     {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nglobalThis.PlotBasics = PlotBasics;', context);

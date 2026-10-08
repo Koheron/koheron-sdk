@@ -8,7 +8,7 @@ Build instruments for Xilinx Zynq boards: FPGA designs, Linux images, C++ server
 
 ## Requirements
 
-Reference host: **Ubuntu 24.04** with **Vivado/Vitis 2025.1** under `/tools/Xilinx/2025.1`. Override `VIVADO_PATH` and `VITIS_PATH` on the Make command line for other installation paths.
+Reference host: **Ubuntu 24.04** with **Vivado/Vitis 2025.1** under `/tools/Xilinx/2025.1`. The SDK targets Vivado/Vitis **2025.1 and newer**; select the installed release with `VIVADO_VERSION=...`. Override `VIVADO_PATH` and `VITIS_PATH` on the Make command line for other installation paths.
 
 Install Vivado/Vitis and any required board files or licenses separately. `make setup` installs host dependencies, the Python environment and Koheron package, Docker and SDK Docker images.
 
@@ -34,6 +34,10 @@ make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 ```
 
 `run` streams logs after starting the instrument. `Ctrl+C` stops the stream and leaves it running. The [Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument) returns after deployment for scripts and agents. Rebuild the image for OS, kernel, boot, board support or default instrument changes.
+
+The default Docker builder uses GCC 15 for the server, Linux kernel and
+U-Boot. See [compiler settings](docker/README.md) for independent selections and
+the GCC 13 fallback. The reference host remains Ubuntu 24.04.
 
 ## Configuration model
 
@@ -108,7 +112,7 @@ Instrument ZIP: `tmp/<project>/<NAME>.zip`, also copied to `tmp/<board>/instrume
 
 ## Image contents
 
-Generated SD card images boot **Ubuntu 24.04.5** with the **`xilinx-linux-v2025.1`** kernel. The runtime environment includes:
+Generated SD card images boot **Ubuntu Base 26.04.1** with the **Xilinx 2026.1 (Linux 6.18)** kernel. OS defaults are pinned independently of the selected Vivado/Vitis release; boot components and device-tree generation follow that toolchain. The runtime environment includes:
 
 - **nginx** serving static files and proxying **WebSocket** traffic.
 - An HTTP API (powered by **uWSGI**) for uploads and instrument management.

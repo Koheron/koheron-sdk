@@ -88,8 +88,10 @@ void receive_case(std::size_t size, std::size_t split) {
     check(socketpair(AF_UNIX, SOCK_STREAM, 0, fd) == 0, "socketpair failed");
     std::vector<uint8_t> payload(HeaderSize + size);
     for (std::size_t i = 0; i < payload.size(); ++i) payload[i] = (31 * i + 17) & 255;
-    std::vector<uint8_t> frame{0x82};
     const auto length = payload.size();
+    std::vector<uint8_t> frame;
+    frame.reserve(length + 14); // Maximum WebSocket header, including the mask.
+    frame.push_back(0x82);
     if (length < 126) frame.push_back(0x80 | length);
     else if (length < 65536) {
         frame.insert(frame.end(), {0xfe, static_cast<uint8_t>(length >> 8), static_cast<uint8_t>(length)});

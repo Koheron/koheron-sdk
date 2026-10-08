@@ -21,11 +21,10 @@ class WebBuildTests(unittest.TestCase):
             compiler = root / 'compiler.py'
             compiler.write_text('''import pathlib, sys
 args = sys.argv[1:]
-assert all(arg.endswith('.ts') for arg in args[:args.index('--outFile')])
-output = pathlib.Path(args[args.index('--outFile') + 1])
+assert all(arg.endswith('.ts') for arg in args[2:])
+output = pathlib.Path(args[1])
 content = ''.join(pathlib.Path(arg).read_text() for arg in args if arg.endswith('.ts'))
-if not output.exists() or output.read_text() != content:
-    output.write_text(content)
+output.write_text(content)
 ''')
             config = root / 'config.mk'
             config.write_text(f'WEB_FILES := {root}/legacy/control.html {root}/legacy/driver.ts\n')
@@ -33,7 +32,7 @@ if not output.exists() or output.read_text() != content:
 WEB_PATH := {WEB}
 TMP_PROJECT_PATH := {root}/out
 WEB_DOWNLOADS_MK := {root}/downloads.mk
-TSC := python3 {compiler}
+WEB_COMPILE := python3 {compiler}
 include $(CFG)
 include {WEB}/web.mk
 $(TMP_WEB_PATH)/:
@@ -58,7 +57,7 @@ $(TMP_WEB_PATH)/:
             make('-q', 'web')  # An unchanged build remains up to date.
             os.utime(output / 'app.js', (stamp - 10, stamp - 10))
             config.write_text(config.read_text() + '# configuration-only change\n')
-            make('web')  # Simulated incremental compiler reuses identical JS.
+            make('web')  # Configuration-only changes still refresh the generated script.
             make('-q', 'web')
 
 

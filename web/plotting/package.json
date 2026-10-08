@@ -1,7 +1,7 @@
 {
   "devDependencies": {
-    "playwright-core": "1.56.0",
-    "terser": "5.44.0"
+    "playwright-core": "1.64.0",
+    "terser": "5.51.2"
   },
   "private": true,
   "scripts": {

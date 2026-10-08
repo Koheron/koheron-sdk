@@ -28,3 +28,6 @@ package-lock.json
 .ccache/
 # Pin the local plotting build and real-browser benchmark tools.
 !/web/plotting/package-lock.json
+
+# Pin the shared web compiler and browser-test dependencies.
+!/web/package-lock.json

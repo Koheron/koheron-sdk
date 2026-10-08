@@ -19,9 +19,9 @@ examples/alpha250-4/phase-noise-analyzer/tests/run.sh
 ```
 
 The runner expects `.venv/bin/python3` with NumPy, SciPy and the Python client
-requirements, plus the `cross-armhf:24.04` and `koheron-web:node20` Docker images.
+requirements, plus the `cross-armhf:26.04` and `koheron-web:node24` Docker images.
 `PNA_PYTHON`, `PNA_CPP_IMAGE` and `PNA_WEB_IMAGE` can override these defaults. The
-C++ image must also provide native `g++-13`, since these tests run on the host CPU.
+C++ image must also provide native `g++-15`, since these tests run on the host CPU.
 Browser workspace tests use TypeScript 5.6.3 and jsdom 26.1.0, installed on first
 run into the ignored `tmp/tests` dependency directory.
 The wrapper delegates to the [shared host runner](../../../../server/drivers/phase-noise/tests/README.md),

@@ -2,6 +2,7 @@ ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 
 TMP_OS_BOARD_PATH ?= $(TMP_PROJECT_PATH)/os
 
+include $(dir $(lastword $(MAKEFILE_LIST)))compiler-settings.mk
 UBOOT_TAG ?= xilinx-uboot-v$(VIVADO_VERSION)
 DTREE_TAG ?= xilinx_v$(VIVADO_VERSION)
 
@@ -70,18 +71,21 @@ UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
 
 # Configure U-Boot once to avoid concurrent defconfig/mrproper races
 UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
+UBOOT_COMPILER_STAMP := $(UBOOT_PATH)/.compiler-settings
+$(eval $(call compiler_settings_stamp,$(UBOOT_COMPILER_STAMP),$(UBOOT_CC)))
 
-$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE)
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE) $(UBOOT_COMPILER_STAMP) $(OS_PATH)/scripts/patch_uboot.sh
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
+	bash $(OS_PATH)/scripts/patch_uboot.sh $(UBOOT_PATH)
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
-	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CROSS_COMPILE=$(GCC_ARCH)- $(UBOOT_CONFIG)
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) $(UBOOT_TOOLCHAIN_FLAGS) $(UBOOT_CONFIG)
 	@touch $@
 	$(call ok,$@)
 
 $(TMP_OS_BOARD_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) | $(TMP_BOARD_PATH)/
 	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
-	  CROSS_COMPILE=$(GCC_ARCH)- all
+	  $(UBOOT_TOOLCHAIN_FLAGS) all
 	if [ -f $(UBOOT_PATH)/u-boot.elf ]; then cp $(UBOOT_PATH)/u-boot.elf $@; else cp $(UBOOT_PATH)/u-boot $@; fi
 	$(call ok,$@)
 
@@ -124,8 +128,12 @@ $(ATRUST_PATH)/.unpacked: $(ATRUST_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	@touch $@
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked
-	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
+ATF_COMPILER_STAMP := $(ATRUST_PATH)/.compiler-settings
+$(eval $(call compiler_settings_stamp,$(ATF_COMPILER_STAMP),$(ATF_CC)))
+$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked $(ATF_COMPILER_STAMP)
+	# TF-A does not track compiler command changes in its cached objects.
+	$(DOCKER) make PLAT=zynqmp clean -C $(ATRUST_PATH)
+	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- CC=$(ATF_CC) PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
 	cp $(ATRUST_PATH)/build/zynqmp/release/bl31/bl31.elf $@
 	$(call ok,$@)
 
@@ -185,7 +193,7 @@ $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTRE
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
-	$(DOCKER) gcc -I $(TMP_OS_PATH)/devicetree/ -I $(TMP_OS_PATH)/devicetree/include/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
+	$(DOCKER) $(OS_HOSTCC) -I $(TMP_OS_PATH)/devicetree/ -I $(TMP_OS_PATH)/devicetree/include/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
 		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(DOCKER) $(DTC_BIN) -I dts -O dtb -o $@ \
 	  -i $(TMP_OS_PATH)/devicetree -b 0 -@ $(TMP_OS_PATH)/devicetree/system-top.dts.tmp
@@ -257,7 +265,7 @@ endif
 
 $(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
 	# Preprocess so #include <dt-bindings/...> works
-	$(DOCKER) gcc -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
+	$(DOCKER) $(OS_HOSTCC) -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
 	  -I $(LINUX_PATH)/include \
 	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts \
 	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \

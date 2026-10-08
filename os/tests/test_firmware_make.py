@@ -9,6 +9,57 @@ SDK = Path(__file__).resolve().parents[2]
 
 
 class FirmwareMakeTest(unittest.TestCase):
+    def test_atf_compiler_change_discards_cached_objects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            firmware = root / 'firmware'
+            firmware.mkdir()
+            for name in ('checksums', 'download', 'archive'):
+                (root / name).touch()
+            (firmware / '.unpacked').touch()
+            (firmware / 'Makefile').write_text('''\
+.PHONY: clean bl31
+clean:
+\trm -rf build
+\t@echo clean >> events
+bl31:
+\t@mkdir -p build/zynqmp/release/bl31
+\t@test -f build/compiler || printf '%s\\n' '$(CC)' > build/compiler
+\t@cp build/compiler build/zynqmp/release/bl31/bl31.elf
+\t@echo build >> events
+''')
+            output = root / 'os/bl31.elf'
+            harness = f'''\
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+OS_PATH := {SDK}/os
+TMP_OS_PATH := {root}/os
+ATRUST_PATH := {firmware}
+ATRUST_TAR := {root}/archive
+SOURCE_CHECKSUMS := {root}/checksums
+DOWNLOAD_VERIFIED := {root}/download
+GCC_ARCH := aarch64-linux-gnu
+%/:
+\tmkdir -p $@
+include {SDK}/os/os.mk
+'''
+            output.parent.mkdir()
+
+            def build(version):
+                result = subprocess.run(
+                    ['make', '--no-print-directory', '-f', '-', str(output),
+                     f'ATF_GCC_VERSION={version}'], input=harness,
+                    text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(output.read_text(), f'aarch64-linux-gnu-gcc-{version}\n')
+
+            build(13)
+            build(15)
+            events = (firmware / 'events').read_text()
+            self.assertEqual(events, 'clean\nbuild\nclean\nbuild\n')
+            build(15)
+            self.assertEqual((firmware / 'events').read_text(), events)
+
     def test_parallel_generators_share_staged_hardware_and_serialize_pmu_bsp(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

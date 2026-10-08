@@ -1,4 +1,4 @@
-WEB_DOCKER_IMAGE ?= koheron-web:node20
+WEB_DOCKER_IMAGE ?= koheron-web:node24
 CURRENT_DIR := $(shell pwd -P)
 WEB_DOCKER_RUN := docker run --rm -t \
                   -u $$(id -u):$$(id -g) \
@@ -9,17 +9,10 @@ WEB_DOCKER_RUN := docker run --rm -t \
 # Typescript compiler
 ###############################################################################
 
-TSC_FLAGS ?= -pretty \
-             --target ES5 \
-             --lib es6,dom \
-             --alwaysStrict \
-             --skipLibCheck \
-             --module system \
-             --incremental \
-             --typeRoots /opt/app/node_modules/@types
+WEB_COMPILER_INPUTS := $(WEB_PATH)/package.json $(WEB_PATH)/package-lock.json $(WEB_PATH)/Dockerfile.web $(WEB_PATH)/build.cjs $(WEB_PATH)/transpile.cjs
+WEB_COMPILE ?= $(WEB_DOCKER_RUN) node /opt/app/build.cjs
 
-TSC ?= $(WEB_DOCKER_RUN) tsc $(TSC_FLAGS)
-
+###############################################################################
 # Build webpage
 ###############################################################################
 
@@ -43,11 +36,9 @@ ifeq ($(TS_FILES_ABS),)
   APP_JS :=
 else
   APP_JS := $(TMP_WEB_PATH)/app.js
-$(APP_JS): $(TS_FILES_ABS) $(WEB_CONFIG_FILES) | $(TMP_WEB_PATH)/
+$(APP_JS): $(TS_FILES_ABS) $(WEB_CONFIG_FILES) $(WEB_COMPILER_INPUTS) | $(TMP_WEB_PATH)/
 	mkdir -p $(@D)
-	$(TSC) $(TS_FILES_ABS) --outFile $@
-	# The incremental compiler may reuse JS after a config-only rebuild.
-	touch $@
+	$(WEB_COMPILE) --output "$@" $(TS_FILES_ABS)
 endif
 
 BASENAMES            := $(notdir $(NON_TS_FILES_ABS))

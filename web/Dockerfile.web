@@ -1,10 +1,15 @@
 # Dockerfile.web
-FROM node:20-alpine
+FROM node:24-alpine
+
+# Shared regression runners use bash.
+RUN apk add --no-cache bash
 
 # Install deps into an image layer (fast rebuilds)
 WORKDIR /opt/app
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY build.cjs transpile.cjs ./
+ENV NODE_PATH="/opt/app/node_modules"
 # The owned plot build uses the same locked minifier as native builds.
 COPY plotting/package.json plotting/package-lock.json ./plotting/
 RUN npm ci --prefix plotting

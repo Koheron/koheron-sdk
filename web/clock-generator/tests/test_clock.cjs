@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
-const ts = require('typescript');
+const ts = require('../../transpile.cjs');
 
 function fixture() {
     const commands = [];
@@ -19,7 +19,7 @@ function fixture() {
     };
     const context = vm.createContext({Command: (id, command, ...args) => ({id, command, args})});
     const source = fs.readFileSync(path.join(__dirname, '../clock-generator.ts'), 'utf8');
-    vm.runInContext(ts.transpileModule(source, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText
+    vm.runInContext(ts.transpileModule(source, {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText
         + '\nglobalThis.ClockGenerator = ClockGenerator;', context);
     return {clock: new context.ClockGenerator(client), client, commands};
 }

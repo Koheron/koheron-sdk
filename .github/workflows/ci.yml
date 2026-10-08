@@ -86,27 +86,27 @@ jobs:
           python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: web/package.json
+          cache-dependency-path: web/package-lock.json
       - name: Install host test dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y g++-13 libeigen3-dev
           python3 -m pip install -r python/requirements.txt numpy scipy
-          npm install --prefix web --no-package-lock
+          npm ci --prefix web
       - name: Check web asset rebuilds after configuration changes
         run: python3 web/tests/test_build.py
       - name: Check OS management interface
         run: |
           make CFG=examples/alpha250/fft/config.mk tmp/www/instruments.js \
-            TSC='web/node_modules/.bin/tsc --target ES5 --lib es6,dom --alwaysStrict --skipLibCheck --module system --incremental --typeRoots web/node_modules/@types'
+            WEB_COMPILE='node web/build.cjs'
           NODE_PATH=web/node_modules node --test os/www/tests/test_*.cjs
       - name: Compile instrument web assets
         run: |
           for project in alpha250/phase-noise-analyzer alpha250-4/phase-noise-analyzer red-pitaya/phase-noise-analyzer alpha250/dpll alpha250/fft red-pitaya/fft alpha250-4/fft alpha15/signal-analyzer alpha250/phase-modulator red-pitaya/dual-dds red-pitaya/pulse-generator; do
             make CFG="examples/$project/config.mk" WEB_DOWNLOADS_MK=/dev/null \
-              TSC='web/node_modules/.bin/tsc --target ES5 --lib es6,dom --alwaysStrict --skipLibCheck --module system --incremental --typeRoots web/node_modules/@types' web
+              WEB_COMPILE='node web/build.cjs' web
           done
       - name: Check PNA processing, clients and shared PNA, DPLL and FFT interfaces
         run: bash server/drivers/phase-noise/tests/run-host.sh
@@ -126,12 +126,12 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: web/plotting/package-lock.json
       - name: Install plotting build and browser test dependencies
         run: |
-          npm install --prefix web --no-package-lock
+          npm ci --prefix web
           npm ci --prefix web/plotting
           web/plotting/node_modules/.bin/playwright-core install --with-deps chromium
       - name: Check owned plotting assets, Canvas rendering, interactions and exports

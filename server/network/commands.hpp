@@ -20,6 +20,8 @@
 #include <initializer_list>
 #include <span>
 #include <mutex>
+#include <cerrno>
+#include <unistd.h>
 
 namespace net {
 

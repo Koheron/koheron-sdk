@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const ts = require('typescript');
+const ts = require('../../../../web/transpile.cjs');
 const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -115,7 +115,7 @@ async function host(t, options = {}) {
     'web/clock-generator/clock-generator.ts',
     'examples/alpha250/dpll/web/gain-display.ts', 'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
   ].map(read).join('\n');
-  window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText);
+  window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText);
   window.dispatchEvent(new window.Event('HTMLImportsLoaded'));
   await settle();
   // Existing editor regression cases exercise the explicit base-2 unit.

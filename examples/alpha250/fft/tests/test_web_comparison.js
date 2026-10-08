@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const ts = require('typescript');
+const ts = require('../../../../web/transpile.cjs');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert, performance});
 for (const file of ['web/fft/plot/spectrum-history.ts', 'web/fft/plot/references.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {

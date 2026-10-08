@@ -59,6 +59,7 @@ ARCH := {arch}
 ZYNQ_TYPE := {zynq_type}
 GCC_ARCH := {compiler}
 VIVADO_VERSION := test
+LINUX_VERSION := test
 KERNEL_BIN := {image}
 N_CPUS := 1
 DOCKER :=
@@ -69,9 +70,9 @@ include {SDK / 'os/linux.mk'}
             stamp = kernel / '.built_all'
             dtc = kernel / 'scripts/dtc/dtc'
 
-            def build(success=True, target=stamp):
+            def build(success=True, target=stamp, extra_args=()):
                 result = subprocess.run(['make', '-j4', '--no-print-directory', '-f',
-                                         str(harness), str(target)],
+                                         str(harness), str(target), *extra_args],
                                         text=True, capture_output=True)
                 if success:
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -138,6 +139,17 @@ include {SDK / 'os/linux.mk'}
             build()
             self.assertTrue(dtc.exists())
             self.assertEqual(events().count('build'), 4)
+
+            # Changing compiler selection must rebuild an already cached kernel.
+            build(extra_args=['KERNEL_GCC_VERSION=16'])
+            self.assertEqual(events().count('build'), 5)
+            compiler_stamp = kernel / '.compiler-settings'
+            self.assertIn(f'CC={compiler}-gcc-16', compiler_stamp.read_text())
+            previous_events = events()
+            previous_time = compiler_stamp.stat().st_mtime_ns
+            build(extra_args=['KERNEL_GCC_VERSION=16'])
+            self.assertEqual(events(), previous_events)
+            self.assertEqual(compiler_stamp.stat().st_mtime_ns, previous_time)
 
     def test_arm_defconfig_updates(self):
         self.exercise('arm', 'zynq', 'arm-linux-gnueabihf', 'zImage')

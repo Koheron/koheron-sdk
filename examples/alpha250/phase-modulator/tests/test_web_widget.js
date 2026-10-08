@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const ts = require('typescript');
+const ts = require('../../../../web/transpile.cjs');
 const {JSDOM} = require('jsdom');
 
 const root = path.resolve(__dirname, '../../../..');
