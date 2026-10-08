@@ -56,7 +56,9 @@ and Red Pitaya. The existing RPC has no acknowledgement, so the UI reports
 handler. Repeated clicks reset one feedback timer; disposal removes the listener
 and cancels that timer. The analyzer controls retain their board-specific RPCs.
 
-`PnaMeasurementReadout` owns the common measurement shape and presentation for
+`readPnaMeasurements` maps the measurement tuple while retaining each server's
+float/double field precision and averaging argument. `PnaMeasurementReadout`
+owns the common measurement presentation for
 all three PNA pages and the DPLL monitor. Carrier power stays in dBm; phase and
 time jitter convert radians/seconds to mrad/ps with RMS subscripts and two decimal
 places. Missing readings show an em dash. Jitter-band endpoints use compact Hz

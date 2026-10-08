@@ -6,6 +6,14 @@ interface IMeasurements {
     carrier_power: number; // dBm
 }
 
+// Preserve each server's field precision while sharing the measurement shape.
+async function readPnaMeasurements(client: Client, command: CmdMessage,
+                                   format: 'ffffd' | 'fdddd'): Promise<IMeasurements> {
+    const [phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power] =
+        await client.readTuple<[number, number, number, number, number]>(command, format);
+    return {phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power};
+}
+
 // Presentation only: acquisition and integration stay with the instrument.
 class PnaMeasurementReadout {
     private power: HTMLElement;

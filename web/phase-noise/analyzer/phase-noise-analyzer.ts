@@ -33,7 +33,6 @@ interface IParameters {
   clkIndex: string;
 }
 
-type TupleGetMeasurements = [number, number, number, number, number];
 
 interface IAverageStatus {
   count: number;
@@ -84,13 +83,7 @@ class PhaseNoiseAnalyzer {
   }
 
   async getMeasurements(nAverage: number): Promise<IMeasurements> {
-    const [phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power] =
-      await this.client.readTuple<TupleGetMeasurements>(
-        Command(this.id, this.cmds['get_measurements'], nAverage),
-        'ffffd'
-      );
-
-    return { phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power };
+    return readPnaMeasurements(this.client, Command(this.id, this.cmds['get_measurements'], nAverage), 'ffffd');
   }
 
   setFFTNavg(navg: number): void {
@@ -151,12 +144,6 @@ class PhaseNoiseAnalyzer {
 
   setInterferometerDelay(delay_s: number): void {
     this.client.send(Command(this.id, this.cmds['set_interferometer_delay'], delay_s));
-  }
-
-  async getCarrierPower(nAverage: number): Promise<number> {
-    return await this.client.readFloat64(
-      Command(this.id, this.cmds['get_carrier_power'], nAverage)
-    );
   }
 
   saveConfig(): void {
