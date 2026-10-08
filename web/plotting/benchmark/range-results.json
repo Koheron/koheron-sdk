@@ -1,0 +1,4061 @@
+{
+  "browser": "153.0.8010.36",
+  "cpu": "13th Gen Intel(R) Core(TM) i9-13900",
+  "platform": "linux 6.8.0-142-generic",
+  "headless": true,
+  "gpu": "disabled",
+  "viewport": [
+    1000,
+    500
+  ],
+  "dpr": 1,
+  "frames": 180,
+  "rounds": 3,
+  "results": [
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          592373536
+        ],
+        [
+          "b",
+          60620808
+        ],
+        [
+          "PlotBasics.reduceSpectrum",
+          16960732
+        ],
+        [
+          "r.extend.r.fn.extend",
+          804120
+        ],
+        [
+          "L",
+          196704
+        ],
+        [
+          "f",
+          181984
+        ],
+        [
+          "push",
+          164344
+        ],
+        [
+          "isPlainObject",
+          98488
+        ]
+      ],
+      "round": 0,
+      "variant": "original",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 4.299999952316284,
+        "p95": 6.800000011920929,
+        "max": 9.800000011920929,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 12.400000035762787,
+        "p95": 13.300000011920929,
+        "max": 15.100000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.5,
+        "max": 0.5,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 20.30000001192093,
+        "p95": 22.30000001192093,
+        "max": 22.30000001192093,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 3735926.688888889,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 122328,
+      "cpuProfile": "tmp/plotting/original-fft-linear-4.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 11.799999952316284,
+        "p95": 27.19999998807907,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 21.5,
+        "p95": 37.39999997615814,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 4740109.333333333
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          271707040
+        ],
+        [
+          "PlotBasics.decimateToCanva",
+          34987312
+        ],
+        [
+          "b",
+          27675028
+        ],
+        [
+          "t.p2c",
+          7146912
+        ],
+        [
+          "N",
+          2542928
+        ],
+        [
+          "slice",
+          1920240
+        ],
+        [
+          "options.grid.markings",
+          590912
+        ],
+        [
+          "r.extend.r.fn.extend",
+          475956
+        ]
+      ],
+      "round": 0,
+      "variant": "original",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 5.100000023841858,
+        "p95": 6.199999988079071,
+        "max": 6.599999964237213,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.3999999761581421,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 11.600000023841858,
+        "p95": 11.899999976158142,
+        "max": 31.69999998807907,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.40000003576278687,
+        "max": 0.40000003576278687,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 21.30000001192093,
+        "p95": 22.69999998807907,
+        "max": 22.69999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 1938067.111111111,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 14204,
+      "cpuProfile": "tmp/plotting/original-pna-log-3.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 12.199999988079071,
+        "p95": 24.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 19,
+        "p95": 35.30000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 2991969.3333333335
+    },
+    {
+      "allocationHotspots": [
+        [
+          "b",
+          3172488
+        ],
+        [
+          "r.extend.r.fn.extend",
+          1001108
+        ],
+        [
+          "i",
+          540936
+        ],
+        [
+          "slice",
+          267592
+        ],
+        [
+          "f",
+          149008
+        ],
+        [
+          "L",
+          131136
+        ],
+        [
+          "(anonymous)",
+          114840
+        ],
+        [
+          "H",
+          82056
+        ]
+      ],
+      "round": 0,
+      "variant": "original",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.699999988079071,
+        "p95": 1.199999988079071,
+        "max": 1.600000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.10000002384185791,
+        "p95": 0.20000004768371582,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.099999964237213,
+        "p95": 16.400000035762787,
+        "max": 16.5,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.3999999761581421,
+        "max": 0.3999999761581421,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 17,
+        "p95": 17.899999976158142,
+        "max": 17.899999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 34870.37777777778,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 60424,
+      "cpuProfile": "tmp/plotting/original-fft-deep-zoom.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 11.900000035762787,
+        "p95": 16.799999952316284,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 21.600000023841858,
+        "p95": 23.19999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 3905088
+    },
+    {
+      "allocationHotspots": [
+        [
+          "b",
+          132337708
+        ],
+        [
+          "i",
+          659896
+        ],
+        [
+          "r.extend.r.fn.extend",
+          196932
+        ],
+        [
+          "L",
+          180344
+        ],
+        [
+          "t.color.make",
+          131288
+        ],
+        [
+          "P",
+          131216
+        ],
+        [
+          "t.p2c",
+          114744
+        ],
+        [
+          "a.toString",
+          98384
+        ]
+      ],
+      "round": 0,
+      "variant": "original",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 2,
+        "p95": 2.599999964237213,
+        "max": 4.900000035762787,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 33.30000000000291,
+        "max": 33.5,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17,
+        "p95": 17.69999998807907,
+        "max": 18.5,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 6,
+        "p95": 12.699999988079071,
+        "max": 12.699999988079071,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 747913.8666666667,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 29424,
+      "cpuProfile": "tmp/plotting/original-scope-2.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 8.099999964237213,
+        "p95": 11.699999988079071,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 24.100000023841858,
+        "p95": 26.30000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1076766.3333333333
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          188405604
+        ],
+        [
+          "PlotBasics.decimateToCanva",
+          23037608
+        ],
+        [
+          "t.p2c",
+          20047416
+        ],
+        [
+          "b",
+          16853640
+        ],
+        [
+          "options.yaxis.transform",
+          9458184
+        ],
+        [
+          "PlotBasics.log10T",
+          4950384
+        ],
+        [
+          "N",
+          2346072
+        ],
+        [
+          "V",
+          2327664
+        ]
+      ],
+      "round": 0,
+      "variant": "original",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 3.699999988079071,
+        "p95": 4.5,
+        "max": 7.900000035762787,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.199999988079071,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 12.900000035762787,
+        "p95": 13.199999988079071,
+        "max": 13.299999952316284,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.2999999523162842,
+        "p95": 0.8999999761581421,
+        "max": 0.8999999761581421,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.5,
+        "p95": 20.399999976158142,
+        "max": 20.399999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 1512226.5555555555,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 36896,
+      "cpuProfile": "tmp/plotting/original-pna-log-y.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 7.800000011920929,
+        "p95": 11.399999976158142,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 17,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1913495
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          17146080
+        ],
+        [
+          "plotLine",
+          868776
+        ],
+        [
+          "isPlainObject",
+          558096
+        ],
+        [
+          "processData",
+          545352
+        ],
+        [
+          "r.extend.r.fn.extend",
+          196840
+        ],
+        [
+          "(anonymous)",
+          192732
+        ],
+        [
+          "drawGrid",
+          180384
+        ],
+        [
+          "executeHooks",
+          147648
+        ]
+      ],
+      "round": 0,
+      "variant": "previous",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.300000011920929,
+        "max": 6.600000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.3999999761581421,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.300000011920929,
+        "max": 14.5,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19,
+        "p95": 20.19999998807907,
+        "max": 20.19999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 117955.97777777778,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 139748,
+      "cpuProfile": "tmp/plotting/previous-fft-linear-4.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 8.800000011920929,
+        "p95": 20.30000001192093,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 18.600000023841858,
+        "p95": 30.19999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 950740.3333333334
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          8097680
+        ],
+        [
+          "t.p2c",
+          7950120
+        ],
+        [
+          "extractRange",
+          2362488
+        ],
+        [
+          "plotLine",
+          754032
+        ],
+        [
+          "r.extend.r.fn.extend",
+          590760
+        ],
+        [
+          "options.grid.markings",
+          377784
+        ],
+        [
+          "processData",
+          264616
+        ],
+        [
+          "drawGrid",
+          245912
+        ]
+      ],
+      "round": 0,
+      "variant": "previous",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 4.399999976158142,
+        "max": 6,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.3999999761581421,
+        "max": 0.5,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.5,
+        "max": 14.800000011920929,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 18.900000035762787,
+        "p95": 20.19999998807907,
+        "max": 20.19999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 124435.46666666666,
+      "projectionCacheBytes": 1572912,
+      "retainedHeapDeltaBytes": 43352,
+      "cpuProfile": "tmp/plotting/previous-pna-log-3.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 8.900000035762787,
+        "p95": 17.30000001192093,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.900000035762787,
+        "p95": 25.099999964237213,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 655918.6666666666
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          1835920
+        ],
+        [
+          "r.extend.r.fn.extend",
+          820636
+        ],
+        [
+          "plotLine",
+          721248
+        ],
+        [
+          "processData",
+          496080
+        ],
+        [
+          "drawGrid",
+          196792
+        ],
+        [
+          "drawSeriesLines",
+          98464
+        ],
+        [
+          "push",
+          82128
+        ],
+        [
+          "executeHooks",
+          65624
+        ]
+      ],
+      "round": 0,
+      "variant": "previous",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.3999999761581421,
+        "p95": 0.699999988079071,
+        "max": 1,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.20000004768371582,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.399999976158142,
+        "p95": 16.80000001192093,
+        "max": 16.80000001192093,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.599999964237213,
+        "p95": 17.600000023841858,
+        "max": 17.600000023841858,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 29189.155555555557,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 45108,
+      "cpuProfile": "tmp/plotting/previous-fft-deep-zoom.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 8.399999976158142,
+        "p95": 15.899999976158142,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 17.899999976158142,
+        "p95": 25.599999964237213,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 927657
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          35947720
+        ],
+        [
+          "plotLine",
+          377016
+        ],
+        [
+          "processData",
+          264328
+        ],
+        [
+          "r.extend.r.fn.extend",
+          246148
+        ],
+        [
+          "findNearbyItem",
+          245896
+        ],
+        [
+          "t.color.make",
+          180528
+        ],
+        [
+          "t.p2c",
+          147528
+        ],
+        [
+          "(anonymous)",
+          136840
+        ]
+      ],
+      "round": 0,
+      "variant": "previous",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 2.100000023841858,
+        "p95": 2.800000011920929,
+        "max": 7.300000011920929,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 33.29999999999927,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 0.40000003576278687,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17.099999964237213,
+        "p95": 18.299999952316284,
+        "max": 20.19999998807907,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.30000001192092896,
+        "p95": 2.099999964237213,
+        "max": 2.099999964237213,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 5.800000011920929,
+        "p95": 16.19999998807907,
+        "max": 16.19999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 214641.33333333334,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 47304,
+      "cpuProfile": "tmp/plotting/previous-scope-2.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 7.300000011920929,
+        "p95": 14.800000011920929,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 23.600000023841858,
+        "p95": 29.69999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1118736.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "t.p2c",
+          10769544
+        ],
+        [
+          "processXYData",
+          5999504
+        ],
+        [
+          "PlotBasics.log10T",
+          5229048
+        ],
+        [
+          "options.yaxis.transform",
+          4704504
+        ],
+        [
+          "extractRange",
+          2838048
+        ],
+        [
+          "findNearbyItem",
+          2016216
+        ],
+        [
+          "plotLine",
+          835992
+        ],
+        [
+          "drawGrid",
+          458976
+        ]
+      ],
+      "round": 0,
+      "variant": "previous",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 2.099999964237213,
+        "p95": 2.400000035762787,
+        "max": 4,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.300000011920929,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 14.600000023841858,
+        "p95": 14.800000011920929,
+        "max": 15,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.30000001192092896,
+        "p95": 1,
+        "max": 1,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 18.100000023841858,
+        "p95": 18.5,
+        "max": 18.5,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 198234.8,
+      "projectionCacheBytes": 1048608,
+      "retainedHeapDeltaBytes": 12964,
+      "cpuProfile": "tmp/plotting/previous-pna-log-y.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 6.699999988079071,
+        "p95": 9.600000023841858,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 17.30000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 517624
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          18014840
+        ],
+        [
+          "plotLine",
+          754032
+        ],
+        [
+          "processData",
+          743128
+        ],
+        [
+          "isPlainObject",
+          393888
+        ],
+        [
+          "r.extend.r.fn.extend",
+          262448
+        ],
+        [
+          "drawGrid",
+          245912
+        ],
+        [
+          "findNearbyItem",
+          213144
+        ],
+        [
+          "t.p2c",
+          147528
+        ]
+      ],
+      "round": 0,
+      "variant": "owned",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.5,
+        "max": 6.600000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.9000000357627869,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.199999988079071,
+        "max": 14.300000011920929,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.30000001192092896,
+        "p95": 0.5,
+        "max": 0.5,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.100000023841858,
+        "p95": 22.200000047683716,
+        "max": 22.200000047683716,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 123643.35555555555,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 140992,
+      "cpuProfile": "tmp/plotting/owned-fft-linear-4.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 5.399999976158142,
+        "p95": 13.600000023841858,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.700000047683716,
+        "p95": 24.100000023841858,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 462426.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "t.p2c",
+          8277960
+        ],
+        [
+          "processXYData",
+          7458392
+        ],
+        [
+          "extractRange",
+          2575744
+        ],
+        [
+          "plotLine",
+          1016304
+        ],
+        [
+          "options.grid.markings",
+          590340
+        ],
+        [
+          "findNearbyItem",
+          557352
+        ],
+        [
+          "isPlainObject",
+          492380
+        ],
+        [
+          "processData",
+          446928
+        ]
+      ],
+      "round": 0,
+      "variant": "owned",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 2.899999976158142,
+        "p95": 3.200000047683716,
+        "max": 5.899999976158142,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.5,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.399999976158142,
+        "max": 14.600000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 1.300000011920929,
+        "max": 1.300000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19,
+        "p95": 19.600000023841858,
+        "max": 19.600000023841858,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 130665.33333333333,
+      "projectionCacheBytes": 1572912,
+      "retainedHeapDeltaBytes": 42608,
+      "cpuProfile": "tmp/plotting/owned-pna-log-3.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 6.800000011920929,
+        "p95": 13.699999988079071,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 22.5,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 402046
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          1786760
+        ],
+        [
+          "plotLine",
+          901560
+        ],
+        [
+          "processData",
+          544904
+        ],
+        [
+          "isPlainObject",
+          410352
+        ],
+        [
+          "r.extend.r.fn.extend",
+          196832
+        ],
+        [
+          "PlotBasics.redraw",
+          114840
+        ],
+        [
+          "drawGrid",
+          114816
+        ],
+        [
+          "(anonymous)",
+          98424
+        ]
+      ],
+      "round": 0,
+      "variant": "owned",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.3999999761581421,
+        "p95": 0.699999988079071,
+        "max": 1,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.10000002384185791,
+        "p95": 0.20000004768371582,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.399999976158142,
+        "p95": 16.799999952316284,
+        "max": 17,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.40000003576278687,
+        "max": 0.40000003576278687,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.799999952316284,
+        "p95": 17.30000001192093,
+        "max": 17.30000001192093,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 29977.6,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 51656,
+      "cpuProfile": "tmp/plotting/owned-fft-deep-zoom.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 5.699999988079071,
+        "p95": 11.300000011920929,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.80000001192093,
+        "p95": 24.700000047683716,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 537024
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          37783592
+        ],
+        [
+          "plotLine",
+          557328
+        ],
+        [
+          "findNearbyItem",
+          540984
+        ],
+        [
+          "processData",
+          412424
+        ],
+        [
+          "isPlainObject",
+          180512
+        ],
+        [
+          "t.p2c",
+          180312
+        ],
+        [
+          "(anonymous)",
+          164008
+        ],
+        [
+          "next",
+          120952
+        ]
+      ],
+      "round": 0,
+      "variant": "owned",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 1.899999976158142,
+        "p95": 2.200000047683716,
+        "max": 7.300000011920929,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999709,
+        "p95": 33.30000000000291,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 1.399999976158142,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17.100000023841858,
+        "p95": 17.80000001192093,
+        "max": 20.399999976158142,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 5.5,
+        "p95": 30.80000001192093,
+        "max": 30.80000001192093,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 227097.95555555556,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 18444,
+      "cpuProfile": "tmp/plotting/owned-scope-2.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 4.200000047683716,
+        "p95": 8.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 20.899999976158142,
+        "p95": 22.599999964237213,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 422024.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "t.p2c",
+          9031992
+        ],
+        [
+          "processXYData",
+          5770000
+        ],
+        [
+          "options.yaxis.transform",
+          5311008
+        ],
+        [
+          "PlotBasics.log10T",
+          4917600
+        ],
+        [
+          "extractRange",
+          2460792
+        ],
+        [
+          "findNearbyItem",
+          2376840
+        ],
+        [
+          "plotLine",
+          983520
+        ],
+        [
+          "drawGrid",
+          622952
+        ]
+      ],
+      "round": 0,
+      "variant": "owned",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 2.099999964237213,
+        "p95": 3,
+        "max": 4.200000047683716,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 1,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 14.599999964237213,
+        "p95": 14.899999976158142,
+        "max": 15,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 1.0999999642372131,
+        "max": 1.0999999642372131,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 18.19999998807907,
+        "p95": 20.200000047683716,
+        "max": 20.200000047683716,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 187763.4,
+      "projectionCacheBytes": 1048608,
+      "retainedHeapDeltaBytes": 14648,
+      "cpuProfile": "tmp/plotting/owned-pna-log-y.cpuprofile",
+      "zoomRedrawMS": {
+        "median": 5.5,
+        "p95": 7.899999976158142,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.599999964237213,
+        "p95": 16.700000047683716,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 324827.3333333333
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          16998552
+        ],
+        [
+          "plotLine",
+          917952
+        ],
+        [
+          "processData",
+          511352
+        ],
+        [
+          "isPlainObject",
+          492444
+        ],
+        [
+          "r.extend.r.fn.extend",
+          344448
+        ],
+        [
+          "drawGrid",
+          163920
+        ],
+        [
+          "executeHooks",
+          131224
+        ],
+        [
+          "t.color.make",
+          114928
+        ]
+      ],
+      "round": 1,
+      "variant": "owned",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.400000035762787,
+        "max": 6.400000035762787,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.3999999761581421,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.900000035762787,
+        "p95": 14.399999976158142,
+        "max": 14.900000035762787,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.099999964237213,
+        "p95": 21.400000035762787,
+        "max": 21.400000035762787,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 116698.06666666667,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 140232,
+      "zoomRedrawMS": {
+        "median": 5.300000011920929,
+        "p95": 14.300000011920929,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 24.900000035762787,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 417189.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          8163248
+        ],
+        [
+          "t.p2c",
+          7671456
+        ],
+        [
+          "extractRange",
+          2854568
+        ],
+        [
+          "plotLine",
+          754032
+        ],
+        [
+          "processData",
+          462904
+        ],
+        [
+          "options.grid.markings",
+          442848
+        ],
+        [
+          "isPlainObject",
+          410344
+        ],
+        [
+          "drawGrid",
+          360656
+        ]
+      ],
+      "round": 1,
+      "variant": "owned",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.5,
+        "max": 5.700000047683716,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 0.40000003576278687,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.399999976158142,
+        "max": 14.600000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.7999999523162842,
+        "max": 0.7999999523162842,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.100000023841858,
+        "p95": 19.80000001192093,
+        "max": 19.80000001192093,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 129415.82222222222,
+      "projectionCacheBytes": 1572912,
+      "retainedHeapDeltaBytes": 39464,
+      "zoomRedrawMS": {
+        "median": 6.899999976158142,
+        "p95": 13,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 21.099999964237213,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 414417
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          1573664
+        ],
+        [
+          "isPlainObject",
+          640048
+        ],
+        [
+          "processData",
+          594008
+        ],
+        [
+          "plotLine",
+          491760
+        ],
+        [
+          "r.extend.r.fn.extend",
+          344480
+        ],
+        [
+          "executeHooks",
+          98432
+        ],
+        [
+          "allAxes",
+          82080
+        ],
+        [
+          "next",
+          72552
+        ]
+      ],
+      "round": 1,
+      "variant": "owned",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.3999999761581421,
+        "p95": 0.6000000238418579,
+        "max": 1,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.10000002384185791,
+        "p95": 0.20000004768371582,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.399999976158142,
+        "p95": 16.600000023841858,
+        "max": 16.899999976158142,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.600000023841858,
+        "p95": 17,
+        "max": 17,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 27210.333333333332,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 54220,
+      "zoomRedrawMS": {
+        "median": 5.5,
+        "p95": 11.100000023841858,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 21.69999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 507397
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          36341080
+        ],
+        [
+          "plotLine",
+          1065480
+        ],
+        [
+          "findNearbyItem",
+          377016
+        ],
+        [
+          "processData",
+          330408
+        ],
+        [
+          "isPlainObject",
+          295424
+        ],
+        [
+          "r.extend.r.fn.extend",
+          164024
+        ],
+        [
+          "executeHooks",
+          160808
+        ],
+        [
+          "drawGrid",
+          114768
+        ]
+      ],
+      "round": 1,
+      "variant": "owned",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 1.899999976158142,
+        "p95": 2.600000023841858,
+        "max": 6.899999976158142,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 33.30000000000291,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 0.40000003576278687,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17.399999976158142,
+        "p95": 18.100000023841858,
+        "max": 18.5,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.2999999523162842,
+        "p95": 1.0999999642372131,
+        "max": 1.0999999642372131,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 6.399999976158142,
+        "p95": 14.5,
+        "max": 14.5,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 222315.11111111112,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 29324,
+      "zoomRedrawMS": {
+        "median": 4.199999988079071,
+        "p95": 7.899999976158142,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 21.19999998807907,
+        "p95": 27.30000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 307048
+    },
+    {
+      "allocationHotspots": [
+        [
+          "t.p2c",
+          10048296
+        ],
+        [
+          "processXYData",
+          5540512
+        ],
+        [
+          "PlotBasics.log10T",
+          4901208
+        ],
+        [
+          "options.yaxis.transform",
+          4819248
+        ],
+        [
+          "extractRange",
+          2526504
+        ],
+        [
+          "findNearbyItem",
+          2278488
+        ],
+        [
+          "plotLine",
+          704856
+        ],
+        [
+          "options.grid.markings",
+          524444
+        ]
+      ],
+      "round": 1,
+      "variant": "owned",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 2.099999964237213,
+        "p95": 2.5,
+        "max": 4.100000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.3999999761581421,
+        "max": 1.0999999642372131,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 14.599999964237213,
+        "p95": 15,
+        "max": 15.100000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.2999999523162842,
+        "p95": 1.100000023841858,
+        "max": 1.100000023841858,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 18.30000001192093,
+        "p95": 20.30000001192093,
+        "max": 20.30000001192093,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 189913.35555555555,
+      "projectionCacheBytes": 1048608,
+      "retainedHeapDeltaBytes": 22228,
+      "zoomRedrawMS": {
+        "median": 5.5,
+        "p95": 6.199999988079071,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.600000023841858,
+        "p95": 16.80000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 312174
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          17539488
+        ],
+        [
+          "plotLine",
+          721248
+        ],
+        [
+          "processData",
+          661368
+        ],
+        [
+          "isPlainObject",
+          508844
+        ],
+        [
+          "r.extend.r.fn.extend",
+          262448
+        ],
+        [
+          "findNearbyItem",
+          213120
+        ],
+        [
+          "(anonymous)",
+          147940
+        ],
+        [
+          "executeHooks",
+          131216
+        ]
+      ],
+      "round": 1,
+      "variant": "previous",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.100000023841858,
+        "max": 6.600000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.40000003576278687,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.900000035762787,
+        "p95": 14.399999976158142,
+        "max": 14.5,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 1,
+        "max": 1,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.19999998807907,
+        "p95": 19.5,
+        "max": 19.5,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 117981.11111111111,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 138800,
+      "zoomRedrawMS": {
+        "median": 8.800000011920929,
+        "p95": 19.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 18.600000023841858,
+        "p95": 32.5,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 967108.6666666666
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          8277992
+        ],
+        [
+          "t.p2c",
+          7917336
+        ],
+        [
+          "extractRange",
+          2723480
+        ],
+        [
+          "plotLine",
+          868776
+        ],
+        [
+          "r.extend.r.fn.extend",
+          525132
+        ],
+        [
+          "options.grid.markings",
+          426260
+        ],
+        [
+          "drawGrid",
+          344256
+        ],
+        [
+          "processData",
+          297408
+        ]
+      ],
+      "round": 1,
+      "variant": "previous",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.099999964237213,
+        "max": 6.399999976158142,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.699999988079071,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.399999976158142,
+        "max": 14.5,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.099999964237213,
+        "p95": 19.400000035762787,
+        "max": 19.400000035762787,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 129109.75555555556,
+      "projectionCacheBytes": 1572912,
+      "retainedHeapDeltaBytes": 65556,
+      "zoomRedrawMS": {
+        "median": 9.099999964237213,
+        "p95": 18.19999998807907,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 17,
+        "p95": 26.099999964237213,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 686001
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          1835968
+        ],
+        [
+          "plotLine",
+          819600
+        ],
+        [
+          "processData",
+          677760
+        ],
+        [
+          "r.extend.r.fn.extend",
+          607188
+        ],
+        [
+          "executeHooks",
+          180456
+        ],
+        [
+          "drawGrid",
+          164008
+        ],
+        [
+          "(anonymous)",
+          98416
+        ],
+        [
+          "push",
+          82176
+        ]
+      ],
+      "round": 1,
+      "variant": "previous",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.3999999761581421,
+        "p95": 0.5999999642372131,
+        "max": 1.0999999642372131,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.2999999523162842,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.400000035762787,
+        "p95": 16.700000047683716,
+        "max": 17.100000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.2999999523162842,
+        "max": 0.2999999523162842,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 17.399999976158142,
+        "max": 17.399999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 29387.2,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 70936,
+      "zoomRedrawMS": {
+        "median": 8.5,
+        "p95": 14.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 17.899999976158142,
+        "p95": 24.30000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 888079.6666666666
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          37275456
+        ],
+        [
+          "plotLine",
+          901560
+        ],
+        [
+          "findNearbyItem",
+          426216
+        ],
+        [
+          "drawGrid",
+          327840
+        ],
+        [
+          "r.extend.r.fn.extend",
+          262576
+        ],
+        [
+          "processData",
+          247408
+        ],
+        [
+          "executeHooks",
+          141040
+        ],
+        [
+          "t.p2c",
+          131136
+        ]
+      ],
+      "round": 1,
+      "variant": "previous",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 1.800000011920929,
+        "p95": 2.199999988079071,
+        "max": 7.300000011920929,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 33.29999999999927,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 1.4000000357627869,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17,
+        "p95": 19.19999998807907,
+        "max": 22.30000001192093,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 5.199999988079071,
+        "p95": 31.19999998807907,
+        "max": 31.19999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 227431.22222222222,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 13248,
+      "zoomRedrawMS": {
+        "median": 7.199999988079071,
+        "p95": 13.300000011920929,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 23.299999952316284,
+        "p95": 27.69999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1170410.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "t.p2c",
+          9999120
+        ],
+        [
+          "processXYData",
+          5245456
+        ],
+        [
+          "PlotBasics.log10T",
+          4999560
+        ],
+        [
+          "options.yaxis.transform",
+          4753680
+        ],
+        [
+          "extractRange",
+          2641352
+        ],
+        [
+          "findNearbyItem",
+          2442408
+        ],
+        [
+          "plotLine",
+          754032
+        ],
+        [
+          "drawGrid",
+          557336
+        ]
+      ],
+      "round": 1,
+      "variant": "previous",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 2.099999964237213,
+        "p95": 2.5,
+        "max": 3.900000035762787,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.0999999642372131,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 14.599999964237213,
+        "p95": 14.800000011920929,
+        "max": 15,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 1.100000023841858,
+        "max": 1.100000023841858,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 18.30000001192093,
+        "p95": 18.899999976158142,
+        "max": 18.899999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 188735.04444444444,
+      "projectionCacheBytes": 1048608,
+      "retainedHeapDeltaBytes": 13152,
+      "zoomRedrawMS": {
+        "median": 6.5,
+        "p95": 10,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 17.19999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 467202
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          591159360
+        ],
+        [
+          "b",
+          59652316
+        ],
+        [
+          "PlotBasics.reduceSpectrum",
+          16653972
+        ],
+        [
+          "r.extend.r.fn.extend",
+          935336
+        ],
+        [
+          "f",
+          215488
+        ],
+        [
+          "H",
+          131304
+        ],
+        [
+          "(anonymous)",
+          114760
+        ],
+        [
+          "l",
+          98424
+        ]
+      ],
+      "round": 1,
+      "variant": "original",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 4.299999952316284,
+        "p95": 6.300000011920929,
+        "max": 7.100000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 12.399999976158142,
+        "p95": 12.900000035762787,
+        "max": 13.300000011920929,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.5,
+        "max": 0.5,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 20.600000023841858,
+        "p95": 22.900000035762787,
+        "max": 22.900000035762787,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 3721289.0222222223,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 122112,
+      "zoomRedrawMS": {
+        "median": 12.199999988079071,
+        "p95": 29.399999976158142,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 22,
+        "p95": 41,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 4842068.666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          273714064
+        ],
+        [
+          "PlotBasics.decimateToCanva",
+          35151696
+        ],
+        [
+          "b",
+          26344940
+        ],
+        [
+          "t.p2c",
+          7786200
+        ],
+        [
+          "N",
+          2575608
+        ],
+        [
+          "slice",
+          2487168
+        ],
+        [
+          "r.extend.r.fn.extend",
+          705736
+        ],
+        [
+          "L",
+          508216
+        ]
+      ],
+      "round": 1,
+      "variant": "original",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 5,
+        "p95": 6.100000023841858,
+        "max": 6.900000035762787,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "max": 33.30000000000018,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 11.699999988079071,
+        "p95": 12,
+        "max": 38.69999998807907,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 21.600000023841858,
+        "p95": 22.399999976158142,
+        "max": 22.399999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 1951911.1555555556,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 4144,
+      "zoomRedrawMS": {
+        "median": 10.799999952316284,
+        "p95": 20.599999964237213,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 18.30000001192093,
+        "p95": 28.399999976158142,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 3042628
+    },
+    {
+      "allocationHotspots": [
+        [
+          "b",
+          3304144
+        ],
+        [
+          "r.extend.r.fn.extend",
+          623572
+        ],
+        [
+          "i",
+          590112
+        ],
+        [
+          "slice",
+          184800
+        ],
+        [
+          "f",
+          181976
+        ],
+        [
+          "(anonymous)",
+          81984
+        ],
+        [
+          "L",
+          81960
+        ],
+        [
+          "push",
+          65968
+        ]
+      ],
+      "round": 1,
+      "variant": "original",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.699999988079071,
+        "p95": 0.8999999761581421,
+        "max": 1.0999999642372131,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.10000002384185791,
+        "p95": 0.20000004768371582,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16,
+        "p95": 16.5,
+        "max": 16.899999976158142,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.10000002384185791,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.900000035762787,
+        "p95": 17.19999998807907,
+        "max": 17.19999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 33527.86666666667,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 89048,
+      "zoomRedrawMS": {
+        "median": 12.300000011920929,
+        "p95": 14.399999976158142,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 22,
+        "p95": 24.69999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 3949876
+    },
+    {
+      "allocationHotspots": [
+        [
+          "b",
+          131754224
+        ],
+        [
+          "L",
+          442584
+        ],
+        [
+          "i",
+          344232
+        ],
+        [
+          "r.extend.r.fn.extend",
+          213324
+        ],
+        [
+          "t.color.make",
+          164104
+        ],
+        [
+          "t.p2c",
+          131136
+        ],
+        [
+          "a.normalize",
+          82056
+        ],
+        [
+          "P",
+          65648
+        ]
+      ],
+      "round": 1,
+      "variant": "original",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 2,
+        "p95": 2.699999988079071,
+        "max": 4.700000047683716,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 33.29999999999927,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.3999999761581421,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17,
+        "p95": 18.30000001192093,
+        "max": 18.799999952316284,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 6,
+        "p95": 26.400000035762787,
+        "max": 26.400000035762787,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 743389.2,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 16,
+      "zoomRedrawMS": {
+        "median": 8.100000023841858,
+        "p95": 12.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 24.599999964237213,
+        "p95": 27.099999964237213,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1067592.3333333333
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          186012752
+        ],
+        [
+          "PlotBasics.decimateToCanva",
+          23001640
+        ],
+        [
+          "t.p2c",
+          19162248
+        ],
+        [
+          "b",
+          17407764
+        ],
+        [
+          "options.yaxis.transform",
+          9867984
+        ],
+        [
+          "PlotBasics.log10T",
+          5409360
+        ],
+        [
+          "N",
+          2657704
+        ],
+        [
+          "V",
+          1950648
+        ]
+      ],
+      "round": 1,
+      "variant": "original",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 3.700000047683716,
+        "p95": 4.600000023841858,
+        "max": 7.5,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999709,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.100000023841858,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 12.899999976158142,
+        "p95": 13.199999988079071,
+        "max": 13.400000035762787,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.30000001192092896,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.69999998807907,
+        "p95": 36.5,
+        "max": 36.5,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 1501448.2444444445,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 33216,
+      "zoomRedrawMS": {
+        "median": 8,
+        "p95": 9.600000023841858,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 16.899999976158142,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1965046.3333333333
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          588679680
+        ],
+        [
+          "b",
+          58466064
+        ],
+        [
+          "PlotBasics.reduceSpectrum",
+          17586952
+        ],
+        [
+          "r.extend.r.fn.extend",
+          836880
+        ],
+        [
+          "f",
+          181832
+        ],
+        [
+          "(anonymous)",
+          147560
+        ],
+        [
+          "L",
+          147528
+        ],
+        [
+          "isPlainObject",
+          114904
+        ]
+      ],
+      "round": 2,
+      "variant": "original",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 4.299999952316284,
+        "p95": 6.300000011920929,
+        "max": 8.900000035762787,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.40000003576278687,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 12.399999976158142,
+        "p95": 12.900000035762787,
+        "max": 13.5,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.5,
+        "max": 0.5,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 20.30000001192093,
+        "p95": 24.299999952316284,
+        "max": 24.299999952316284,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 3705823.311111111,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 122040,
+      "zoomRedrawMS": {
+        "median": 11.800000011920929,
+        "p95": 27,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 21.69999998807907,
+        "p95": 37.5,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 4561805.333333333
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          272481832
+        ],
+        [
+          "PlotBasics.decimateToCanva",
+          35194304
+        ],
+        [
+          "b",
+          27316720
+        ],
+        [
+          "t.p2c",
+          7605888
+        ],
+        [
+          "N",
+          2756272
+        ],
+        [
+          "slice",
+          2304288
+        ],
+        [
+          "options.grid.markings",
+          426300
+        ],
+        [
+          "r.extend.r.fn.extend",
+          361048
+        ]
+      ],
+      "round": 2,
+      "variant": "original",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 5,
+        "p95": 6,
+        "max": 6.599999964237213,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "max": 33.30000000000018,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 11.699999988079071,
+        "p95": 12,
+        "max": 39.69999998807907,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 21.200000047683716,
+        "p95": 22.69999998807907,
+        "max": 22.69999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 1945770.5777777778,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 4312,
+      "zoomRedrawMS": {
+        "median": 10.699999988079071,
+        "p95": 22.200000047683716,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 18.19999998807907,
+        "p95": 29.900000035762787,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 3012208
+    },
+    {
+      "allocationHotspots": [
+        [
+          "b",
+          3319336
+        ],
+        [
+          "i",
+          868776
+        ],
+        [
+          "r.extend.r.fn.extend",
+          590824
+        ],
+        [
+          "slice",
+          385600
+        ],
+        [
+          "P",
+          213256
+        ],
+        [
+          "f",
+          165080
+        ],
+        [
+          "L",
+          131184
+        ],
+        [
+          "push",
+          65664
+        ]
+      ],
+      "round": 2,
+      "variant": "original",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.699999988079071,
+        "p95": 0.8999999761581421,
+        "max": 1.100000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.10000002384185791,
+        "p95": 0.20000004768371582,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.099999964237213,
+        "p95": 16.599999964237213,
+        "max": 16.69999998807907,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.900000035762787,
+        "p95": 17.5,
+        "max": 17.5,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 34896.48888888889,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 57524,
+      "zoomRedrawMS": {
+        "median": 11.300000011920929,
+        "p95": 12.800000011920929,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 21,
+        "p95": 22.200000047683716,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 3801596.6666666665
+    },
+    {
+      "allocationHotspots": [
+        [
+          "b",
+          133261000
+        ],
+        [
+          "i",
+          737640
+        ],
+        [
+          "r.extend.r.fn.extend",
+          361028
+        ],
+        [
+          "t.color.make",
+          164104
+        ],
+        [
+          "t.p2c",
+          147528
+        ],
+        [
+          "L",
+          131136
+        ],
+        [
+          "a.toString",
+          114752
+        ],
+        [
+          "exec",
+          82120
+        ]
+      ],
+      "round": 2,
+      "variant": "original",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 2,
+        "p95": 2.5,
+        "max": 4.699999988079071,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 33.30000000000109,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17,
+        "p95": 17.80000001192093,
+        "max": 18.399999976158142,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 6.299999952316284,
+        "p95": 25.599999964237213,
+        "max": 25.599999964237213,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 754517.2222222222,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 31668,
+      "zoomRedrawMS": {
+        "median": 8,
+        "p95": 11.600000023841858,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 24.399999976158142,
+        "p95": 26.19999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1026045
+    },
+    {
+      "allocationHotspots": [
+        [
+          "PlotBasics.drawBatchedLines",
+          188080796
+        ],
+        [
+          "PlotBasics.decimateToCanva",
+          22462560
+        ],
+        [
+          "t.p2c",
+          19473696
+        ],
+        [
+          "b",
+          17825668
+        ],
+        [
+          "options.yaxis.transform",
+          9654888
+        ],
+        [
+          "PlotBasics.log10T",
+          5114304
+        ],
+        [
+          "N",
+          2739744
+        ],
+        [
+          "V",
+          2016216
+        ]
+      ],
+      "round": 2,
+      "variant": "original",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 3.600000023841858,
+        "p95": 4.699999988079071,
+        "max": 7.700000047683716,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999709,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.199999988079071,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13,
+        "p95": 13.300000011920929,
+        "max": 13.399999976158142,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.2999999523162842,
+        "p95": 0.8999999761581421,
+        "max": 0.8999999761581421,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.80000001192093,
+        "p95": 20.399999976158142,
+        "max": 20.399999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 1509391.5555555555,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 45280,
+      "zoomRedrawMS": {
+        "median": 7.900000035762787,
+        "p95": 9.299999952316284,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.600000023841858,
+        "p95": 16.80000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1918768.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          18113208
+        ],
+        [
+          "plotLine",
+          999912
+        ],
+        [
+          "isPlainObject",
+          705736
+        ],
+        [
+          "processData",
+          545592
+        ],
+        [
+          "r.extend.r.fn.extend",
+          344456
+        ],
+        [
+          "executeHooks",
+          180440
+        ],
+        [
+          "findNearbyItem",
+          147600
+        ],
+        [
+          "draw",
+          114768
+        ]
+      ],
+      "round": 2,
+      "variant": "previous",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.100000023841858,
+        "max": 6.600000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.40000003576278687,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.399999976158142,
+        "max": 14.399999976158142,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.8999999761581421,
+        "max": 0.8999999761581421,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.19999998807907,
+        "p95": 19.700000047683716,
+        "max": 19.700000047683716,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 124208.64444444445,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 139652,
+      "zoomRedrawMS": {
+        "median": 8.199999988079071,
+        "p95": 19.100000023841858,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 17.69999998807907,
+        "p95": 29.399999976158142,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 900706.6666666666
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          8130448
+        ],
+        [
+          "t.p2c",
+          7687848
+        ],
+        [
+          "extractRange",
+          2674080
+        ],
+        [
+          "plotLine",
+          704856
+        ],
+        [
+          "r.extend.r.fn.extend",
+          639932
+        ],
+        [
+          "options.grid.markings",
+          524456
+        ],
+        [
+          "processData",
+          480144
+        ],
+        [
+          "drawGrid",
+          344264
+        ]
+      ],
+      "round": 2,
+      "variant": "previous",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 2.799999952316284,
+        "p95": 3.100000023841858,
+        "max": 5.699999988079071,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.100000023841858,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.900000035762787,
+        "p95": 14.399999976158142,
+        "max": 14.599999964237213,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.5,
+        "max": 0.5,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.100000023841858,
+        "p95": 20.400000035762787,
+        "max": 20.400000035762787,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 128473.91111111111,
+      "projectionCacheBytes": 1572912,
+      "retainedHeapDeltaBytes": 65892,
+      "zoomRedrawMS": {
+        "median": 8.800000011920929,
+        "p95": 17.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.80000001192093,
+        "p95": 25.30000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 679759.3333333334
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          1786808
+        ],
+        [
+          "r.extend.r.fn.extend",
+          869908
+        ],
+        [
+          "processData",
+          709808
+        ],
+        [
+          "plotLine",
+          655680
+        ],
+        [
+          "drawGrid",
+          163952
+        ],
+        [
+          "draw",
+          81984
+        ],
+        [
+          "executeHooks",
+          65600
+        ],
+        [
+          "(anonymous)",
+          65592
+        ]
+      ],
+      "round": 2,
+      "variant": "previous",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.3999999761581421,
+        "p95": 0.699999988079071,
+        "max": 0.9000000357627869,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.10000002384185791,
+        "p95": 0.30000001192092896,
+        "max": 0.3999999761581421,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.399999976158142,
+        "p95": 16.80000001192093,
+        "max": 16.900000035762787,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.5,
+        "p95": 16.899999976158142,
+        "max": 16.899999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 29186.51111111111,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 70924,
+      "zoomRedrawMS": {
+        "median": 8.199999988079071,
+        "p95": 15,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 17.899999976158142,
+        "p95": 24.80000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 873723.3333333334
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          35832960
+        ],
+        [
+          "plotLine",
+          508152
+        ],
+        [
+          "processData",
+          429480
+        ],
+        [
+          "findNearbyItem",
+          344256
+        ],
+        [
+          "r.extend.r.fn.extend",
+          311872
+        ],
+        [
+          "drawGrid",
+          245880
+        ],
+        [
+          "t.p2c",
+          213096
+        ],
+        [
+          "t.color.make",
+          98480
+        ]
+      ],
+      "round": 2,
+      "variant": "previous",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 1.800000011920929,
+        "p95": 2.299999952316284,
+        "max": 7,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 33.399999999999636,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.399999976158142,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 17,
+        "p95": 17.69999998807907,
+        "max": 20.100000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 5.100000023841858,
+        "p95": 29.5,
+        "max": 29.5,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 216231.4,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 13172,
+      "zoomRedrawMS": {
+        "median": 7.600000023841858,
+        "p95": 13.300000011920929,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 23.69999998807907,
+        "p95": 27.80000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 1128720
+    },
+    {
+      "allocationHotspots": [
+        [
+          "t.p2c",
+          10015512
+        ],
+        [
+          "processXYData",
+          5770016
+        ],
+        [
+          "options.yaxis.transform",
+          4950384
+        ],
+        [
+          "PlotBasics.log10T",
+          4786464
+        ],
+        [
+          "extractRange",
+          2477208
+        ],
+        [
+          "findNearbyItem",
+          2180136
+        ],
+        [
+          "plotLine",
+          885168
+        ],
+        [
+          "options.grid.markings",
+          491812
+        ]
+      ],
+      "round": 2,
+      "variant": "previous",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 2,
+        "p95": 2.399999976158142,
+        "max": 3.800000011920929,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000291,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 14.600000023841858,
+        "p95": 14.800000011920929,
+        "max": 15.100000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.2999999523162842,
+        "p95": 1.199999988079071,
+        "max": 1.199999988079071,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 18.100000023841858,
+        "p95": 18.69999998807907,
+        "max": 18.69999998807907,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 189573.44444444444,
+      "projectionCacheBytes": 1048608,
+      "retainedHeapDeltaBytes": 13096,
+      "zoomRedrawMS": {
+        "median": 6.600000023841858,
+        "p95": 9.699999988079071,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 16.80000001192093,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 506922.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          16424816
+        ],
+        [
+          "plotLine",
+          786816
+        ],
+        [
+          "isPlainObject",
+          656496
+        ],
+        [
+          "processData",
+          612088
+        ],
+        [
+          "r.extend.r.fn.extend",
+          311680
+        ],
+        [
+          "drawGrid",
+          163944
+        ],
+        [
+          "findNearbyItem",
+          147536
+        ],
+        [
+          "(anonymous)",
+          140232
+        ]
+      ],
+      "round": 2,
+      "variant": "owned",
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3,
+        "max": 6.600000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.3999999761581421,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.900000035762787,
+        "p95": 14.400000035762787,
+        "max": 14.600000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.19999998807907,
+        "p95": 19.399999976158142,
+        "max": 19.399999976158142,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 112752.17777777778,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 139796,
+      "zoomRedrawMS": {
+        "median": 5.399999976158142,
+        "p95": 13.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 23.900000035762787,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 420202.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          8261632
+        ],
+        [
+          "t.p2c",
+          7425576
+        ],
+        [
+          "extractRange",
+          2887272
+        ],
+        [
+          "plotLine",
+          852384
+        ],
+        [
+          "options.grid.markings",
+          492060
+        ],
+        [
+          "findNearbyItem",
+          491760
+        ],
+        [
+          "drawGrid",
+          426272
+        ],
+        [
+          "processData",
+          364208
+        ]
+      ],
+      "round": 2,
+      "variant": "owned",
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "median": 2.800000011920929,
+        "p95": 3.199999988079071,
+        "max": 5.699999988079071,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "max": 16.800000000000182,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.2999999523162842,
+        "p95": 0.30000001192092896,
+        "max": 0.699999988079071,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 13.899999976158142,
+        "p95": 14.400000035762787,
+        "max": 14.699999988079071,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 19.19999998807907,
+        "p95": 20.30000001192093,
+        "max": 20.30000001192093,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 129210.86666666667,
+      "projectionCacheBytes": 1572912,
+      "retainedHeapDeltaBytes": 71632,
+      "zoomRedrawMS": {
+        "median": 6.600000023841858,
+        "p95": 13.300000011920929,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 21.399999976158142,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 368650
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          1491752
+        ],
+        [
+          "isPlainObject",
+          640144
+        ],
+        [
+          "processData",
+          628568
+        ],
+        [
+          "plotLine",
+          573720
+        ],
+        [
+          "r.extend.r.fn.extend",
+          328072
+        ],
+        [
+          "executeHooks",
+          131224
+        ],
+        [
+          "push",
+          98728
+        ],
+        [
+          "drawOverlay",
+          94824
+        ]
+      ],
+      "round": 2,
+      "variant": "owned",
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "median": 0.40000003576278687,
+        "p95": 0.699999988079071,
+        "max": 1,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 0.30000001192092896,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.399999976158142,
+        "p95": 16.700000047683716,
+        "max": 17.30000001192093,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.3999999761581421,
+        "max": 0.3999999761581421,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 16.5,
+        "p95": 17.200000047683716,
+        "max": 17.200000047683716,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 28623.68888888889,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 54000,
+      "zoomRedrawMS": {
+        "median": 5.399999976158142,
+        "p95": 16.5,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 26.19999998807907,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 487694.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "processXYData",
+          35947672
+        ],
+        [
+          "plotLine",
+          803208
+        ],
+        [
+          "processData",
+          362920
+        ],
+        [
+          "isPlainObject",
+          229804
+        ],
+        [
+          "findNearbyItem",
+          229504
+        ],
+        [
+          "t.color.make",
+          147744
+        ],
+        [
+          "t.p2c",
+          131136
+        ],
+        [
+          "r.extend.r.fn.extend",
+          114872
+        ]
+      ],
+      "round": 2,
+      "variant": "owned",
+      "scenario": "scope-2",
+      "redrawMS": {
+        "median": 1.800000011920929,
+        "p95": 2.300000011920929,
+        "max": 7,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 33.30000000000109,
+        "max": 33.400000000001455,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.3999999761581421,
+        "max": 0.3999999761581421,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 16.900000035762787,
+        "p95": 17.899999976158142,
+        "max": 18.099999964237213,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.2999999523162842,
+        "p95": 1.2000000476837158,
+        "max": 1.2000000476837158,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 6,
+        "p95": 16.30000001192093,
+        "max": 16.30000001192093,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 216091.4,
+      "projectionCacheBytes": 0,
+      "retainedHeapDeltaBytes": 30456,
+      "zoomRedrawMS": {
+        "median": 4.100000023841858,
+        "p95": 7.100000023841858,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 20.80000001192093,
+        "p95": 22,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 324048.6666666667
+    },
+    {
+      "allocationHotspots": [
+        [
+          "t.p2c",
+          9720456
+        ],
+        [
+          "processXYData",
+          5901152
+        ],
+        [
+          "PlotBasics.log10T",
+          5360184
+        ],
+        [
+          "options.yaxis.transform",
+          4655328
+        ],
+        [
+          "extractRange",
+          2657792
+        ],
+        [
+          "findNearbyItem",
+          1868688
+        ],
+        [
+          "plotLine",
+          901560
+        ],
+        [
+          "options.grid.markings",
+          492212
+        ]
+      ],
+      "round": 2,
+      "variant": "owned",
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "median": 2.100000023841858,
+        "p95": 2.599999964237213,
+        "max": 3.899999976158142,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.700000000000728,
+        "p95": 16.799999999999272,
+        "max": 16.799999999999272,
+        "samples": 179
+      },
+      "hoverHandlerMS": {
+        "median": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "max": 1.199999988079071,
+        "samples": 45
+      },
+      "inputToRAFMS": {
+        "median": 14.600000023841858,
+        "p95": 14.899999976158142,
+        "max": 15.100000023841858,
+        "samples": 45
+      },
+      "trustedHoverHandlerMS": {
+        "median": 0.20000004768371582,
+        "p95": 0.800000011920929,
+        "max": 0.800000011920929,
+        "samples": 20
+      },
+      "trustedInputToRAFMS": {
+        "median": 18.30000001192093,
+        "p95": 19.400000035762787,
+        "max": 19.400000035762787,
+        "samples": 20
+      },
+      "sampledAllocatedBytesPerFrame": 190093.73333333334,
+      "projectionCacheBytes": 1048608,
+      "retainedHeapDeltaBytes": 22092,
+      "zoomRedrawMS": {
+        "median": 5.300000011920929,
+        "p95": 6,
+        "samples": 12
+      },
+      "zoomToRAFMS": {
+        "median": 16.69999998807907,
+        "p95": 16.700000047683716,
+        "samples": 12
+      },
+      "zoomSampledAllocatedBytesPerOperation": 279581.6666666667
+    }
+  ],
+  "sourceSHA256": {
+    "web/plot-basics/plot-basics.ts": "66f8ad73e659ab0b4524abe6c10a4ee08c02b2d4cb04abce472ec7dd01c7d7b3",
+    "web/plotting/benchmark/workload.js": "2f051b8c246142f7a11bfd0d3dcaa97c67aeb549dfa78171b7557e813a240265",
+    "web/plotting/src/jquery.colorhelpers.js": "09da5c94edc26c5d097343447ec56bb31f618d9d476a7652022f1b0a22643de8",
+    "web/plotting/src/jquery.flot.axislabels.js": "002fd1985afe180e48a8551e18d2689826be3dda3009a1ce1cf006706a9726f6",
+    "web/plotting/src/jquery.flot.canvas.js": "9931d4a47df2181e243900b9d4956e97faf8c954f7dfbea3ffdc580e5898b0a1",
+    "web/plotting/src/jquery.flot.js": "801fdfa7d15b7c0e2a467cec6475f98c23a121c605b6c3129fb6be75b06d8b9f",
+    "web/plotting/src/jquery.flot.resize.js": "8aa93543f14b3c327178134ecea4c358fa0ccd6bc6f008392ac8ccbf56a651ad",
+    "web/plotting/src/jquery.flot.selection.js": "34f312f671137e3e328f8404148e049078ae6feae4dca1ae47dcb23eb64eb1e8",
+    "web/plotting/src/jquery.flot.time.js": "a582c832adc7138a6b05aaf61f16ebac274701f1be4afea77e739a1c34b9c41a"
+  },
+  "comparisonSnapshot": {
+    "created": "2026-10-08T07:14:41.640Z",
+    "sha256": {
+      "jquery.flot.js": "084e8790757a2f5b8349c6ef1c3000288933dcf1e76463db3ad40f3f0e417b51",
+      "jquery.flot.resize.js": "9cc2778b4c6379691c110f2e94e81bb2b3f36bf6e170816364743d699451d95f",
+      "jquery.flot.selection.js": "73956c5e1413c4f1ba697aaad33b539646ab16d6581fb64b64f89f6b45f9171d",
+      "jquery.flot.time.js": "cc3e54c567464f94303203a77aacc3c5bc1db7d5484d99e89450b6b0965d24f3",
+      "jquery.flot.axislabels.js": "4dcef7a048dd3203031c82677c888f12611bc741ef3a170b20097f8302372f0e",
+      "jquery.flot.canvas.js": "9b5c1a907a71ba720433eff902ac9db789e3f21600018f89b64d0d8181f90604",
+      "plot-basics.ts": "4143fab2136987d53fb88602abd707ed9290ff07afcccb748e968b1c62247fa6"
+    }
+  },
+  "hostLoadNote": "Shared host load was around 3 during this run. No concurrent plotting task builds/tests ran during timing. Three rounds alternate original/previous/owned order; use comparisons within this run.",
+  "typescript": "5.9.3"
+}

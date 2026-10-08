@@ -1,18 +1,6 @@
 // Plot widget
 // (c) Koheron
 
-interface PlotColumnCache {
-    x: Float64Array;
-    columns: Float64Array;
-    first?: number;
-    last?: number;
-    from?: number;
-    to?: number;
-    width?: number;
-    logarithmic?: boolean;
-    clamped?: boolean;
-}
-
 class PlotBasics {
 
     private plotTitleSpan: HTMLSpanElement;
@@ -28,10 +16,8 @@ class PlotBasics {
     private batchedLines = false;
     private drawnWidth: number;
     private drawnHeight: number;
-    private drawnPixelRatio: number;
 
     private reset_range: boolean;
-    private rebuildPlot = true;
     private options: jquery.flot.plotOptions;
     private plot: jquery.flot.plot;
     private seriesOne: jquery.flot.dataSeries[];
@@ -92,15 +78,13 @@ class PlotBasics {
 
     setPlot(x_min: number, x_max: number, y_min: number, y_max: number) {
         this.reset_range = false;
-        this.rebuildPlot = true;
 
         this.options = {
             canvas: true,
             series: {
                 shadowSize: 0, // Drawing is faster without shadows
                 lines: { show: true, lineWidth: 2, fill: false },
-                points: { show: false },
-                reuseDatapoints: true
+                points: { show: false }
             },
             yaxis: {
                 min: y_min,
@@ -208,7 +192,6 @@ class PlotBasics {
 
     setLogX(adaptiveTicks = false) {
         this.log_x = true;
-        this.rebuildPlot = true;
 
         this.options.xaxis.transform = PlotBasics.log10T;
         this.options.xaxis.inverseTransform = PlotBasics.pow10;
@@ -297,14 +280,12 @@ class PlotBasics {
 
     setLogY() {
         this.log_y = true;
-        this.rebuildPlot = true;
         this.range_y = <jquery.flot.range>{};
         this.reset_range = true;
     }
     
     setLinY() {
         this.log_y = false;
-        this.rebuildPlot = true;
         this.range_y = <jquery.flot.range>{};
         this.reset_range = true;
     }
@@ -316,8 +297,7 @@ class PlotBasics {
     needsRedraw(): boolean {
         if (this.batchedLines && this.plot) {
             const width = this.plot_placeholder.width(), height = this.plot_placeholder.height();
-            if (width > 0 && height > 0 && (width !== this.drawnWidth || height !== this.drawnHeight ||
-                (this.drawnPixelRatio !== undefined && this.drawnPixelRatio !== (window.devicePixelRatio || 1)))) {
+            if (width > 0 && height > 0 && (width !== this.drawnWidth || height !== this.drawnHeight)) {
                 this.reset_range = true;
             }
         }
@@ -329,10 +309,93 @@ class PlotBasics {
     // the same line and joins without tessellating the entire noise trace.
     enableBatchedLines(): void {
         this.batchedLines = true;
-        this.rebuildPlot = true;
-        // The owned Flot renderer batches its normalized datapoints directly.
-        // No hook mutates line widths or draws a duplicate copy of each trace.
-        this.options.series.lines.batchSize = 32;
+        const widths = new Map<any, number>();
+        const restoreLines = () => {
+            widths.forEach((width, series) => { series.lines.lineWidth = width; });
+            widths.clear();
+        };
+        this.options.hooks = <jquery.flot.hooks>{
+            processOptions: [], processRawData: [], processDatapoints: [], processOffset: [],
+            drawBackground: [restoreLines], bindEvents: [], drawOverlay: [], shutdown: [restoreLines],
+            drawSeries: [(plot, context, series) => {
+                if (!series.lines.show || series.lines.fill || series.lines.steps || series.shadowSize > 0 ||
+                    !(series.lines.lineWidth > 0) || series.data.length < 256) { return; }
+                PlotBasics.drawBatchedLines(context, series, plot.getPlotOffset(), plot.width(), plot.height());
+                widths.set(series, series.lines.lineWidth);
+                // Flot still owns the series, axes, legend and hit testing.
+                // Suppress only its duplicate stroke during this draw call.
+                series.lines.lineWidth = 0;
+            }],
+            draw: [restoreLines]
+        };
+    }
+
+    private static drawBatchedLines(context: CanvasRenderingContext2D, series: any,
+        offset: {left: number; top: number}, width: number, height: number): void {
+        context.save();
+        context.translate(offset.left, offset.top);
+        context.beginPath(); context.rect(0, 0, width, height); context.clip();
+        context.strokeStyle = series.color;
+        context.lineWidth = series.lines.lineWidth;
+        context.lineJoin = 'round';
+        let previous: number[], endpoint: number[], lastSegment: number[];
+        let segments = 0;
+        const flush = () => {
+            if (segments) { context.stroke(); }
+            context.beginPath(); segments = 0;
+        };
+        context.beginPath();
+        for (const point of series.data) {
+            const x = point[0], y = point[1];
+            if (x == null || y == null || !Number.isFinite(x) || !Number.isFinite(y)) {
+                flush(); previous = endpoint = lastSegment = undefined; continue;
+            }
+            if (previous) {
+                const line = PlotBasics.clipLine(previous, point, series.xaxis, series.yaxis);
+                if (line) {
+                    const pixel = [series.xaxis.p2c(line[0]), series.yaxis.p2c(line[1]),
+                        series.xaxis.p2c(line[2]), series.yaxis.p2c(line[3])];
+                    if (pixel.every(Number.isFinite)) {
+                        if (segments >= 32) {
+                            flush();
+                            // Repeat the last segment so its join survives the
+                            // batch boundary. Opt-in trace colors are opaque.
+                            context.moveTo(lastSegment[0], lastSegment[1]);
+                            context.lineTo(lastSegment[2], lastSegment[3]); segments = 1;
+                        }
+                        if (!endpoint || endpoint[0] !== pixel[0] || endpoint[1] !== pixel[1]) {
+                            context.moveTo(pixel[0], pixel[1]);
+                        }
+                        context.lineTo(pixel[2], pixel[3]); segments++;
+                        endpoint = [pixel[2], pixel[3]]; lastSegment = pixel;
+                    }
+                }
+            }
+            previous = point;
+        }
+        flush();
+        context.restore();
+    }
+
+    // Clip in data coordinates before applying a logarithmic transform, as
+    // Flot does. Extreme Y zooms never send enormous coordinates to canvas.
+    private static clipLine(from: number[], to: number[], xaxis: any, yaxis: any): number[] {
+        const line = [from[0], from[1], to[0], to[1]];
+        for (const [index, axis] of [[1, yaxis], [0, xaxis]] as [number, any][]) {
+            for (const [bound, lower] of [[axis.min, true], [axis.max, false]] as [number, boolean][]) {
+                const outside = (value: number) => lower ? value < bound : value > bound;
+                const first = outside(line[index]), last = outside(line[index + 2]);
+                if (first && last) { return; }
+                if (first !== last) {
+                    const t = (bound - line[index]) / (line[index + 2] - line[index]);
+                    const other = 1 - index;
+                    const intersection = line[other] + t * (line[other + 2] - line[other]);
+                    const end = first ? 0 : 2;
+                    line[index + end] = bound; line[other + end] = intersection;
+                }
+            }
+        }
+        return line;
     }
 
     disableDecimation() {
@@ -346,37 +409,23 @@ class PlotBasics {
 
     // Keep both extrema per screen column, in frequency order. Retain NaN gaps
     // and the boundary neighbours so zooming does not invent connecting lines.
-    static reduceSpectrum(data: number[][], from: number, to: number, width: number, logarithmic = false, out: number[][] = [], cache?: PlotColumnCache): number[][] {
+    static reduceSpectrum(data: number[][], from: number, to: number, width: number, logarithmic = false): number[][] {
         if (!data.length || !(to > from)) { return data; }
         width = Math.max(1, Math.floor(width));
-        // Frequency grids are sorted. Find boundary neighbours without scanning
-        // the off-screen bins on every deep-zoom redraw.
-        let lo = 0, hi = data.length;
-        while (lo < hi) {
-            const mid = (lo + hi) >>> 1;
-            if (data[mid][0] < from) lo = mid + 1; else hi = mid;
-        }
-        const first = Math.max(0, Math.min(lo, data.length - 1) - 1);
-        lo = first; hi = data.length;
-        while (lo < hi) {
-            const mid = (lo + hi) >>> 1;
-            if (data[mid][0] <= to) lo = mid + 1; else hi = mid;
-        }
-        const last = Math.min(data.length - 1, Math.max(first + 1, lo));
+        let first = 0, last = data.length - 1;
+        while (first < last && data[first][0] < from) { first++; }
+        first = Math.max(0, first - 1);
+        while (last > first && data[last][0] > to) { last--; }
+        last = Math.min(data.length - 1, last + 1);
         if (last - first + 1 <= 2 * width) {
-            if (first === 0 && last === data.length - 1) return data;
-            let count = 0;
-            for (let i = first; i <= last; i++) out[count++] = data[i];
-            out.length = count;
-            return out;
+            return first === 0 && last === data.length - 1 ? data : data.slice(first, last + 1);
         }
         const transform = logarithmic ? Math.log10 : (value: number) => value;
         const lower = transform(from), span = transform(to) - lower;
-        const reuse = PlotBasics.prepareColumnCache(cache, first, last, from, to, width, logarithmic, false);
-        let count = 0;
+        const out: number[][] = [];
         let column = -Infinity, min = -1, max = -1, previous = -1;
         const push = (index: number) => {
-            if (index >= 0 && index !== previous) { out[count++] = data[index]; previous = index; }
+            if (index >= 0 && index !== previous) { out.push(data[index]); previous = index; }
         };
         const flush = () => {
             if (min <= max) { push(min); push(max); }
@@ -385,13 +434,7 @@ class PlotBasics {
         };
         push(first);
         for (let i = first; i <= last; i++) {
-            const x = data[i][0], slot = i - first;
-            let nextColumn: number;
-            if (cache && reuse && cache.x[slot] === x) nextColumn = cache.columns[slot];
-            else {
-                nextColumn = Math.floor((transform(x) - lower) * width / span);
-                if (cache) { cache.x[slot] = x; cache.columns[slot] = nextColumn; }
-            }
+            const nextColumn = Math.floor((transform(data[i][0]) - lower) * width / span);
             if (nextColumn !== column || !Number.isFinite(data[i][1])) {
                 flush(); column = nextColumn;
             }
@@ -400,7 +443,6 @@ class PlotBasics {
             if (max < 0 || data[i][1] > data[max][1]) { max = i; }
         }
         flush(); push(last);
-        out.length = count;
         return out;
     }
 
@@ -424,40 +466,6 @@ class PlotBasics {
     }
 
     private _decimated: number[][] = [];
-    private _reducedSeries: number[][][] = [];
-    private _columnCaches: PlotColumnCache[] = [];
-
-    private columnCache(index: number): PlotColumnCache {
-        if (!this._columnCaches) this._columnCaches = [];
-        return this._columnCaches[index] || (this._columnCaches[index] = {
-            x: new Float64Array(0), columns: new Float64Array(0)
-        });
-    }
-
-    private static prepareColumnCache(cache: PlotColumnCache, first: number, last: number,
-        from: number, to: number, width: number, logarithmic: boolean, clamped: boolean): boolean {
-        if (!cache) return false;
-        const reuse = cache.first === first && cache.last === last && cache.from === from &&
-            cache.to === to && cache.width === width && cache.logarithmic === logarithmic && cache.clamped === clamped;
-        const length = Math.max(0, last - first + 1);
-        if (length > cache.x.length) {
-            // Bound storage to the visible grid's high-water size per active
-            // trace. Doubling avoids repeated allocations while resizing.
-            const capacity = Math.max(length, cache.x.length * 2);
-            cache.x = new Float64Array(capacity);
-            cache.columns = new Float64Array(capacity);
-        }
-        cache.first = first; cache.last = last; cache.from = from; cache.to = to;
-        cache.width = width; cache.logarithmic = logarithmic; cache.clamped = clamped;
-        return reuse;
-    }
-
-    private reductionBuffer(index: number): number[][] {
-        // Each trace owns its output; a later reduction cannot overwrite an
-        // earlier trace. Only row references are retained, never source copies.
-        if (!this._reducedSeries) this._reducedSeries = [];
-        return this._reducedSeries[index] || (this._reducedSeries[index] = []);
-    }
 
     // binary searches on already-sorted data by x
     private bsLeft(data: number[][], x: number) {
@@ -487,16 +495,17 @@ class PlotBasics {
     }
 
     // Decimate visible slice by canvas columns (log-x aware)
-    private decimateToCanva(plot_data: number[][], xMin: number, xMax: number, out: number[][] = this._decimated,
-        cache?: PlotColumnCache, width?: number): number[][] {
-        let count = 0;
+    private decimateToCanva(plot_data: number[][], xMin: number, xMax: number): number[][] {
+        const out = this._decimated; out.length = 0;
 
         if (!plot_data.length || !(xMax > xMin)) {
-            out.length = 0;
             return out;
         }
 
-        const innerW = width === undefined ? this.reductionWidth() : width;
+        const ph = this.plot?.getPlaceholder() ?? this.plot_placeholder;
+        const wAll = ph.width() || 800;
+        const off = this.plot ? this.plot.getPlotOffset() : { left: 0, right: 0 };
+        const innerW = Math.max(1, Math.floor(wAll - (off.left || 0) - (off.right || 0)));
         // Use the requested range, rather than the previous Flot axes. During
         // startup or zoom, old axes can otherwise discard boundary bins and
         // omit their extrema from the new automatic Y range.
@@ -512,34 +521,25 @@ class PlotBasics {
         // Sparse zooms show every bin, including neighbors needed to clip the
         // curve at the edges. Column extrema are only needed for dense traces.
         if (last - first + 1 <= 2 * innerW) {
-            for (let i = first; i <= last; i++) out[count++] = plot_data[i];
-            out.length = count;
-            return out;
+            return plot_data.slice(first, last + 1);
         }
-        if (first < i0) { out[count++] = plot_data[first]; }
-        const reuse = PlotBasics.prepareColumnCache(cache, i0, i1, xMin, xMax, innerW, this.log_x, true);
+        if (first < i0) { out.push(plot_data[first]); }
     
         let currCol = -2;
-        let minI = -1, maxI = -1;
+        let minY = Infinity, maxY = -Infinity, minI = -1, maxI = -1;
         const flush = () => {
             // Extrema must retain their original frequency order.
             if (minI >= 0 && maxI >= 0) {
-                out[count++] = plot_data[Math.min(minI, maxI)];
-                if (maxI !== minI) out[count++] = plot_data[Math.max(minI, maxI)];
+                out.push(plot_data[Math.min(minI, maxI)]);
+                if (maxI !== minI) out.push(plot_data[Math.max(minI, maxI)]);
             }
-            minI = -1; maxI = -1;
+            minY = Infinity; maxY = -Infinity; minI = -1; maxI = -1;
         };
 
         for (let i = i0; i <= i1; i++) {
             const x = plot_data[i][0];
             const y = plot_data[i][1];
-            const slot = i - i0;
-            let col: number;
-            if (cache && reuse && cache.x[slot] === x) col = cache.columns[slot];
-            else {
-                col = colFromX(x);
-                if (cache) { cache.x[slot] = x; cache.columns[slot] = col; }
-            }
+            const col = colFromX(x);
             if (col < 0 || col >= innerW) continue;
             if (col !== currCol) {
                 flush();
@@ -548,47 +548,20 @@ class PlotBasics {
             if (!Number.isFinite(y)) {
                 flush();
                 // Keep a gap marker even when its neighbors share one pixel.
-                if (!count || Number.isFinite(out[count - 1][1]))
-                    out[count++] = plot_data[i];
+                if (!out.length || Number.isFinite(out[out.length - 1][1]))
+                    out.push([x, NaN]);
                 continue;
             }
-            if (minI < 0 || y < plot_data[minI][1]) minI = i;
-            if (maxI < 0 || y > plot_data[maxI][1]) maxI = i;
+            if (y < minY) { minY = y; minI = i; }
+            if (y > maxY) { maxY = y; maxI = i; }
         }
         flush();
-        if (last > i1) { out[count++] = plot_data[last]; }
-        out.length = count;
+        if (last > i1) { out.push(plot_data[last]); }
         return out;
-    }
-
-    private reductionWidth(): number {
-        const ph = this.plot?.getPlaceholder() ?? this.plot_placeholder;
-        const off = this.plot ? this.plot.getPlotOffset() : {left: 0, right: 0};
-        return Math.max(1, Math.floor((ph.width() || 800) - (off.left || 0) - (off.right || 0)));
-    }
-
-    private replot(data: jquery.flot.dataSeries[]): void {
-        const axes = this.plot && this.plot.getAxes();
-        const full = !this.plot || !this.plot.updateRanges || this.rebuildPlot ||
-            this.drawnPixelRatio !== (window.devicePixelRatio || 1) ||
-            (this.plot.isSelectionActive && this.plot.isSelectionActive()) ||
-            Object.keys(axes).some(name => axes[name].options.axisLabel) ||
-            data.some(s => (s.xaxis && s.xaxis !== 1) || (s.yaxis && s.yaxis !== 1)) ||
-            this.plot.getXAxes().length !== 1 || this.plot.getYAxes().length !== 1 ||
-            (axes.yaxis.options.tickFormatter || null) !== (this.options.yaxis.tickFormatter || null);
-        if (full) {
-            this.plot = $.plot(this.plot_placeholder, data, this.options);
-            this.rebuildPlot = false;
-            this.drawnPixelRatio = window.devicePixelRatio || 1;
-        } else {
-            this.plot.updateRanges(data, this.options.xaxis, this.options.yaxis, this.options.legend.noColumns);
-        }
     }
 
     redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: jquery.flot.dataSeries[] = [], overlayLabel?: string) {
         this.seriesOne.length = (reference ? 2 : 1) + traces.length;
-        if (this._reducedSeries) this._reducedSeries.length = this.seriesOne.length;
-        if (this._columnCaches) this._columnCaches.length = this.log_x && (this.spectrumReduction || this.decimate) ? this.seriesOne.length : 0;
         this.options.legend.noColumns = overlayLabel || this.primaryTraceLabel ? 0 : reference || traces.length ? 1 : 0;
         if (reference) {
             this.seriesOne[1] = {label: overlayLabel || "Reference", data: reference, color: overlayLabel ? "#006400" : "#a178b5", lines: {lineWidth: 1}};
@@ -603,23 +576,20 @@ class PlotBasics {
         if (this.spectrumReduction) {
             const offsets = this.plot.getPlotOffset();
             const width = Math.max(1, (this.plot_placeholder.width() || 800) - offsets.left - offsets.right);
-            this.seriesOne[0].data = PlotBasics.reduceSpectrum(plot_data, this.range_x.from, this.range_x.to, width, this.log_x, this.reductionBuffer(0), this.log_x ? this.columnCache(0) : undefined);
+            this.seriesOne[0].data = PlotBasics.reduceSpectrum(plot_data, this.range_x.from, this.range_x.to, width, this.log_x);
             if (reference) {
-                this.seriesOne[1].data = PlotBasics.reduceSpectrum(reference, this.range_x.from, this.range_x.to, width, this.log_x, this.reductionBuffer(1), this.log_x ? this.columnCache(1) : undefined);
+                this.seriesOne[1].data = PlotBasics.reduceSpectrum(reference, this.range_x.from, this.range_x.to, width, this.log_x);
             }
             traces.forEach((trace, i) => {
-                const index = (reference ? 2 : 1) + i;
-                this.seriesOne[index].data = PlotBasics.reduceSpectrum(trace.data as number[][], this.range_x.from, this.range_x.to, width, this.log_x, this.reductionBuffer(index), this.log_x ? this.columnCache(index) : undefined);
+                this.seriesOne[(reference ? 2 : 1) + i].data = PlotBasics.reduceSpectrum(trace.data as number[][], this.range_x.from, this.range_x.to, width, this.log_x);
             });
         } else if (this.decimate) {
             const xMin = this.reset_range ? this.range_x.from : this.plot.getAxes().xaxis.min;
             const xMax = this.reset_range ? this.range_x.to   : this.plot.getAxes().xaxis.max;
-            const width = this.reductionWidth();
-            this.seriesOne[0].data = this.decimateToCanva(plot_data, xMin, xMax, this.reductionBuffer(0), this.log_x ? this.columnCache(0) : undefined, width);
-            if (reference) this.seriesOne[1].data = this.decimateToCanva(reference, xMin, xMax, this.reductionBuffer(1), this.log_x ? this.columnCache(1) : undefined, width);
+            this.seriesOne[0].data = this.decimateToCanva(plot_data, xMin, xMax).slice();
+            if (reference) this.seriesOne[1].data = this.decimateToCanva(reference, xMin, xMax).slice();
             traces.forEach((trace, i) => {
-                const index = (reference ? 2 : 1) + i;
-                this.seriesOne[index].data = this.decimateToCanva(trace.data as number[][], xMin, xMax, this.reductionBuffer(index), this.log_x ? this.columnCache(index) : undefined, width);
+                this.seriesOne[(reference ? 2 : 1) + i].data = this.decimateToCanva(trace.data as number[][], xMin, xMax).slice();
             });
         } else {
             this.seriesOne[0].data  = plot_data;
@@ -646,7 +616,9 @@ class PlotBasics {
             this.options.xaxis.max = this.range_x.to;
             this.options.yaxis.min = this.range_y.from;
             this.options.yaxis.max = this.range_y.to;
-            this.replot(this.seriesOne);
+            this.plot = $.plot(this.plot_placeholder, this.seriesOne, this.options);
+            this.plot.setupGrid();
+
             this.range_y.from = this.plot.getAxes().yaxis.min;
             this.range_y.to = this.plot.getAxes().yaxis.max;
 
@@ -669,12 +641,12 @@ class PlotBasics {
             this.clickDatapointSpan.style.display = "none";
         }
         if (this.clickDatapoint.length > 0 && cursorData && cursorData.length > 0) {
-            let lo = 0, hi = cursorData.length;
-            while (lo < hi) {
-                const mid = (lo + hi) >>> 1;
-                if (cursorData[mid][0] <= this.clickDatapoint[0]) lo = mid + 1; else hi = mid;
+            let i: number;
+            for (i = 0; i < cursorData.length; i++) {
+                if (cursorData[i][0] > this.clickDatapoint[0]) {
+                    break;
+                }
             }
-            const i = lo;
 
             let p1 = cursorData[i-1];
             let p2 = cursorData[i];
@@ -742,7 +714,8 @@ class PlotBasics {
             this.options.xaxis.max = range_x.to;
             this.options.yaxis.min = this.range_y.from;
             this.options.yaxis.max = this.range_y.to;
-            this.replot(plt_data);
+            this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
+            this.plot.setupGrid();
             this.reset_range = false;
         } else {
             this.plot.setData(plt_data);
@@ -791,8 +764,9 @@ class PlotBasics {
             this.options.yaxis.min = this.range_y.from;
             this.options.yaxis.max = this.range_y.to;
 
-            this.replot(plt_data);
+            this.plot = $.plot(this.plot_placeholder, plt_data, this.options);
 
+            this.plot.setupGrid();
             this.reset_range = false;
         } else {
             this.plot.setData(plt_data);

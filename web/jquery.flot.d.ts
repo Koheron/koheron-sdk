@@ -79,6 +79,7 @@ declare namespace jquery.flot {
     }
 
     interface seriesOptions {
+        reuseDatapoints?: boolean;
         color?: any;            // color or number
         label?: string;
         lines?: linesOptions;
@@ -133,6 +134,7 @@ declare namespace jquery.flot {
     }
 
     interface linesOptions extends seriesTypeBase {
+        batchSize?: number;
         steps?: boolean;
     }
 
@@ -216,6 +218,8 @@ declare namespace jquery.flot {
         unhighlight(): void;
         unhighlight(series: dataSeries, datapoint: number[]): void;
         setData(data: any): void;
+        updateRanges?(data: dataSeries[], xoptions: axisOptions, yoptions: axisOptions, legendColumns: number): void;
+        isSelectionActive?(): boolean;
         setupGrid(): void;
         draw(): void;
         triggerRedrawOverlay(): void;

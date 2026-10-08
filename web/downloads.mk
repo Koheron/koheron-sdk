@@ -20,36 +20,16 @@ WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js.map
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/navigation.html
 
-FLOT_VERSION = 0.8.3
-#FLOT_VERSION = 4.2.6
+# Owned Canvas 2D plotting stack, built from readable local sources.
+PLOT_BUILD ?= $(WEB_DOCKER_RUN) node $(WEB_PATH)/plotting/build.cjs
+PLOT_ASSETS := $(addprefix $(TMP_WEB_PATH)/,jquery.flot.js jquery.flot.resize.js jquery.flot.selection.js jquery.flot.time.js jquery.flot.axislabels.js jquery.flot.canvas.js flot-LICENSE.txt)
+WEB_DOWNLOADS += $(TMP_WEB_PATH)/flot-LICENSE.txt
+$(PLOT_ASSETS) &: $(wildcard $(WEB_PATH)/plotting/src/*.js) $(WEB_PATH)/plotting/build.cjs $(WEB_PATH)/plotting/licenses/LICENSE.txt $(WEB_PATH)/plotting/package.json $(WEB_PATH)/plotting/package-lock.json
+	$(PLOT_BUILD) $(TMP_WEB_PATH)
 
 $(TMP_WEB_PATH)/_koheron.css:
 	mkdir -p $(@D)
 	curl https://assets.koheron.com/css/main.css -o $@
-
-$(TMP_WEB_PATH)/jquery.flot.js:
-	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.min.js -o $@
-
-$(TMP_WEB_PATH)/jquery.flot.resize.js:
-	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.resize.min.js -o $@
-
-$(TMP_WEB_PATH)/jquery.flot.selection.js:
-	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.selection.min.js -o $@
-
-$(TMP_WEB_PATH)/jquery.flot.time.js:
-	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.time.min.js -o $@
-
-$(TMP_WEB_PATH)/jquery.flot.axislabels.js:
-	mkdir -p $(@D)
-	curl https://raw.githubusercontent.com/markrcote/flot-axislabels/master/jquery.flot.axislabels.js -o $@
-
-$(TMP_WEB_PATH)/jquery.flot.canvas.js:
-	mkdir -p $(@D)
-	curl https://cdnjs.cloudflare.com/ajax/libs/flot/$(FLOT_VERSION)/jquery.flot.canvas.js -o $@
 
 $(TMP_WEB_PATH)/bootstrap.min.js:
 	mkdir -p $(@D)
