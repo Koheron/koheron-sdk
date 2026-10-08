@@ -20,15 +20,9 @@ class DualDDS {
         this.client.send(Command(this.id, this.cmds['set_dds_freq'], channel, freq_hz));
     }
 
-    getControlParameters(cb: (status: DualDDSStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'dd',
-                               (tup: [number, number]) => {
-            let status: DualDDSStatus = <DualDDSStatus>{};
-            status.dds_freq = [];
-            status.dds_freq[0] = tup[0];
-            status.dds_freq[1] = tup[1];
-            cb(status);
-        });
+    async getControlParameters(): Promise<DualDDSStatus> {
+        const tuple = await this.client.readTuple<[number, number]>(
+            Command(this.id, this.cmds['get_control_parameters']), 'dd');
+        return {dds_freq: [tuple[0], tuple[1]]};
     }
-
 }

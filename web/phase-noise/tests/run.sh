@@ -5,7 +5,7 @@ cd "$repo"
 suite=${1:-all}
 case "$suite" in all|alpha250|alpha250-4|dpll) ;; *) echo "Unknown suite: $suite" >&2; exit 2 ;; esac
 source "$repo/web/tests/environment.sh"
-tests=(web/phase-noise/tests/test_export.cjs web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs)
+tests=(web/phase-noise/tests/test_measurements.cjs web/phase-noise/tests/test_save_config.cjs web/phase-noise/tests/test_export.cjs web/phase-noise/tests/test_phase_precision.cjs web/phase-noise/tests/test_spectrum.cjs)
 if [[ $suite == all || $suite == alpha250 ]]; then
     for name in plot numeric_controls signal_generator sample_rate; do
         tests+=("examples/alpha250/phase-noise-analyzer/tests/test_$name.cjs")

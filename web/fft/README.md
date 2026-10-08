@@ -1,38 +1,31 @@
 # Shared FFT interface
 
-ALPHA250 FFT, Red Pitaya FFT and ALPHA15 signal analyzer include `components.mk`. It packages one
-workspace template, stylesheet, lifecycle, transport, acquisition controls,
-spectrum/history views, exports and the shared PNA DDS/PM widget and digit inputs.
+Include `components.mk` before board adapters and the entry point. It packages
+one workspace, acquisition controls, spectrum/history views, exports and the
+shared PNA generator widget. Mount `workspace.html` before control imports.
 
-Each board supplies a small entry point, its FFT response decoder and board
-controls. ALPHA250 adds clock selection, telemetry and precision DAC editors;
-Red Pitaya adds its fixed ADC rate and uses PNA's half-scale DAC presentation.
-The board entry point runs last, after all shared and board classes are defined.
+| Instrument | Board-specific behavior |
+| --- | --- |
+| ALPHA250 FFT | Clock selection, grouped telemetry and precision I/O |
+| ALPHA250-4 FFT | Four inputs over two FFT engines; selected-pair sample rate; no RF DAC generator |
+| ALPHA15 signal analyzer | Stitched LF/mid/RF voltage spectra, logarithmic Hz axis and input ranges; no RF DAC generator |
+| Red Pitaya FFT | Fixed ADC rate and half-scale DAC presentation |
 
-`workspace.html` mounts before the control imports. `FFTWorkspace` then connects,
-initializes acquisition and the board controls, and reads generator settings
-without writing DACs. Generator discovery has an independent retry. Exit disposes
-the plot, control polling, digit editors and client; a cached navigation return
-reconnects with a page reload.
+`FFTWorkspace` connects and initializes acquisition and controls without writing
+DAC outputs. Generator discovery retries independently. Exit disposes controls,
+plots and the client; a cached navigation return reloads to reconnect.
 
-See the [FFT interface guide](../../examples/alpha250/fft/README.md) and
-[host tests](../../examples/alpha250/fft/tests/README.md). The generator integration
-tests mount both board pages with these actual templates and the actual PNA
-widget, including failure and teardown paths.
+ALPHA250 and ALPHA250-4 share [board controls](../board-controls/README.md).
+Slow telemetry uses [InstrumentPoller](../instrument/README.md), independently
+of acquisition-control updates; ALPHA15 uses it in its local board controls.
 
-Numeric editors are packaged from `web/inputs`; the ALPHA250 clock adapter and
-bindings come from `web/clock-generator`, shared with PNA/DPLL. Clock templates
-stay board-specific. `bash web/tests/run.sh fft` runs the generic clock/plot and
-FFT browser regressions; `web/fft/tests/run.sh` runs just the FFT suites.
+[Instrument styles](../instrument/README.md) own common controls and headers;
+`fft.css` owns the grid, responsive layout and 26-pixel control sizing.
+[Precision channels](../precision-channels/README.md) own precision-editor styles.
 
-ALPHA15 opts out of the RF DAC generator and supplies a voltage spectrum grid
-with per-band bandwidths. Its adapter combines the two decimator snapshots and
-FPGA FFT in ascending bin order. The same plot, references, history views and
-exports use that grid, with a logarithmic Hz axis and voltage units. Input range
-changes participate in the history signature. Precision DAC digit editing is
-shared by ALPHA250 and ALPHA15 through `web/precision-channels`; board telemetry
-remains board-specific. The temperature readout template is shared under
-`web/temperature-sensor`. `bash web/tests/run.sh alpha15` runs the shared controls
-and ALPHA15 workspace checks without requiring PNA fixtures.
-See `examples/alpha15/signal-analyzer/README.md` for acquisition limitations and
-host tests.
+See the [ALPHA250 interface guide](../../examples/alpha250/fft/README.md),
+[ALPHA250-4 acquisition mapping and limitations](../../examples/alpha250-4/fft/README.md)
+and [ALPHA15 acquisition guide](../../examples/alpha15/signal-analyzer/README.md).
+Run `bash web/tests/run.sh fft` for shared/FFT checks or
+`bash web/tests/run.sh alpha15` for shared/ALPHA15 checks; see the
+[test guide](../../examples/alpha250/fft/tests/README.md).

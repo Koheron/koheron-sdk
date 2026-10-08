@@ -1,7 +1,7 @@
 # Host regression tests
 
 `bash web/tests/run.sh fft` runs the shared clock/plot checks and all FFT browser
-regressions below, including the ALPHA15 workspace suite. The CI host job also
+regressions below, including the ALPHA15 and ALPHA250-4 workspace suites. The CI host job also
 builds all FFT web applications and runs these suites.
 
 From the repository root, with the SDK Python dependencies installed:
@@ -57,17 +57,6 @@ when a shared plot uses decimation.
 It also checks that resizing a paused spectrum redraws retained samples without
 another acquisition or changing its captured settings or paused status.
 
-DDS editor regression:
-
-```sh
-node examples/alpha250/fft/tests/test_web_controls.js
-```
-
-Checks that typed frequencies commit on change, invalid edits do not send
-commands or move the paired slider, sliders send one live command per input,
-DDS edits respect an updated sample-rate limit. The shared DDS widget uses
-these editing rules across instruments.
-
 Precision DAC tests exercise the actual shared digit input with the precision
 driver adapter: read-only startup, mV-to-volts conversion, independent channels,
 returned settings, selected-digit tuning, invalid and unfinished drafts surviving
@@ -100,8 +89,7 @@ Performance scheduling regression:
 node examples/alpha250/fft/tests/test_web_performance.js
 ```
 
-Checks one-second telemetry polling while controls stay at 4 Hz, independent
-acquisition pacing, latest-frame replacement, single queued paint, ownership
+Checks independent acquisition pacing, latest-frame replacement, single queued paint, ownership
 of waiting samples and metadata, the 60 Hz paint cap on faster monitors, pause,
 hidden-tab suspension, measured FPS, and error retry backoff. Checks received
 history retention for cached PSD replies, skipped redundant spectrum paints,
@@ -140,3 +128,9 @@ paused export timing.
 History interaction checks cover invalid level edits surviving redraw and blur,
 Escape recovery, unit labels, plot-only primary-button zoom, selection preview,
 pointer cancellation, stale-hover clearing and stationary-hover updates.
+
+`web/fft/tests/test_controls.cjs` covers the shared control loop and independent
+telemetry lifecycle: 4 Hz controls during pending reads, retries, hidden-page
+suspension, non-overlapping telemetry and disposal. DDS frequency digit-editor
+checks live with their component in `web/dds-frequency/tests/` and run through
+the shared browser runner.

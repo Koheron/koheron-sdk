@@ -44,7 +44,7 @@ test('shared DAC transport preserves voltage commands, Promise reads and rejecte
     await assert.rejects(dac.getDacValues(), /Disconnected/);
 });
 
-test('shared DAC transport retains the legacy callback contract and typed readback', () => {
+test('shared DAC transport retains the callback contract and typed readback', () => {
     const values = Float32Array.from([.1, .2, .3, .4]);
     let callback, received;
     const dac = transport({
@@ -62,7 +62,7 @@ test('shared DAC transport retains the legacy callback contract and typed readba
 });
 
 async function host(t) {
-    const markup = fs.readFileSync(path.join(root, 'examples/alpha250/fft/web/precision-channels/precision-channels.html'), 'utf8');
+    const markup = fs.readFileSync(path.join(root, 'web/precision-channels/precision-channels.html'), 'utf8');
     const dom = new JSDOM(markup, {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
     const window = dom.window;

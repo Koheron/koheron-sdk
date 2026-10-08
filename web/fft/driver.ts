@@ -50,30 +50,6 @@ abstract class FFTDriver {
         await this.getControlParameters();
     }
 
-    monitor(timeout: number): void {
-        this.getCycleIndex( (i) => {
-            setTimeout( () => {
-                this.monitor(timeout);
-            }, timeout);
-        });
-    }
-
-    getCycleIndex(cb: (i: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_cycle_index']),
-                                 (i) => {cb(i)});
-    }
-
-    getFFTSize(cb: (size: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_fft_size']),
-                                 (size) => {cb(size)});
-    }
-
-    read_psd_raw(cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw']), (psd: Float32Array) => {
-            cb(psd);
-        });
-    }
-
     startPSDStream(frame: (psd: Float32Array, time: number) => void,
                    error: (message: string) => void): PSDStream {
         return new PSDStream(location.hostname, Command(this.id, this.cmds['read_psd']).data,
@@ -87,10 +63,6 @@ abstract class FFTDriver {
     async readSpectrum(): Promise<SpectrumFrame | undefined> {
         const psd = await this.read_psd();
         return {psd, status: this.status};
-    }
-
-    setDDSFreq(channel: number, freq_hz: number): void {
-        this.client.send(Command(this.id, this.cmds['set_dds_freq'], channel, freq_hz));
     }
 
     setInputChannel(channel: number): void {

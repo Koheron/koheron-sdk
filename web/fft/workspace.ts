@@ -19,7 +19,6 @@ class FFTWorkspace {
     public fftApp: FFTApp;
     private fft: FFTDriver;
     private generator: PhaseModulatorWidget;
-    private plotBasics: PlotBasics;
     private board: FFTBoardControls;
     private exportFile: ExportFile;
     private client: Client;
@@ -48,11 +47,11 @@ class FFTWorkspace {
                 // Imports mount the shared plot before selecting its placeholder.
                 const placeholder = $('#plot-placeholder');
                 const grid = this.fft.status.spectrum;
-                this.plotBasics = new PlotBasics(document, placeholder, grid ? grid.frequencies.length : this.fft.fft_size / 2,
+                const plotBasics = new PlotBasics(document, placeholder, grid ? grid.frequencies.length : this.fft.fft_size / 2,
                     grid ? 10 : 0, grid ? this.fft.status.fs / 2 : this.fft.status.fs / 1e6 / 2,
                     -200, 170, this.fft, '', 'Frequency (' + (grid ? grid.unit : 'MHz') + ')');
-                if (grid?.logarithmic) { this.plotBasics.setLogX(true); }
-                this.plot = new Plot(document, this.fft, this.plotBasics);
+                if (grid?.logarithmic) { plotBasics.setLogX(true); }
+                this.plot = new Plot(document, this.fft, plotBasics);
                 await this.board.init();
                 if (this.stopped) { return; }
                 this.exportFile = new ExportFile(document, this.plot, options.boardName, options.instrumentName || 'FFT');
@@ -97,6 +96,12 @@ class FFTWorkspace {
         this.fftApp?.dispose();
         this.generator?.dispose();
         this.board?.dispose();
+        for (const id of ['instrument-controls', 'board-controls']) {
+            (this.document.getElementById(id) as HTMLFieldSetElement).disabled = true;
+        }
+        for (const id of ['pause-display', 'reset-view', 'spectrum-view']) {
+            (this.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement).disabled = true;
+        }
         this.client.exit();
     }
 }

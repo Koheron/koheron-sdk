@@ -133,7 +133,7 @@ class Plot {
     private setStatus(state: string, text: string): void {
         const status = this.document.getElementById('connection-status');
         if (status.dataset.state !== state) { status.dataset.state = state; }
-        if (status.textContent !== text) { status.textContent = text; }
+        if (status.textContent !== text) { status.textContent = text; status.title = text; }
     }
 
     private schedule(delay: number): void {
@@ -219,8 +219,7 @@ class Plot {
         const started = performance.now();
         let delay = 1000 / 60;
         try {
-            const frame = typeof this.fft.readSpectrum === 'function' ? await this.fft.readSpectrum()
-                : {psd: await this.fft.read_psd(), status: this.fft.status};
+            const frame = await this.fft.readSpectrum();
             if (!this.running || this.paused || this.document.hidden) { return; }
             if (frame) { this.acceptSpectrum(frame.psd, performance.now() / 1000, frame.status); }
             else if (this.fft.waitingForSpectrum) { this.setStatus('connecting', 'Waiting for fresh spectrum…'); }

@@ -113,8 +113,8 @@ test('all four nominal LO fields commit in Hz, reject invalid integers and show 
   const dom = new JSDOM(html,{runScripts:'outside-only',pretendToBeVisual:true});
   t.after(()=>dom.window.close());const w=dom.window;
   w.document.getElementById('dds-frequency').innerHTML = fs.readFileSync(path.join(project,'web/dds-frequency/dds-frequency.html'),'utf8').replace(/<\/?template[^>]*>/g,'');
-  for (const file of [path.join(root,'web/inputs/digit-input.ts'),path.join(project,'web/phase-noise-analyzer-app.ts')])
-    w.eval(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText+'\n'+(file.includes('analyzer-app')?'window.ControlApp=PhaseNoiseAnalyzerApp;':'window.NumberInput=NumberInput; window.FrequencyInput=FrequencyInput;'));
+  for (const file of [path.join(root,'web/phase-noise/measurements.ts'),path.join(root,'web/instrument/events.ts'),path.join(root,'web/phase-noise/save-config.ts'),path.join(root,'web/inputs/digit-input.ts'),path.join(root,'web/phase-noise/integer-input.ts'),path.join(project,'web/phase-noise-analyzer-app.ts')])
+    w.eval(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText+'\n'+(file.includes('measurements.ts')?'window.PnaMeasurementReadout=PnaMeasurementReadout;':file.includes('events.ts')?'window.InstrumentEvents=InstrumentEvents;':file.includes('save-config')?'window.PnaSaveConfig=PnaSaveConfig;':file.includes('integer-input')?'window.pnaIntegerInput=pnaIntegerInput;':file.includes('analyzer-app')?'window.ControlApp=PhaseNoiseAnalyzerApp;':'window.NumberInput=NumberInput; window.FrequencyInput=FrequencyInput;'));
   const browserTimeout=w.setTimeout.bind(w);
   w.setTimeout=(callback,delay)=>delay===0?browserTimeout(callback,0):0;
   w.document.getElementById('instrument-controls').disabled=false;
@@ -141,7 +141,24 @@ test('all four nominal LO fields commit in Hz, reject invalid integers and show 
   app.setSampleRate(250e6);
   for (let channel=0;channel<4;++channel)
     assert.equal(w.document.querySelector('.dds-input'+channel).getAttribute('aria-valuemax'),'125000000');
-  app.dispose();
+  driver.saveConfig = () => calls.push(['save']);
+  const save = w.document.querySelector('.save-cfg');
+  save.click(); assert.deepEqual(calls.at(-1), ['save']);
+  assert.equal(save.textContent, 'Save requested');
+  driver.setChannel = value => calls.push(['channel', value]);
+  driver.setTrackingEnabled = value => calls.push(['tracking', value]);
+  driver.resetCumulativeAverager = () => calls.push(['reset']);
+  const channel = w.document.querySelector('.channel-input');
+  const tracking = w.document.querySelector('.tracking-enabled-input');
+  const reset = w.document.querySelector('.reset-cumulative-averager-btn');
+  channel.dispatchEvent(new w.Event('change')); tracking.dispatchEvent(new w.Event('change'));
+  reset.dispatchEvent(new w.Event('click'));
+  assert.deepEqual(calls.slice(-3).map(call => call[0]), ['channel', 'tracking', 'reset']);
+  const beforeExit = calls.length;
+  app.dispose(); save.click();
+  channel.dispatchEvent(new w.Event('change')); tracking.dispatchEvent(new w.Event('change'));
+  reset.dispatchEvent(new w.Event('click'));
+  assert.equal(calls.length, beforeExit);
 });
 
 test('frequency-noise display and captured reference use each trace frequency axis', async t => {

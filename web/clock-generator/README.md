@@ -1,14 +1,19 @@
-# Shared clock adapter
+# Clock controls
 
-Include `driver.mk` for the `ClockGenerator` RPC adapter, or `components.mk` for
-the adapter and `ClockGeneratorApp` event bindings. Hosts supply their own clock
-templates and lifecycle. The adapter supports both callback and Promise forms of
-`getReferenceClock`, plus the existing sample-clock selector and DAC-rate read.
-Construction sends no commands.
+| Include | Provides |
+| --- | --- |
+| `driver.mk` | `ClockGenerator` RPC adapter; callback/Promise reference reads, sample-clock selection and DAC-rate reads |
+| `components.mk` | Adapter and `ClockGeneratorApp` bindings |
+| `reference-clock.mk` | Labelled 10 MHz selector: internal = 2, external = 0 |
+| `sampling-frequency.mk` | ALPHA250/ALPHA250-4 200/250 MHz selector |
 
-ALPHA PNA and ALPHA250 FFT share the event bindings. DPLL uses only the adapter.
-The older ALPHA250-4 FFT retains its own reference polling, and ALPHA15 retains
-its asynchronous board adapter. Board-specific templates stay with their hosts.
+Construction sends no commands. `ClockGeneratorApp` accepts an optional third
+argument called before a clock write to invalidate acquisition. Call `dispose()`
+on exit; listener cleanup uses [InstrumentEvents](../instrument/README.md).
 
-`tests/test_clock.cjs` checks RPC IDs, arguments, read contracts and errors. It
-runs once alongside the generic plot checks in `bash web/tests/run.sh`.
+ALPHA15, ALPHA250/ALPHA250-4 FFT and ALPHA PNAs share the bindings. DPLL uses the
+adapter and reference template with its own asynchronous lifecycle. ALPHA15
+keeps its fixed 15 MS/s acquisition rate.
+
+`tests/test_clock.cjs` checks RPC contracts, templates, notification order and
+teardown through the [browser runner](../tests/README.md).

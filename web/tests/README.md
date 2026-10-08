@@ -10,10 +10,10 @@ bash web/tests/run.sh pna
 ```
 
 The default is `all`. `alpha250`, `alpha250-4` and `dpll` select a PNA/DPLL suite.
-Shared clock, plot and precision-DAC checks run once. `alpha15` runs these and
-the ALPHA15 signal-analyzer workspace suite. FFT checks cover the protocol, controls,
+Shared DDS digit-editor, clock, plot, precision-DAC, telemetry adapter and
+polling checks run once. `alpha15` adds the ALPHA15 workspace suite. FFT checks cover the protocol, controls,
 plot, scheduling, references, CSV/PNG/history exports, generator integration,
-precision DACs and ALPHA15 workspace. The standalone generator suite also checks
+precision DACs and ALPHA15/ALPHA250-4 workspaces. The standalone generator suite also checks
 the shared digit editor's asynchronous tuning and disposal.
 
 PNA/DPLL wire-format integration requires the spectrum fixture produced by the
@@ -41,3 +41,11 @@ npm run benchmark --prefix web/plotting -- --frames=180 --rounds=3
 
 See [plotting maintenance](../plotting/README.md) for browser installation,
 source provenance, baseline conditions and profiling commands.
+
+The standalone web-build regression checks that switching to older shared
+assets refreshes existing output names, replaces removed TypeScript sources
+and leaves unchanged builds up to date:
+
+```sh
+python3 web/tests/test_build.py
+```

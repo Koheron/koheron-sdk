@@ -83,8 +83,11 @@ and logarithmic rendering reduction. The C++ regression checks clearing and
 refilling the 16-frame average, publication readiness and snapshot ownership.
 Shared FFT regressions are documented in `examples/alpha250/fft/tests/README.md`.
 Precision-DAC transport and editing are shared under `web/precision-channels`;
-the temperature readout template is under `web/temperature-sensor`. Input-range,
-clock, supply and multiband acquisition adapters remain local. CI builds this
-interface and runs both the browser suite and sanitized C++ acquisition checks.
+the temperature and supply readout templates are under `web/temperature-sensor`
+and `web/power-monitor`, alongside shared telemetry renderers. Clock, temperature
+and supply RPC adapters are also shared and support both Promise and callback
+reads. Board polling uses the shared one-second instrument lifecycle. Input-range
+and multiband acquisition adapters remain local. CI builds this interface and
+runs both the browser suite and sanitized C++ acquisition checks.
 These are host checks; numerical calibration, board acquisition and FPGA timing
 need separate hardware/build validation.

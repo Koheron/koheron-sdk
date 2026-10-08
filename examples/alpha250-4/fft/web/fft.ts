@@ -1,100 +1,78 @@
-// Interface for the FFT driver
-// (c) Koheron
+// Four physical inputs share two FPGA FFT engines and one channel selector.
+class FFT extends FFTDriver {
+    public startPSDStream = undefined;
+    public get waitingForSpectrum(): boolean { return this.controlsPending; }
+    private adc = 0;
+    private revision = 0;
+    private controlsPending = false;
+    private controlRequest = 0;
+    private clock: ClockGenerator;
+    private precisionAdc: PrecisionAdc;
+    private precisionDac: PrecisionDac;
+    private temperature: TemperatureSensor;
+    private power: PowerMonitor;
 
-interface IFFTStatus {
-    fs: number[]; // Sampling frequencies (Hz)
-    channel: number; // Input channel
-    W1: number; // FFT window correction (sum w)^2
-    W2: number; // FFT window correction (sum w^2)
-}
-
-class FFT {
-    private driver: Driver;
-    private id: number;
-    private cmds: Commands;
-
-    public fft_size: number;
-    public status: IFFTStatus;
-    public adc_input: number;
-
-    constructor (private client: Client) {
-        this.driver = this.client.getDriver('FFT');
-        this.id = this.driver.id;
-        this.cmds = this.driver.getCmds();
-        //this.monitor(1000);
-
-        this.status = <IFFTStatus>{};
-        this.status.fs = [];
-        this.adc_input = 0;
+    constructor(client: Client) {
+        super(client);
+        this.clock = new ClockGenerator(client);
+        this.precisionAdc = new PrecisionAdc(client);
+        this.precisionDac = new PrecisionDac(client);
+        this.temperature = new TemperatureSensor(client);
+        this.power = new PowerMonitor(client);
     }
 
-    init(cb: () => void): void {
-        this.getFFTSize( (size: number) => {
-            this.fft_size = size;
-            this.getControlParameters( () => {
-                cb();
-            });
-        });
-    }
-
-    monitor(timeout: number): void {
-        this.getCycleIndex( (i) => {
-            setTimeout( () => {
-                this.monitor(timeout);
-            }, timeout);
-        });
-    }
-
-    getCycleIndex(cb: (i: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_cycle_index']),
-                                 (i) => {cb(i)});
-    }
-
-    getFFTSize(cb: (size: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_fft_size']),
-                                 (size) => {cb(size)});
-    }
-
-    read_psd_raw(adc: number, cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd_raw'], adc), (psd: Float32Array) => {
-            cb(psd);
-        });
-    }
-
-    read_psd(adc: number, cb: (psd: Float32Array) => void): void {
-        this.client.readFloat32Array(Command(this.id, this.cmds['read_psd'], adc), (psd: Float32Array) => {
-            cb(psd);
-        });
+    settingsChanged(): void {
+        this.revision++;
+        this.controlsPending = true;
     }
 
     setInputChannel(channel: number): void {
-        this.client.send(Command(this.id, this.cmds['set_input_channel'], channel));
+        channel = Number(channel);
+        if (!Number.isInteger(channel) || channel < 0 || channel > 3) { return; }
+        this.settingsChanged();
+        this.adc = channel >> 1;
+        super.setInputChannel(channel & 1);
     }
 
     setFFTWindow(windowIndex: number): void {
-        this.client.send(Command(this.id, this.cmds['set_fft_window'], windowIndex));
+        this.settingsChanged();
+        super.setFFTWindow(Number(windowIndex));
     }
 
-    getControlParameters(cb: (status: IFFTStatus) => void): void {
-        this.client.readTuple(Command(this.id, this.cmds['get_control_parameters']), 'ddIdd',
-                               (tup: [number, number, number, number, number, number]) => {
-            this.status.fs[0] = tup[0];
-            this.status.fs[1] = tup[1];
-            this.status.channel = tup[2];
-            this.status.W1 = tup[3];
-            this.status.W2 = tup[4];
-            cb(this.status);
-        });
+    async getControlParameters(): Promise<IFFTStatus> {
+        const revision = this.revision, request = ++this.controlRequest, adc = this.adc;
+        const [tuple, window_index, reference] = await Promise.all([
+            this.client.readTuple<[number, number, number, number, number]>(
+                Command(this.id, this.cmds['get_control_parameters']), 'ddIdd'),
+            this.client.readUint32(Command(this.id, this.cmds['get_window_index'])),
+            this.clock.getReferenceClock()
+        ]);
+        if (revision !== this.revision || request !== this.controlRequest) { return this.status; }
+        const [fs0, fs1, channel, W1, W2] = tuple;
+        this.status = {dds_freq: [], fs: adc === 0 ? fs0 : fs1, channel: adc * 2 + channel,
+            W1, W2, window_index, clkIndex: reference === 0 ? '0' : '2'};
+        this.controlsPending = false;
+        return this.status;
     }
 
-    getFFTWindowIndex(cb: (windowIndex: number) => void): void {
-        this.client.readUint32(Command(this.id, this.cmds['get_window_index']),
-                               (windowIndex: number) => {
-            cb(windowIndex);
-        });
+    async read_psd(): Promise<Float32Array> {
+        return this.client.readFloat32Array(Command(this.id, this.cmds['read_psd'], this.adc));
     }
 
-    setInputAdc(adc: number) {
-        this.adc_input = adc;
+    async readSpectrum(): Promise<SpectrumFrame | undefined> {
+        if (this.controlsPending) { return undefined; }
+        const revision = this.revision, status = this.status;
+        const psd = await this.read_psd();
+        if (revision !== this.revision) { return undefined; }
+        if (psd.length !== this.fft_size / 2) { throw new Error('Incomplete ALPHA250-4 spectrum'); }
+        return {psd, status};
+    }
+
+    async getBoardParameters(): Promise<IBoardParameters> {
+        const [supplyValues, adcValues, dacValues, temperatures] = await Promise.all([
+            this.power.getSuppliesUI(), this.precisionAdc.getAdcValues(),
+            this.precisionDac.getDacValues(), this.temperature.getTemperatures()
+        ]);
+        return {supplyValues, adcValues, dacValues, temperatures};
     }
 }

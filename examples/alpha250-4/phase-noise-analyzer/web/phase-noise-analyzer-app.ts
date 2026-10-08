@@ -1,15 +1,20 @@
 class PhaseNoiseAnalyzerApp {
   private disposed = false;
+  private events = new InstrumentEvents();
+  private saveConfig: PnaSaveConfig;
+  private measurements: PnaMeasurementReadout;
   private updatingControls = false;
   private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
-  public channel: number;
 
   constructor(private document: Document, private driver: PhaseNoiseAnalyzer,
       private onConnectionError: (error: unknown) => void = () => {}) {}
 
   dispose(): void {
     this.disposed = true;
+    this.events.dispose();
+    this.measurements?.clear();
+    this.saveConfig?.dispose();
     Object.keys(this.numbers).forEach(key => this.numbers[key].dispose());
   }
 
@@ -23,17 +28,13 @@ class PhaseNoiseAnalyzerApp {
     const nominal = await this.driver.getNominalFrequencies();
     if (this.disposed) { return; }
     this.nPoints = p.data_size;
+    this.measurements = new PnaMeasurementReadout(this.document);
     const number = (selector: string, value: number, commit: (value: number) => void,
         read: (p: IParameters) => number) => {
       const input = this.document.querySelector<HTMLInputElement>(selector);
-      return new NumberInput(input, {value, minimum: Number(input.min), maximum: Number(input.max),
-        resolution: 1, integer: true, step: selector === '.cic-rate-input' ? 2 : 1,
-        validate: value => {
-          if (selector === '.cic-rate-input' && value % 2 !== 0) throw new Error('Use an even decimation rate.');
-        },
-        commit: async value => {
-          commit(value); return read(await this.driver.getParameters());
-        }});
+      return pnaIntegerInput(input, value, async next => {
+        commit(next); return read(await this.driver.getParameters());
+      });
     };
     this.numbers.cic = number('.cic-rate-input', p.cic_rate,
       value => this.driver.setCicRate(value), p => p.cic_rate);
@@ -51,21 +52,13 @@ class PhaseNoiseAnalyzerApp {
       });
     });
     this.document.querySelectorAll<HTMLInputElement>('.channel-input').forEach(input => {
-      input.addEventListener('change', () => this.driver.setChannel(Number(input.value)));
+      this.events.listen(input, 'change', () => this.driver.setChannel(Number(input.value)));
     });
     const tracking = this.document.querySelector<HTMLInputElement>('.tracking-enabled-input');
-    tracking.addEventListener('change', () => this.driver.setTrackingEnabled(tracking.checked));
-    this.document.querySelector('.reset-cumulative-averager-btn').addEventListener('click', () =>
+    this.events.listen(tracking, 'change', () => this.driver.setTrackingEnabled(tracking.checked));
+    this.events.listen(this.document.querySelector('.reset-cumulative-averager-btn'), 'click', () =>
       this.driver.resetCumulativeAverager());
-    const save = this.document.querySelector<HTMLButtonElement>('.save-cfg');
-    save.addEventListener('click', () => {
-      try {
-        this.driver.saveConfig();
-        save.textContent = 'Save requested';
-        this.document.getElementById('save-config-status').textContent = 'Analyzer settings save requested.';
-      } catch (error) { this.onConnectionError(error); }
-      setTimeout(() => { if (!this.disposed) { save.textContent = 'Save settings'; } }, 2000);
-    });
+    this.saveConfig = new PnaSaveConfig(this.document, () => this.driver.saveConfig(), this.onConnectionError);
     void this.updateControls();
     void this.updateMeasurements();
   }
@@ -79,7 +72,6 @@ class PhaseNoiseAnalyzerApp {
       const tracking = await this.driver.getTrackingParameters();
       const average = await this.driver.getAverageStatus();
       if (this.disposed) { return; }
-      this.channel = p.channel;
       this.document.querySelectorAll<HTMLInputElement>('.channel-input').forEach(input => {
         input.checked = Number(input.value) === p.channel;
       });
@@ -123,14 +115,7 @@ class PhaseNoiseAnalyzerApp {
     try {
       const m = await this.driver.getMeasurements(400);
       if (this.disposed) { return; }
-      const value = (x: number, unit: string) => Number.isFinite(x) ? `${x.toFixed(2)} ${unit}` : '—';
-      this.document.querySelector('.carrier-power-span').textContent = value(m.carrier_power, 'dBm');
-      this.document.querySelector('.phase-jitter-span').textContent = value(m.phase_jitter * 1E3, 'mrad rms');
-      this.document.querySelector('.time-jitter-span').textContent = value(m.time_jitter * 1E12, 'ps rms');
-      const frequency = (f: number) => f >= 1E6 ? `${(f / 1E6).toFixed(0)} MHz`
-        : f >= 1E3 ? `${(f / 1E3).toFixed(0)} kHz` : `${f.toFixed(0)} Hz`;
-      this.document.getElementById('jitter-range').textContent = Number.isFinite(m.freq_lo) && Number.isFinite(m.freq_hi)
-        ? `${frequency(m.freq_lo)} – ${frequency(m.freq_hi)}` : '—';
+      this.measurements.render(m);
     } catch (error) {
       if (!this.disposed) { this.onConnectionError(error); }
     } finally {

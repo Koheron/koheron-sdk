@@ -7,7 +7,7 @@ class PrecisionChannelsApp {
     private numbers: {[channel: number]: NumberInput} = {};
     private disposed = false;
 
-    constructor(private document: Document, private precisionDac: PrecisionDacPort) {
+    constructor(document: Document, private precisionDac: PrecisionDacPort) {
         for (const input of Array.from(document.getElementsByClassName('precision-dac-input')) as HTMLInputElement[]) {
             const channel = Number(input.dataset.channel);
             this.numbers[channel] = new NumberInput(input, {

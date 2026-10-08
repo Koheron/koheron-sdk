@@ -9,8 +9,8 @@ const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
 
-async function host(t, failGenerator = false, failConnection = false) {
-    const html = fs.readFileSync(path.join(root, 'examples/alpha250/phase-noise-analyzer/web/index.html'), 'utf8');
+async function host(t, failGenerator = false, failConnection = false, board = 'alpha250') {
+    const html = fs.readFileSync(path.join(root, `examples/${board}/phase-noise-analyzer/web/index.html`), 'utf8');
     const dom = new JSDOM(html, {runScripts: 'outside-only'});
     t.after(() => dom.window.close());
     const window = dom.window;
@@ -42,7 +42,6 @@ async function host(t, failGenerator = false, failConnection = false) {
     };
     window.Command = (...args) => args;
     window.Imports = class {};
-    window.DDS = class {};
     window.ClockGenerator = class {};
     window.ClockGeneratorApp = class {};
     window.PhaseNoiseAnalyzer = class {
@@ -65,11 +64,12 @@ async function host(t, failGenerator = false, failConnection = false) {
     window.PhaseModulatorDriver = class { constructor() { return port; } };
     window.$ = () => ({});
     for (const [file, exported] of [
+        ['web/phase-noise/connection-status.ts', 'showPnaConnectionError'],
         ['web/phase-noise/phase-precision.ts', 'PhasePrecision'],
         ['web/inputs/digit-input.ts', 'FrequencyInput'],
         ['web/phase-modulator/phase-modulator-widget.ts', 'PhaseModulatorWidget'],
         ['web/phase-noise/sample-rate.ts', 'PnaSampleRate'],
-        ['examples/alpha250/phase-noise-analyzer/web/app.ts', null]
+        [`examples/${board}/phase-noise-analyzer/web/app.ts`, null]
     ]) {
         window.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
             compilerOptions: {target: ts.ScriptTarget.ES2020}
@@ -143,25 +143,35 @@ test('generator failure has its own retry while the analyzer plot remains availa
     assert.equal(h.port.calls.length, 0);
 });
 
-test('connection loss after initialization marks readings stale and disables writes without touching DAC settings', async t => {
-    const h = await host(t);
-    h.window.console.error = () => {};
-    h.window.document.body.insertAdjacentHTML('beforeend', '<span id="precision-status">Live</span><span class="tracking-state">Locked</span>');
-    h.window.document.querySelector('#decade-values-table').innerHTML = '<tbody><tr><td>1 kHz</td><td>-120 dBc/Hz</td></tr></tbody>';
-    h.client.fail(new Error('WebSocket closed'));
-    assert.equal(h.window.document.getElementById('connection-status').textContent, 'Disconnected');
-    assert.match(h.window.document.getElementById('connection-error-message').textContent, /Connection lost.*stale/);
-    assert.equal(h.window.document.getElementById('precision-status').textContent, '—');
-    assert.equal(h.window.document.querySelector('.tracking-state').textContent, '—');
-    assert.equal(h.window.document.querySelector('#decade-values-table tbody td:last-child').textContent, '—');
-    assert.equal(h.window.document.getElementById('average-status').textContent, '—/');
-    assert.equal(h.window.document.querySelector('.phase-jitter-span').textContent, '—');
-    assert.equal(h.window.document.getElementById('instrument-controls').disabled, true);
-    assert.equal(h.target.querySelector('fieldset').disabled, true);
-    assert.equal(h.port.calls.length, 0);
-    assert(h.trace.includes('Disconnected') && h.trace.includes('plot-disposed'));
-    assert.equal(h.client.exits, 1);
-});
+for (const board of ['alpha250', 'alpha250-4', 'red-pitaya']) {
+    test(`${board}: connection loss marks readings stale and disables writes without touching DAC settings`, async t => {
+        const h = await host(t, false, false, board);
+        h.window.console.error = () => {};
+        h.window.document.body.insertAdjacentHTML('beforeend', '<span id="precision-status">Live</span><span class="tracking-state">Locked</span>');
+        h.window.document.querySelector('#decade-values-table').innerHTML = '<tbody><tr><td>1 kHz</td><td>-120 dBc/Hz</td></tr></tbody>';
+        h.client.fail(new Error('WebSocket closed'));
+        assert.equal(h.window.document.getElementById('connection-status').textContent, 'Disconnected');
+        assert.match(h.window.document.getElementById('connection-error-message').textContent, /Connection lost.*stale/);
+        assert.equal(h.window.document.getElementById('precision-status').textContent, '—');
+        assert.equal(h.window.document.querySelector('.tracking-state').textContent, '—');
+        assert.equal(h.window.document.querySelector('#decade-values-table tbody td:last-child').textContent, '—');
+        assert.equal(h.window.document.getElementById('average-status').textContent, '—/');
+        assert.equal(h.window.document.querySelector('.phase-jitter-span').textContent, '—');
+        assert.equal(h.window.document.getElementById('instrument-controls').disabled, true);
+        if (h.target) { assert.equal(h.target.querySelector('fieldset').disabled, true); }
+        assert.equal(h.port.calls.length, 0);
+        assert(h.trace.includes('Disconnected') && h.trace.includes('plot-disposed'));
+        assert.equal(h.client.exits, 1);
+        for (const id of ['performance-status', 'coverage-status', 'precision-status']) {
+            const node = h.window.document.getElementById(id);
+            if (node) { assert.equal(node.dataset.state, 'unknown'); }
+        }
+        for (const node of h.window.document.querySelectorAll('.tracking-correction-0, .tracking-correction-1, .tracking-correction-x, .tracking-correction-y'))
+            assert.equal(node.textContent, '—');
+        h.client.fail(new Error('Repeated close'));
+        assert.equal(h.client.exits, 1);
+    });
+}
 
 for (const board of ['alpha250', 'red-pitaya']) {
     test(`${board}: a cached Back/Forward return reconnects after page shutdown`, () => {

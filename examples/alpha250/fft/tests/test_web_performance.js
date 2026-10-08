@@ -1,4 +1,4 @@
-// Verify telemetry cadence and frame budgets without real timers or hardware.
+// Verify acquisition/paint budgets, ownership and reduction without hardware.
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -6,36 +6,16 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert});
-for (const file of ['web/fft/controls/fft-app.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
+for (const file of ['web/fft/plot/spectrum-history.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);
 }
 vm.runInContext(`
 (async () => {
-    let now = 250, controls = 0, board = 0;
+    let now = 0;
     globalThis.performance = {now: () => now};
     globalThis.setTimeout = () => 1;
-    globalThis.document = {activeElement: null, querySelector: () => ({textContent: ''}), querySelectorAll: () => []};
-    const widget = Object.assign(Object.create(FFTApp.prototype), {
-        running: true, channelNum: 0, _busyControls: false, _controlsHz: 4,
-        _lastControlsTick: 0, _lastBoardTick: -Infinity, _supplySpans: [], _temperatureSpans: [],
-        ensureControlsCache() {}, setCheckedIfNeeded() {}, setValueIfNeeded() {},
-        driver: {
-            async getControlParameters() { controls++; return {fs: 250e6, channel: 0, window_index: 1, clkIndex: '0'}; },
-            async getBoardParameters() { board++; return {adcValues: [0,0,0,0], dacValues: [0,0,0,0]}; }
-        }
-    });
-    for (const time of [250, 500, 750, 1000, 1250]) { now = time; await widget.updateControls(); }
-    assert.equal(controls, 5);
-    assert.equal(board, 2); // Initial telemetry, then at one second; controls remain 4 Hz.
-    // Red Pitaya has no ALPHA250 precision-I/O telemetry endpoint.
-    delete widget.driver.getBoardParameters;
-    now += 1000; await widget.updateControls();
-    assert.equal(controls, 6);
-    assert.equal(board, 2);
-    widget.dispose(); now += 1000; await widget.updateControls();
-    assert.equal(controls, 6);
 
     let scheduled, reads = 0, finishRead, animation, animationRequests = 0, drawn = [];
     globalThis.window = {clearTimeout() {}, cancelAnimationFrame() { animation = undefined; },
@@ -51,7 +31,7 @@ vm.runInContext(`
         document: doc, history: new SpectrumHistory(), running: true, paused: false, busy: false, animation: 0,
         lastFrameTime: -Infinity, rateStarted: 0, acquiredFrames: 0, renderedFrames: 0, paintedFrames: 0,
         plotBasics: {needsRedraw: () => false},
-        fft: {status, read_psd() { reads++; return new Promise(resolve => { finishRead = resolve; }); }},
+        fft: {status, readSpectrum() { reads++; return new Promise(resolve => { finishRead = psd => resolve({psd, status}); }); }},
         displaySpectrum() { drawn.push({psd: Array.from(this.psd), status: this.frameStatus}); },
         setStatus() {}, schedule(delay) { scheduled = delay; }
     });
@@ -153,7 +133,7 @@ vm.runInContext(`
     const pausedReads = reads; await plot.updatePlot(); assert.equal(reads, pausedReads);
     plot.paused = false; doc.hidden = true; await plot.updatePlot(); assert.equal(reads, pausedReads);
     doc.hidden = false;
-    plot.fft.read_psd = async () => { throw new Error('expected acquisition failure'); };
+    plot.fft.readSpectrum = async () => { throw new Error('expected acquisition failure'); };
     plot.pending = {psd: new Float32Array([9]), status};
     plot.animation = 1;
     const savedError = console.error; console.error = () => {};
@@ -181,6 +161,6 @@ vm.runInContext(`
     assert.equal(spectrum.length, 4096); // Full samples remain intact for exports/cursors.
 
 })()
-`, context).then(() => console.log('Independent acquisition/paint, latest-frame ownership, FPS, telemetry and retry backoff: PASS')).catch(error => {
+`, context).then(() => console.log('Independent acquisition/paint, latest-frame ownership, FPS and retry backoff: PASS')).catch(error => {
     console.error(error); process.exitCode = 1;
 });

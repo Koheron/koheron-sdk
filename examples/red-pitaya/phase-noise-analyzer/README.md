@@ -9,8 +9,8 @@ the fixed /2 CIC or the filter-input clock crossing used by the 250 MHz
 instruments. The shared hardware is in
 [`pna_filter.tcl`](../../../fpga/lib/pna_filter.tcl).
 
-CIC rates are **integers from 4 through 8192**, default 20, including odd
-rates. The original CIC response, normalization and calibration are retained.
+The shared CIC editor uses **even rates from 4 through 8192**, default 20,
+as on the ALPHA pages. The CIC response, normalization and calibration are retained.
 The 512-packet cyclic DMA ring, 8192-sample packets, 65536-sample phase
 snapshots and runtime precision controls are retained.
 

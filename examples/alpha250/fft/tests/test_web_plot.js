@@ -39,7 +39,7 @@ vm.runInContext(`
     psd[0] = 0; // Zero DC must not prevent finding a finite peak.
     psd[1311] = 1e-8;
     const fft = {fft_size: 8192, status: {fs: 250e6, W1: .25, W2: .375, dds_freq: [40e6, 0]},
-                 async read_psd() { reads++; return psd; }};
+                 async readSpectrum() { reads++; return {psd, status: this.status}; }};
     let drawn;
     let resized = false, draws = 0;
     const basics = {enableSpectrumReduction() {}, enableBatchedLines() {}, needsRedraw() { return resized; },
@@ -91,8 +91,8 @@ vm.runInContext(`
     // A zero startup frame must not lock auto-scaling to the empty [-1, 1] range.
     let startupDraws = 0;
     let startupReady = false;
-    const startupFFT = {...fft, async read_psd() {
-        return startupReady ? psd : new Float32Array(4096);
+    const startupFFT = {...fft, async readSpectrum() {
+        return {psd: startupReady ? psd : new Float32Array(4096), status: this.status};
     }};
     const startup = new Plot(doc, startupFFT, {...basics, redraw() { startupDraws++; }});
     await Promise.resolve(); flushFrame();

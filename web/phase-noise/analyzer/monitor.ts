@@ -1,10 +1,11 @@
 // Passive single-stream PNA monitor: acquisition controls, readouts and plot.
 class PnaMonitor {
   private driver: PhaseNoiseAnalyzer;
+  private measurements: PnaMeasurementReadout;
   private precision: PhasePrecision;
   private plot: Plot;
   private editors: NumberInput[] = [];
-  private removers: Array<() => void> = [];
+  private events = new InstrumentEvents();
   private stopped = false;
   private timer: number;
 
@@ -14,35 +15,27 @@ class PnaMonitor {
   async init(): Promise<void> {
     await this.client.init();
     if (this.stopped) { return; }
+    this.measurements = new PnaMeasurementReadout(this.document);
     this.driver = new PhaseNoiseAnalyzer(this.client, this.driverName);
     const p = await this.driver.getParameters();
     if (this.stopped) { return; }
-    const number = (id: string, value: number, minimum: number, maximum: number, command: (value: number) => void) => {
-      const editor = new NumberInput(this.document.getElementById(id) as HTMLInputElement, {
-        value, minimum, maximum, integer: true, resolution: 1,
-        step: id === 'monitor-decimation' ? 2 : 1,
-        validate: next => {
-          if (id === 'monitor-decimation' && next % 2 !== 0) throw new Error('Use an even decimation rate.');
-        },
-        commit: async next => {
-          try {
-            command(next);
-            const accepted = await this.driver.getParameters();
-            return id === 'monitor-decimation' ? accepted.cic_rate : accepted.fft_navg;
-          } catch (error) { this.fail(error); throw error; }
-        }
-      });
-      this.editors.push(editor);
+    const number = (id: string, value: number, command: (value: number) => void) => {
+      this.editors.push(pnaIntegerInput(this.document.getElementById(id) as HTMLInputElement, value, async next => {
+        try {
+          command(next);
+          const accepted = await this.driver.getParameters();
+          return id === 'monitor-decimation' ? accepted.cic_rate : accepted.fft_navg;
+        } catch (error) { this.fail(error); throw error; }
+      }));
     };
-    number('monitor-decimation', p.cic_rate, 4, 8192, value => this.driver.setCicRate(value));
-    number('monitor-averages', p.fft_navg, 1, 100, value => this.driver.setFFTNavg(value));
+    number('monitor-decimation', p.cic_rate, value => this.driver.setCicRate(value));
+    number('monitor-averages', p.fft_navg, value => this.driver.setFFTNavg(value));
     const listen = (element: Element, type: string, callback: () => void) => {
       const guarded = () => {
         if (this.stopped) { return; }
         try { callback(); } catch (error) { this.fail(error); }
       };
-      element.addEventListener(type, guarded);
-      this.removers.push(() => element.removeEventListener(type, guarded));
+      this.events.listen(element, type, guarded);
     };
     for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('[name="monitor-channel"]'))) {
       input.checked = Number(input.value) === p.channel;
@@ -75,14 +68,7 @@ class PnaMonitor {
       for (const input of Array.from(this.document.querySelectorAll<HTMLInputElement>('[name="monitor-channel"]')))
         input.checked = Number(input.value) === p.channel;
       this.document.getElementById('average-status').textContent = `${average.count}/`;
-      const value = (selector: string, number: number, unit: string) => {
-        this.document.querySelector(selector).textContent = Number.isFinite(number) ? `${number.toFixed(2)} ${unit}` : '—';
-      };
-      value('.carrier-power-span', m.carrier_power, 'dBm');
-      value('.phase-jitter-span', m.phase_jitter * 1e3, 'mrad');
-      value('.time-jitter-span', m.time_jitter * 1e12, 'ps');
-      this.document.getElementById('jitter-range').textContent = Number.isFinite(m.freq_lo) && Number.isFinite(m.freq_hi)
-        ? `${m.freq_lo.toLocaleString()}–${m.freq_hi.toLocaleString()} Hz` : '—';
+      this.measurements.render(m);
       this.timer = window.setTimeout(() => { void this.poll(); }, 500);
     } catch (error) { if (!this.stopped) this.fail(error); }
   }
@@ -91,7 +77,7 @@ class PnaMonitor {
     this.stopped = true;
     window.clearTimeout(this.timer);
     this.editors.forEach(editor => editor.dispose());
-    this.removers.forEach(remove => remove());
+    this.events.dispose();
     this.precision?.dispose();
     this.plot?.markUnavailable('Disconnected');
     this.plot?.dispose();
@@ -99,6 +85,7 @@ class PnaMonitor {
       (this.document.getElementById(id) as HTMLFieldSetElement).disabled = true;
     this.document.querySelectorAll('.carrier-power-span, .phase-jitter-span, .time-jitter-span, #jitter-range, #average-status')
       .forEach(node => { node.textContent = '—'; });
+    this.measurements?.clear();
     this.client.exit();
   }
 }

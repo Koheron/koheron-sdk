@@ -3,28 +3,30 @@
 
 class PhaseNoiseAnalyzerApp {
   private disposed = false;
-  private cicRateInput: HTMLInputElement;
-  private nAvgInput: HTMLInputElement;
+  private events = new InstrumentEvents();
+  private saveConfig: PnaSaveConfig;
   private channelInputs: HTMLInputElement[];
-  private carrierPowerSpan: HTMLElement;
-  private phaseJitterSpan: HTMLElement;
-  private timeJitterSpan: HTMLElement;
+  private measurements: PnaMeasurementReadout;
 
   private laserModeEnableCheckbox: HTMLInputElement;
   private interferometerDelayInput: HTMLInputElement;
 
-  private ddsInputs: HTMLInputElement[];
   private trackingEnabledInput: HTMLInputElement;
   private averageStatus: HTMLElement;
 
   private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
-  public channel: number;
 
   constructor(private document: Document, private driver: PhaseNoiseAnalyzer,
       private onConnectionError: (error: unknown) => void = () => {}) {}
 
-  dispose(): void { this.disposed = true; Object.keys(this.numbers).forEach(key => this.numbers[key].dispose()); }
+  dispose(): void {
+    this.disposed = true;
+    this.events.dispose();
+    this.measurements?.clear();
+    this.saveConfig?.dispose();
+    Object.keys(this.numbers).forEach(key => this.numbers[key].dispose());
+  }
 
   setSampleRate(rate: number): void {
     for (const channel of [0, 1])
@@ -38,19 +40,15 @@ class PhaseNoiseAnalyzerApp {
     if (this.disposed) { return; }
     this.nPoints = parameters.data_size;
 
-    this.channelInputs = <HTMLInputElement[]><any>this.document.getElementsByClassName("channel-input");
-    this.carrierPowerSpan = <HTMLElement>this.document.getElementsByClassName("carrier-power-span")[0];
-    this.phaseJitterSpan = <HTMLElement>this.document.getElementsByClassName("phase-jitter-span")[0];
-    this.timeJitterSpan = <HTMLElement>this.document.getElementsByClassName("time-jitter-span")[0];
+    this.channelInputs = Array.from(this.document.querySelectorAll<HTMLInputElement>(".channel-input"));
+    this.measurements = new PnaMeasurementReadout(this.document);
 
-    this.ddsInputs = [0, 1].map(i =>
-      this.document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
     this.initNumbers(parameters, tracking);
-    this.initSaveConfig();
+    this.saveConfig = new PnaSaveConfig(this.document, () => this.driver.saveConfig(), this.onConnectionError);
     this.averageStatus = this.document.querySelector('#average-status');
     this.trackingEnabledInput = this.document.querySelector('.tracking-enabled-input');
     this.trackingEnabledInput.checked = tracking.enabled;
-    this.trackingEnabledInput.addEventListener('change', () =>
+    this.events.listen(this.trackingEnabledInput, 'change', () =>
       this.driver.setTrackingEnabled(this.trackingEnabledInput.checked));
     this.initChannelInput();
     this.initLaserMode();
@@ -59,26 +57,20 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private initNumbers(parameters: IParameters, tracking: ITrackingParameters): void {
-    this.cicRateInput = this.document.querySelector('.cic-rate-input');
-    this.nAvgInput = this.document.querySelector('.plot-navg-input');
+    const cicRateInput = this.document.querySelector<HTMLInputElement>('.cic-rate-input');
+    const nAvgInput = this.document.querySelector<HTMLInputElement>('.plot-navg-input');
     this.interferometerDelayInput = this.document.querySelector('.interferometer-delay');
-    const cicRateStep = Number(this.cicRateInput.step) || 1;
     const number = (input: HTMLInputElement, value: number, unitLabel: string, commit: (value: number) => void, read: (parameters: IParameters) => number) =>
-      new NumberInput(input, {
-        value, minimum: Number(input.min), maximum: Number(input.max), resolution: 1, integer: true, unitLabel,
-        step: input === this.cicRateInput ? cicRateStep : 1,
-        validate: value => {
-          if (input === this.cicRateInput && value % cicRateStep !== 0) throw new Error('Use an even decimation rate.');
-        },
-        commit: async value => { commit(value); return read(await this.driver.getParameters()); }
-      });
-    this.numbers.cic = number(this.cicRateInput, parameters.cic_rate, '', value => this.driver.setCicRate(value), p => p.cic_rate);
-    this.numbers.navg = number(this.nAvgInput, parameters.fft_navg, '', value => this.driver.setFFTNavg(value), p => p.fft_navg);
+      pnaIntegerInput(input, value, async next => {
+        commit(next); return read(await this.driver.getParameters());
+      }, unitLabel);
+    this.numbers.cic = number(cicRateInput, parameters.cic_rate, '', value => this.driver.setCicRate(value), p => p.cic_rate);
+    this.numbers.navg = number(nAvgInput, parameters.fft_navg, '', value => this.driver.setFFTNavg(value), p => p.fft_navg);
     this.numbers.delay = number(this.interferometerDelayInput, parameters.interferometer_delay * 1e9, 'ns',
       value => this.driver.setInterferometerDelay(value * 1e-9), p => p.interferometer_delay * 1e9);
     const adcSampleRate = parameters.fs * 2 * parameters.cic_rate;
     [tracking.nominal0, tracking.nominal1].forEach((value, channel) => {
-      const input = this.ddsInputs[channel];
+      const input = this.document.querySelector<HTMLInputElement>(`.dds-input${channel}`);
       this.numbers['lo' + channel] = new FrequencyInput(input, input.parentElement.querySelector('.lo-unit'), {
         value, maximum: adcSampleRate / 2, inclusiveMaximum: true, resolution: adcSampleRate / Math.pow(2, 48),
         commit: async frequency => {
@@ -91,71 +83,19 @@ class PhaseNoiseAnalyzerApp {
     });
   }
 
-  private initSaveConfig(): void {
-    const button = this.document.querySelector<HTMLButtonElement>('.save-cfg');
-    button?.addEventListener('click', () => {
-      if (this.disposed) { return; }
-      const status = this.document.getElementById('save-config-status');
-      try {
-        this.driver.saveConfig();
-        // The existing save RPC has no acknowledgement. Describe the request
-        // honestly instead of claiming that the file write was verified.
-        button.textContent = 'Save requested';
-        if (status) { status.textContent = 'Analyzer settings save requested.'; }
-      } catch (error) {
-        button.textContent = 'Save failed';
-        if (status) { status.textContent = 'Unable to send the save request.'; }
-        this.onConnectionError(error);
-      }
-      setTimeout(() => { if (!this.disposed) { button.textContent = 'Save settings'; } }, 2000);
-    });
-  }
-
-  initChannelInput(): void {
-    for (let i = 0; i < this.channelInputs.length; i++) {
-      this.channelInputs[i].addEventListener('change', (event) => {
-        this.channel = parseInt((<HTMLInputElement>event.currentTarget).value);
-          this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
-      })
+  private initChannelInput(): void {
+    for (const input of this.channelInputs) {
+      this.events.listen(input, 'change', () => this.driver.setChannel(Number(input.value)));
     }
   }
 
-  initLaserMode(): void {
-    this.laserModeEnableCheckbox = <HTMLInputElement>this.document.getElementsByClassName("laser-mode-input")[0];
-    this.interferometerDelayInput = <HTMLInputElement>this.document.getElementsByClassName("interferometer-delay")[0];
-
-    this.laserModeEnableCheckbox.addEventListener("change", () => {
+  private initLaserMode(): void {
+    this.laserModeEnableCheckbox = this.document.querySelector<HTMLInputElement>(".laser-mode-input");
+    this.events.listen(this.laserModeEnableCheckbox, "change", () => {
       const enabled: 0 | 1 = this.laserModeEnableCheckbox.checked ? 1 : 0;
       this.driver.setAnalyzerMode(enabled);
       this.interferometerDelayInput.disabled = !enabled;
     });
-
-  }
-
-  private formatFrequency(freq: number): string {
-    if (Number.isNaN(freq)) {
-      return "---";
-    }
-
-    const absFreq = Math.abs(freq);
-
-    if (absFreq >= 1e9) {
-      return `${(freq / 1e9).toFixed(0)} GHz`;
-    } else if (absFreq >= 1e6) {
-      return `${(freq / 1e6).toFixed(0)} MHz`;
-    } else if (absFreq >= 1e3) {
-      return `${(freq / 1e3).toFixed(0)} kHz`;
-    } else {
-      return `${freq.toFixed(0)} Hz`;
-    }
-  }
-
-  private formatMeasurement(value: number, unit: string, digits: number = 2): string {
-    if (!Number.isFinite(value)) {
-      return '—';
-    } else {
-      return `${value.toFixed(digits)}  ${unit}`;
-    }
   }
 
   private async updateMeasurements() {
@@ -165,16 +105,7 @@ class PhaseNoiseAnalyzerApp {
       const meas = await this.driver.getMeasurements(navg);
       if (this.disposed) { return; }
 
-      this.carrierPowerSpan.innerHTML = this.formatMeasurement(meas.carrier_power, "dBm");
-      this.phaseJitterSpan.innerHTML =
-        this.formatMeasurement(meas.phase_jitter * 1E3, 'mrad<sub>rms</sub>');
-      this.timeJitterSpan.innerHTML =
-        this.formatMeasurement(meas.time_jitter * 1E12, 'ps<sub>rms</sub>');
-      const range = this.document.getElementById('jitter-range');
-      if (range) {
-        range.textContent = Number.isFinite(meas.freq_lo) && Number.isFinite(meas.freq_hi)
-          ? `${this.formatFrequency(meas.freq_lo)} – ${this.formatFrequency(meas.freq_hi)}` : '—';
-      }
+      this.measurements.render(meas);
     } catch (error) {
       if (!this.disposed) { this.onConnectionError(error); }
     } finally {
@@ -190,12 +121,8 @@ class PhaseNoiseAnalyzerApp {
       const tracking = await this.driver.getTrackingParameters();
       if (this.disposed) { return; }
 
-      if (parameters.channel == 0) {
-        this.channelInputs[0].checked = true;
-        this.channelInputs[1].checked = false;
-      } else {
-        this.channelInputs[0].checked = false;
-        this.channelInputs[1].checked = true;
+      for (const input of this.channelInputs) {
+        input.checked = Number(input.value) === parameters.channel;
       }
 
       this.numbers.cic.setValue(parameters.cic_rate);

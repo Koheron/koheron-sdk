@@ -34,13 +34,20 @@ NON_TS_FILES_ABS  := $(filter-out %.ts,$(WEB_FILES_ABS))
 
 TMP_WEB_PATH := $(TMP_PROJECT_PATH)/web
 
+# A config/component edit can replace sources while keeping output basenames.
+# Track make inputs as well as source mtimes so older shared assets replace
+# newer legacy outputs and removed TypeScript files leave the compiled bundle.
+WEB_CONFIG_FILES := $(filter %.mk Makefile,$(MAKEFILE_LIST))
+
 ifeq ($(TS_FILES_ABS),)
   APP_JS :=
 else
   APP_JS := $(TMP_WEB_PATH)/app.js
-$(APP_JS): $(TS_FILES_ABS) | $(TMP_WEB_PATH)/
+$(APP_JS): $(TS_FILES_ABS) $(WEB_CONFIG_FILES) | $(TMP_WEB_PATH)/
 	mkdir -p $(@D)
-	$(TSC) $^ --outFile $@
+	$(TSC) $(TS_FILES_ABS) --outFile $@
+	# The incremental compiler may reuse JS after a config-only rebuild.
+	touch $@
 endif
 
 BASENAMES            := $(notdir $(NON_TS_FILES_ABS))
@@ -52,7 +59,7 @@ endif
 FLAT_ASSET_TARGETS   := $(addprefix $(TMP_WEB_PATH)/,$(BASENAMES))
 
 define COPY_ONE
-$(TMP_WEB_PATH)/$(notdir $1): $1 | $(TMP_WEB_PATH)/
+$(TMP_WEB_PATH)/$(notdir $1): $1 $(WEB_CONFIG_FILES) | $(TMP_WEB_PATH)/
 	cp $$< $$@
 endef
 $(foreach f,$(NON_TS_FILES_ABS),$(eval $(call COPY_ONE,$(f))))

@@ -1,15 +1,17 @@
-# Precision DAC controls
+# Precision channels
 
-ALPHA15 signal analyzer and ALPHA250 FFT include `components.mk` after the
-shared digit inputs. It provides `PrecisionDac` and the `PrecisionChannelsApp`
-editor. Board templates remain local so their ADC controls and labels do not
-change. Startup only reads the DACs; edits send volts, display millivolts and
-read back the returned setting. Telemetry preserves drafts and invalid edits.
+Include `components.mk` after shared digit inputs for `PrecisionDac`,
+`PrecisionChannelsApp` and `precision-channels.css`. Load the stylesheet before
+host layout styles. `driver.mk` packages only the DAC adapter; `adc-driver.mk`
+packages the ALPHA250-4 precision ADC adapter. DAC reads support callbacks and
+Promises.
 
-The older ALPHA250-4 FFT includes only `driver.mk` and keeps its existing
-slider widget and polling. The transport supports its callback read as well as
-the Promise read used by the newer interfaces, with the same RPC commands.
+ALPHA15, ALPHA250 FFT and ALPHA250-4 FFT use the digit editor. Startup reads
+settings; edits display millivolts, send volts and read back accepted values.
+Telemetry preserves drafts and invalid entries. Dispose editors on exit.
 
-Run the transport/editor regressions through `bash web/tests/run.sh alpha15`
-or any other browser suite. The ALPHA15 workspace checks exercise the shared
-components with its real adapters and four-channel board template.
+Include `io-template.mk` for ALPHA250/ALPHA250-4's four-channel DAC/ADC table.
+ALPHA15 retains its DAC-only template because it has no precision ADC.
+
+Transport/editor and board-integration checks run through the
+[browser runner](../tests/README.md).

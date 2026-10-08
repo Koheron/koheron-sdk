@@ -1,16 +1,15 @@
 class ClockGeneratorApp {
-    private clkgenInputs: HTMLInputElement[];
+    private events = new InstrumentEvents();
+    private onChange = (event: Event): void => {
+        const input = event.currentTarget as HTMLInputElement;
+        if (this.settingsChanged) { this.settingsChanged(); }
+        this.driver[input.dataset.command](parseInt(input.value));
+    };
 
-    constructor(document: Document, private driver) {
-        this.clkgenInputs = <HTMLInputElement[]><any>document.getElementsByClassName("clkgen-input");
-        this.initClkgenInputs();
+    constructor(document: Document, private driver, private settingsChanged?: () => void) {
+        const inputs = Array.from(document.getElementsByClassName('clkgen-input')) as HTMLInputElement[];
+        for (const input of inputs) { this.events.listen(input, 'change', this.onChange); }
     }
 
-    private initClkgenInputs(): void {
-        for (let i = 0; i < this.clkgenInputs.length; i ++) {
-            this.clkgenInputs[i].addEventListener('change', (event) => {
-                this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](parseInt((<HTMLInputElement>event.currentTarget).value));
-            })
-        }
-    }
+    dispose(): void { this.events.dispose(); }
 }

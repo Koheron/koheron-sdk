@@ -1,29 +1,50 @@
-// DDS frequency widget
-// (c) Koheron
+interface DDSFrequencyPort {
+    setDDSFreq(channel: number, frequency: number): void;
+    getControlParameters(): Promise<{dds_freq: number[]}>;
+}
 
+// DDS frequency editing shares the instrument digit editor; commands stay in Hz.
 class DDSFrequency {
-    private ddsChannelInputs: HTMLInputElement[];
+    private editors: FrequencyInput[] = [];
+    private poller: InstrumentPoller<{dds_freq: number[]}>;
+    private disposed = false;
 
-    constructor(private document: Document, private driver) {
-        this.ddsChannelInputs = Array.from(document.getElementsByClassName("dds-channel-input")) as HTMLInputElement[];
-        this.initDDSChannelInputs();
+    constructor(private document: Document, private driver: DDSFrequencyPort) {
+        for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.dds-channel-input'))) {
+            const channel = Number(input.dataset.channel);
+            this.editors[channel] = new FrequencyInput(input,
+                document.querySelector<HTMLSelectElement>(`.dds-frequency-unit[data-channel='${channel}']`), {
+                    value: 0, maximum: 125e6, inclusiveMaximum: true, resolution: 1,
+                    commit: async frequency => {
+                        this.driver.setDDSFreq(channel, frequency);
+                        return (await this.driver.getControlParameters()).dds_freq[channel];
+                    }
+                });
+        }
+        this.poller = new InstrumentPoller(document, () => this.driver.getControlParameters(),
+            values => this.setValues(values.dds_freq), error => {
+                document.getElementById('dds-frequency-status').textContent = 'Readback unavailable; retrying…';
+                console.error('DDS readback failed:', error);
+            });
     }
 
-    initDDSChannelInputs(): void {
-        for (const input of this.ddsChannelInputs) {
-            // Commit typed numbers when editing finishes; sliders stay live.
-            input.addEventListener(input.type === 'range' ? 'input' : 'change', () => {
-                const frequency = input.valueAsNumber;
-                if (!Number.isFinite(frequency) || !input.checkValidity()) { return; }
-                const command = input.dataset.command;
-                const channel = input.dataset.channel;
-                const counterpartType = input.type === 'number' ? 'range' : 'number';
-                const counterpart = this.document.querySelector<HTMLInputElement>(
-                    `[data-command='${command}'][data-channel='${channel}'][type='${counterpartType}']`
-                );
-                if (counterpart) { counterpart.value = input.value; }
-                this.driver[command](channel, 1e6 * frequency);
-            });
-        }
+    async init(): Promise<void> {
+        const status = await this.driver.getControlParameters();
+        if (this.disposed) { return; }
+        this.setValues(status.dds_freq);
+        (this.document.getElementById('dds-frequency-controls') as HTMLFieldSetElement).disabled = false;
+        this.poller.start();
+    }
+
+    private setValues(values: number[]): void {
+        this.editors.forEach((editor, channel) => editor.setValue(values[channel]));
+        this.document.getElementById('dds-frequency-status').textContent = '';
+    }
+
+    dispose(): void {
+        this.disposed = true;
+        this.poller.dispose();
+        this.editors.forEach(editor => editor.dispose());
+        (this.document.getElementById('dds-frequency-controls') as HTMLFieldSetElement).disabled = true;
     }
 }

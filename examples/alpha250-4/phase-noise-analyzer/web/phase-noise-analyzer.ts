@@ -18,16 +18,7 @@ interface IParameters {
   avgxy_count: number;
 }
 
-type TupleGetMeasurements = [number, number, number, number, number];
 type TupleGetTrackingParameters = [boolean, number, number, number, number, number, number, boolean];
-
-interface IMeasurements {
-  phase_jitter: number; // rad rms
-  time_jitter: number;  // s rms
-  freq_lo: number; // Integration interval start
-  freq_hi: number; // Integration interval end
-  carrier_power: number;
-}
 
 interface ITrackingParameters {
   tracking_enabled: boolean;
@@ -84,13 +75,7 @@ class PhaseNoiseAnalyzer {
   }
 
   async getMeasurements(nAverage: number): Promise<IMeasurements> {
-    const [phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power] =
-      await this.client.readTuple<TupleGetMeasurements>(
-        Command(this.id, this.cmds['get_measurements'], nAverage),
-        'fdddd'
-      );
-
-    return { phase_jitter, time_jitter, freq_lo, freq_hi, carrier_power };
+    return readPnaMeasurements(this.client, Command(this.id, this.cmds['get_measurements'], nAverage), 'fdddd');
   }
 
   setFFTNavg(navg: number): void {
@@ -169,12 +154,6 @@ class PhaseNoiseAnalyzer {
 
   resetCumulativeAverager(): void {
     this.client.send(Command(this.id, this.cmds['reset_cumulative_averager']));
-  }
-
-  async getCarrierPower(nAverage: number): Promise<number> {
-    return await this.client.readFloat64(
-      Command(this.id, this.cmds['get_carrier_power'], nAverage)
-    );
   }
 
   saveConfig(): void {
