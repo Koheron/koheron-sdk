@@ -16,7 +16,7 @@ class WebSocketMaskTest(unittest.TestCase):
         cls.addClassCleanup(build.cleanup)
         cls.binary = Path(build.name) / 'websocket-mask'
         command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall',
-                   '-Wextra', '-Werror', '-pthread', '-I', str(ROOT),
+                   '-Wextra', '-Werror', '-pthread', '-Wl,--wrap=read', '-I', str(ROOT),
                    '-I', str(ROOT / 'server/external_libs'),
                    '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]
         command += shlex.split(os.environ.get('CXXFLAGS', ''))
@@ -33,6 +33,7 @@ class WebSocketMaskTest(unittest.TestCase):
     def test_lengths_alignments_phases_and_in_place(self): self.run_case('boundaries')
     def test_no_reads_or_writes_past_buffer_end(self): self.run_case('guard-pages')
     def test_wire_frames_and_header_payload_split(self): self.run_case('receive')
+    def test_eof_at_frame_header_and_payload_boundaries(self): self.run_case('receive-eof')
 
 
 if __name__ == '__main__':
