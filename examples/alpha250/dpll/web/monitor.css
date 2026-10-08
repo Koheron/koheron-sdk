@@ -70,3 +70,6 @@
 .dpll-workspace #diagram-editor .routing-controls select { flex: 1; min-width: 0; }
 .dpll-workspace .p-mode-row[data-linked="true"], .dpll-workspace .routing-controls[data-linked="true"] { background: #e5f5fb; }
 .dpll-workspace #diagram-editor .integrator-row > .control-label { display: none; }
+
+.dpll-workspace .frequency-row[data-linked="true"] { background: #e5f5fb; }
+.dpll-workspace #diagram-editor .frequency-row > label { display: none; }

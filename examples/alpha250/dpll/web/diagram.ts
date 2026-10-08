@@ -14,6 +14,11 @@ class DpllDiagram {
 
   private closeEditor(restoreFocus: boolean): void {
     if (!this.editedControl) { return; }
+    const frequency = this.editedControl.querySelector<HTMLInputElement>('.frequency-input');
+    if (frequency && !this.disposed) { this.commitFrequency(Number(frequency.dataset.channel)); }
+    if (!this.editedControl) { return; } // A failed commit can synchronously dispose the controls.
+    // Blur before moving the node so digit tuning releases its wheel listener.
+    if (this.editedControl.contains(this.document.activeElement)) { (this.document.activeElement as HTMLElement).blur(); }
     this.placeholder.replaceWith(this.editedControl);
     this.editedControl = null;
     this.editor.hidden = true;
@@ -32,6 +37,8 @@ class DpllDiagram {
       const cells = (this.placeholder as HTMLTableRowElement).cells;
       cells[1].textContent = gain === 0 ? '0' : gain < 0 ? '−' : '+';
       cells[2].textContent = gain === 0 ? 'Off' : db ? DpllGain.db(gain) : String(DpllGain.step(gain) / 16);
+    } else if (this.editedControl.matches('.frequency-row')) {
+      this.placeholder.textContent = `Reference · ${this.frequencyLabel(status.dds_freq[channel])}`;
     } else if (this.editedControl.matches('.integrator-row')) {
       this.placeholder.textContent = `Integrators · ${[0,1,2,3].filter(i => status.integrators[channel] & (1 << i)).map(i => i + 1).join(', ') || 'Off'}`;
     } else if (this.editedControl.matches('.p-mode-row')) {
@@ -39,6 +46,10 @@ class DpllDiagram {
     } else {
       this.placeholder.textContent = routes.map((route, dac) => `DAC ${dac} · ${this.routeName(route)}`).join(' / ');
     }
+  }
+
+  private frequencyLabel(hz: number): string {
+    return `${Number((hz / 1e6).toFixed(6))} MHz`;
   }
 
   private routeName(route: number): string {
@@ -69,20 +80,22 @@ class DpllDiagram {
     if (block.hasAttribute('data-integrator')) {
       return this.document.querySelector<HTMLElement>(`.integrator-switch[data-channel="${channel}"][data-integratorindex="${block.getAttribute('data-integrator')}"]`);
     }
+    if (block.getAttribute('data-control') === 'dds') { return this.document.querySelector<HTMLElement>(`.frequency-input[data-channel="${channel}"]`); }
     return this.document.querySelector<HTMLElement>(block.getAttribute('data-control') === 'mode' ? `.p-mode[data-channel="${channel}"]` : '.routing-controls');
   }
 
   private highlight(control: Element): void {
-    for (const element of Array.from(this.document.querySelectorAll('#live-diagram [data-linked], .gain-row[data-linked], .integrators label[data-linked], .p-mode-row[data-linked], .routing-controls[data-linked]'))) { element.removeAttribute('data-linked'); }
+    for (const element of Array.from(this.document.querySelectorAll('#live-diagram [data-linked], .gain-row[data-linked], .integrators label[data-linked], .p-mode-row[data-linked], .frequency-row[data-linked], .routing-controls[data-linked]'))) { element.removeAttribute('data-linked'); }
     if (!control || !this.svg) { return; }
     const row = control.closest('.gain-row');
     const input = control.closest('.integrator-switch') || control.closest('.integrators label')?.querySelector('.integrator-switch');
     const mode = control.closest('.p-mode-row')?.querySelector('.p-mode');
+    const frequency = control.closest('.frequency-row')?.querySelector('.frequency-input');
     const routing = control.closest('.routing-controls');
-    const source = row || input || mode;
+    const source = row || input || mode || frequency;
     if (!routing && (!source || source.getAttribute('data-channel') !== this.channel.value)) { return; }
-    (row || input?.parentElement || mode?.parentElement || routing).setAttribute('data-linked', 'true');
-    const selector = row ? `[data-gain="${row.getAttribute('data-status')}"]` : input ? `[data-integrator="${input.getAttribute('data-integratorindex')}"]` : `[data-control="${mode ? 'mode' : 'routing'}"]`;
+    (row || input?.parentElement || mode?.parentElement || frequency?.closest('.frequency-row') || routing).setAttribute('data-linked', 'true');
+    const selector = row ? `[data-gain="${row.getAttribute('data-status')}"]` : input ? `[data-integrator="${input.getAttribute('data-integratorindex')}"]` : `[data-control="${mode ? 'mode' : frequency ? 'dds' : 'routing'}"]`;
     for (const block of Array.from(this.svg.querySelectorAll(selector))) { block.setAttribute('data-linked', 'true'); }
   }
 
@@ -90,9 +103,10 @@ class DpllDiagram {
     if (this.disposed || !this.latest) { return; }
     if (this.anchor === block && this.editedControl) { this.closeEditor(true); return; }
     this.closeEditor(false);
+    if (this.disposed) { return; }
     const target = this.controlFor(block);
     if (!target) { return; }
-    const control = target.closest<HTMLElement>('.gain-row, .integrator-row, .p-mode-row, .routing-controls');
+    const control = target.closest<HTMLElement>('.gain-row, .integrator-row, .p-mode-row, .frequency-row, .routing-controls');
     const gainInput = control.querySelector<HTMLInputElement>('.gain-input');
     this.anchor = block;
     this.editedControl = control;
@@ -119,7 +133,7 @@ class DpllDiagram {
     const table = this.editor.querySelector<HTMLTableElement>('.gain-table');
     table.hidden = !gainInput;
     (gainInput ? table.querySelector('tbody') : this.editor.querySelector('.diagram-editor-controls')).appendChild(control);
-    const name = gainInput ? control.querySelector('label').textContent : target.matches('.p-mode') ? 'P + I' : target.matches('.integrator-switch') ? 'Integrators' : 'RF DAC routing';
+    const name = gainInput ? control.querySelector('label').textContent : target.matches('.p-mode') ? 'P + I' : target.matches('.integrator-switch') ? 'Integrators' : target.matches('.frequency-input') ? 'Reference DDS' : 'RF DAC routing';
     this.document.getElementById('diagram-editor-title').textContent = control.matches('.routing-controls') ? name : `ADC ${this.channel.value} · ${name}`;
     this.document.getElementById('diagram-editor-unit').textContent = gainInput ? (gainInput.dataset.unit === 'db' ? 'dB' : 'log₂') : '';
     this.editor.hidden = false;
@@ -131,13 +145,22 @@ class DpllDiagram {
     this.highlight(focus);
   }
 
-  constructor(private document: Document) {
+  constructor(private document: Document, private commitFrequency: (channel: number) => void) {
     this.channel = document.querySelector<HTMLSelectElement>('#diagram-channel');
     this.editor = document.getElementById('diagram-editor');
     this.listen(document.getElementById('diagram-editor-close'), 'click', () => this.closeEditor(true));
     this.listen(this.editor, 'keydown', event => {
-      if ((event as KeyboardEvent).key === 'Escape') {
+      const key = event as KeyboardEvent;
+      if (key.key === 'Tab') {
+        const controls = Array.from(this.editor.querySelectorAll<HTMLElement>('button, input, select')).filter(control => !control.matches(':disabled') && control.getClientRects().length > 0);
+        const boundary = key.shiftKey ? controls[0] : controls[controls.length - 1];
+        // Let the browser continue its normal tab order from the originating block.
+        if (event.target === boundary) { this.closeEditor(true); }
+      }
+      if (key.key === 'Escape') {
         event.preventDefault();
+        const frequency = this.editedControl?.querySelector<HTMLInputElement>('.frequency-input');
+        if (frequency && event.target !== frequency) { frequency.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape'})); }
         if (this.editedControl && !this.editedControl.contains(event.target as Node)) {
           this.editedControl.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape'}));
         }
@@ -179,7 +202,7 @@ class DpllDiagram {
     this.listen(document, 'pointerout', event => {
       const target = event.target as Element;
       const related = (event as PointerEvent).relatedTarget as Node;
-      const source = target.closest('.gain-row, .integrators label, .p-mode-row, .routing-controls');
+      const source = target.closest('.gain-row, .integrators label, .p-mode-row, .frequency-row, .routing-controls');
       if (source && (!related || !source.contains(related))) { this.highlight(this.document.activeElement); }
     });
     this.listen(document, 'focusout', event => {
@@ -245,7 +268,7 @@ class DpllDiagram {
     }
     label('header', `ADC${channel} · ${sampleRate / 1e6} MS/s · APPLIED SETTINGS`);
     label('adc', `ADC${channel}`);
-    label('dds', `${Number((status.dds_freq[channel] / 1e6).toPrecision(6))} MHz DDS`);
+    label('dds', this.frequencyLabel(status.dds_freq[channel]));
     label('mode', fast ? 'Fast selected' : 'Accurate selected');
     label('range', fast ? (status.p_path[channel] & 2 ? 'Within estimate range' : 'Outside estimate range') : 'Calibrated near lock');
     label('routes', routes.map((route, dac) => `DAC${dac}: ${this.routeName(route)}`).join(' · '));
@@ -266,7 +289,7 @@ class DpllDiagram {
       block.setAttribute('tabindex', '0');
     }
     for (const block of Array.from(this.svg.querySelectorAll('[data-control]'))) {
-      const description = block.getAttribute('data-control') === 'mode' ? `ADC ${channel} P + I: ${fast ? 'Fast' : 'Accurate'}. Select mode.` : `${routes.map((route, dac) => `DAC ${dac}: ${this.routeName(route)}`).join('. ')}. Edit routing.`;
+      const description = block.getAttribute('data-control') === 'dds' ? `ADC ${channel} reference DDS: ${Number(status.dds_freq[channel].toPrecision(15))} Hz (applied). Edit frequency.` : block.getAttribute('data-control') === 'mode' ? `ADC ${channel} P + I: ${fast ? 'Fast' : 'Accurate'}. Select mode.` : `${routes.map((route, dac) => `DAC ${dac}: ${this.routeName(route)}`).join('. ')}. Edit routing.`;
       this.text(block.querySelector('title'), description);
       block.setAttribute('aria-label', description);
       block.setAttribute('tabindex', '0');
@@ -283,8 +306,8 @@ class DpllDiagram {
   }
 
   dispose(): void {
-    this.closeEditor(false);
     this.disposed = true;
+    this.closeEditor(false);
     this.removers.forEach(remove => remove());
     this.highlight(null);
     for (const panel of Array.from(this.document.querySelectorAll('[data-diagram-selected]'))) { panel.removeAttribute('data-diagram-selected'); }

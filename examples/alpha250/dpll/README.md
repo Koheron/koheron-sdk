@@ -38,11 +38,15 @@ disable controls and expose Retry. Closing the page stops polling and cancels
 queued frequency edits. The collapsible signal diagram follows applied readback for its selected channel,
 including signed dB gains, enabled integrators, mode, reference and routing.
 Focusing a loop control selects that channel in the diagram. Matching gains,
-integrators, mode and routing controls highlight together. Click a gain,
-integrator, mode selector or RF routing block (or press Enter/Space when focused)
+integrators, reference frequency, mode and routing controls highlight together.
+Click a DDS, gain, integrator, mode selector or RF routing block (or press Enter/Space when focused)
 to open its existing controls beside the block. Opening an editor never changes
 a setting or expands a collapsed loop panel. Repeated Int 3 blocks share the
-same enable control.
+same enable control. The DDS block shows frequency to 1 Hz; its tooltip retains
+finer readback precision. DDS edits use the standard digit control: Enter or
+leaving the editor applies typed entry, Escape cancels it, and changing display
+units alone sends no command. Disconnect cancels an unfinished frequency edit.
+Tab and Shift+Tab leave an editor in the diagram's normal keyboard order.
 
 The gain editor shares the exact draft and Apply action with the standard table.
 Closing retains its draft; Escape cancels it, and a successful Apply closes after

@@ -27,8 +27,9 @@ svg.dpll-schematic [data-linked="true"] rect,svg.dpll-schematic [role="button"]:
 <text data-label="header" x="280" y="18" class="small">ONE CHANNEL · 250 MS/s</text>
 <rect x="46" y="34" width="124" height="28" rx="3" class="block"/>
 <text x="108.0" y="52.0" class="head" data-label="adc">ADC</text>
-<rect x="390" y="34" width="124" height="28" rx="3" class="block"/>
-<text data-label="dds" x="452.0" y="52.0" class="head">Reference DDS</text>
+<g data-control="dds"><title>Reference DDS</title><rect x="390" y="30" width="124" height="32" rx="3" class="block"/>
+<text x="452" y="43" class="head">Reference DDS</text>
+<text data-label="dds" x="452" y="57" class="small">Frequency</text></g>
 <path class="wire" d="M108 62V86H214"/>
 <path class="wire" d="M452 62V86H346"/>
 <rect x="214" y="70" width="132" height="32" rx="3" class="block"/>

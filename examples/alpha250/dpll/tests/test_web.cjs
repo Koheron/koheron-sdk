@@ -39,6 +39,7 @@ async function host(t, options = {}) {
     send({name, args}) {
       writes.push({name, args});
       const [channel, value] = args;
+      if (name === 'set_dds_freq' && options.failFrequency) { throw new Error('send failed'); }
       if (name === 'set_dds_freq') { state.frequencies[channel] = value; state.paths[channel] &= ~1; }
       const index = ['set_p_gain', 'set_pi_gain', 'set_i2_gain', 'set_i3_gain'].indexOf(name);
       if (index >= 0) { state.gains[index][channel] = value; }
@@ -618,4 +619,82 @@ test('routing editor addresses the chosen DAC and does not select a different AD
   assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
   assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
   assert.equal(block.hasAttribute('aria-haspopup'), false);
+});
+
+test('DDS block reuses frequency editing with precise applied readback and one commit on close', async t => {
+  const h = await host(t);
+  h.state.frequencies[0] = 10000001; await settle(280);
+  const block = h.document.querySelector('svg [data-control="dds"]');
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '10.000001 MHz');
+  const input = h.inputs[0], row = input.closest('.frequency-row'), parent = row.parentElement;
+  parent.open = false;
+  h.key(block, 'Enter');
+  assert.equal(parent.open, false);
+  assert.equal(h.document.activeElement, input);
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
+  assert.equal(h.writes.length, 0);
+  h.type(input, '10.000002'); await settle(280);
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '10.000001 MHz');
+  h.document.querySelector('#diagram-editor-close').click(); await settle(280);
+  assert.deepEqual(h.writes, [{name:'set_dds_freq', args:[0,10000002]}]);
+  assert.equal(row.parentElement, parent);
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '10.000002 MHz');
+  assert.equal(h.document.querySelectorAll('#frequency-0').length, 1);
+});
+
+test('DDS Escape cancels from the frequency input or unit selector without writes', async t => {
+  const h = await host(t);
+  const block = h.document.querySelector('svg [data-control="dds"]');
+  for (const selector of ['#frequency-0', '.frequency-unit[data-channel="0"]']) {
+    h.key(block, 'Enter');
+    h.type(h.inputs[0], '12');
+    h.document.querySelector(selector).focus();
+    h.key(h.document.querySelector(selector), 'Escape'); await settle();
+    assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+    assert.equal(Number(h.inputs[0].value.replace(/\s/g,'')), 1);
+    assert.equal(h.document.activeElement, block);
+  }
+  assert.equal(h.writes.length, 0);
+});
+
+test('DDS editor commits to its original channel on selection change and units alone never write', async t => {
+  const h = await host(t);
+  const block = h.document.querySelector('svg [data-control="dds"]');
+  h.key(block, 'Enter');
+  const unit = h.document.querySelector('.frequency-unit[data-channel="0"]');
+  unit.value='kHz'; unit.dispatchEvent(new h.window.Event('change')); await settle();
+  assert.equal(h.writes.length, 0);
+  h.type(h.inputs[0], '1200');
+  const channel = h.document.querySelector('#diagram-channel');
+  channel.value='1'; channel.dispatchEvent(new h.window.Event('change')); await settle(280);
+  assert.deepEqual(h.writes, [{name:'set_dds_freq', args:[0,1200000]}]);
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '2 MHz');
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+});
+
+test('disconnect cancels an open DDS draft instead of applying it while restoring the controls', async t => {
+  const h = await host(t);
+  const input = h.inputs[0], row = input.closest('.frequency-row'), parent = row.parentElement;
+  h.key(h.document.querySelector('svg [data-control="dds"]'), 'Enter');
+  h.type(input, '12');
+  h.state.failed = true; await settle(280);
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
+});
+
+
+test('a failed frequency commit during editor dismissal tears down without reopening another editor', async t => {
+  const h = await host(t, {failFrequency:true});
+  const input = h.inputs[0], row = input.closest('.frequency-row'), parent = row.parentElement;
+  h.key(h.document.querySelector('svg [data-control="dds"]'), 'Enter');
+  h.type(input, '12');
+  h.key(h.document.querySelector('svg [data-gain="p_gain"]'), 'Enter'); await settle();
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+  assert.equal(h.document.querySelector('#connection-status').dataset.state, 'error');
+  assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
+  assert.equal(h.document.querySelectorAll('svg [role="button"]').length, 0);
+  assert.deepEqual(h.writes, [{name:'set_dds_freq', args:[0,12000000]}]);
 });
