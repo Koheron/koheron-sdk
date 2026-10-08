@@ -39,6 +39,7 @@ async function host(t, options = {}) {
     send({name, args}) {
       writes.push({name, args});
       const [channel, value] = args;
+      if (name === 'set_dds_freq' && options.failFrequency) { throw new Error('send failed'); }
       if (name === 'set_dds_freq') { state.frequencies[channel] = value; state.paths[channel] &= ~1; }
       const index = ['set_p_gain', 'set_pi_gain', 'set_i2_gain', 'set_i3_gain'].indexOf(name);
       if (index >= 0) { state.gains[index][channel] = value; }
@@ -489,9 +490,12 @@ test('diagram links and control focus select the matching channel without hardwa
   let blocks = Array.from(h.document.querySelectorAll('svg [data-gain="p_gain"]'));
   assert.ok(blocks.every(b => b.getAttribute('data-linked') === 'true'));
   assert.equal(row.dataset.linked,'true');
-  row.closest('details').open = false;
+  const details = row.closest('details');
+  details.open = false;
   blocks[1].dispatchEvent(new h.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
-  assert.equal(row.closest('details').open,true);
+  assert.equal(details.open,false);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,false);
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
   assert.equal(h.document.activeElement,input);
   const integrator = h.document.querySelector('svg [data-integrator="2"]');
   integrator.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
@@ -500,4 +504,197 @@ test('diagram links and control focus select the matching channel without hardwa
   h.window.dispatchEvent(new h.window.Event('pagehide'));
   assert.equal(h.document.querySelector('svg [tabindex="0"]'),null);
   assert.equal(h.document.querySelector('[data-linked]'),null);
+});
+
+
+test('diagram gain editor shares its draft, applies once, and restores the original row', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), input = row.querySelector('.gain-input');
+  h.document.querySelector('.diagram-panel details').open = true;
+  await settle();
+  const parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-gain="p_gain"]');
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.type(input,'24.08'); await settle(280);
+  assert.equal(input.value,'24.08');
+  assert.equal(h.document.querySelectorAll('#p_gain-0').length,1);
+  assert.equal(block.querySelector('.gain-db').textContent,'18.06 dB');
+  h.document.querySelector('#diagram-editor-close').click();
+  assert.equal(row.parentElement,parent);
+  assert.equal(input.value,'24.08');
+  assert.equal(h.writes.length,0);
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.key(input,'Enter'); await settle(280);
+  assert.deepEqual(h.writes,[{name:'set_geometric_gain',args:[0,0,-1,64]}]);
+  assert.equal(row.parentElement,parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,true);
+  assert.equal(block.querySelector('.gain-db').textContent,'24.08 dB');
+});
+
+test('Escape cancels a diagram draft and channel changes restore the editor without writes', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), input = row.querySelector('.gain-input');
+  h.document.querySelector('.diagram-panel details').open = true; await settle();
+  const parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-gain="p_gain"]');
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.type(input,'24.08'); h.key(input,'Escape'); await settle();
+  assert.equal(row.parentElement,parent);
+  assert.equal(input.value,'18.06');
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  const channel = h.document.querySelector('#diagram-channel');
+  channel.value='1';channel.dispatchEvent(new h.window.Event('change'));
+  assert.equal(row.parentElement,parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,true);
+  assert.equal(h.writes.length,0);
+});
+
+test('disconnect restores an open editor and removes its interactive overlay', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), parent = row.parentElement;
+  h.document.querySelector('.diagram-panel details').open=true;await settle();
+  h.document.querySelector('svg [data-gain="p_gain"]').dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.state.failed=true;await settle(280);
+  assert.equal(row.parentElement,parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,true);
+  assert.equal(h.document.querySelectorAll('#p_gain-0').length,1);
+  assert.equal(h.writes.length,0);
+});
+
+test('integrator editor reuses all enables and updates repeated blocks without opening the loop panel', async t => {
+  const h = await host(t);
+  const input = h.document.querySelector('.integrator-switch[data-channel="0"][data-integratorindex="2"]');
+  const row = input.closest('.integrator-row'), parent = row.parentElement;
+  parent.open = false;
+  const blocks = Array.from(h.document.querySelectorAll('svg [data-integrator="2"]'));
+  blocks[0].dispatchEvent(new h.window.MouseEvent('click', {bubbles:true}));
+  assert.equal(parent.open, false);
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
+  assert.equal(h.document.querySelectorAll('.integrator-switch').length, 8);
+  assert.equal(h.document.activeElement, input);
+  assert.ok(blocks.every(block => block.getAttribute('data-linked') === 'true'));
+  assert.equal(h.writes.length, 0);
+  input.click(); await settle(280);
+  assert.deepEqual(h.writes, [{name:'set_integrator', args:[0,2,false]}]);
+  assert.ok(blocks.every(block => block.getAttribute('data-state') === 'disabled'));
+  h.key(input, 'Escape');
+  assert.equal(row.parentElement, parent);
+  assert.equal(input.checked, false); // Immediate controls keep their applied setting on dismissal.
+  assert.equal(h.document.activeElement, blocks[0]);
+  assert.equal(blocks[0].getAttribute('aria-expanded'), 'false');
+});
+
+test('mode editor preserves recoverable calibration errors and restores its original control', async t => {
+  const h = await host(t, {failPath:true});
+  const select = h.document.querySelector('.p-mode[data-channel="0"]');
+  const row = select.closest('.p-mode-row'), parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-control="mode"]');
+  h.key(block, 'Enter');
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
+  assert.equal(h.document.activeElement, select);
+  assert.equal(h.writes.length, 0);
+  select.value = '1'; select.dispatchEvent(new h.window.Event('change')); await settle();
+  assert.deepEqual(h.writes, [{name:'set_p_mode', args:[0,1]}]);
+  assert.equal(select.value, '0');
+  assert.equal(select.disabled, false);
+  assert.match(row.querySelector('output').textContent, /integrators|signal/i);
+  assert.equal(h.document.querySelector('#connection-status').dataset.state, 'live');
+  h.document.querySelector('#diagram-editor-close').click();
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.activeElement, block);
+});
+
+test('routing editor addresses the chosen DAC and does not select a different ADC channel', async t => {
+  const h = await host(t);
+  const row = h.document.querySelector('.routing-controls'), parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-control="routing"]');
+  h.key(block, ' ');
+  assert.equal(h.document.querySelector('#diagram-editor-title').textContent, 'RF DAC routing');
+  assert.equal(h.writes.length, 0);
+  const select = row.querySelector('.dac-output[data-channel="1"]');
+  select.focus(); select.value = '7'; select.dispatchEvent(new h.window.Event('change')); await settle(280);
+  assert.equal(h.document.querySelector('#diagram-channel').value, '0');
+  assert.deepEqual(h.writes, [{name:'set_dac_output', args:[1,7]}]);
+  assert.match(block.textContent, /DAC1: DDS 1/);
+  assert.equal(h.document.querySelectorAll('.dac-output').length, 2);
+  h.state.failed=true; await settle(280);
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+  assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
+  assert.equal(block.hasAttribute('aria-haspopup'), false);
+});
+
+test('DDS block reuses frequency editing with precise applied readback and one commit on close', async t => {
+  const h = await host(t);
+  h.state.frequencies[0] = 10000001; await settle(280);
+  const block = h.document.querySelector('svg [data-control="dds"]');
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '10.000001 MHz');
+  const input = h.inputs[0], row = input.closest('.frequency-row'), parent = row.parentElement;
+  parent.open = false;
+  h.key(block, 'Enter');
+  assert.equal(parent.open, false);
+  assert.equal(h.document.activeElement, input);
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
+  assert.equal(h.writes.length, 0);
+  h.type(input, '10.000002'); await settle(280);
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '10.000001 MHz');
+  h.document.querySelector('#diagram-editor-close').click(); await settle(280);
+  assert.deepEqual(h.writes, [{name:'set_dds_freq', args:[0,10000002]}]);
+  assert.equal(row.parentElement, parent);
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '10.000002 MHz');
+  assert.equal(h.document.querySelectorAll('#frequency-0').length, 1);
+});
+
+test('DDS Escape cancels from the frequency input or unit selector without writes', async t => {
+  const h = await host(t);
+  const block = h.document.querySelector('svg [data-control="dds"]');
+  for (const selector of ['#frequency-0', '.frequency-unit[data-channel="0"]']) {
+    h.key(block, 'Enter');
+    h.type(h.inputs[0], '12');
+    h.document.querySelector(selector).focus();
+    h.key(h.document.querySelector(selector), 'Escape'); await settle();
+    assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+    assert.equal(Number(h.inputs[0].value.replace(/\s/g,'')), 1);
+    assert.equal(h.document.activeElement, block);
+  }
+  assert.equal(h.writes.length, 0);
+});
+
+test('DDS editor commits to its original channel on selection change and units alone never write', async t => {
+  const h = await host(t);
+  const block = h.document.querySelector('svg [data-control="dds"]');
+  h.key(block, 'Enter');
+  const unit = h.document.querySelector('.frequency-unit[data-channel="0"]');
+  unit.value='kHz'; unit.dispatchEvent(new h.window.Event('change')); await settle();
+  assert.equal(h.writes.length, 0);
+  h.type(h.inputs[0], '1200');
+  const channel = h.document.querySelector('#diagram-channel');
+  channel.value='1'; channel.dispatchEvent(new h.window.Event('change')); await settle(280);
+  assert.deepEqual(h.writes, [{name:'set_dds_freq', args:[0,1200000]}]);
+  assert.equal(block.querySelector('[data-label="dds"]').textContent, '2 MHz');
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+});
+
+test('disconnect cancels an open DDS draft instead of applying it while restoring the controls', async t => {
+  const h = await host(t);
+  const input = h.inputs[0], row = input.closest('.frequency-row'), parent = row.parentElement;
+  h.key(h.document.querySelector('svg [data-control="dds"]'), 'Enter');
+  h.type(input, '12');
+  h.state.failed = true; await settle(280);
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
+});
+
+
+test('a failed frequency commit during editor dismissal tears down without reopening another editor', async t => {
+  const h = await host(t, {failFrequency:true});
+  const input = h.inputs[0], row = input.closest('.frequency-row'), parent = row.parentElement;
+  h.key(h.document.querySelector('svg [data-control="dds"]'), 'Enter');
+  h.type(input, '12');
+  h.key(h.document.querySelector('svg [data-gain="p_gain"]'), 'Enter'); await settle();
+  assert.equal(row.parentElement, parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden, true);
+  assert.equal(h.document.querySelector('#connection-status').dataset.state, 'error');
+  assert.equal(h.document.querySelector('#instrument-controls').disabled, true);
+  assert.equal(h.document.querySelectorAll('svg [role="button"]').length, 0);
+  assert.deepEqual(h.writes, [{name:'set_dds_freq', args:[0,12000000]}]);
 });

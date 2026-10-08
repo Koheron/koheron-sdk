@@ -13,7 +13,7 @@ class Control {
 
   constructor(private document: Document, private dpll: Dpll,
               private fail: (error: unknown) => void) {
-    this.diagram = new DpllDiagram(document);
+    this.diagram = new DpllDiagram(document, channel => this.frequencies[channel].commit());
     for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.frequency-input'))) {
       const channel = Number(input.dataset.channel);
       const unit = document.querySelector<HTMLSelectElement>(`.frequency-unit[data-channel="${channel}"]`);
@@ -81,6 +81,7 @@ class Control {
           await this.dpll.setGeometricGain(Number(row.dataset.channel), Number(row.dataset.gain), sign, step);
           this.pendingGains.delete(row);
           await this.refreshGains();
+          if (!this.disposed) { this.document.dispatchEvent(new CustomEvent('dpll-gain-applied', {detail: row})); }
         } catch (error) { this.pendingGains.delete(row); this.fail(error); }
       });
     }
@@ -224,8 +225,8 @@ class Control {
 
   dispose(): void {
     this.disposed = true;
-    this.diagram.dispose();
     this.frequencies.forEach(frequency => frequency.dispose());
+    this.diagram.dispose();
     this.removers.forEach(remove => remove());
   }
 }

@@ -27,8 +27,9 @@ svg.dpll-schematic [data-linked="true"] rect,svg.dpll-schematic [role="button"]:
 <text data-label="header" x="280" y="18" class="small">ONE CHANNEL · 250 MS/s</text>
 <rect x="46" y="34" width="124" height="28" rx="3" class="block"/>
 <text x="108.0" y="52.0" class="head" data-label="adc">ADC</text>
-<rect x="390" y="34" width="124" height="28" rx="3" class="block"/>
-<text data-label="dds" x="452.0" y="52.0" class="head">Reference DDS</text>
+<g data-control="dds"><title>Reference DDS</title><rect x="390" y="30" width="124" height="32" rx="3" class="block"/>
+<text x="452" y="43" class="head">Reference DDS</text>
+<text data-label="dds" x="452" y="57" class="small">Frequency</text></g>
 <path class="wire" d="M108 62V86H214"/>
 <path class="wire" d="M452 62V86H346"/>
 <rect x="214" y="70" width="132" height="32" rx="3" class="block"/>
@@ -115,9 +116,9 @@ svg.dpll-schematic [data-linked="true"] rect,svg.dpll-schematic [role="button"]:
 <path data-mode="accurate" class="wire" d="M458 589V650H386"/>
 <text x="130" y="639" class="small">Fast</text>
 <text x="427" y="639" class="small">Accurate</text>
-<rect x="174" y="626" width="212" height="48" rx="3" class="block"/>
+<g data-control="mode"><title>P + I mode</title><rect x="174" y="626" width="212" height="48" rx="3" class="block"/>
 <text data-label="mode" x="280.0" y="646" class="head">Mode selection</text>
-<text x="280.0" y="662" class="small">Manual · continuity offset</text>
+<text x="280.0" y="662" class="small">Manual · continuity offset</text></g>
 <path class="wire" d="M280 674V700H98V726"/>
 <path class="wire" d="M458 605H532V693H488"/>
 <g data-gain="i3_gain"><title>I³ gain</title><rect x="424" y="676" width="64" height="34" rx="3" class="accurate"/>
@@ -128,9 +129,9 @@ svg.dpll-schematic [data-linked="true"] rect,svg.dpll-schematic [role="button"]:
 <path class="wire" d="M380 710V718H280V726"/>
 <circle cx="458" cy="605" r="2.5" fill="#647780"/>
 <path class="wire" d="M524 222H548V752H528"/>
-<rect x="16" y="726" width="164" height="46" rx="3" class="block"/>
+<g data-control="routing"><title>RF DAC routing</title><rect x="16" y="726" width="164" height="46" rx="3" class="block"/>
 <text x="98.0" y="746" class="head">RF DAC routing</text>
-<text data-label="routes" x="98.0" y="762" class="small">Selected correction</text>
+<text data-label="routes" x="98.0" y="762" class="small">Selected correction</text></g>
 <rect x="198" y="726" width="164" height="46" rx="3" class="accurate"/>
 <text x="280.0" y="746" class="head">Precision DAC</text>
 <text x="280.0" y="762" class="small">Slow correction</text>
