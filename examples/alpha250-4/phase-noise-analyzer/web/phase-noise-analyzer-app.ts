@@ -6,7 +6,6 @@ class PhaseNoiseAnalyzerApp {
   private updatingControls = false;
   private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
-  public channel: number;
 
   constructor(private document: Document, private driver: PhaseNoiseAnalyzer,
       private onConnectionError: (error: unknown) => void = () => {}) {}
@@ -78,7 +77,6 @@ class PhaseNoiseAnalyzerApp {
       const tracking = await this.driver.getTrackingParameters();
       const average = await this.driver.getAverageStatus();
       if (this.disposed) { return; }
-      this.channel = p.channel;
       this.document.querySelectorAll<HTMLInputElement>('.channel-input').forEach(input => {
         input.checked = Number(input.value) === p.channel;
       });

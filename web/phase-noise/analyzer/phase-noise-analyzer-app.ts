@@ -5,21 +5,17 @@ class PhaseNoiseAnalyzerApp {
   private disposed = false;
   private events = new InstrumentEvents();
   private saveConfig: PnaSaveConfig;
-  private cicRateInput: HTMLInputElement;
-  private nAvgInput: HTMLInputElement;
   private channelInputs: HTMLInputElement[];
   private measurements: PnaMeasurementReadout;
 
   private laserModeEnableCheckbox: HTMLInputElement;
   private interferometerDelayInput: HTMLInputElement;
 
-  private ddsInputs: HTMLInputElement[];
   private trackingEnabledInput: HTMLInputElement;
   private averageStatus: HTMLElement;
 
   private numbers: {[field: string]: DigitInput} = {};
   public nPoints: number;
-  public channel: number;
 
   constructor(private document: Document, private driver: PhaseNoiseAnalyzer,
       private onConnectionError: (error: unknown) => void = () => {}) {}
@@ -44,11 +40,9 @@ class PhaseNoiseAnalyzerApp {
     if (this.disposed) { return; }
     this.nPoints = parameters.data_size;
 
-    this.channelInputs = <HTMLInputElement[]><any>this.document.getElementsByClassName("channel-input");
+    this.channelInputs = Array.from(this.document.querySelectorAll<HTMLInputElement>(".channel-input"));
     this.measurements = new PnaMeasurementReadout(this.document);
 
-    this.ddsInputs = [0, 1].map(i =>
-      this.document.querySelector<HTMLInputElement>(`.dds-input${i}`)!);
     this.initNumbers(parameters, tracking);
     this.saveConfig = new PnaSaveConfig(this.document, () => this.driver.saveConfig(), this.onConnectionError);
     this.averageStatus = this.document.querySelector('#average-status');
@@ -63,26 +57,26 @@ class PhaseNoiseAnalyzerApp {
   }
 
   private initNumbers(parameters: IParameters, tracking: ITrackingParameters): void {
-    this.cicRateInput = this.document.querySelector('.cic-rate-input');
-    this.nAvgInput = this.document.querySelector('.plot-navg-input');
+    const cicRateInput = this.document.querySelector<HTMLInputElement>('.cic-rate-input');
+    const nAvgInput = this.document.querySelector<HTMLInputElement>('.plot-navg-input');
     this.interferometerDelayInput = this.document.querySelector('.interferometer-delay');
-    const cicRateStep = Number(this.cicRateInput.step) || 1;
+    const cicRateStep = Number(cicRateInput.step) || 1;
     const number = (input: HTMLInputElement, value: number, unitLabel: string, commit: (value: number) => void, read: (parameters: IParameters) => number) =>
       new NumberInput(input, {
         value, minimum: Number(input.min), maximum: Number(input.max), resolution: 1, integer: true, unitLabel,
-        step: input === this.cicRateInput ? cicRateStep : 1,
+        step: input === cicRateInput ? cicRateStep : 1,
         validate: value => {
-          if (input === this.cicRateInput && value % cicRateStep !== 0) throw new Error('Use an even decimation rate.');
+          if (input === cicRateInput && value % cicRateStep !== 0) throw new Error('Use an even decimation rate.');
         },
         commit: async value => { commit(value); return read(await this.driver.getParameters()); }
       });
-    this.numbers.cic = number(this.cicRateInput, parameters.cic_rate, '', value => this.driver.setCicRate(value), p => p.cic_rate);
-    this.numbers.navg = number(this.nAvgInput, parameters.fft_navg, '', value => this.driver.setFFTNavg(value), p => p.fft_navg);
+    this.numbers.cic = number(cicRateInput, parameters.cic_rate, '', value => this.driver.setCicRate(value), p => p.cic_rate);
+    this.numbers.navg = number(nAvgInput, parameters.fft_navg, '', value => this.driver.setFFTNavg(value), p => p.fft_navg);
     this.numbers.delay = number(this.interferometerDelayInput, parameters.interferometer_delay * 1e9, 'ns',
       value => this.driver.setInterferometerDelay(value * 1e-9), p => p.interferometer_delay * 1e9);
     const adcSampleRate = parameters.fs * 2 * parameters.cic_rate;
     [tracking.nominal0, tracking.nominal1].forEach((value, channel) => {
-      const input = this.ddsInputs[channel];
+      const input = this.document.querySelector<HTMLInputElement>(`.dds-input${channel}`);
       this.numbers['lo' + channel] = new FrequencyInput(input, input.parentElement.querySelector('.lo-unit'), {
         value, maximum: adcSampleRate / 2, inclusiveMaximum: true, resolution: adcSampleRate / Math.pow(2, 48),
         commit: async frequency => {
@@ -95,25 +89,19 @@ class PhaseNoiseAnalyzerApp {
     });
   }
 
-  initChannelInput(): void {
-    for (let i = 0; i < this.channelInputs.length; i++) {
-      this.events.listen(this.channelInputs[i], 'change', (event) => {
-        this.channel = parseInt((<HTMLInputElement>event.currentTarget).value);
-        this.driver[(<HTMLInputElement>event.currentTarget).dataset.command](this.channel);
-      });
+  private initChannelInput(): void {
+    for (const input of this.channelInputs) {
+      this.events.listen(input, 'change', () => this.driver.setChannel(Number(input.value)));
     }
   }
 
-  initLaserMode(): void {
-    this.laserModeEnableCheckbox = <HTMLInputElement>this.document.getElementsByClassName("laser-mode-input")[0];
-    this.interferometerDelayInput = <HTMLInputElement>this.document.getElementsByClassName("interferometer-delay")[0];
-
+  private initLaserMode(): void {
+    this.laserModeEnableCheckbox = this.document.querySelector<HTMLInputElement>(".laser-mode-input");
     this.events.listen(this.laserModeEnableCheckbox, "change", () => {
       const enabled: 0 | 1 = this.laserModeEnableCheckbox.checked ? 1 : 0;
       this.driver.setAnalyzerMode(enabled);
       this.interferometerDelayInput.disabled = !enabled;
     });
-
   }
 
   private async updateMeasurements() {
@@ -139,12 +127,8 @@ class PhaseNoiseAnalyzerApp {
       const tracking = await this.driver.getTrackingParameters();
       if (this.disposed) { return; }
 
-      if (parameters.channel == 0) {
-        this.channelInputs[0].checked = true;
-        this.channelInputs[1].checked = false;
-      } else {
-        this.channelInputs[0].checked = false;
-        this.channelInputs[1].checked = true;
+      for (const input of this.channelInputs) {
+        input.checked = Number(input.value) === parameters.channel;
       }
 
       this.numbers.cic.setValue(parameters.cic_rate);

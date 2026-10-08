@@ -4,8 +4,6 @@
 class FFTApp {
     private running: boolean = true;
     private events = new InstrumentEvents();
-    private fftSelects: HTMLSelectElement[];
-    private fftInputs: HTMLInputElement[];
     private onChange = (event: Event): void => {
         if (!this.running) { return; }
         const input = event.currentTarget as HTMLInputElement | HTMLSelectElement;
@@ -14,10 +12,9 @@ class FFTApp {
 
     constructor(private document: Document, private driver, private samplingRateChanged?: (rate: number) => void,
                 private precisionDacChanged?: (values: ArrayLike<number>) => void) {
-        this.fftSelects = <HTMLSelectElement[]><any>this.document.getElementsByClassName("fft-select");
-        this.initFFTSelects();
-        this.fftInputs = <HTMLInputElement[]><any>this.document.getElementsByClassName("fft-input");
-        this.initFFTInputs();
+        for (const input of Array.from(document.querySelectorAll('.fft-select, .fft-input'))) {
+            this.events.listen(input, 'change', this.onChange);
+        }
 
         this.updateControls();
         if (typeof this.driver.getBoardParameters === 'function') {
@@ -76,8 +73,6 @@ class FFTApp {
         this._lastControlsTick = now;
 
         try {
-            this.ensureControlsCache();
-
             const sts: IFFTStatus = await this.driver.getControlParameters();
             if (!this.running) { this._busyControls = false; return; }
             if (this.samplingRateChanged) { this.samplingRateChanged(sts.fs); }
@@ -129,20 +124,6 @@ class FFTApp {
         }
 
         this.precisionDacChanged?.(brdParams.dacValues);
-    }
-
-    // Setters
-
-    initFFTSelects(): void {
-        for (const input of Array.from(this.fftSelects)) {
-            this.events.listen(input, 'change', this.onChange);
-        }
-    }
-
-    initFFTInputs(): void {
-        for (const input of Array.from(this.fftInputs)) {
-            this.events.listen(input, 'change', this.onChange);
-        }
     }
 
     dispose(): void {
