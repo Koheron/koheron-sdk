@@ -1,0 +1,103 @@
+/* Compact OS pages using the same controls as the instrument interfaces. */
+.system-workspace { --control-height: 26px; --control-padding: 2px 8px; font-size: 12px; }
+.system-workspace .app-header { min-height: 40px; }
+.system-workspace .connection-status { width: auto; }
+.system-workspace nav a[aria-current="page"] { color: var(--accent-dark); }
+.system-workspace .system-main { max-width: 1440px; margin: 0 auto; padding: 16px; }
+.system-workspace section { margin: 0; }
+.system-workspace h2 { margin: 0; font-size: 13px; font-weight: 700; }
+.system-workspace .muted { color: var(--muted); font-weight: 400; }
+.system-workspace .live-strip { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+.system-workspace #live-name { font-size: 15px; overflow-wrap: anywhere; }
+.system-workspace #live-version { font-variant-numeric: tabular-nums; }
+.system-workspace #open-instrument { margin-left: auto; color: var(--accent-dark); }
+.system-workspace .system-grid { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 24px; }
+.system-workspace .system-primary { min-width: 0; }
+.system-workspace .system-sidebar { min-width: 0; padding-left: 18px; border-left: 1px solid var(--border-light); }
+.system-workspace .section-heading, .system-workspace .toolbar, .system-workspace .log-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.system-workspace .section-heading { margin-bottom: 8px; }
+.system-workspace .toolbar { justify-content: flex-end; gap: 6px; }
+.system-workspace .status-line { margin: 8px 0; color: var(--muted); overflow-wrap: anywhere; }
+.system-workspace [data-state="error"] { color: #a53e25; }
+.system-workspace .table-scroll, .system-workspace .table-responsive { overflow-x: auto; }
+.system-workspace table { width: 100%; border-collapse: collapse; text-align: left; font-variant-numeric: tabular-nums; }
+.system-workspace th, .system-workspace td { padding: 8px; border: 0; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+.system-workspace th { color: var(--muted); font-size: 11px; font-weight: 400; }
+.system-workspace td:first-child, .system-workspace th:first-child { padding-left: 0; }
+.system-workspace td:last-child, .system-workspace th:last-child { padding-right: 0; }
+.system-workspace td:first-child a { color: #333; font-weight: 700; overflow-wrap: anywhere; }
+.system-workspace td:first-child a:hover { color: var(--accent-dark); text-decoration: underline; }
+.system-workspace #instruments-table td:first-child { width: 44%; }
+.system-workspace #instruments-table td:nth-child(2) { width: 16%; color: var(--muted); }
+.system-workspace .actions-heading { text-align: right; }
+.system-workspace .row-actions { display: flex; justify-content: flex-end; gap: 6px; align-items: center; }
+.system-workspace .row-actions > :first-child { min-width: 44px; text-align: center; }
+.system-workspace .row-actions a { padding: 3px 5px; color: var(--accent-dark); }
+.system-workspace .remove { color: #a53e25; }
+.system-workspace .action-spacer { width: 62px; flex: none; }
+.system-workspace .remove { width: 62px; }
+.system-workspace .badge { display: inline-block; padding: 1px 5px; margin: 2px 4px 2px 0; font-size: 10px; color: var(--muted); background: #f2f2f2; border-radius: 2px; white-space: nowrap; }
+.system-workspace .badge.live { color: #28753b; background: #eaf5ed; }
+.system-workspace .state-ready { color: var(--muted); }
+.system-workspace .table-note { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
+.system-workspace #release-table { margin-top: 8px; table-layout: fixed; }
+.system-workspace #release-table th, .system-workspace #release-table td { padding: 7px 0; vertical-align: top; overflow-wrap: anywhere; }
+.system-workspace #release-table th { width: 82px; padding-right: 10px; }
+.system-workspace #release-table td { font-size: 11px; }
+.system-workspace .log-section { margin-top: 20px; }
+.system-workspace #koheron-log { margin: 0 0 8px; height: 300px; overflow: auto; padding: 10px 12px; border: 1px solid #263640; border-radius: 2px; background: #14212a; color: #e0e7ec; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.system-workspace .log-time { color: #91a7b6; }
+.system-workspace .log-line[data-level="warning"] { color: #f1c279; }
+.system-workspace .log-line[data-level="error"] { color: #f4a59b; }
+.system-workspace .log-footer { font-size: 11px; }
+.system-workspace .log-footer label { display: flex; align-items: center; gap: 6px; }
+.system-workspace .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.system-workspace .command-group { margin-top: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
+.system-workspace summary { cursor: pointer; font-weight: 700; }
+.system-workspace .command-list { padding-left: 20px; font: 12px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+.system-workspace .command-name { font-weight: 700; }
+.system-workspace .command-input-type { color: #24749b; }
+.system-workspace .command-output-type { color: #28753b; }
+.system-workspace .summary-heading { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin: 16px 0; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .system-workspace .system-grid { grid-template-columns: minmax(0, 1fr); }
+  .system-workspace .system-sidebar { border-left: 0; border-top: 1px solid var(--border-light); padding: 16px 0 0; }
+}
+@media (max-width: 540px) {
+  .system-workspace .app-header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .system-workspace nav { width: 100%; margin: 0; padding-top: 4px; }
+  .system-workspace .system-main { padding: 12px; }
+  .system-workspace #open-instrument { margin-left: 0; }
+  .system-workspace th, .system-workspace td { padding: 8px 4px; }
+  .system-workspace .row-actions { flex-wrap: wrap; }
+  .system-workspace #instruments-table td:first-child { width: auto; }
+  .system-workspace .log-footer { align-items: flex-start; }
+}
+
+/* Data-rate monitor: one compact chart and a horizontally scrollable table. */
+.system-workspace .rate-readouts { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 8px 0 12px; border-bottom: 1px solid var(--border-light); color: var(--muted); }
+.system-workspace .rate-readouts strong { display: inline-block; margin-left: 6px; color: #333; font-weight: 400; font-variant-numeric: tabular-nums; }
+.system-workspace .rate-readouts[data-stale="true"] strong { color: var(--muted); }
+.system-workspace .rate-rx { color: #1f77b4; }
+.system-workspace .rate-tx { color: #a86217; }
+.system-workspace .rate-plot { margin: 12px 0 18px; }
+.system-workspace #logs-rate-chart { display: block; width: 100%; height: 260px; }
+.system-workspace .rate-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-bottom: 4px; font-size: 11px; }
+.system-workspace .rate-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.system-workspace .rate-legend > .muted { margin-left: auto; }
+.system-workspace .rate-swatch { width: 14px; height: 2px; background: #1f77b4; }
+.system-workspace .rate-swatch.tx { background: #cf791d; }
+.system-workspace .rate-sessions h2 { margin-bottom: 8px; }
+.system-workspace #logs-rate-table th, .system-workspace #logs-rate-table td { white-space: nowrap; text-align: right; }
+.system-workspace #logs-rate-table th:first-child, .system-workspace #logs-rate-table td:first-child,
+.system-workspace #logs-rate-table th:nth-child(2), .system-workspace #logs-rate-table td:nth-child(2) { text-align: left; }
+.system-workspace #logs-rate-table thead tr:first-child th[colspan] { text-align: center; }
+.system-workspace #logs-rate-table thead tr:nth-child(2) th { text-align: right; padding-left: 8px; padding-right: 8px; }
+.system-workspace #logs-rate-table thead tr:first-child th:last-child,
+.system-workspace #logs-rate-table thead tr:nth-child(2) th:nth-last-child(4), .system-workspace #logs-rate-table td:nth-last-child(4) { border-left: 1px solid var(--border-light); }
+.system-workspace #logs-rate-table .rate-empty { padding: 18px; text-align: center; color: var(--muted); }
+@media (max-width: 540px) {
+  .system-workspace .rate-readouts { gap: 6px 16px; }
+  .system-workspace .rate-legend > .muted { margin-left: 0; }
+  .system-workspace #logs-rate-chart { height: 220px; }
+}

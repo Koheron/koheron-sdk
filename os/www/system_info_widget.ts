@@ -1,58 +1,36 @@
 class SystemInfoWidget {
-    private releaseTable: HTMLTableElement;
-
-    constructor (document: Document) {
-        // Table collapse
-        const header = <HTMLElement>document.getElementById("system-info-header");
-        const content = <HTMLElement>document.getElementById("system-info-content");
-        const arrow = <HTMLElement>document.getElementById("system-info-arrow");
-  
-        header.addEventListener("click", () => {
-          const isCollapsed = content.classList.toggle("collapsed");
-          arrow.textContent = isCollapsed ? "▶" : "▼";
-        });
-  
-        content.classList.add("collapsed");
-        arrow.textContent = "▶";
-
-        // Fill table
-        this.releaseTable = <HTMLTableElement>document.getElementById("release-table");
-        const sys = new KoheronSystem();
-        (async () => {
-            const relPlus = await sys.getReleasePlus();
-            this.renderTable(
-                relPlus,
-                KoheronSystem.releaseDisplayOrder,
-                KoheronSystem.releaseDisplayLabels
-          );
-        })();
+    constructor(private document: Document) {
+        document.getElementById('system-info-retry').addEventListener('click', () => this.load());
+        this.load();
     }
 
-    renderTable(
-        data: Record<string, string>,
-        order: readonly string[],
-        labels: Record<string, string>
-    ) {
-        this.releaseTable.innerHTML = "";
-        const tbody = document.createElement("tbody");
-
-        for (const key of order) {
-            if (!(key in data)) {
-                continue;
+    private async load(): Promise<void> {
+        const status = this.document.getElementById('system-info-status');
+        const retry = this.document.getElementById('system-info-retry');
+        retry.hidden = true; status.hidden = false;
+        status.textContent = 'Loading…'; status.dataset.state = 'loading';
+        try {
+            const data = await new KoheronSystem().getBuildSummary();
+            const release = data.release || {} as ReleaseData;
+            const manifest = data.manifest || {} as ManifestData;
+            this.document.getElementById('board-name').textContent = manifest.board ? manifest.board.toUpperCase() : '';
+            const table = this.document.getElementById('release-table') as HTMLTableElement;
+            table.textContent = '';
+            const fields: Record<string, string> = { ...release, board: manifest.board,
+                kernel: manifest.kernel, zynq: manifest.zynq, generated_utc: manifest.generated_utc };
+            for (const key of ['board', ...KoheronSystem.releaseDisplayOrder]) {
+                if (!fields[key]) { continue; }
+                const row = table.insertRow();
+                const label = this.document.createElement('th');
+                label.scope = 'row';
+                label.textContent = key === 'board' ? 'Board' : KoheronSystem.releaseDisplayLabels[key] || key;
+                row.appendChild(label);
+                row.insertCell().textContent = fields[key];
             }
-
-            const tr = document.createElement("tr");
-            const label = labels[key] ?? key;
-            let val = data[key];
-
-            if (key === "generated_utc" && val) {
-                try { val = new Date(val).toLocaleString(); } catch {}
-            }
-
-            tr.innerHTML = `<td>${label}</td><td>${val ?? ""}</td>`;
-            tbody.appendChild(tr);
+            status.textContent = ''; status.dataset.state = 'ready'; status.hidden = true;
+        } catch (_) {
+            status.textContent = 'Cannot load system information.'; status.dataset.state = 'error';
+            retry.hidden = false;
         }
-
-        this.releaseTable.appendChild(tbody);
     }
 }

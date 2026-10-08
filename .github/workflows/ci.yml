@@ -97,6 +97,11 @@ jobs:
           npm install --prefix web --no-package-lock
       - name: Check web asset rebuilds after configuration changes
         run: python3 web/tests/test_build.py
+      - name: Check OS management interface
+        run: |
+          make CFG=examples/alpha250/fft/config.mk tmp/www/instruments.js \
+            TSC='web/node_modules/.bin/tsc --target ES5 --lib es6,dom --alwaysStrict --skipLibCheck --module system --incremental --typeRoots web/node_modules/@types'
+          NODE_PATH=web/node_modules node --test os/www/tests/test_*.cjs
       - name: Compile instrument web assets
         run: |
           for project in alpha250/phase-noise-analyzer alpha250-4/phase-noise-analyzer red-pitaya/phase-noise-analyzer alpha250/dpll alpha250/fft red-pitaya/fft alpha250-4/fft alpha15/signal-analyzer alpha250/phase-modulator red-pitaya/dual-dds red-pitaya/pulse-generator; do
