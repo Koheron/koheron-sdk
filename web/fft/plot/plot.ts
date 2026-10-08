@@ -38,10 +38,8 @@ class Plot {
     private samplingFrequency = 0;
     private peak: number[] = [];
     private psd: Float32Array;
-    private reference: {psd: Float32Array; status: IFFTStatus};
-    private referenceUnit: string;
-    public reference_data: number[][];
-    public get referenceStatus(): IFFTStatus { return this.reference && this.reference.status; }
+    public references: FFTReferences;
+    public get visibleReferences(): FFTReference[] { return this.references.items.filter(item => item.visible); }
     public history = new SpectrumHistory();
     private views: SpectrumViews;
     public average_data: number[][];
@@ -54,6 +52,8 @@ class Plot {
     public frameStatus: IFFTStatus;
 
     constructor(private document: Document, private fft: FFTDriver, private plotBasics: PlotBasics) {
+        this.references = new FFTReferences(document.body?.dataset.board || '');
+        this.references.onChange = () => this.refreshReferences();
         this.n_pts = fft.status.spectrum ? fft.status.spectrum.frequencies.length : fft.fft_size / 2;
         // Reduce only the drawn curves; measurements and exports retain every bin.
         this.plotBasics.enableSpectrumReduction();
@@ -299,13 +299,14 @@ class Plot {
             ? this.frameStatus.spectrum.binSpacings.map(step => Number((step < 1000 ? step : step / 1000).toPrecision(3)) + (step < 1000 ? ' Hz' : ' kHz')).join(' / ')
             : (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
         this.document.getElementById('fft-size').textContent = this.fft.fft_size.toLocaleString() + ' points';
-        // A captured frame is immutable: convert it only after capture or a unit change.
-        if (this.reference && (!this.reference_data || this.referenceUnit !== this.unit)) {
-            this.reference_data = Array.from(this.reference.psd, (value, index) => [
-                this.frequencyAt(index, this.reference.status),
-                this.convertValue(value, this.unit, this.reference.status, index)
-            ]);
-            this.referenceUnit = this.unit;
+        for (const reference of this.references.items) {
+            if (!reference.data || reference.unit !== this.unit) {
+                reference.data = Array.from(reference.psd, (value, index) => [
+                    this.frequencyAt(index, reference.status, reference.fftSize),
+                    this.convertValue(value, this.unit, reference.status, index, reference.fftSize)
+                ]);
+                reference.unit = this.unit;
+            }
         }
         const convertTrace = (values: Float32Array, data: number[][]): number[][] => {
             if (!values) { return undefined; }
@@ -319,38 +320,38 @@ class Plot {
         };
         this.average_data = (this.document.getElementById('average-trace') as HTMLInputElement).checked && this.view === 'spectrum' ? convertTrace(this.history.average, this.average_data) : undefined;
         this.maximum_data = (this.document.getElementById('max-hold-trace') as HTMLInputElement).checked && this.view === 'spectrum' ? convertTrace(this.history.maximum, this.maximum_data) : undefined;
-        this.document.getElementById('reference-info').hidden = !this.reference || this.view !== 'spectrum';
         this.redraw();
 
     }
 
     captureReference(): void {
-        if (!this.psd || !this.frameStatus) { return; }
-        this.reference = {psd: this.psd.slice(0, this.plot_data.length), status: {...this.frameStatus, dds_freq: this.frameStatus.dds_freq.slice()}};
-        this.reference_data = undefined;
-        this.document.getElementById('capture-reference').textContent = 'Replace ref';
-        (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = false;
-        this.document.getElementById('reference-info').hidden = false;
-        const windows = ['Rectangular', 'Hann', 'Flat top', 'Blackman–Harris'];
-        this.document.getElementById('reference-status').textContent = this.channelLabel(this.reference.status)
-            + ' · ' + (windows[this.reference.status.window_index] || 'Window ' + this.reference.status.window_index) + ' · ' + this.reference.status.fs / 1e6 + ' MS/s';
-        this.plotBasics.setLinY();
-        this.displaySpectrum();
+        if (!this.psd || !this.frameStatus || this.references.items.length >= FFTReferences.limit) { return; }
+        this.references.capture(this.psd.slice(0, this.plot_data.length), this.frameStatus, this.fft.fft_size);
     }
 
-    clearReference(): void {
-        this.reference = undefined;
-        this.reference_data = undefined;
-        this.document.getElementById('capture-reference').textContent = 'Capture ref';
-        (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = true;
-        this.document.getElementById('reference-info').hidden = true;
+    replaceReference(reference: FFTReference): void {
+        if (!this.psd || !this.frameStatus || this.view !== 'spectrum') { return; }
+        this.references.replace(reference, this.psd.slice(0, this.plot_data.length), this.frameStatus, this.fft.fft_size);
+    }
+
+    clearReference(): void { this.references.clear(); }
+
+    refreshReferences(): void {
         this.plotBasics.setLinY();
-        this.redraw();
+        if (this.psd) { this.displaySpectrum(); }
+        else { this.redraw(); }
     }
 
     private redraw(): void {
         const ready = this.plot_data.length > 0;
-        (this.document.getElementById('capture-reference') as HTMLButtonElement).disabled = !ready || this.view !== 'spectrum';
+        const capture = this.document.getElementById('capture-reference') as HTMLButtonElement;
+        capture.disabled = !ready || this.view !== 'spectrum' || this.references.items.length >= FFTReferences.limit;
+        capture.title = this.references.items.length >= FFTReferences.limit ? '8 references captured. Recapture or remove an existing reference.'
+            : this.view !== 'spectrum' ? 'Switch to Spectrum view to capture a reference' : 'Capture the displayed live spectrum';
+        for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.replace-reference'))) {
+            button.disabled = !ready || this.view !== 'spectrum';
+        }
+        (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = !this.references.items.length;
         for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
             button.disabled = !ready || (this.view !== 'spectrum' && !this.history.samples);
         }
@@ -370,10 +371,11 @@ class Plot {
         const traces: {label: string; color: string; data: number[][]}[] = [];
         if (this.average_data) { traces.push({label: 'Average', color: '#389168', data: this.average_data}); }
         if (this.maximum_data) { traces.push({label: 'Max hold', color: '#ba861a', data: this.maximum_data}); }
-        this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, this.reference_data, true, traces);
+        for (const reference of this.visibleReferences) { traces.push({label: reference.name.replace(/[&<>"']/g, char => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char])), color: reference.color, data: reference.data}); }
+        this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, undefined, true, traces);
     }
 
-    convertValue(value: number, unit: string, status: IFFTStatus = this.frameStatus || this.fft.status, index = 0): number {
+    convertValue(value: number, unit: string, status: IFFTStatus = this.frameStatus || this.fft.status, index = 0, fftSize = this.fft.fft_size): number {
         if (!Number.isFinite(value) || value < 0) { return NaN; }
         if (status.spectrum) {
             if (unit === 'dbv-rtHz') { return 10 * Math.log10(value); }
@@ -382,15 +384,15 @@ class Plot {
         }
         if (unit === 'dBm-Hz') { return 10 * Math.log10(value / 1e-3); }
         if (unit === 'dBm') {
-            return 10 * Math.log10(value * (status.W2 / status.W1) * status.fs / this.fft.fft_size / 1e-3);
+            return 10 * Math.log10(value * (status.W2 / status.W1) * status.fs / fftSize / 1e-3);
         }
         return Math.sqrt(50 * value) * 1e9;
     }
 
     get frequencyUnit(): string { return (this.frameStatus || this.fft.status).spectrum?.unit || 'MHz'; }
 
-    frequencyAt(index: number, status: IFFTStatus = this.frameStatus): number {
-        return status.spectrum ? status.spectrum.frequencies[index] : index * status.fs / this.fft.fft_size / 1e6;
+    frequencyAt(index: number, status: IFFTStatus = this.frameStatus, fftSize = this.fft.fft_size): number {
+        return status.spectrum ? status.spectrum.frequencies[index] : index * status.fs / fftSize / 1e6;
     }
 
     channelLabel(status: IFFTStatus): string {

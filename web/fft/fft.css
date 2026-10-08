@@ -22,8 +22,6 @@
 .fft-workspace .spectrum-panel { margin: 0; min-width: 0; flex: 1; display: flex; flex-direction: column; min-height: 300px; }
 .fft-workspace .spectrum-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 0; }
 .fft-workspace .display-controls, .fft-workspace .plot-actions { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
-.fft-workspace .reference-info strong { color: #8a589d; font-weight: 400; font-variant-numeric: tabular-nums; }
-.fft-workspace .reference-info[hidden] { display: none; }
 .fft-workspace .toolbar-actions { display: flex; align-items: center; gap: 0; }
 .fft-workspace .toolbar-actions button + button { border-left: 0; border-radius: 0 2px 2px 0; }
 .fft-workspace .toolbar-actions button:first-child { border-radius: 2px 0 0 2px; }
@@ -90,7 +88,6 @@
 .fft-workspace :is(.plot-placeholder, #history-view, #history-canvas) { height: 100%; min-height: 250px; }
 .fft-workspace #history-view { position: absolute; inset: 0; }
 .fft-workspace .fft-sidebar { min-width: 0; }
-.fft-workspace .reference-info { display: flex; flex-wrap: wrap; gap: 3px 8px; padding: 5px 0; border-top: 1px solid var(--border-light); font-size: 11px; }
 .fft-workspace #precision-channels { grid-column: 1 / -1; }
 
 /* Match PNA's compact presentation of the shared DAC widget. */
@@ -125,3 +122,22 @@
     .fft-workspace .spectrum-canvas { height: 46dvh; }
     .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.fft-workspace .reference-panel { padding: 6px 0; }
+.fft-workspace .reference-count { margin-left: 5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fft-workspace .reference-file-actions { display: flex; gap: 5px; margin: 6px 0; }
+.fft-workspace #clear-reference { margin-left: auto; }
+.fft-workspace .reference-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 2px 5px; padding: 5px 0; border-top: 1px solid var(--border-light); }
+.fft-workspace .reference-row input[type="text"] { grid-column: 2; grid-row: 1; width: 100%; min-width: 0; height: var(--control-height); padding: 2px 6px; border: 1px solid transparent; border-radius: 2px; background: transparent; font: inherit; }
+.fft-workspace .reference-row input[type="text"]:is(:hover, :focus) { border-color: var(--border-light); background: white; }
+.fft-workspace .reference-row small { grid-column: 2; grid-row: 2; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fft-workspace .reference-row time { grid-column: 3; grid-row: 2; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fft-workspace .reference-row-actions { grid-column: 3; grid-row: 1; display: flex; gap: 4px; }
+.fft-workspace .reference-row-actions button { font-size: 11px; }
+.fft-workspace .reference-undo { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+.fft-workspace .reference-undo[hidden] { display: none; }
+.fft-workspace .reference-undo span { min-width: 0; overflow-wrap: anywhere; }
+.fft-workspace .reference-undo button { margin-left: auto; }
+.fft-workspace .reference-row-actions .remove-reference { width: 24px; padding: 0; font-size: 18px; line-height: 1; }
+.fft-workspace #reference-message:empty { display: none; }
+.fft-workspace #reference-message { overflow-wrap: anywhere; }

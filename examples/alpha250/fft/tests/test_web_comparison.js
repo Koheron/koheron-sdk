@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert, performance});
-for (const file of ['web/fft/plot/spectrum-history.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
+for (const file of ['web/fft/plot/spectrum-history.ts', 'web/fft/plot/references.ts', 'web/fft/plot/plot.ts', 'web/plot-basics/plot-basics.ts']) {
     vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
         compilerOptions: {target: ts.ScriptTarget.ES2020}
     }).outputText, context);
@@ -37,10 +37,10 @@ vm.runInContext(`
         async readSpectrum() { reads++; return {psd, status: this.status}; }};
     const basics = {enableSpectrumReduction() {}, enableBatchedLines() {}, setLinY() {}, setRangeX(from, to) { range = {from, to}; },
         getRangeX() { return {...range}; },
-        redraw(data, count, peak, label, cb, reference, peakIsFinal) { drawn = {data, peak, reference, peakIsFinal}; }};
+        redraw(data, count, peak, label, cb, reference, peakIsFinal, traces) { drawn = {data, peak, reference: traces[0]?.data, traces, peakIsFinal}; }};
     const plot = new Plot(doc, fft, basics);
     plot.captureReference();
-    assert.equal(plot.referenceStatus, undefined); // No frame yet.
+    assert.equal(plot.references.items[0]?.status, undefined); // No frame yet.
     await Promise.resolve(); flushFrame();
     assert.equal(drawn.peak[0], 0);
     assert.equal(fields.get('capture-reference').disabled, false);
@@ -62,8 +62,7 @@ vm.runInContext(`
     assert.equal(reads, 1);
     events.get('capture-reference')();
     assert.equal(drawn.reference.length, 4);
-    assert.equal(fields.get('reference-status').textContent, 'ADC 1 · Hann · 80 MS/s');
-    assert.equal(fields.get('capture-reference').textContent, 'Replace ref');
+    assert.equal(drawn.traces[0].label, 'Reference 1');
     const referenceRaw = psd[1];
     psd[1] = 1e-10;
     fft.status.fs = 40e6;
@@ -81,24 +80,24 @@ vm.runInContext(`
     assert.equal(drawn.reference[1][0], 10); // Each trace retains its frequency grid.
     assert.ok(Math.abs(drawn.reference[1][1] - referencePower) < 1e-9);
     assert.equal(drawn.reference, cachedReference); // Live frames reuse the converted reference.
-    assert.equal(plot.referenceStatus.fs, 80e6);
-    assert.equal(plot.referenceStatus.dds_freq[0], 10e6);
+    assert.equal(plot.references.items[0]?.status.fs, 80e6);
+    assert.equal(plot.references.items[0]?.status.dds_freq[0], 10e6);
     assert.ok(drawn.data[1][1] < drawn.reference[1][1]);
     unit.value = 'nV-rtHz';
     changeUnit();
     assert.notEqual(drawn.reference, cachedReference);
     const convertedReference = drawn.reference;
     plot.captureReference();
-    assert.notEqual(drawn.reference, convertedReference); // Replacing a capture invalidates the cache.
-    assert.equal(plot.referenceStatus.fs, 40e6);
-    assert.equal(plot.referenceStatus.dds_freq[0], 5e6);
+    assert.equal(drawn.reference, convertedReference); // Capturing again preserves earlier captures.
+    assert.equal(plot.references.items.length, 2);
+    assert.equal(plot.references.items[1].status.fs, 40e6);
+    assert.equal(plot.references.items[1].status.dds_freq[0], 5e6);
     events.get('clear-reference')();
     assert.equal(drawn.reference, undefined);
-    assert.equal(plot.referenceStatus, undefined);
-    assert.equal(fields.get('reference-info').hidden, true);
+    assert.equal(plot.references.items[0]?.status, undefined);
     assert.equal(fields.get('clear-reference').disabled, true);
     plot.captureReference(); // Replace with the latest frame.
-    assert.equal(plot.referenceStatus.fs, 40e6);
+    assert.equal(plot.references.items[0]?.status.fs, 40e6);
     plot.dispose();
 
     const shared = Object.create(PlotBasics.prototype);

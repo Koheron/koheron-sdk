@@ -56,15 +56,22 @@ DAC frequencies. Enable an output through `PhaseModulator` when scripting.
   **Exclude DC** skips the zero-frequency bin, leaving other bins unchanged.
 - **Pause** freezes the displayed frame while acquisition continues. Unit
   changes, zoom and peak search still work on the retained samples.
-- **Capture ref** stores the full displayed spectrum as a purple reference.
-  **Replace ref** captures a new one; **Clear ref** removes it. The reference
-  retains its sample rate, window correction and channel when live settings
-  change. Both traces convert to the selected unit using their own metadata.
-  Reference cursor labels start with `Ref`. References last until page reload.
+- **Capture ref** adds the displayed live spectrum to the References panel.
+  Keep up to eight captures, rename them, toggle their visibility, or remove
+  them individually. **Recapture** updates one trace while keeping its name,
+  color and visibility. **Undo** restores the last recapture, removal or clear;
+  adding or loading a capture clears the Undo action. **Clear all** in the
+  References panel removes the whole collection. Each capture
+  retains its channel, sample rate, window correction, frequency grid and time;
+  changing live settings or display units preserves earlier captures.
+- **Save all** downloads the complete collection, including hidden traces,
+  as a JSON file. **Load…** appends a saved collection from the same board
+  model. Save before reloading or closing the page; references are held in the
+  current browser session. Loading does not change hardware settings.
 - **CSV** exports all bins, including those outside the zoomed view. When a
-  reference is present, a second `Reference trace` section contains its own
-  settings and frequency grid. **PNG** exports the current view, both traces
-  and their acquisition settings. Enabled average and max-hold traces also
+  reference is visible, its `Reference trace` section contains its name, capture
+  time, settings and frequency grid. **PNG** exports the current view, visible
+  references and their acquisition settings. Enabled average and max-hold traces also
   appear in spectrum CSV files. History PNG exports show the selected view;
   history CSV exports contain all frequency bins, time rows with explicit
   missing slots for Spectrogram, or per-level occurrence counts for Density.

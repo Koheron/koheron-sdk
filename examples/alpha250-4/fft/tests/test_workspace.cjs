@@ -92,7 +92,7 @@ async function host(t, failure = false) {
         'web/precision-channels/precision-adc.ts','web/precision-channels/precision-dac.ts','web/precision-channels/precision-channels-app.ts',
         'web/temperature-sensor/temperature-sensor.ts','web/power-monitor/power-monitor.ts','web/board-controls/alpha-fft.ts',
         'web/fft/driver.ts','web/fft/controls/fft-app.ts','web/fft/plot/spectrum-history.ts','web/fft/plot/spectrum-views.ts',
-        'web/fft/plot/plot.ts','web/fft/export-file/export-file.ts','web/fft/workspace.ts',`${project}/web/fft.ts`,`${project}/web/app.ts`];
+        'web/fft/plot/references.ts', 'web/fft/plot/plot.ts','web/fft/export-file/export-file.ts','web/fft/workspace.ts',`${project}/web/fft.ts`,`${project}/web/app.ts`];
     w.eval(ts.transpileModule(files.map(file => fs.readFileSync(path.join(root,file),'utf8')).join('\n'), {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText + '\nwindow.workspace = app;');
     w.dispatchEvent(new w.Event('HTMLImportsLoaded')); await flush();
     t.after(() => { w.dispatchEvent(new w.Event('pagehide')); w.close(); });
@@ -141,7 +141,7 @@ test('four inputs map to the correct FFT engine and selected-pair frequency grid
 
 test('late channel replies are discarded and captured reference metadata stays with its original input', async t => {
     const h=await host(t),plot=h.app.plot;
-    plot.captureReference(); const reference=plot.referenceStatus;
+    plot.captureReference(); const reference=plot.references.items[0].status;
     h.state.holdPSD=true; const pending=h.app.fft.readSpectrum(); await settle();
     h.app.fft.setInputChannel(3);
     assert.equal(await h.app.fft.readSpectrum(),undefined);
@@ -150,7 +150,7 @@ test('late channel replies are discarded and captured reference metadata stays w
     await h.app.fft.getControlParameters(); await plot.updatePlot(); await h.flush();
     assert.equal(plot.frameStatus.channel,3); assert.equal(plot.frameStatus.fs,200e6);
     assert.equal(reference.channel,0); assert.equal(reference.fs,250e6);
-    assert.strictEqual(plot.referenceStatus,reference);
+    assert.strictEqual(plot.references.items[0].status,reference);
 });
 
 test('window, reference and sampling controls preserve commands and selected frame metadata', async t => {

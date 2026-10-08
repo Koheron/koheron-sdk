@@ -49,3 +49,8 @@ CSV/PNG exports, precision readbacks, connection failure and teardown.
 
 Host checks and web builds do not validate numerical calibration, acquisition
 on a board or FPGA timing; those need separate hardware/build validation.
+
+The shared [reference controls](../../alpha250/fft/README.md)
+keep up to eight named captures with individual visibility and removal.
+Save all / Load preserve the collection and acquisition settings in a
+JSON file for later comparisons. Save before closing or reloading the page.

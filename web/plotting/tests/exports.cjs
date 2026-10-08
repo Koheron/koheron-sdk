@@ -17,6 +17,7 @@ const {launch, load, root, ts} = require('../benchmark/harness.cjs');
                 document.body.insertAdjacentHTML('beforeend', '<button class="export-data"></button><button class="export-plot"></button>');
                 const status = {fs:250e6, channel:0, window_index:1, clkIndex:'1', dds_freq:[0,0]};
                 const spectrum = {frameStatus:status, frameReceivedAt:'2026-10-08T10:00:00Z', yLabel:'dB', plotBasics:basics,
+                    visibleReferences:[{name:'Ref', color:'#a178b5', capturedAt:'2026-10-08T09:00:00Z', status, data:frames[0][1]}],
                     plot_data:data[0], reference_data:frames[0][1], average_data:data[2], maximum_data:data[3],
                     referenceStatus:status, referenceParameters:status, referenceReceivedAt:'2026-10-08T09:00:00Z',
                     smooth_plot_data:data[2], reference_smooth_data:frames[0][1], phase_psd:new Float32Array(spec.bins).fill(1), referencePSD:new Float32Array(spec.bins).fill(2)};

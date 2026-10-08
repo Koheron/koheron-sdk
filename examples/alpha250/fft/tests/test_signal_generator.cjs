@@ -48,7 +48,7 @@ async function host(t, failure = false, board = 'alpha250', connectionFailure = 
         dispose() { trace.push('controls-stopped'); }
     };
     window.PrecisionChannelsApp = class { async init() {} setValues() {} dispose() {} };
-    for (const name of ['PrecisionDac', 'ClockGenerator', 'ClockGeneratorApp', 'PlotBasics', 'ExportFile']) {
+    for (const name of ['PrecisionDac', 'ClockGenerator', 'ClockGeneratorApp', 'PlotBasics', 'ExportFile', 'FFTReferencePanel']) {
         window[name] = class { dispose() {} };
     }
     window.Plot = class { constructor() { trace.push('plot-ready'); } dispose() { trace.push('plot-stopped'); } };

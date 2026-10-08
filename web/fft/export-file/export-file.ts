@@ -17,8 +17,8 @@ class ExportFile {
         const width = canvas.clientWidth || canvas.width;
         const scale = canvas.width / width;
         const height = canvas.height / scale;
-        const reference = !historyView && this.spectrum.referenceStatus;
-        const headerHeight = reference ? 68 : 52;
+        const references = historyView ? [] : this.spectrum.visibleReferences;
+        const headerHeight = 52 + 16 * references.length;
         const image = this.document.createElement('canvas');
         image.width = canvas.width;
         image.height = Math.ceil((height + headerHeight + 30) * scale);
@@ -31,12 +31,12 @@ class ExportFile {
         context.font = '12px sans-serif';
         context.fillText(this.boardName + ' ' + this.instrumentName + ' · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, 12, 20);
         context.font = '11px sans-serif';
-        context.fillText((reference ? 'Live · ' : '') + this.frameLabel(status), 12, 38);
-        if (reference) {
-            context.fillStyle = '#8a589d';
-            context.fillText('Ref · ' + this.frameLabel(reference), 12, 54);
-            context.fillStyle = '#333';
-        }
+        context.fillText((references.length ? 'Live · ' : '') + this.frameLabel(status), 12, 38);
+        references.forEach((reference, index) => {
+            context.fillStyle = reference.color;
+            context.fillText(reference.name + ' · ' + this.frameLabel(reference.status), 12, 54 + 16 * index, width - 24);
+        });
+        context.fillStyle = '#333';
         context.drawImage(canvas, 0, headerHeight, width, height);
         context.textAlign = 'center';
         if (!historyView) { context.fillText('Frequency (' + (status.spectrum?.unit || 'MHz') + ')', width / 2, height + headerHeight + 20); }
@@ -80,9 +80,10 @@ class ExportFile {
         // Use the displayed frame's metadata, including while the plot is paused.
         const rows = ['Koheron ' + this.boardName + ' ' + this.instrumentName, 'Exported at,' + new Date().toISOString(), ...this.frameRows(status)];
         for (const row of this.spectrum.plot_data) { rows.push(row.join(',')); }
-        if (this.spectrum.referenceStatus) {
-            rows.push('', 'Reference trace', ...this.frameRows(this.spectrum.referenceStatus));
-            for (const row of this.spectrum.reference_data) { rows.push(row.join(',')); }
+        for (const reference of this.spectrum.visibleReferences) {
+            rows.push('', '"Reference trace: ' + reference.name.replace(/"/g, '""') + '"',
+                'Captured at,' + reference.capturedAt, ...this.frameRows(reference.status));
+            for (const row of reference.data) { rows.push(row.join(',')); }
         }
         for (const [label, data] of [['Average (1 s linear power EMA)', this.spectrum.average_data], ['Max hold', this.spectrum.maximum_data]] as [string, number[][]][]) {
             if (data) { rows.push('', label, ...this.frameRows(status)); for (const row of data) { rows.push(row.join(',')); } }

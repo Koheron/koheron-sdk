@@ -17,7 +17,7 @@
   </fieldset>
     <div class="spectrum-toolbar">
       <div class="display-controls"><label class="view-selector"><span class="sr-only">View</span><select id="spectrum-view" aria-label="View" disabled><option value="spectrum">Spectrum</option><option value="spectrogram">Spectrogram</option><option value="density">Density</option></select></label><div id="yunit"></div><div id="peak-detection"></div><label class="peak-toggle"><input id="exclude-dc" type="checkbox">Exclude DC</label></div>
-      <div class="plot-actions"><div class="toolbar-actions"><button id="pause-display" type="button" disabled aria-pressed="false">Pause</button><button id="reset-view" type="button" disabled>Reset</button></div><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button><button id="clear-reference" type="button" disabled title="Clear the reference spectrum">Clear ref</button></div><div id="export-file"></div></div>
+      <div class="plot-actions"><div class="toolbar-actions"><button id="pause-display" type="button" disabled aria-pressed="false">Pause</button><button id="reset-view" type="button" disabled>Reset</button></div><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button></div><div id="export-file"></div></div>
     </div>
   </div>
   <section class="spectrum-panel" aria-label="Spectrum">
@@ -41,7 +41,13 @@
       <summary>DAC signal generator</summary>
       <div id="board-generator"></div>
     </details>
-    <div id="reference-info" class="reference-info" hidden><span class="readout-label">Reference</span><strong id="reference-status"></strong></div>
+    <details class="reference-panel" open>
+      <summary>References <span id="reference-count" class="reference-count">0 / 8</span></summary>
+      <div class="reference-file-actions"><button id="save-references" type="button" disabled title="Download all references, including hidden traces, to reload in a later session">Save all</button><button id="load-references" type="button" title="Add references from a saved file">Load…</button><button id="clear-reference" type="button" disabled title="Remove all captured references">Clear all</button><input id="reference-file" type="file" accept=".json,application/json" hidden></div>
+      <div id="reference-list"></div>
+      <div id="reference-undo" class="reference-undo" hidden><span id="reference-undo-label"></span><button id="undo-reference" type="button">Undo</button></div>
+      <p id="reference-message" role="status" aria-live="polite"></p>
+    </details>
   <details class="board-details" hidden><summary>Board monitoring &amp; precision I/O</summary>
     <fieldset id="board-controls" disabled class="board-grid"><legend class="sr-only">Board controls</legend><section id="precision-channels"></section><section id="temperature-sensor"></section><section id="power-monitor"></section></fieldset>
   </details>

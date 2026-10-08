@@ -3,7 +3,7 @@ set -euo pipefail
 suite=${1:-all}
 case "$suite" in all|alpha15) ;; *) echo "Unknown suite: $suite" >&2; exit 2 ;; esac
 source "$(dirname "$0")/../../tests/environment.sh"
-node --test web/fft/tests/test_controls.cjs
+node --test web/fft/tests/test_controls.cjs web/fft/tests/test_references.cjs
 if [[ $suite == all ]]; then
     for fixture in examples/alpha250/fft/tests/test_web_*.js; do
         node "$fixture"

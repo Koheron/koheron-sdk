@@ -12,6 +12,7 @@ vm.runInContext(ts.transpileModule(fs.readFileSync(source, 'utf8'), {
 vm.runInContext(`
 (async () => {
     const spectrum = {
+        visibleReferences: [],
         yLabel: 'Voltage noise (nV/√Hz)',
         frameStatus: {channel: 1, window_index: 1, fs: 250e6, clkIndex: '2', dds_freq: [40e6, 0]},
         plot_data: [[0, 0], [40.008544921875, 123.456]]
@@ -62,8 +63,8 @@ vm.runInContext(`
         buttons.get('.export-data')();
         assert.ok((await download.blob.text()).includes('Reference clock,External'));
         spectrum.frameStatus.clkIndex = '2';
-        spectrum.referenceStatus = {channel: 0, window_index: 3, fs: 200e6, clkIndex: '0', dds_freq: [10e6, 0]};
-        spectrum.reference_data = [[0, 5], [25, 42]];
+        const referenceStatus = {channel: 0, window_index: 3, fs: 200e6, clkIndex: '0', dds_freq: [10e6, 0]};
+        spectrum.visibleReferences = [{name:'Ref', color:'#a178b5', capturedAt:'2026-10-08T12:00:00Z', status:referenceStatus, data:[[0, 5], [25, 42]]}];
         text.length = 0;
         buttons.get('.export-plot')();
         assert.equal(image.height, 298 * density);
@@ -88,7 +89,7 @@ vm.runInContext(`
         buttons.get('.export-data')();
         assert.ok((await download.blob.text()).includes('Average (1 s linear power EMA)'));
         spectrum.average_data = undefined;
-        spectrum.referenceStatus = spectrum.reference_data = undefined;
+        spectrum.visibleReferences = [];
         const rpExporter = new ExportFile(doc, spectrum, 'Red Pitaya');
         rpExporter.download = (blob, name) => { download = {blob, name}; };
         spectrum.frameStatus.clkIndex = 'fixed';
