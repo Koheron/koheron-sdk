@@ -225,6 +225,7 @@ class StreamingWelch {
         const float reciprocal = 1.f / float(filled);
         std::size_t k = 0;
 #if defined(__ARM_NEON)
+        auto all_safe = vdupq_n_u32(UINT32_MAX);
         if (filled == 3) for (; k + 4 <= bins; k += 4) {
             const auto a = vld1q_f32(history[0].data() + k);
             const auto b = vld1q_f32(history[1].data() + k);
@@ -232,10 +233,19 @@ class StreamingWelch {
             auto safe = safe_magnitudes(a, 0x1p-94f, 0x1p100f);
             safe = vandq_u32(safe, safe_magnitudes(b, 0x1p-94f, 0x1p100f));
             safe = vandq_u32(safe, safe_magnitudes(c, 0x1p-94f, 0x1p100f));
-            if (all_lanes(safe)) {
-                vst1q_f32(averaged_power.data() + k, vmulq_n_f32(vaddq_f32(vaddq_f32(a, b), c), reciprocal));
-            } else for (std::size_t j = k; j < k + 4; ++j)
-                averaged_power[j] = ((history[0][j] + history[1][j]) + history[2][j]) * reciprocal;
+            all_safe = vandq_u32(all_safe, safe);
+            vst1q_f32(averaged_power.data() + k, vmulq_n_f32(vaddq_f32(vaddq_f32(a, b), c), reciprocal));
+        }
+        if (!all_lanes(all_safe)) {
+            // Ordinary spectra keep all safety checks in NEON. Revisit only
+            // exceptional blocks to retain scalar subnormal/cancellation behavior.
+            for (std::size_t i = 0; i < k; i += 4) {
+                auto safe = safe_magnitudes(vld1q_f32(history[0].data() + i), 0x1p-94f, 0x1p100f);
+                safe = vandq_u32(safe, safe_magnitudes(vld1q_f32(history[1].data() + i), 0x1p-94f, 0x1p100f));
+                safe = vandq_u32(safe, safe_magnitudes(vld1q_f32(history[2].data() + i), 0x1p-94f, 0x1p100f));
+                if (!all_lanes(safe)) for (std::size_t j = i; j < i + 4; ++j)
+                    averaged_power[j] = ((history[0][j] + history[1][j]) + history[2][j]) * reciprocal;
+            }
         }
 #endif
         for (; k < bins; ++k) {

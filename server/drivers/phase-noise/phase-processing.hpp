@@ -45,7 +45,9 @@ struct RawPhaseTrend {
     double slope;
 };
 
-inline RawPhaseTrend fit_raw_phase(std::span<const int32_t> raw) {
+// Keep the integer reduction out of the large preparation/FFT caller. GCC's
+// ARM LTO inlining otherwise spills NEON accumulators inside the sample loop.
+[[gnu::noinline]] inline RawPhaseTrend fit_raw_phase(std::span<const int32_t> raw) {
     const auto samples = raw.size();
     assert(samples > 1 && samples <= 65536);
     int64_t sum = 0, twice_covariance = 0;
@@ -55,7 +57,8 @@ inline RawPhaseTrend fit_raw_phase(std::span<const int32_t> raw) {
     const int32_t weights[]{first, first + 2, first + 4, first + 6};
     auto weight = vld1q_s32(weights);
     auto totals = vdupq_n_s64(0), covariance = vdupq_n_s64(0);
-    for (; i + 4 <= samples; i += 4) {
+    const auto vector_samples = samples - samples % 4;
+    for (; i < vector_samples; i += 4) {
         const auto value = vld1q_s32(raw.data() + i);
         totals = vaddq_s64(totals, vaddq_s64(vmovl_s32(vget_low_s32(value)), vmovl_s32(vget_high_s32(value))));
         covariance = vaddq_s64(covariance, vmull_s32(vget_low_s32(value), vget_low_s32(weight)));
@@ -107,19 +110,17 @@ inline void prepare_phase_window(std::span<const int32_t> raw, const RawPhaseTre
         auto line = vld1q_s64(initial);
         const auto advance = vdupq_n_s64(2 * step);
         const float factor = float(scale);
-        bool overflow = false;
+        auto errors = vdupq_n_s64(0);
         std::size_t i = 0;
         for (; i + 4 <= raw.size(); i += 4) {
             const auto input = vld1q_s32(raw.data() + i);
             const auto low_raw = vshlq_n_s64(vmovl_s32(vget_low_s32(input)), 32);
             const auto low = vsubq_s64(low_raw, line);
-            auto errors = vandq_s64(veorq_s64(low_raw, line), veorq_s64(low_raw, low));
+            errors = vorrq_s64(errors, vandq_s64(veorq_s64(low_raw, line), veorq_s64(low_raw, low)));
             line = vaddq_s64(line, advance);
             const auto high_raw = vshlq_n_s64(vmovl_s32(vget_high_s32(input)), 32);
             const auto high = vsubq_s64(high_raw, line);
             errors = vorrq_s64(errors, vandq_s64(veorq_s64(high_raw, line), veorq_s64(high_raw, high)));
-            const auto signs = vshrq_n_s64(errors, 63);
-            if ((vgetq_lane_s64(signs, 0) | vgetq_lane_s64(signs, 1)) != 0) { overflow = true; break; }
             line = vaddq_s64(line, advance);
             const auto low_sign = vshrq_n_s64(low, 63), high_sign = vshrq_n_s64(high, 63);
             const auto low_abs = vreinterpretq_u64_s64(vsubq_s64(veorq_s64(low, low_sign), low_sign));
@@ -135,6 +136,10 @@ inline void prepare_phase_window(std::span<const int32_t> raw, const RawPhaseTre
                 vandq_u32(sign, vdupq_n_u32(0x80000000u))));
             vst1q_f32(output + i, vmulq_f32(vmulq_n_f32(residual, factor), vld1q_f32(window.data() + i)));
         }
+        // Reduce overflow flags once per window, keeping the sample loop in
+        // NEON. No result escapes before an exceptional window is recomputed.
+        const auto signs = vshrq_n_s64(errors, 63);
+        const bool overflow = (vgetq_lane_s64(signs, 0) | vgetq_lane_s64(signs, 1)) != 0;
         for (; !overflow && i < raw.size(); ++i)
             output[i] = float((double(raw[i]) - mean - trend.slope * (double(i) - center)) * scale) * window[i];
         if (!overflow) return;

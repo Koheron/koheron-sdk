@@ -22,10 +22,12 @@ int main(int argc, char** argv) {
     assert(argc == 2);
     // Fusing normalization must retain DC/Nyquist scaling and gradual
     // underflow, including the ARMv7 NEON scalar fallback.
-    for (const int simd : {1, 4}) for (const float normalization : {1e-39f, 1e-15f, 1e-3f, 1.f, 1e3f}) {
+    for (const bool late : {false, true}) for (const int simd : {1, 4})
+    for (const float normalization : {1e-39f, 1e-15f, 1e-3f, 1.f, 1e3f}) {
         std::array<float, 64> transformed{};
         const float values[]{0.f, 1e-22f, -1e-20f, 1e-10f, -1.f, 1e10f};
-        for (std::size_t k = 0; k < transformed.size(); ++k) transformed[k] = values[k % 6];
+        for (std::size_t k = 0; k < transformed.size(); ++k) transformed[k] = late ? 1.f : values[k % 6];
+        if (late) transformed[60] = transformed[61] = 1e-22f;
         std::array<float, 33> original{}, fused{};
         phase_noise::detail::accumulate_welch_power(transformed.data(), original.data(), 64, simd);
         phase_noise::detail::accumulate_welch_power<false>(transformed.data(), fused.data(), 64, simd, normalization);
@@ -83,6 +85,41 @@ int main(int argc, char** argv) {
     paired.process(std::span<const int32_t>(x.data(), size), 1e-5, 123456,
                    std::span<const int32_t>(y.data(), size), 1e-11, false);
     assert(paired.latest_cross() == reference_cross && paired.segment_count() == hops + 2);
+
+    // A late exceptional bin must repair the complete output after the SIMD
+    // safety reduction. Exercise rolling averages with both normal and
+    // subnormal powers; a quiet signed cross spectrum also tests cancellation.
+    for (const double scale : {1e-5, 1e-24}) {
+        phase_noise::StreamingWelch<size> quiet_single, quiet_paired;
+        std::array<std::vector<float>, 3> auto_history, cross_history;
+        bool subnormal = false;
+        for (std::size_t hop = 0; hop < 6; ++hop) {
+            const auto a = std::span<const int32_t>(x.data() + hop * size / 2, size);
+            const auto b = std::span<const int32_t>(y.data() + hop * size / 2, size);
+            quiet_single.process(a, scale, 123456);
+            quiet_paired.process(a, scale, 123456, b, scale);
+            auto_history[hop % 3] = quiet_single.latest_power();
+            cross_history[hop % 3] = quiet_paired.latest_power();
+            if (hop < 2) continue;
+            for (std::size_t k = 0; k <= size / 2; ++k) {
+                const auto expected = [&](const auto& h) {
+                    const volatile float first = h[0][k] + h[1][k];
+                    const volatile float sum = first + h[2][k];
+                    return sum * (1.f / 3.f);
+                };
+                const auto same = [](float actual, float reference) {
+                    // The scalar sum starts at +0; SIMD starts with the first
+                    // two values, so an all-negative-zero cross bin can differ.
+                    return (actual == 0.f && reference == 0.f) ||
+                        std::bit_cast<uint32_t>(actual) == std::bit_cast<uint32_t>(reference);
+                };
+                assert(same(quiet_single.density()[k], expected(auto_history)));
+                assert(same(quiet_paired.density()[k], expected(cross_history)));
+                subnormal |= std::fpclassify(quiet_single.density()[k]) == FP_SUBNORMAL;
+            }
+        }
+        if (scale == 1e-24) assert(subnormal);
+    }
 
     // Production-sized windows cover fine steps on large offsets, almost
     // full-range carrier drift in both directions, and signed endpoint input.
