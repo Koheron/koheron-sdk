@@ -6,6 +6,7 @@
 #include "server/network/configs/server_definitions.hpp"
 #include "server/network/serializer_deserializer.hpp"
 #include "server/network/mixed_reply.hpp"
+#include "server/network/fixed_reply.hpp"
 #include "server/network/configs/config.hpp"
 #include "server/utilities/rate_tracker.hpp"
 #include "server/utilities/metadata.hpp"
@@ -47,6 +48,19 @@ class Session
 
         if constexpr (nargs == 0) {
             return 0;
+        }
+
+        constexpr auto fixed_size = (detail::fixed_reply_size<Args>() + ... + 0);
+        if constexpr (((detail::fixed_reply_size<Args>() != 0) && ...) &&
+                      fixed_size <= detail::max_fixed_reply_bytes - 8) {
+            // Pack the complete small reply once, without growing or clearing
+            // the dynamic buffer for every scalar. The transport copies it
+            // synchronously, including WebSocket framing.
+            const auto bytes = detail::fixed_reply(class_id, func_id, args...);
+            const int n = write_bytes(std::as_bytes(std::span{bytes}));
+            tx_tracker.update(n);
+            if (n == 0) status = CLOSED;
+            return n;
         }
 
         // build into base-owned buffer
@@ -178,7 +192,8 @@ class Session
         auto header = std::as_bytes(std::span{send_buffer});
         const auto t0 = ut::RateTracker::clock::now();
         int n = send_iov(header, std::as_bytes(payload), flags);
-        auto dur = ut::RateTracker::clock::now() - t0;
+        const auto completed = ut::RateTracker::clock::now();
+        const auto dur = completed - t0;
 
         if (n <= 0) {
             if (n == 0) {
@@ -197,7 +212,7 @@ class Session
             return n;
         }
 
-        tx_tracker.update_over_duration(n, dur);
+        tx_tracker.update_over_duration(n, dur, completed);
         return n;
     }
 };

@@ -55,13 +55,13 @@ class RateTracker {
     // Adds `bytes` spread uniformly over the last `dur_s` seconds.
     // This keeps mean/total exact and makes window/inst reasonable.
     template <typename Duration>
-    void update_over_duration(int64_t bytes, Duration dur) {
+    void update_over_duration(int64_t bytes, Duration dur, clock::time_point now = clock::now()) {
         using seconds_d = std::chrono::duration<double>;
         double dur_s = std::chrono::duration_cast<seconds_d>(dur).count();
         if (bytes <= 0 || dur_s <= 0.0)
             return;
 
-        const auto now_s = sec(clock::now());
+        const auto now_s = sec(now);
         advance_buckets(now_s);
 
         int secs = std::min<int>(static_cast<int>(std::ceil(dur_s)), buckets_);
