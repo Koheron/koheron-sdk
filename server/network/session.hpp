@@ -5,6 +5,7 @@
 
 #include "server/network/configs/server_definitions.hpp"
 #include "server/network/serializer_deserializer.hpp"
+#include "server/network/mixed_reply.hpp"
 #include "server/network/configs/config.hpp"
 #include "server/utilities/rate_tracker.hpp"
 #include "server/utilities/metadata.hpp"
@@ -17,6 +18,8 @@
 #include <tuple>
 #include <span>
 #include <memory_resource>
+#include <limits>
+#include <vector>
 #include <sys/socket.h>
 
 namespace net {
@@ -75,10 +78,18 @@ class Session
             builder.push(vect.size() * sizeof(value_t));
             return send_payload(std::span{vect}, sock_flags);
         } else {
-            // Small/heterogeneous payload: serialize all and single send payload, serialize everything + single send
-            builder.push(std::forward<Args>(args)...);
-
-            int n = write_bytes(std::as_bytes(std::span{send_buffer}));
+            // Pack metadata together and borrow large containers where possible.
+            constexpr auto containers = (mixed_reply_containers<Args>() + ... + 0);
+            int n;
+            if constexpr (containers > 0 && containers * 2 + 1 <= max_reply_parts) {
+                MixedReply<containers * 2 + 1> reply(builder);
+                (reply.push(std::forward<Args>(args)), ...);
+                n = reply.has_borrowed_payload() ? write_segments(reply.finish())
+                    : write_bytes(std::as_bytes(std::span{send_buffer}));
+            } else {
+                builder.push(std::forward<Args>(args)...);
+                n = write_bytes(std::as_bytes(std::span{send_buffer}));
+            }
             tx_tracker.update(n);
 
             if (n == 0) {
@@ -129,6 +140,21 @@ class Session
     virtual int exit_socket() = 0;
     virtual int read_command(Command& cmd) = 0;
     virtual int write_bytes(std::span<const std::byte>) = 0;
+    // Synchronous copying send: no MSG_ZEROCOPY completion/lifetime changes.
+    virtual int write_segments(std::span<const std::span<const std::byte>> parts) {
+        // Preserve the existing subclass interface: transports that do not
+        // implement scatter/gather still receive one contiguous byte stream.
+        std::size_t total = 0;
+        for (auto part : parts) {
+            if (part.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) - total)
+                return -1;
+            total += part.size();
+        }
+        std::vector<std::byte> packed;
+        packed.reserve(total);
+        for (auto part : parts) packed.insert(packed.end(), part.begin(), part.end());
+        return write_bytes(packed);
+    }
     virtual int send_iov(std::span<const std::byte> header,
                 std::span<const std::byte> payload,
                 int flags) = 0;

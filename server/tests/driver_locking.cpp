@@ -179,8 +179,10 @@ template<int Kind> void stalled_output(uint16_t operation, bool disconnect = fal
         return;
     }
     Bytes expected = command(operation);
-    append_be(expected, 512 * 1024 * sizeof(uint32_t), sizeof(size_t));
+    if (operation == 14) append_be(expected, 0xbeef, 2);
+    append_be(expected, 512 * 1024 * sizeof(uint32_t), operation == 14 ? 4 : sizeof(size_t));
     expected.resize(expected.size() + 512 * 1024 * sizeof(uint32_t), 0x33);
+    if (operation == 14) append_be(expected, 0xabcdef01, 4);
     check(slow.response(expected.size()) == expected, "Borrowed response changed during transmission");
     check(healthy.response(12) == scalar_response(1, 0x44444444), "Driver stayed locked after its reply finished");
     slow.send(command(1)); check(slow.response(12) == scalar_response(1, 0x44444444), "Connection lost after large reply");
@@ -368,6 +370,10 @@ int main(int argc, char** argv) {
         else if (test == "mixed-ws") mixed_arguments<net::WEBSOCK>();
         else if (test == "empty-arrays") empty_fixed_arrays();
         else if (test == "large-arrays") large_fixed_arrays();
+        else if (test == "mixed-tcp-output") stalled_output<net::TCP>(14);
+        else if (test == "mixed-unix-output") stalled_output<net::UNIX>(14);
+        else if (test == "mixed-ws-output") stalled_output<net::WEBSOCK>(14);
+        else if (test == "mixed-disconnect-output") stalled_output<net::TCP>(14, true);
         else throw std::runtime_error("Unknown test case");
         std::cout << "PASS " << test << '\n';
     } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

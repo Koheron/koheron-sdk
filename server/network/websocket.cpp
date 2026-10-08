@@ -7,6 +7,8 @@
 #include "server/network/websocket.hpp"
 #include "server/network/base64.hpp"
 #include "server/network/sha1.hpp"
+#include "server/network/mixed_reply.hpp"
+#include "server/network/socket_write.hpp"
 #include "server/utilities/endian_utils.hpp"
 
 #include <array>
@@ -279,6 +281,47 @@ int WebSocket::send_frame(std::span<const std::byte> h,
 
     logf<DEBUG>("[S] {} bytes\n", total_sent);
     return static_cast<int>(total_sent);
+}
+
+int WebSocket::send_parts(std::span<const std::span<const std::byte>> parts) {
+    if (connection_closed) return 0;
+    if (parts.size() > max_reply_parts) return -1;
+    constexpr std::size_t chunk_size = WEBSOCK_SEND_BUF_LEN - 10;
+    constexpr auto max_size = static_cast<std::size_t>(std::numeric_limits<int>::max());
+    std::size_t total = 0;
+    for (const auto part : parts) {
+        if (part.size() > max_size - total) return -1;
+        total += part.size();
+    }
+    if (total == 0) return 0;
+    // The return value includes WebSocket framing, as with a single-range send.
+    if (total + ((total + chunk_size - 1) / chunk_size) * 10 > max_size) return -1;
+    std::size_t index = 0, offset = 0, sent = 0, wire_bytes = 0;
+    while (sent < total) {
+        auto remaining = std::min(chunk_size, total - sent);
+        const auto frame_bytes = remaining;
+        const auto format = (sent == 0 ? BINARY_FRAME : CONTINUATION_FRAME) |
+                            (sent + remaining == total ? (1 << 7) : 0);
+        const auto header_len = set_send_header(static_cast<int64_t>(remaining), format);
+        std::array<iovec, max_reply_parts + 1> iov{};
+        iov[0] = {send_header.data(), static_cast<std::size_t>(header_len)};
+        std::size_t count = 1;
+        while (remaining != 0) {
+            if (offset == parts[index].size()) { ++index; offset = 0; continue; }
+            const auto n = std::min(remaining, parts[index].size() - offset);
+            iov[count++] = {const_cast<std::byte*>(parts[index].data() + offset), n};
+            remaining -= n;
+            offset += n;
+        }
+        const auto n = write_iovecs(comm_fd, std::span{iov}.first(count), MSG_NOSIGNAL);
+        if (n <= 0) {
+            connection_closed = true;
+            return n;
+        }
+        wire_bytes += static_cast<std::size_t>(n);
+        sent += frame_bytes;
+    }
+    return static_cast<int>(wire_bytes);
 }
 
 int WebSocket::send_message(std::span<const std::byte> h,

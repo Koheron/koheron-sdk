@@ -30,6 +30,10 @@ struct LockingInstrument {
     uint32_t get() const { return value; }
     void set_vector(const std::vector<uint32_t>& v) { ++calls; value = v.at(0); }
     const std::vector<uint32_t>& get_vector() const { ++readers; return data; }
+    auto get_mixed() const {
+        ++readers;
+        return std::tuple<uint16_t, std::span<const uint32_t>, uint32_t>{0xbeef, data, 0xabcdef01};
+    }
     std::span<const uint32_t> get_span() const { ++readers; return data; }
     const std::array<uint32_t, 4>& get_array() const { return array; }
     std::span<const uint32_t, 4> get_fixed_span() const { return array; }
