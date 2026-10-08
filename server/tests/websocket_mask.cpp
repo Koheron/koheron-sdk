@@ -11,6 +11,14 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+extern "C" ssize_t __real_read(int fd, void* buffer, size_t size);
+static unsigned eof_reads = 0;
+extern "C" ssize_t __wrap_read(int fd, void* buffer, size_t size) {
+    const auto result = __real_read(fd, buffer, size);
+    if (result == 0 && size != 0) ++eof_reads;
+    return result;
+}
+
 void check(bool ok, const char* message) {
     if (!ok) throw std::runtime_error(message);
 }
@@ -126,6 +134,35 @@ void receive() {
     receive_case<8>(81, 1); // Fragmented socket reads, independent of WebSocket framing.
 }
 
+void receive_eof() {
+    // EOF at each point in the short, 16-bit and 64-bit frame headers/payloads
+    // must stop reading and decoding immediately.
+    for (bool previous_frame : {false, true}) for (unsigned width : {0u, 2u, 8u}) {
+        std::vector<uint8_t> frame{0x82, static_cast<uint8_t>(width == 0 ? 0x88 : width == 2 ? 0xfe : 0xff)};
+        for (unsigned i = width; i > 0; --i) frame.push_back(i == 1 ? 8 : 0);
+        frame.insert(frame.end(), 12, 0); // four mask bytes and an eight-byte command
+        for (std::size_t cut = 0; cut < frame.size(); ++cut) {
+            int fd[2]; check(::socketpair(AF_UNIX, SOCK_STREAM, 0, fd) == 0, "socketpair");
+            net::WebSocket ws; ws.set_id(fd[0]);
+            net::Buffer<8> header;
+            net::Buffer<32> body;
+            if (previous_frame) {
+                // Prime the header state with a larger valid frame before disconnecting.
+                std::vector<uint8_t> prior{0x82, 0xa0, 0, 0, 0, 0};
+                prior.insert(prior.end(), 32, 0x7f);
+                check(::send(fd[1], prior.data(), prior.size(), MSG_NOSIGNAL) == static_cast<ssize_t>(prior.size()), "prior send");
+                check(ws.receive_cmd(header, body) == 32, "prior frame");
+            }
+            if (cut) check(::send(fd[1], frame.data(), cut, MSG_NOSIGNAL) == static_cast<ssize_t>(cut), "short send");
+            ::shutdown(fd[1], SHUT_WR);
+            eof_reads = 0;
+            check(ws.receive_cmd(header, body) == 0 && ws.is_closed(), "EOF decoded an incomplete frame");
+            check(eof_reads == 1, "continued reading after EOF");
+            ::close(fd[0]); ::close(fd[1]);
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     try {
         check(argc == 2, "expected test name");
@@ -133,6 +170,7 @@ int main(int argc, char** argv) {
         if (test == "boundaries") boundaries();
         else if (test == "guard-pages") guard_pages();
         else if (test == "receive") receive();
+        else if (test == "receive-eof") receive_eof();
         else throw std::runtime_error("unknown test");
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

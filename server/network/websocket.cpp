@@ -407,7 +407,7 @@ int WebSocket::read_header() {
     }
 
     if (connection_closed) [[unlikely]] {
-        return 0;
+        return 1;
     }
 
     header.fin = read_str[0] & 0x80;
@@ -436,7 +436,7 @@ int WebSocket::read_header() {
         }
 
         if (connection_closed) [[unlikely]] {
-            return 0;
+            return 1;
         }
 
         header.header_size = MEDIUM_HEADER;
@@ -450,7 +450,7 @@ int WebSocket::read_header() {
         }
 
         if (connection_closed) [[unlikely]] {
-            return 0;
+            return 1;
         }
 
         header.header_size = BIG_HEADER;
