@@ -39,7 +39,12 @@ queued frequency edits. The collapsible signal diagram follows applied readback 
 including signed dB gains, enabled integrators, mode, reference and routing.
 Focusing a loop control selects that channel in the diagram. Matching gains and
 integrators highlight together; clicking a block (or Enter/Space when focused)
-opens and focuses its control without applying a setting. The diagram keeps
+opens its gain editor at the block, sharing the exact draft and Apply action with
+the standard table. Closing the editor retains a draft; Escape cancels it, and a
+successful Apply closes it after readback. The original row displays applied
+values while editing. Integrator blocks focus their standard checkbox without
+toggling it. On wide screens the two loops sit beside the diagram; compact
+screens retain the stacked layout. The diagram keeps
 applied values while an editor contains a draft. Its geometry stays fixed, and
 motion follows the browser's reduced-motion preference.
 

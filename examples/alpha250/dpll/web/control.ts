@@ -81,6 +81,7 @@ class Control {
           await this.dpll.setGeometricGain(Number(row.dataset.channel), Number(row.dataset.gain), sign, step);
           this.pendingGains.delete(row);
           await this.refreshGains();
+          if (!this.disposed) { this.document.dispatchEvent(new CustomEvent('dpll-gain-applied', {detail: row})); }
         } catch (error) { this.pendingGains.delete(row); this.fail(error); }
       });
     }

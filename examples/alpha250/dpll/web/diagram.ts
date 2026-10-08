@@ -6,7 +6,40 @@ class DpllDiagram {
   private originals = new Map<Element, string>();
   private channel: HTMLSelectElement;
   private removers: Array<() => void> = [];
-  private change = () => { this.highlight(null); this.paint(); };
+  private editor: HTMLElement;
+  private editedRow: HTMLTableRowElement;
+  private placeholder: HTMLTableRowElement;
+  private anchor: Element;
+  private change = () => { this.closeEditor(false); this.highlight(null); this.paint(); };
+
+  private closeEditor(restoreFocus: boolean): void {
+    if (!this.editedRow) { return; }
+    this.placeholder.replaceWith(this.editedRow);
+    this.editedRow = null;
+    this.editor.hidden = true;
+    if (restoreFocus) { (this.anchor as SVGElement).focus({preventScroll:true}); }
+    this.highlight(null);
+  }
+
+  private updatePlaceholder(): void {
+    if (!this.editedRow || !this.latest) { return; }
+    const gain = this.latest.status[this.editedRow.dataset.status][Number(this.editedRow.dataset.channel)];
+    const db = this.editedRow.querySelector<HTMLInputElement>('.gain-input').dataset.unit === 'db';
+    this.placeholder.cells[1].textContent = gain === 0 ? '0' : gain < 0 ? '−' : '+';
+    this.placeholder.cells[2].textContent = gain === 0 ? 'Off' : db ? DpllGain.db(gain) : String(DpllGain.step(gain) / 16);
+  }
+
+  private positionEditor(): void {
+    if (!this.editedRow) { return; }
+    const box = this.anchor.getBoundingClientRect();
+    const view = this.document.defaultView;
+    const width = Math.min(280, view.innerWidth - 16);
+    const height = this.editor.offsetHeight;
+    this.editor.style.width = `${width}px`;
+    this.editor.style.left = `${Math.max(8, Math.min(view.innerWidth - width - 8, box.left + box.width / 2 - width / 2))}px`;
+    const below = box.bottom + 8;
+    this.editor.style.top = `${Math.max(8, Math.min(view.innerHeight - height - 8, below + height > view.innerHeight - 8 ? box.top - height - 8 : below))}px`;
+  }
 
   private listen(target: EventTarget, event: string, listener: EventListener): void {
     target.addEventListener(event, listener);
@@ -35,19 +68,66 @@ class DpllDiagram {
   private edit(block: Element): void {
     if (this.disposed || !this.latest) { return; }
     const control = this.controlFor(block);
-    control.closest('details').open = true;
-    // Prefer the numeric editor when enabled; zero gains focus the selected sign button.
     const editor = control.querySelector<HTMLInputElement>('.gain-input');
-    const target = editor ? (editor.disabled ? control.querySelector<HTMLElement>('.gain-button[aria-pressed="true"]') : editor) : control;
-    target.focus();
+    if (!editor) {
+      control.closest('details').open = true;
+      control.focus();
+      this.highlight(control);
+      return;
+    }
+    this.closeEditor(false);
+    this.anchor = block;
+    this.editedRow = control as HTMLTableRowElement;
+    // Move the existing editor: one draft, one set of listeners and one apply action.
+    this.placeholder = this.document.createElement('tr');
+    this.placeholder.className = 'gain-placeholder';
+    this.placeholder.title = 'Applied gain';
+    this.placeholder.style.height = `${Math.max(24, control.getBoundingClientRect().height)}px`;
+    for (let i = 0; i < 4; i++) { this.placeholder.insertCell(); }
+    this.placeholder.cells[0].textContent = control.querySelector('label').textContent;
+    this.updatePlaceholder();
+    this.placeholder.setAttribute('aria-hidden', 'true');
+    control.replaceWith(this.placeholder);
+    this.editor.querySelector('tbody').appendChild(control);
+    this.document.getElementById('diagram-editor-title').textContent = `ADC ${this.channel.value} · ${control.querySelector('label').textContent}`;
+    this.document.getElementById('diagram-editor-unit').textContent = editor.dataset.unit === 'db' ? 'dB' : 'log₂';
+    this.editor.hidden = false;
+    this.positionEditor();
+    const target = editor.disabled ? control.querySelector<HTMLElement>('.gain-button[aria-pressed="true"]') : editor;
+    target.focus({preventScroll:true});
+    if (!editor.disabled) { editor.select(); }
     this.highlight(control);
   }
 
   constructor(private document: Document) {
     this.channel = document.querySelector<HTMLSelectElement>('#diagram-channel');
+    this.editor = document.getElementById('diagram-editor');
+    this.listen(document.getElementById('diagram-editor-close'), 'click', () => this.closeEditor(true));
+    this.listen(this.editor, 'keydown', event => {
+      if ((event as KeyboardEvent).key === 'Escape') {
+        event.preventDefault();
+        if (this.editedRow && !this.editedRow.contains(event.target as Node)) {
+          this.editedRow.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape'}));
+        }
+        this.closeEditor(true);
+      }
+    });
+    this.listen(document, 'pointerdown', event => {
+      const target = event.target as Node;
+      if (this.editedRow && !this.editor.contains(target) && !this.anchor.contains(target)) { this.closeEditor(false); }
+    });
+    this.listen(document, 'dpll-gain-applied', event => {
+      if (this.editedRow === (event as CustomEvent).detail) { this.closeEditor(true); }
+    });
+    this.listen(document.defaultView, 'resize', () => this.positionEditor());
+    this.listen(document, 'scroll', () => this.closeEditor(false));
+    this.listen(document.querySelector('.diagram-panel details'), 'toggle', () => {
+      if (!document.querySelector<HTMLDetailsElement>('.diagram-panel details').open) { this.closeEditor(false); }
+    });
     this.listen(this.channel, 'change', this.change);
     this.listen(document, 'focusin', event => {
       const target = event.target as Element;
+      if (this.editedRow && !this.editor.contains(target) && !this.svg?.contains(target)) { this.closeEditor(false); }
       if (!target.closest('.channel-panel')) { return; }
       const source = target.closest('[data-channel]');
       if (source) {
@@ -106,6 +186,7 @@ class DpllDiagram {
   render(status: IDpllStatus, routes: number[], sampleRate: number): void {
     if (this.disposed) { return; }
     this.latest = {status, routes, sampleRate};
+    this.updatePlaceholder();
     this.paint();
   }
 
@@ -158,6 +239,7 @@ class DpllDiagram {
   }
 
   dispose(): void {
+    this.closeEditor(false);
     this.disposed = true;
     this.removers.forEach(remove => remove());
     this.highlight(null);

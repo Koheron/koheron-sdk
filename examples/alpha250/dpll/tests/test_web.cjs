@@ -489,9 +489,12 @@ test('diagram links and control focus select the matching channel without hardwa
   let blocks = Array.from(h.document.querySelectorAll('svg [data-gain="p_gain"]'));
   assert.ok(blocks.every(b => b.getAttribute('data-linked') === 'true'));
   assert.equal(row.dataset.linked,'true');
-  row.closest('details').open = false;
+  const details = row.closest('details');
+  details.open = false;
   blocks[1].dispatchEvent(new h.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
-  assert.equal(row.closest('details').open,true);
+  assert.equal(details.open,false);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,false);
+  assert.ok(h.document.querySelector('#diagram-editor').contains(row));
   assert.equal(h.document.activeElement,input);
   const integrator = h.document.querySelector('svg [data-integrator="2"]');
   integrator.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
@@ -500,4 +503,56 @@ test('diagram links and control focus select the matching channel without hardwa
   h.window.dispatchEvent(new h.window.Event('pagehide'));
   assert.equal(h.document.querySelector('svg [tabindex="0"]'),null);
   assert.equal(h.document.querySelector('[data-linked]'),null);
+});
+
+
+test('diagram gain editor shares its draft, applies once, and restores the original row', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), input = row.querySelector('.gain-input');
+  h.document.querySelector('.diagram-panel details').open = true;
+  await settle();
+  const parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-gain="p_gain"]');
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.type(input,'24.08'); await settle(280);
+  assert.equal(input.value,'24.08');
+  assert.equal(h.document.querySelectorAll('#p_gain-0').length,1);
+  assert.equal(block.querySelector('.gain-db').textContent,'18.06 dB');
+  h.document.querySelector('#diagram-editor-close').click();
+  assert.equal(row.parentElement,parent);
+  assert.equal(input.value,'24.08');
+  assert.equal(h.writes.length,0);
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.key(input,'Enter'); await settle(280);
+  assert.deepEqual(h.writes,[{name:'set_geometric_gain',args:[0,0,-1,64]}]);
+  assert.equal(row.parentElement,parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,true);
+  assert.equal(block.querySelector('.gain-db').textContent,'24.08 dB');
+});
+
+test('Escape cancels a diagram draft and channel changes restore the editor without writes', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), input = row.querySelector('.gain-input');
+  h.document.querySelector('.diagram-panel details').open = true; await settle();
+  const parent = row.parentElement;
+  const block = h.document.querySelector('svg [data-gain="p_gain"]');
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.type(input,'24.08'); h.key(input,'Escape'); await settle();
+  assert.equal(row.parentElement,parent);
+  assert.equal(input.value,'18.06');
+  block.dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  const channel = h.document.querySelector('#diagram-channel');
+  channel.value='1';channel.dispatchEvent(new h.window.Event('change'));
+  assert.equal(row.parentElement,parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,true);
+  assert.equal(h.writes.length,0);
+});
+
+test('disconnect restores an open editor and removes its interactive overlay', async t => {
+  const h = await host(t, {gainUnit:'db'}), row = h.row(), parent = row.parentElement;
+  h.document.querySelector('.diagram-panel details').open=true;await settle();
+  h.document.querySelector('svg [data-gain="p_gain"]').dispatchEvent(new h.window.MouseEvent('click',{bubbles:true}));
+  h.state.failed=true;await settle(280);
+  assert.equal(row.parentElement,parent);
+  assert.equal(h.document.querySelector('#diagram-editor').hidden,true);
+  assert.equal(h.document.querySelectorAll('#p_gain-0').length,1);
+  assert.equal(h.writes.length,0);
 });
