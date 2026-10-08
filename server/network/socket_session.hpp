@@ -8,6 +8,7 @@
 #include "server/network/session.hpp"
 #include "server/network/websocket.hpp"
 #include "server/network/commands.hpp"
+#include "server/network/socket_write.hpp"
 
 #include <string>
 #include <vector>
@@ -76,6 +77,21 @@ class SocketSession : public Session
     int send_iov(std::span<const std::byte> header,
                  std::span<const std::byte> payload,
                 int flags) override;
+
+    int write_segments(std::span<const std::span<const std::byte>> parts) override {
+        if (parts.size() > max_reply_parts) return -1;
+        if constexpr (socket_type == WEBSOCK) {
+            return websock.send_parts(parts);
+        } else if constexpr (socket_type == TCP || socket_type == UNIX) {
+            std::array<iovec, max_reply_parts> iov{};
+            for (std::size_t i = 0; i < parts.size(); ++i) {
+                iov[i] = {const_cast<std::byte*>(parts[i].data()), parts[i].size()};
+            }
+            return write_iovecs(comm_fd, std::span{iov}.first(parts.size()), MSG_NOSIGNAL);
+        } else {
+            return -1;
+        }
+    }
 
     void set_socket_infos();
 };

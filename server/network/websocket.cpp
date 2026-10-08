@@ -7,6 +7,8 @@
 #include "server/network/websocket.hpp"
 #include "server/network/base64.hpp"
 #include "server/network/sha1.hpp"
+#include "server/network/mixed_reply.hpp"
+#include "server/network/socket_write.hpp"
 #include "server/utilities/endian_utils.hpp"
 
 #include <array>
@@ -279,6 +281,26 @@ int WebSocket::send_frame(std::span<const std::byte> h,
 
     logf<DEBUG>("[S] {} bytes\n", total_sent);
     return static_cast<int>(total_sent);
+}
+
+int WebSocket::send_parts(std::span<const std::span<const std::byte>> parts) {
+    if (connection_closed) return 0;
+    if (parts.size() > max_reply_parts) return -1;
+    // Match the existing packed mixed-reply limit and single-frame behavior.
+    const auto max_size = WEBSOCK_SEND_BUF_LEN - send_header.size();
+    std::size_t total = 0;
+    for (const auto part : parts) {
+        if (part.size() > max_size - total) return -1;
+        total += part.size();
+    }
+    const auto header_len = set_send_header(static_cast<int64_t>(total), (1 << 7) | BINARY_FRAME);
+    std::array<iovec, max_reply_parts + 1> iov{};
+    iov[0] = {send_header.data(), static_cast<std::size_t>(header_len)};
+    for (std::size_t i = 0; i < parts.size(); ++i)
+        iov[i + 1] = {const_cast<std::byte*>(parts[i].data()), parts[i].size()};
+    const auto n = write_iovecs(comm_fd, std::span{iov}.first(parts.size() + 1), MSG_NOSIGNAL);
+    if (n <= 0) connection_closed = true;
+    return n;
 }
 
 int WebSocket::send_message(std::span<const std::byte> h,

@@ -68,6 +68,7 @@ jobs:
         run: |
           python3 -m unittest discover -s server/tests -p test_driver_locking.py -v
           python3 -m unittest discover -s server/tests -p 'test_websocket*.py' -v
+          python3 -m unittest discover -s server/tests -p test_mixed_reply.py -v
 
   instrument-host:
     runs-on: ubuntu-24.04

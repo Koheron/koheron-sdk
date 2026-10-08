@@ -42,6 +42,8 @@ class WebSocket
              std::ranges::contiguous_range Rp>
     int send(const Rh& h, const Rp& p);
 
+    int send_parts(std::span<const std::span<const std::byte>> parts);
+
     int64_t payload_size() const {return header.payload_size;}
 
     bool is_closed() const {return connection_closed;}

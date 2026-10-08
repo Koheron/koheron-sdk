@@ -73,10 +73,16 @@ template<int Kind> struct Connection {
     int client = -1, server = -1;
     std::unique_ptr<net::SocketSession<Kind>> session;
     std::thread worker;
-    explicit Connection(unsigned id, bool autostart = true) {
+    explicit Connection(unsigned id, bool autostart = true, int receive_buffer = 0) {
+        auto limit_receive_buffer = [&] {
+            if (receive_buffer)
+                check(::setsockopt(client, SOL_SOCKET, SO_RCVBUF, &receive_buffer, sizeof(receive_buffer)) == 0,
+                      "receive buffer");
+        };
         if constexpr (Kind == net::UNIX) {
             int sockets[2]; check(::socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0, "socketpair");
             server = sockets[0]; client = sockets[1];
+            limit_receive_buffer();
         } else {
             int listener = ::socket(AF_INET, SOCK_STREAM, 0);
             sockaddr_in address{}; address.sin_family = AF_INET; address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
@@ -85,6 +91,7 @@ template<int Kind> struct Connection {
             check(::getsockname(listener, reinterpret_cast<sockaddr*>(&address), &length) == 0, "getsockname");
             check(::listen(listener, 1) == 0, "listen");
             client = ::socket(AF_INET, SOCK_STREAM, 0);
+            limit_receive_buffer();
             check(::connect(client, reinterpret_cast<sockaddr*>(&address), length) == 0, "connect");
             server = ::accept(listener, nullptr, nullptr); ::close(listener);
             check(server >= 0, "accept");
@@ -164,10 +171,10 @@ template<int Kind> void stalled_input(bool dynamic) {
 }
 
 template<int Kind> void stalled_output(uint16_t operation, bool disconnect = false) {
-    Connection<Kind> healthy(2), slow(1);
+    Connection<Kind> healthy(2), slow(1, true, operation == 14 ? 4096 : 0);
     slow.send(command(operation));
     until([] { return LockingInstrument::readers.load() == 1; });
-    // The first client does not read. Its 2 MiB reply cannot fit the socket buffer.
+    // The first client does not read. Its reply cannot fit the socket buffer.
     healthy.send(scalar_command(0, 0x44444444)); healthy.consumed(); healthy.send(command(1));
     pollfd ready{healthy.client, POLLIN, 0};
     check(::poll(&ready, 1, 100) == 0, "Driver storage unlocked before its reply finished");
@@ -179,8 +186,11 @@ template<int Kind> void stalled_output(uint16_t operation, bool disconnect = fal
         return;
     }
     Bytes expected = command(operation);
-    append_be(expected, 512 * 1024 * sizeof(uint32_t), sizeof(size_t));
-    expected.resize(expected.size() + 512 * 1024 * sizeof(uint32_t), 0x33);
+    if (operation == 14) append_be(expected, 0xbeef, 2);
+    const auto payload_bytes = (operation == 14 ? 32768 : 512 * 1024) * sizeof(uint32_t);
+    append_be(expected, payload_bytes, operation == 14 ? 4 : sizeof(size_t));
+    expected.resize(expected.size() + payload_bytes, 0x33);
+    if (operation == 14) append_be(expected, 0xabcdef01, 4);
     check(slow.response(expected.size()) == expected, "Borrowed response changed during transmission");
     check(healthy.response(12) == scalar_response(1, 0x44444444), "Driver stayed locked after its reply finished");
     slow.send(command(1)); check(slow.response(12) == scalar_response(1, 0x44444444), "Connection lost after large reply");
@@ -368,6 +378,10 @@ int main(int argc, char** argv) {
         else if (test == "mixed-ws") mixed_arguments<net::WEBSOCK>();
         else if (test == "empty-arrays") empty_fixed_arrays();
         else if (test == "large-arrays") large_fixed_arrays();
+        else if (test == "mixed-tcp-output") stalled_output<net::TCP>(14);
+        else if (test == "mixed-unix-output") stalled_output<net::UNIX>(14);
+        else if (test == "mixed-ws-output") stalled_output<net::WEBSOCK>(14);
+        else if (test == "mixed-disconnect-output") stalled_output<net::TCP>(14, true);
         else throw std::runtime_error("Unknown test case");
         std::cout << "PASS " << test << '\n';
     } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

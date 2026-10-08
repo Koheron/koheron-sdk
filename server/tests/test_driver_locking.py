@@ -24,7 +24,7 @@ using driver_list = std::tuple<LockingInstrument>;
         (build / 'drivers.hpp').write_text('#include "driver_locking_instrument.hpp"\n')
         methods = ('set', 'get', 'set_vector', 'get_vector', 'get_span', 'get_array',
                    'get_fixed_span', 'get_views', 'busy', 'set_scalars', 'fixed_types',
-                   'mixed_types', 'empty_arrays', 'large_arrays')
+                   'mixed_types', 'empty_arrays', 'large_arrays', 'get_mixed')
         ops = ','.join(f'Op<&LockingInstrument::{method}>' for method in methods)
         (build / 'interface_drivers.hpp').write_text(f'''
 #include "server/executor/driver_adapter.hpp"
@@ -82,6 +82,10 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
     def test_mixed_websocket_arguments(self): self.run_case('mixed-ws')
     def test_empty_fixed_arrays(self): self.run_case('empty-arrays')
     def test_large_fixed_arrays(self): self.run_case('large-arrays')
+    def test_stalled_mixed_tcp_reply(self): self.run_case('mixed-tcp-output')
+    def test_stalled_mixed_unix_reply(self): self.run_case('mixed-unix-output')
+    def test_stalled_mixed_websocket_reply(self): self.run_case('mixed-ws-output')
+    def test_disconnected_mixed_reply(self): self.run_case('mixed-disconnect-output')
 
 
 if __name__ == '__main__':
