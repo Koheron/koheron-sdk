@@ -1,0 +1,43 @@
+{
+  "flot": {
+    "repository": "https://github.com/flot/flot",
+    "revision": "453b017cc5acfd75e252b93e8635f57f4196d45d",
+    "version": "0.8.3",
+    "license": "MIT"
+  },
+  "axislabels": {
+    "repository": "https://github.com/markrcote/flot-axislabels",
+    "revision": "a181e09d04d120d05e5bc2baaa8738b5b3670428",
+    "license": "MIT (April 2012 relicensing by Xuan Luo)"
+  },
+  "baselineSDK": "04dd3408",
+  "baselineSHA256": {
+    "jquery.flot.canvas.js": "9931d4a47df2181e243900b9d4956e97faf8c954f7dfbea3ffdc580e5898b0a1",
+    "jquery.flot.selection.js": "d59adfa1fecc05fba510e2248fa634c8b85091b4fb0aad96b4edf195119417d7",
+    "jquery.flot.resize.js": "10cd28ed0bfb3b6d77c6a45b9fc20573a42c4abd369005f5ff3ee6bac49fc71f",
+    "jquery.min.js": "2405bdf4c255a4904671bcc4b97938033d39b3f5f20dd068985a8d94cde273e2",
+    "jquery.flot.time.js": "802ad28d1a3f67a5bb09f735a042fa047f072a382288ef88b55f00fb3f52729c",
+    "plot-basics.ts": "72b68142f4afba61091600966bcdc6d300e58b1ee52049765d35be5318921e41",
+    "jquery.flot.axislabels.js": "002fd1985afe180e48a8551e18d2689826be3dda3009a1ce1cf006706a9726f6",
+    "jquery.flot.js": "2cc7b62c8b6cbceb3558346180d5ee941f30169abcf393e26f46e7ae3113bdf2"
+  },
+  "upstreamSHA256": {
+    "jquery.flot.canvas.js": "9931d4a47df2181e243900b9d4956e97faf8c954f7dfbea3ffdc580e5898b0a1",
+    "jquery.flot.selection.js": "e6c85f6c1ebe4b4da29d8ae238c7c5060283f05f7ef054f6b91817d02c092918",
+    "jquery.flot.resize.js": "8b9f5146f324ab0fb6f260eee984732a8efb82633b93d68f64cb5cc38e7082ee",
+    "jquery.flot.time.js": "a582c832adc7138a6b05aaf61f16ebac274701f1be4afea77e739a1c34b9c41a",
+    "jquery.flot.axislabels.js": "002fd1985afe180e48a8551e18d2689826be3dda3009a1ce1cf006706a9726f6",
+    "jquery.flot.js": "b7b931f273c38b1277b9c6c1f4e05c4ec09885a487bddaf3279e2d7e49a38e12",
+    "jquery.colorhelpers.js": "09da5c94edc26c5d097343447ec56bb31f618d9d476a7652022f1b0a22643de8"
+  },
+  "baselineURLs": {
+    "jquery.flot.canvas.js": "https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.canvas.js",
+    "jquery.flot.selection.js": "https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.selection.min.js",
+    "jquery.flot.resize.js": "https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.resize.min.js",
+    "jquery.min.js": "https://code.jquery.com/jquery-3.2.0.min.js",
+    "jquery.flot.time.js": "https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.time.min.js",
+    "plot-basics.ts": "git show 04dd3408:web/plot-basics/plot-basics.ts",
+    "jquery.flot.axislabels.js": "https://raw.githubusercontent.com/markrcote/flot-axislabels/a181e09d04d120d05e5bc2baaa8738b5b3670428/jquery.flot.axislabels.js",
+    "jquery.flot.js": "https://cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.min.js"
+  }
+}

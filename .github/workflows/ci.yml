@@ -108,3 +108,25 @@ jobs:
             -fno-omit-frame-pointer -no-pie -I. -Iserver/external_libs -I/usr/include/eigen3 \
             examples/alpha15/signal-analyzer/tests/test_acquisition.cpp -o /tmp/alpha15-test-acquisition
           /tmp/alpha15-test-acquisition
+
+  plotting:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/plotting/package-lock.json
+      - name: Install plotting build and browser test dependencies
+        run: |
+          npm install --prefix web --no-package-lock
+          npm ci --prefix web/plotting
+          web/plotting/node_modules/.bin/playwright-core install --with-deps chromium
+      - name: Check owned plotting assets, Canvas rendering, interactions and exports
+        run: |
+          export CHROME=$(node -p 'require("./web/plotting/node_modules/playwright-core").chromium.executablePath()')
+          npm test --prefix web/plotting

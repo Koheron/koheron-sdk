@@ -5,6 +5,9 @@ FROM node:20-alpine
 WORKDIR /opt/app
 COPY package.json package-lock.json* ./
 RUN npm install
+# The owned plot build uses the same locked minifier as native builds.
+COPY plotting/package.json plotting/package-lock.json ./plotting/
+RUN npm ci --prefix plotting
 
 # Expose tsc on PATH
 ENV PATH="/opt/app/node_modules/.bin:${PATH}"

@@ -29,3 +29,15 @@ Run `npm install --prefix web --no-package-lock` for native dependencies. The
 shared environment resolves `NODE_PATH`, local packages or Docker's packages;
 fallback installs are cached under `tmp/tests/web-deps`. Direct instrument
 runners in `web/fft/tests/` and `web/phase-noise/tests/` use the same environment.
+
+The owned Flot stack also has real Canvas/DOM checks (the other suites use
+jsdom and transport fixtures):
+
+```sh
+npm ci --prefix web/plotting
+npm test --prefix web/plotting
+npm run benchmark --prefix web/plotting -- --frames=180 --rounds=3
+```
+
+See [plotting maintenance](../plotting/README.md) for browser installation,
+source provenance, baseline conditions and profiling commands.
