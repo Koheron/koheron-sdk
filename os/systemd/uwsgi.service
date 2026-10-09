@@ -2,7 +2,8 @@
 [Unit]
 Description=uWSGI HTTP API (started at boot, runs as root)
 DefaultDependencies=no
-After=sysinit.target local-fs.target systemd-tmpfiles-setup.service
+After=sysinit.target local-fs.target systemd-tmpfiles-setup.service dbus.socket
+Wants=dbus.socket
 Before=shutdown.target
 Conflicts=shutdown.target
 

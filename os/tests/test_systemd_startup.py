@@ -123,6 +123,11 @@ class StartupOrderingTest(unittest.TestCase):
         socket_unit['Socket'] = {'ListenStream': str(self.root / 'api.sock')}
         del socket_unit['Install']
         self.put('uwsgi.socket', socket_unit)
+        self.put('dbus.socket', {'Unit': {'DefaultDependencies': 'no'},
+                                 'Socket': {'ListenStream': str(self.root / 'system-bus.sock')}})
+        self.put('dbus.service', {'Unit': {'DefaultDependencies': 'no'},
+                                  'Service': {'Type': 'oneshot', 'ExecStart': '/bin/true',
+                                              'RemainAfterExit': 'yes'}})
         for name in ('sysinit.target', 'local-fs.target', 'tmp.mount', 'shutdown.target'):
             self.put(name, {'Unit': {'DefaultDependencies': 'no'}})
         for name in ('systemd-remount-fs.service', 'systemd-tmpfiles-setup.service'):
@@ -186,6 +191,7 @@ class StartupOrderingTest(unittest.TestCase):
         for name in ('unzip-default-instrument.service', 'uwsgi.service', 'nginx.service'):
             self.wait_for(lambda: self.marker(name, 'started').exists())
             self.assertEqual(self.state(name), 'activating')
+        self.assertEqual(self.state('dbus.socket'), 'active')
         server = 'koheron-server.service'
         led = 'koheron-server-init.service'
         self.assertFalse(self.marker(server, 'started').exists())

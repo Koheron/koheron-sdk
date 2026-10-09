@@ -1,7 +1,7 @@
 """Live identity follows extracted files and service state, not boot preference."""
 import importlib.util
+import errno
 from pathlib import Path
-import subprocess
 import sys
 import tempfile
 import types
@@ -20,8 +20,10 @@ class LiveStatusTest(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('status_api', Path(__file__).parents[1] / '__init__.py')
         cls.module = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, {'systemd': types.SimpleNamespace(journal=journal),
-                                      'status_api': cls.module}), \
-             patch('os.listdir', return_value=[]), patch('subprocess.run'):
+                                      'status_api': cls.module,
+                                      'status_api.service_status': types.SimpleNamespace(
+                                          unit_is_active=Mock(return_value=False))}), \
+             patch('os.listdir', return_value=[]):
             spec.loader.exec_module(cls.module)
 
     def setUp(self):
@@ -40,10 +42,10 @@ class LiveStatusTest(unittest.TestCase):
         (self.live / 'version').write_text('loaded-version')
         self.active = True
         def service(*args, **kwargs):
-            return subprocess.CompletedProcess([], 0 if self.active else 3)
-        run = patch('subprocess.run', side_effect=service)
-        self.run = run.start()
-        self.addCleanup(run.stop)
+            return self.active
+        query = patch.object(self.module, 'unit_is_active', side_effect=service)
+        self.query = query.start()
+        self.addCleanup(query.stop)
         for attr, value in [('instruments_dirname', str(self.store)),
                             ('live_instrument_dirname', str(self.live))]:
             p = patch.object(self.module.KoheronApp, attr, value)
@@ -104,8 +106,13 @@ class LiveStatusTest(unittest.TestCase):
         self.assertEqual(info, {'name': 'default', 'version': 'new-loaded-version', 'is_default': True})
 
     def test_service_query_timeout_reports_unknown(self):
-        self.run.side_effect = subprocess.TimeoutExpired('mock systemctl', 5)
+        self.query.side_effect = OSError(errno.ETIMEDOUT, 'Timed out')
         self.assertIsNone(self.client.get('/api/instruments').json['live_instrument'])
+
+    def test_service_query_failure_clears_previous_live_status(self):
+        self.assertEqual(self.client.get('/api/instruments').json['live_instrument'], 'selected')
+        self.query.side_effect = OSError(errno.ECONNRESET, 'Bus disconnected')
+        self.assertIsNone(self.client.get('/api/instruments/details').json['live_instrument'])
 
 
 if __name__ == '__main__':
