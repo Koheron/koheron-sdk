@@ -19,6 +19,12 @@ APT repositories are derived from the extracted Ubuntu rootfs's `/etc/os-release
 
 Rebuild boot and FPGA artifacts when changing Vivado/Vitis versions; cached artifacts are not proof of compatibility. Validate image builds separately from board boot, FPGA overlays, DMA/cache correctness and acquisition tests.
 
+Zynq images set `RebootWatchdogSec=8min` through a systemd manager drop-in. The
+Cadence watchdog driver's 516-second maximum rejects systemd's 10-minute default.
+This timeout covers the final reboot phase, after regular services stop;
+individual service stop timeouts continue to control their cleanup. Other
+platforms retain their existing watchdog settings.
+
 The SDK defconfigs include the full Xilinx 2025.1 → 2026.1 config delta, compared against upstream [`xilinx_zynq_defconfig`](https://github.com/Xilinx/linux-xlnx/blob/xilinx-v2026.1/arch/arm/configs/xilinx_zynq_defconfig) and [`xilinx_defconfig`](https://github.com/Xilinx/linux-xlnx/blob/xilinx-v2026.1/arch/arm64/configs/xilinx_defconfig). Zynq gains explicit ext4, ACL and security-label support and removes redundant scheduler selections. ARM64 gains thermal support, CoreSight/default tracing, NVMe, Type-C, I3C, GPIO aggregation, RPMsg TTY and additional PCIe/PHY support; INA power monitors move from IIO to hwmon, and obsolete selections are removed. Koheron-specific settings are retained. Kconfig dependencies determine which drivers apply to each platform; these selections do not change the Vivado version or runtime kernel default.
 
 Set `PASSWORD` and `TIMEZONE` in the environment before `make image` to override the defaults in [rootfs.mk](./rootfs.mk).
