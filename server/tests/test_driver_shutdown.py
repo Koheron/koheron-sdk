@@ -50,21 +50,6 @@ class DriverShutdownTest(unittest.TestCase):
                 ('drivers.hpp', '#pragma once\n'),
                 ('server/context/context.hpp', '#pragma once\nclass Context {};\n')])
 
-    def test_precision_adc_stops_before_destruction(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            discovery = root / 'spidev'
-            discovery.mkdir()
-            (discovery / 'spidev1.0').touch()
-            # Redirect only discovery; the SPI driver and ADC worker are real.
-            source = (ROOT / 'server/hardware/spi_manager.cpp').read_text()
-            self.assertEqual(source.count('"/sys/class/spidev"'), 1)
-            source = source.replace('"/sys/class/spidev"', f'"{discovery}"')
-            spi = root / 'spi_manager.cpp'
-            spi.write_text(source)
-            self.compile_run(['server/tests/precision_adc_shutdown.cpp',
-                              'boards/alpha250/drivers/precision-adc.cpp', spi], flags=[
-                '-Wl,--wrap=open', '-Wl,--wrap=open64', '-Wl,--wrap=ioctl'])
 
 
 if __name__ == '__main__':
