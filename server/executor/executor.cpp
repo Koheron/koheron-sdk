@@ -8,7 +8,6 @@
 #include <interface_drivers.hpp>
 #include <drivers_json.hpp>
 
-#include <cassert>
 #include <mutex>
 
 namespace koheron {
@@ -47,7 +46,10 @@ struct Executor::Impl {
     }
 
     int execute(net::Command& cmd) {
-        assert(cmd.driver < drivers::table::size);
+        if (cmd.driver < drivers::table::offset || cmd.driver >= drivers::table::size) {
+            logf<ERROR>("Unknown driver ID: {}\n", cmd.driver);
+            return -1;
+        }
         ensure_wrapper_runtime(cmd.driver);
         auto* abs = wrappers[cmd.driver - drivers::table::offset].get();
         auto seq = make_index_sequence_in_range<drivers::table::offset, drivers::table::size>();

@@ -69,6 +69,8 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
     def test_disconnected_writer(self): self.run_case('disconnect-output')
     def test_concurrent_first_commands(self): self.run_case('concurrent-first')
     def test_truncated_input(self): self.run_case('truncated-input')
+    def test_invalid_driver_tcp(self): self.run_case('invalid-driver-tcp')
+    def test_invalid_driver_websocket(self): self.run_case('invalid-driver-ws')
     def test_shared_driver_publication(self): self.run_case('manager-publication')
     def test_batched_tcp_read_calls(self): self.run_case('tcp-read-calls')
     def test_batched_unix_read_calls(self): self.run_case('unix-read-calls')
