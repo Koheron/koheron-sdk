@@ -60,6 +60,10 @@ void ListenerManager::shutdown() {
     unix_listener_.join_worker();
 
     services::require<SessionManager>().delete_all();
+
+    tcp_listener_.join_sessions();
+    websock_listener_.join_sessions();
+    unix_listener_.join_sessions();
 }
 
 bool ListenerManager::is_ready() const {

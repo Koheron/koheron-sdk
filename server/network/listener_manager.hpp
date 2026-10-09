@@ -50,18 +50,17 @@ class ListenerManager {
 // -----------------------------------------------------------------------------
 
 template<int socket_type>
-void session_thread_call(int comm_fd, ListeningChannel<socket_type>* listener) {
-    listener->number_of_threads++;
+void session_thread_call(SessionID sid, std::shared_ptr<SocketSession<socket_type>> session,
+                         ListeningChannel<socket_type>* listener) {
     auto& sm = services::require<SessionManager>();
-    auto sid = sm.template create_session<socket_type>(comm_fd);
-    auto session = std::static_pointer_cast<SocketSession<socket_type>>(sm.get_session_shared(sid));
 
     if (session->run() < 0) {
         log<ERROR>("An error occured during session\n");
     }
 
     sm.delete_session(sid);
-    listener->number_of_threads--;
+    session.reset();
+    listener->finish_session();
 }
 
 template<int socket_type>
@@ -72,6 +71,7 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
         int comm_fd = listener->open_communication();
 
         if (lm->should_stop()) {
+            if (comm_fd >= 0) { ::close(comm_fd); }
             break;
         }
 
@@ -86,7 +86,14 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
             continue;
         }
 
-        std::thread session_thread(session_thread_call<socket_type>, comm_fd, listener);
+        // Publish and count the session before starting its worker. Shutdown
+        // joins the listener before closing sessions, so no worker can register
+        // a new connection after the shutdown snapshot.
+        auto& sm = services::require<SessionManager>();
+        const auto sid = sm.template create_session<socket_type>(comm_fd);
+        auto session = std::static_pointer_cast<SocketSession<socket_type>>(sm.get_session_shared(sid));
+        ++listener->number_of_threads;
+        std::thread session_thread(session_thread_call<socket_type>, sid, std::move(session), listener);
         session_thread.detach();
     }
 

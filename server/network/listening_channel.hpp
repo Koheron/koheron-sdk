@@ -9,6 +9,8 @@
 #include "server/runtime/syslog.hpp"
 
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <thread>
 
 namespace net {
@@ -29,12 +31,27 @@ class ListeningChannel {
     bool is_max_threads();
 
     void join_worker();
+
+    void finish_session() {
+        std::lock_guard lock(session_mutex);
+        --number_of_threads;
+        sessions_done.notify_all();
+    }
+
+    void join_sessions() {
+        std::unique_lock lock(session_mutex);
+        sessions_done.wait(lock, [this] { return number_of_threads == 0; });
+    }
     int open_communication();
 
     int listen_fd;
     std::atomic<int> number_of_threads; // Number of sessions using the channel
     std::atomic<bool> is_ready;
     std::thread listening_thread;
+
+  private:
+    std::mutex session_mutex;
+    std::condition_variable sessions_done;
 };
 
 template<int socket_type>
