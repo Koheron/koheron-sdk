@@ -9,6 +9,8 @@ from werkzeug.utils import secure_filename
 
 from systemd import journal as _sd_journal
 
+from .service_status import unit_is_active
+
 
 INVOCATION_ID = os.environ.get("INVOCATION_ID")
 
@@ -259,9 +261,7 @@ class KoheronApp(Flask):
         # currently loaded files. Recover their identity even after API restart.
         self.live_instrument = None
         try:
-            active = subprocess.run(['/bin/systemctl', 'is-active', '--quiet',
-                                     'koheron-server.service'], timeout=5).returncode == 0
-            if not active:
+            if not unit_is_active(DEFAULT_UNIT):
                 return
             with open(os.path.join(self.live_instrument_dirname, '.instrument-name')) as f:
                 name = f.read().strip()
@@ -275,7 +275,7 @@ class KoheronApp(Flask):
                 'is_default': self.is_default_instrument(filename, self.instruments_dirname,
                                                          self.default_filename)
             }
-        except (OSError, UnicodeError, subprocess.TimeoutExpired):
+        except (OSError, UnicodeError):
             # Unknown/stopped is preferable to advertising an instrument as live.
             return
 

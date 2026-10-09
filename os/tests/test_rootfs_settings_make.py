@@ -33,7 +33,7 @@ OS_PATH := {SDK}/os
 include {SDK}/os/rootfs.mk
 '''
             skipped = [cache / 'api' / path for path in (
-                'wsgi.py', 'app/__init__.py', 'app/install_instrument.sh',
+                'wsgi.py', 'app/__init__.py', 'app/service_status.py', 'app/install_instrument.sh',
                 'app/install_instrument.py')]
             argv = ['make', '--no-print-directory', '-f', '-']
             for path in skipped:

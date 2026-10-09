@@ -10,6 +10,9 @@ Archive extraction, directory swaps and recovery use real temporary files. Every
 service invocation is mocked; these tests do not access a board or system services.
 The API tests stub the system journal as well.
 
+Measured status-polling performance is recorded in
+[status-performance.md](status-performance.md), with Red Pitaya raw samples.
+
 The loader validates/extracts before stopping the current service, retains its
 files until the replacement reaches systemd readiness, and restores/restarts the
 previous installation if startup fails. If file restoration itself fails, it

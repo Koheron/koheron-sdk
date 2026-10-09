@@ -31,9 +31,11 @@ class UploadTest(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('review_api', Path(__file__).parents[1] / '__init__.py')
         cls.module = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, {'systemd': types.SimpleNamespace(journal=journal),
-                                      'review_api': cls.module}), \
+                                      'review_api': cls.module,
+                                      'review_api.service_status': types.SimpleNamespace(
+                                          unit_is_active=Mock(return_value=False))}), \
              patch('os.listdir', return_value=[]), \
-             patch('subprocess.call'), patch('subprocess.run'):
+             patch('subprocess.call'):
             spec.loader.exec_module(cls.module)
 
     def setUp(self):
