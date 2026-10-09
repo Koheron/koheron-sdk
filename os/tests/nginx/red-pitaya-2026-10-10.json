@@ -1,0 +1,638 @@
+{
+  "date": "2026-10-10",
+  "board_ip": "192.168.1.85",
+  "mac": "00:26:32:f0:1c:6a",
+  "os_build_id": "20261008.230342.cab6f8ac9bf4-dirty",
+  "baseline_source_commit": "30361b83",
+  "initial_candidate_source_commit": "7594d556",
+  "candidate_config_sha256": {
+    "os/config/nginx.conf": "dcfb311b537a826d1a3761dc307168ea7be3973cab4621923619c0afff35302f",
+    "os/config/nginx-server.conf": "93b31a49595139d87a197e636ed61f9fa40df3c44bf66858300e922cd9362a0c"
+  },
+  "final_configuration": {
+    "board": {
+      "nginx": "nginx version: nginx/1.28.3 (Ubuntu)",
+      "kernel": "6.18.0-xilinx",
+      "memory": {
+        "baseline": {
+          "workers": 4,
+          "processes": [
+            {
+              "pid": 1357,
+              "uid": 0,
+              "rss_kib": 1772,
+              "pss_kib": 316,
+              "private_kib": 128
+            },
+            {
+              "pid": 1358,
+              "uid": 0,
+              "rss_kib": 2720,
+              "pss_kib": 614,
+              "private_kib": 356
+            },
+            {
+              "pid": 1359,
+              "uid": 0,
+              "rss_kib": 2720,
+              "pss_kib": 614,
+              "private_kib": 356
+            },
+            {
+              "pid": 1360,
+              "uid": 0,
+              "rss_kib": 3312,
+              "pss_kib": 755,
+              "private_kib": 408
+            },
+            {
+              "pid": 1361,
+              "uid": 0,
+              "rss_kib": 2724,
+              "pss_kib": 618,
+              "private_kib": 360
+            }
+          ],
+          "total_pss_kib": 2917,
+          "total_private_kib": 1608
+        },
+        "candidate": {
+          "workers": 2,
+          "processes": [
+            {
+              "pid": 1364,
+              "uid": 0,
+              "rss_kib": 1772,
+              "pss_kib": 416,
+              "private_kib": 128
+            },
+            {
+              "pid": 1365,
+              "uid": 33,
+              "rss_kib": 3288,
+              "pss_kib": 831,
+              "private_kib": 384
+            },
+            {
+              "pid": 1366,
+              "uid": 33,
+              "rss_kib": 2740,
+              "pss_kib": 736,
+              "private_kib": 376
+            }
+          ],
+          "total_pss_kib": 1983,
+          "total_private_kib": 888
+        }
+      },
+      "active_instrument": "fft",
+      "instrument_pid_before": "MainPID=147",
+      "instrument_pid_after": "MainPID=147",
+      "production_config_unchanged": true,
+      "uploaded_probe_removed": true,
+      "services": [
+        "active",
+        "active",
+        "active"
+      ]
+    },
+    "http": {
+      "host": "192.168.1.85",
+      "http": {
+        "baseline": {
+          "/": {
+            "status": 200,
+            "wire_bytes": 745,
+            "decoded_bytes": 2390,
+            "encoding": "gzip",
+            "sha256": "fa6b1fcd528c89c4412a456ab7c8344f9749b494958039e94d40d917f3771cec",
+            "elapsed_ms": 4.41824400331825
+          },
+          "/app.js": {
+            "status": 200,
+            "wire_bytes": 180288,
+            "decoded_bytes": 180288,
+            "encoding": null,
+            "sha256": "e731d781e3bb36e8fc26245f89ea4aee0090c764595273c8bdf55ad3cde9540f",
+            "elapsed_ms": 4.0720219258219
+          },
+          "/fft.css": {
+            "status": 200,
+            "wire_bytes": 11148,
+            "decoded_bytes": 11148,
+            "encoding": null,
+            "sha256": "043c56eac1c9088ebf0e2fbd60168d5d7a09689c79a0011ee0cd1f6dadb035d5",
+            "elapsed_ms": 1.9523490918800235
+          },
+          "/koheron/": {
+            "status": 200,
+            "wire_bytes": 1861,
+            "decoded_bytes": 4610,
+            "encoding": "gzip",
+            "sha256": "276bf7078e49a871c8d4c901cfab3c4fba711790dda9404527be3988f0a1f31c",
+            "elapsed_ms": 2.020383020862937
+          },
+          "/koheron/instruments.js": {
+            "status": 200,
+            "wire_bytes": 55011,
+            "decoded_bytes": 55011,
+            "encoding": null,
+            "sha256": "9367e11f53327b9a4f1a2477afd507bb0efb86187e748d585f7aece3e4e921e7",
+            "elapsed_ms": 1.9820559537038207
+          },
+          "/api/instruments": {
+            "status": 200,
+            "wire_bytes": 48,
+            "decoded_bytes": 48,
+            "encoding": null,
+            "sha256": "4fce584a1977b8c931c0c78984bd7dfa7e8029444a65f7a740eb5f5cf40c3c37",
+            "elapsed_ms": 72.82449107151479
+          },
+          "/api/instruments/details": {
+            "status": 200,
+            "wire_bytes": 138,
+            "decoded_bytes": 138,
+            "encoding": null,
+            "sha256": "6ed0f30ceb0152009c644285e7b4a5c9fa6c1a39d09d56ac9e088d4d059c8ba7",
+            "elapsed_ms": 71.7911480460316
+          },
+          "/run/rates/sessions.json": {
+            "status": 200,
+            "wire_bytes": 31,
+            "decoded_bytes": 31,
+            "encoding": null,
+            "sha256": "081ba91427b5b7f974686fa805c62e6e3c5ad2783d30ab7f9adde34ee30e64b1",
+            "elapsed_ms": 1.3848610688000917
+          },
+          "upload": {
+            "status": 200,
+            "wire_bytes": 42,
+            "decoded_bytes": 42,
+            "encoding": null,
+            "sha256": "9ac9f2fa02d03a96a952b3d9f38f9ad9c56b5402cf209456d36b943d92abba9d",
+            "elapsed_ms": 164.2860439606011
+          },
+          "delete_probe": {
+            "status": 200,
+            "wire_bytes": 59,
+            "decoded_bytes": 41,
+            "encoding": "gzip",
+            "sha256": "876173f5ca45acb1812c5eeb3a97be285b9919f0e5d9c3fd9964f373998a77e2",
+            "elapsed_ms": 5.422487040050328
+          },
+          "oversized_upload_status": 413
+        },
+        "candidate": {
+          "/": {
+            "status": 200,
+            "wire_bytes": 745,
+            "decoded_bytes": 2390,
+            "encoding": "gzip",
+            "sha256": "fa6b1fcd528c89c4412a456ab7c8344f9749b494958039e94d40d917f3771cec",
+            "elapsed_ms": 2.4820429971441627
+          },
+          "/app.js": {
+            "status": 200,
+            "wire_bytes": 180288,
+            "decoded_bytes": 180288,
+            "encoding": null,
+            "sha256": "e731d781e3bb36e8fc26245f89ea4aee0090c764595273c8bdf55ad3cde9540f",
+            "elapsed_ms": 3.9340470684692264
+          },
+          "/fft.css": {
+            "status": 200,
+            "wire_bytes": 11148,
+            "decoded_bytes": 11148,
+            "encoding": null,
+            "sha256": "043c56eac1c9088ebf0e2fbd60168d5d7a09689c79a0011ee0cd1f6dadb035d5",
+            "elapsed_ms": 1.163034001365304
+          },
+          "/koheron/": {
+            "status": 200,
+            "wire_bytes": 1861,
+            "decoded_bytes": 4610,
+            "encoding": "gzip",
+            "sha256": "276bf7078e49a871c8d4c901cfab3c4fba711790dda9404527be3988f0a1f31c",
+            "elapsed_ms": 1.941370079293847
+          },
+          "/koheron/instruments.js": {
+            "status": 200,
+            "wire_bytes": 55011,
+            "decoded_bytes": 55011,
+            "encoding": null,
+            "sha256": "9367e11f53327b9a4f1a2477afd507bb0efb86187e748d585f7aece3e4e921e7",
+            "elapsed_ms": 1.9661959959194064
+          },
+          "/api/instruments": {
+            "status": 200,
+            "wire_bytes": 48,
+            "decoded_bytes": 48,
+            "encoding": null,
+            "sha256": "4fce584a1977b8c931c0c78984bd7dfa7e8029444a65f7a740eb5f5cf40c3c37",
+            "elapsed_ms": 70.57125808205456
+          },
+          "/api/instruments/details": {
+            "status": 200,
+            "wire_bytes": 138,
+            "decoded_bytes": 138,
+            "encoding": null,
+            "sha256": "6ed0f30ceb0152009c644285e7b4a5c9fa6c1a39d09d56ac9e088d4d059c8ba7",
+            "elapsed_ms": 70.85730298422277
+          },
+          "/run/rates/sessions.json": {
+            "status": 200,
+            "wire_bytes": 31,
+            "decoded_bytes": 31,
+            "encoding": null,
+            "sha256": "081ba91427b5b7f974686fa805c62e6e3c5ad2783d30ab7f9adde34ee30e64b1",
+            "elapsed_ms": 1.2485830811783671
+          },
+          "upload": {
+            "status": 200,
+            "wire_bytes": 42,
+            "decoded_bytes": 42,
+            "encoding": null,
+            "sha256": "9ac9f2fa02d03a96a952b3d9f38f9ad9c56b5402cf209456d36b943d92abba9d",
+            "elapsed_ms": 153.14047900028527
+          },
+          "delete_probe": {
+            "status": 200,
+            "wire_bytes": 41,
+            "decoded_bytes": 41,
+            "encoding": null,
+            "sha256": "876173f5ca45acb1812c5eeb3a97be285b9919f0e5d9c3fd9964f373998a77e2",
+            "elapsed_ms": 5.313328001648188
+          },
+          "oversized_upload_status": 413
+        }
+      },
+      "benchmark": {
+        "/app.js": {
+          "baseline": {
+            "requests": 72,
+            "median_ms": 11.858790065161884,
+            "p95_ms": 17.996554961428046
+          },
+          "candidate": {
+            "requests": 72,
+            "median_ms": 11.688917526043952,
+            "p95_ms": 18.48551502916962
+          }
+        },
+        "/api/instruments": {
+          "baseline": {
+            "requests": 72,
+            "median_ms": 421.2078755372204,
+            "p95_ms": 430.898503982462
+          },
+          "candidate": {
+            "requests": 72,
+            "median_ms": 420.4417390283197,
+            "p95_ms": 433.9860730106011
+          }
+        }
+      }
+    },
+    "websocket": [
+      {
+        "label": "baseline",
+        "port": 18080,
+        "points": 2048,
+        "frames": 600,
+        "finite_values": 614400,
+        "changed_frames": 530,
+        "elapsed_s": 9.750933498,
+        "median_rpc_ms": 1.115022999999951,
+        "p95_rpc_ms": 3.771761999999967,
+        "controls_unchanged": true,
+        "control_sha256": "b7383e6731c015e96786413054cd9df6064ab52996a5165a2510f2a15a50e892"
+      },
+      {
+        "label": "candidate",
+        "port": 18081,
+        "points": 2048,
+        "frames": 600,
+        "finite_values": 614400,
+        "changed_frames": 567,
+        "elapsed_s": 9.626266459999998,
+        "median_rpc_ms": 0.8681800000013027,
+        "p95_rpc_ms": 1.2481060000009165,
+        "controls_unchanged": true,
+        "control_sha256": "b7383e6731c015e96786413054cd9df6064ab52996a5165a2510f2a15a50e892"
+      }
+    ]
+  },
+  "rejected_dynamic_asset_gzip": {
+    "board": {
+      "nginx": "nginx version: nginx/1.28.3 (Ubuntu)",
+      "kernel": "6.18.0-xilinx",
+      "memory": {
+        "baseline": {
+          "workers": 4,
+          "processes": [
+            {
+              "pid": 662,
+              "uid": 0,
+              "rss_kib": 1772,
+              "pss_kib": 316,
+              "private_kib": 128
+            },
+            {
+              "pid": 663,
+              "uid": 0,
+              "rss_kib": 3284,
+              "pss_kib": 708,
+              "private_kib": 392
+            },
+            {
+              "pid": 664,
+              "uid": 0,
+              "rss_kib": 3280,
+              "pss_kib": 704,
+              "private_kib": 388
+            },
+            {
+              "pid": 665,
+              "uid": 0,
+              "rss_kib": 2732,
+              "pss_kib": 627,
+              "private_kib": 368
+            },
+            {
+              "pid": 666,
+              "uid": 0,
+              "rss_kib": 2728,
+              "pss_kib": 623,
+              "private_kib": 364
+            }
+          ],
+          "total_pss_kib": 2978,
+          "total_private_kib": 1640
+        },
+        "candidate": {
+          "workers": 2,
+          "processes": [
+            {
+              "pid": 669,
+              "uid": 0,
+              "rss_kib": 1776,
+              "pss_kib": 419,
+              "private_kib": 132
+            },
+            {
+              "pid": 670,
+              "uid": 33,
+              "rss_kib": 3540,
+              "pss_kib": 1061,
+              "private_kib": 644
+            },
+            {
+              "pid": 671,
+              "uid": 33,
+              "rss_kib": 3532,
+              "pss_kib": 1053,
+              "private_kib": 636
+            }
+          ],
+          "total_pss_kib": 2533,
+          "total_private_kib": 1412
+        }
+      },
+      "active_instrument": "fft",
+      "instrument_pid_before": "MainPID=147",
+      "instrument_pid_after": "MainPID=147",
+      "production_config_unchanged": true,
+      "uploaded_probe_removed": true,
+      "services": [
+        "active",
+        "active",
+        "active"
+      ]
+    },
+    "http": {
+      "host": "192.168.1.85",
+      "http": {
+        "baseline": {
+          "/": {
+            "status": 200,
+            "wire_bytes": 745,
+            "decoded_bytes": 2390,
+            "encoding": "gzip",
+            "sha256": "fa6b1fcd528c89c4412a456ab7c8344f9749b494958039e94d40d917f3771cec",
+            "elapsed_ms": 4.389289999380708
+          },
+          "/app.js": {
+            "status": 200,
+            "wire_bytes": 180288,
+            "decoded_bytes": 180288,
+            "encoding": null,
+            "sha256": "e731d781e3bb36e8fc26245f89ea4aee0090c764595273c8bdf55ad3cde9540f",
+            "elapsed_ms": 4.331307020038366
+          },
+          "/fft.css": {
+            "status": 200,
+            "wire_bytes": 11148,
+            "decoded_bytes": 11148,
+            "encoding": null,
+            "sha256": "043c56eac1c9088ebf0e2fbd60168d5d7a09689c79a0011ee0cd1f6dadb035d5",
+            "elapsed_ms": 1.7662170575931668
+          },
+          "/koheron/": {
+            "status": 200,
+            "wire_bytes": 1861,
+            "decoded_bytes": 4610,
+            "encoding": "gzip",
+            "sha256": "276bf7078e49a871c8d4c901cfab3c4fba711790dda9404527be3988f0a1f31c",
+            "elapsed_ms": 4.646342946216464
+          },
+          "/koheron/instruments.js": {
+            "status": 200,
+            "wire_bytes": 55011,
+            "decoded_bytes": 55011,
+            "encoding": null,
+            "sha256": "9367e11f53327b9a4f1a2477afd507bb0efb86187e748d585f7aece3e4e921e7",
+            "elapsed_ms": 5.222085979767144
+          },
+          "/api/instruments": {
+            "status": 200,
+            "wire_bytes": 48,
+            "decoded_bytes": 48,
+            "encoding": null,
+            "sha256": "4fce584a1977b8c931c0c78984bd7dfa7e8029444a65f7a740eb5f5cf40c3c37",
+            "elapsed_ms": 71.72919507138431
+          },
+          "/api/instruments/details": {
+            "status": 200,
+            "wire_bytes": 138,
+            "decoded_bytes": 138,
+            "encoding": null,
+            "sha256": "6ed0f30ceb0152009c644285e7b4a5c9fa6c1a39d09d56ac9e088d4d059c8ba7",
+            "elapsed_ms": 71.0163350449875
+          },
+          "/run/rates/sessions.json": {
+            "status": 200,
+            "wire_bytes": 31,
+            "decoded_bytes": 31,
+            "encoding": null,
+            "sha256": "22d49687afaa5823cdcc60a5795b4b3be4a922b711b67506e527c7bd650ff4c6",
+            "elapsed_ms": 1.2958180159330368
+          },
+          "upload": {
+            "status": 200,
+            "wire_bytes": 42,
+            "decoded_bytes": 42,
+            "encoding": null,
+            "sha256": "9ac9f2fa02d03a96a952b3d9f38f9ad9c56b5402cf209456d36b943d92abba9d",
+            "elapsed_ms": 168.8810189953074
+          },
+          "delete_probe": {
+            "status": 200,
+            "wire_bytes": 59,
+            "decoded_bytes": 41,
+            "encoding": "gzip",
+            "sha256": "876173f5ca45acb1812c5eeb3a97be285b9919f0e5d9c3fd9964f373998a77e2",
+            "elapsed_ms": 7.291162968613207
+          },
+          "oversized_upload_status": 413
+        },
+        "candidate": {
+          "/": {
+            "status": 200,
+            "wire_bytes": 745,
+            "decoded_bytes": 2390,
+            "encoding": "gzip",
+            "sha256": "fa6b1fcd528c89c4412a456ab7c8344f9749b494958039e94d40d917f3771cec",
+            "elapsed_ms": 2.76837102137506
+          },
+          "/app.js": {
+            "status": 200,
+            "wire_bytes": 51315,
+            "decoded_bytes": 180288,
+            "encoding": "gzip",
+            "sha256": "e731d781e3bb36e8fc26245f89ea4aee0090c764595273c8bdf55ad3cde9540f",
+            "elapsed_ms": 25.204410078004003
+          },
+          "/fft.css": {
+            "status": 200,
+            "wire_bytes": 3127,
+            "decoded_bytes": 11148,
+            "encoding": "gzip",
+            "sha256": "043c56eac1c9088ebf0e2fbd60168d5d7a09689c79a0011ee0cd1f6dadb035d5",
+            "elapsed_ms": 2.859530970454216
+          },
+          "/koheron/": {
+            "status": 200,
+            "wire_bytes": 1861,
+            "decoded_bytes": 4610,
+            "encoding": "gzip",
+            "sha256": "276bf7078e49a871c8d4c901cfab3c4fba711790dda9404527be3988f0a1f31c",
+            "elapsed_ms": 2.162716002203524
+          },
+          "/koheron/instruments.js": {
+            "status": 200,
+            "wire_bytes": 15136,
+            "decoded_bytes": 55011,
+            "encoding": "gzip",
+            "sha256": "9367e11f53327b9a4f1a2477afd507bb0efb86187e748d585f7aece3e4e921e7",
+            "elapsed_ms": 7.172808982431889
+          },
+          "/api/instruments": {
+            "status": 200,
+            "wire_bytes": 48,
+            "decoded_bytes": 48,
+            "encoding": null,
+            "sha256": "4fce584a1977b8c931c0c78984bd7dfa7e8029444a65f7a740eb5f5cf40c3c37",
+            "elapsed_ms": 70.96945901867002
+          },
+          "/api/instruments/details": {
+            "status": 200,
+            "wire_bytes": 138,
+            "decoded_bytes": 138,
+            "encoding": null,
+            "sha256": "6ed0f30ceb0152009c644285e7b4a5c9fa6c1a39d09d56ac9e088d4d059c8ba7",
+            "elapsed_ms": 70.75789105147123
+          },
+          "/run/rates/sessions.json": {
+            "status": 200,
+            "wire_bytes": 31,
+            "decoded_bytes": 31,
+            "encoding": null,
+            "sha256": "22d49687afaa5823cdcc60a5795b4b3be4a922b711b67506e527c7bd650ff4c6",
+            "elapsed_ms": 1.2922600144520402
+          },
+          "upload": {
+            "status": 200,
+            "wire_bytes": 42,
+            "decoded_bytes": 42,
+            "encoding": null,
+            "sha256": "9ac9f2fa02d03a96a952b3d9f38f9ad9c56b5402cf209456d36b943d92abba9d",
+            "elapsed_ms": 160.48101999331266
+          },
+          "delete_probe": {
+            "status": 200,
+            "wire_bytes": 41,
+            "decoded_bytes": 41,
+            "encoding": null,
+            "sha256": "876173f5ca45acb1812c5eeb3a97be285b9919f0e5d9c3fd9964f373998a77e2",
+            "elapsed_ms": 5.5331699550151825
+          },
+          "oversized_upload_status": 413
+        }
+      },
+      "benchmark": {
+        "/app.js": {
+          "baseline": {
+            "requests": 72,
+            "median_ms": 12.252216984052211,
+            "p95_ms": 17.03397696837783
+          },
+          "candidate": {
+            "requests": 72,
+            "median_ms": 72.8470129542984,
+            "p95_ms": 81.60462905652821
+          }
+        },
+        "/api/instruments": {
+          "baseline": {
+            "requests": 72,
+            "median_ms": 419.64832303347066,
+            "p95_ms": 422.0685799373314
+          },
+          "candidate": {
+            "requests": 72,
+            "median_ms": 419.6996975224465,
+            "p95_ms": 427.66809498425573
+          }
+        }
+      }
+    },
+    "websocket": [
+      {
+        "label": "baseline",
+        "port": 18080,
+        "points": 2048,
+        "frames": 600,
+        "finite_values": 614400,
+        "changed_frames": 571,
+        "elapsed_s": 9.626400965,
+        "median_rpc_ms": 0.8939919999993435,
+        "p95_rpc_ms": 1.163735000000088,
+        "controls_unchanged": true,
+        "control_sha256": "b7383e6731c015e96786413054cd9df6064ab52996a5165a2510f2a15a50e892"
+      },
+      {
+        "label": "candidate",
+        "port": 18081,
+        "points": 2048,
+        "frames": 600,
+        "finite_values": 614400,
+        "changed_frames": 566,
+        "elapsed_s": 9.692408414999997,
+        "median_rpc_ms": 1.0417500000003201,
+        "p95_rpc_ms": 1.4087449999988166,
+        "controls_unchanged": true,
+        "control_sha256": "b7383e6731c015e96786413054cd9df6064ab52996a5165a2510f2a15a50e892"
+      }
+    ]
+  }
+}

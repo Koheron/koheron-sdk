@@ -95,6 +95,15 @@ switching on the target board. A kernel rebuild does not require an FPGA rebuild
 
 ## Management web interface
 
+nginx uses two `www-data` workers, low-cost gzip compression for HTML,
+and bounded API response buffers. Upload buffering uses
+`/run/nginx` to avoid SD-card writes; the nginx unit creates that directory at
+boot. WebSocket replies remain unbuffered. Open-file caching is left disabled
+so replacing an instrument takes effect immediately. Instrument web files must
+be readable, and their parent directories traversable, by `www-data`.
+JavaScript and CSS are served without dynamic compression: Red Pitaya LAN tests
+showed that per-request gzip reduced bytes but increased download latency.
+
 The OS serves the management pages at `/koheron/`: installed instruments,
 running status, server logs, system information and data rates. These pages
 live in `os/www/` and share the instrument control styles in
