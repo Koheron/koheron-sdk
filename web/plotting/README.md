@@ -10,14 +10,14 @@ Every generated plotting asset retains the relevant MIT notice.
 From the SDK root:
 
 ```sh
-npm install --prefix web --no-package-lock
+npm ci --prefix web
 npm ci --prefix web/plotting
 npm run build --prefix web/plotting             # tmp/plotting/owned/*.js
 make CFG=examples/alpha250/fft/config.mk web    # SDK web Docker image
 # Or build without Docker, using the local dependencies:
 make CFG=examples/alpha250/fft/config.mk web \
   PLOT_BUILD='node web/plotting/build.cjs' \
-  TSC='web/node_modules/.bin/tsc --target ES5 --lib es6,dom --alwaysStrict --skipLibCheck --module system --incremental --typeRoots web/node_modules/@types'
+  WEB_COMPILE='node web/build.cjs'
 
 npm test --prefix web/plotting                 # real Canvas, events, exports
 bash web/tests/run.sh all                      # existing instrument regressions
@@ -25,7 +25,7 @@ npm run benchmark --prefix web/plotting -- --frames=180 --rounds=3 --profile
 ```
 
 The SDK Docker image installs plotting tools from the same npm lock;
-rebuild it with `docker build -f web/Dockerfile.web -t koheron-web:node20 web`
+rebuild it with `docker build -f web/Dockerfile.web -t koheron-web:node24 web`
 after upgrading the build tools. The plotting
 npm lock pins the standalone minifier and Playwright driver. No plotting code
 is fetched during a build. Make tracks all local sources/licenses and replaces

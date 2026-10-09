@@ -17,9 +17,9 @@ fi
 run_cpp() {
     if [[ $mode == docker ]]; then
         docker run --rm -u "$(id -u):$(id -g)" -v "$repo:/review" -w /review \
-            -e PNA_TEST_CXX="${PNA_TEST_CXX:-g++-13}" \
+            -e PNA_TEST_CXX="${PNA_TEST_CXX:-g++-15}" \
             -e PNA_TEST_CXXFLAGS="${PNA_TEST_CXXFLAGS:-}" \
-            "${PNA_CPP_IMAGE:-cross-armhf:24.04}" bash "$1"
+            "${PNA_CPP_IMAGE:-cross-armhf:26.04}" bash "$1"
     else
         bash "$1"
     fi
@@ -28,7 +28,7 @@ run_cpp() {
 run_web() {
     if [[ $mode == docker ]]; then
         docker run --rm -u "$(id -u):$(id -g)" -v "$repo:/review" -w /review \
-            "${PNA_WEB_IMAGE:-koheron-web:node20}" "$@"
+            "${PNA_WEB_IMAGE:-koheron-web:node24}" "$@"
     else
         "$@"
     fi

@@ -3,7 +3,7 @@ class PSDStream {
     private worker: Worker;
     private stopped = false;
 
-    constructor(host: string, command: Uint8Array, bins: number,
+    constructor(host: string, command: Uint8Array<ArrayBuffer>, bins: number,
         frame: (psd: Float32Array, time: number) => void, error: (message: string) => void) {
         const url = URL.createObjectURL(new Blob(['(' + PSDStream.run.toString() + ')(self);'], {type: 'text/javascript'}));
         try { this.worker = new Worker(url); } finally { URL.revokeObjectURL(url); }
@@ -24,9 +24,9 @@ class PSDStream {
     dispose(): void { this.stopped = true; this.worker.terminate(); }
 
     // Keep this function self-contained: its compiled source runs in a Worker.
-    static run(scope: any): void {
+    static run = function(scope: any): void {
         let socket: WebSocket;
-        let config: {url: string; command: Uint8Array; bins: number};
+        let config: {url: string; command: Uint8Array<ArrayBuffer>; bins: number};
         let active = true, busy = false, awaitingAck = false;
         let timer: any, timeout: any, started = 0;
         let frames: {buffer: ArrayBuffer; time: number}[] = [];
@@ -84,5 +84,5 @@ class PSDStream {
                 } else { frames = []; }
             }
         };
-    }
+    };
 }

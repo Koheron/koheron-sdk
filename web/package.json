@@ -1,12 +1,16 @@
 {
-    "devDependencies": {
-      "typescript": "^5.6.3",
-      "jsdom": "^26.1.0",
-      "@types/jquery": "^3.5.29",
-      "@types/jquery-mousewheel": "^3.1.10",
-      "@types/node": "^20.14.14"
-    },
-    "dependencies": {
-      "websocket": "^1.0.35"
-    }
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "jsdom": "30.1.2",
+    "@types/jquery": "^3.5.29",
+    "@types/jquery-mousewheel": "^3.1.10",
+    "@types/node": "24.19.1",
+    "esbuild": "0.28.2"
+  },
+  "dependencies": {
+    "websocket": "^1.0.35"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
 }

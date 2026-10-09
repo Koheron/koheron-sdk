@@ -27,8 +27,8 @@ bash server/drivers/phase-noise/tests/run-host.sh dpll web
 
 The shared runner defaults to native execution. The existing ALPHA250 and
 ALPHA250-4 `tests/run.sh` commands retain their Docker default and delegate here.
-Docker execution uses `cross-armhf:24.04` for native C++ tests and
-`koheron-web:node20` for browser tests. Python runs on the host, selecting the SDK
+Docker execution uses `cross-armhf:26.04` for native C++ tests and
+`koheron-web:node24` for browser tests. Python runs on the host, selecting the SDK
 virtual environment when available and otherwise `python3`.
 
 Overrides are `PNA_PYTHON`, `PNA_TEST_CXX` (or `CXX`), `PNA_TEST_CXXFLAGS`,

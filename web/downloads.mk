@@ -20,6 +20,9 @@ WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/html-imports.min.js.map
 WEB_DOWNLOADS += $(TMP_WEB_PATH)/navigation.html
 
+include $(WEB_PATH)/ui-assets.mk
+$(eval $(call ui_asset_rules,$(TMP_WEB_PATH)))
+
 # Owned Canvas 2D plotting stack, built from readable local sources.
 PLOT_BUILD ?= $(WEB_DOCKER_RUN) node $(WEB_PATH)/plotting/build.cjs
 PLOT_ASSETS := $(addprefix $(TMP_WEB_PATH)/,jquery.flot.js jquery.flot.resize.js jquery.flot.selection.js jquery.flot.time.js jquery.flot.axislabels.js jquery.flot.canvas.js flot-LICENSE.txt)
@@ -30,18 +33,6 @@ $(PLOT_ASSETS) &: $(wildcard $(WEB_PATH)/plotting/src/*.js) $(WEB_PATH)/plotting
 $(TMP_WEB_PATH)/_koheron.css:
 	mkdir -p $(@D)
 	curl https://assets.koheron.com/css/main.css -o $@
-
-$(TMP_WEB_PATH)/bootstrap.min.js:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
-
-$(TMP_WEB_PATH)/bootstrap.min.css:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
-
-$(TMP_WEB_PATH)/jquery.min.js:
-	mkdir -p $(@D)
-	curl https://code.jquery.com/jquery-3.2.0.min.js -o $@
 
 $(TMP_WEB_PATH)/_koheron.png:
 	mkdir -p $(@D)
@@ -66,10 +57,6 @@ $(TMP_WEB_PATH)/lato-v11-latin-700.woff2:
 $(TMP_WEB_PATH)/lato-v11-latin-900.woff2:
 	mkdir -p $(@D)
 	curl https://fonts.gstatic.com/s/lato/v13/tI4j516nok_GrVf4dhunkg.woff2 -o $@
-
-$(TMP_WEB_PATH)/glyphicons-halflings-regular.woff2:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.woff2 -o $@
 
 $(TMP_WEB_PATH)/html-imports.min.js:
 	mkdir -p $(@D)

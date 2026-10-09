@@ -43,6 +43,8 @@ api_clean:
 # WWW
 ###############################################################################
 
+WEB_PATH ?= $(OS_PATH)/../web
+include $(WEB_PATH)/compiler-inputs.mk
 WWW_PATH:= $(OS_PATH)/www
 TMP_WWW_PATH:= $(TMP)/www
 
@@ -90,9 +92,9 @@ WWW_TS_FILES += $(WWW_PATH)/koheron_system.ts
 WWW_TS_FILES += $(WWW_PATH)/system_info_widget.ts
 WWW_TS_FILES += $(WWW_PATH)/logs_rate.ts
 
-$(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES)
+$(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES) $(WEB_COMPILER_INPUTS)
 	mkdir -p $(@D)
-	$(TSC) $^ --outFile $@
+	$(WEB_COMPILE) --output "$@" $(WWW_TS_FILES)
 
 $(TMP_WWW_PATH)/koheron.css:
 	mkdir -p $(@D)
@@ -126,17 +128,8 @@ $(TMP_WWW_PATH)/main.css: $(WEB_PATH)/main.css
 	mkdir -p $(@D)
 	cp $< $@
 
-$(TMP_WWW_PATH)/bootstrap.min.js:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js -o $@
-
-$(TMP_WWW_PATH)/bootstrap.min.css:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css -o $@
-
-$(TMP_WWW_PATH)/jquery.min.js:
-	mkdir -p $(@D)
-	curl https://code.jquery.com/jquery-1.12.4.min.js -o $@
+include $(WEB_PATH)/ui-assets.mk
+$(eval $(call ui_asset_rules,$(TMP_WWW_PATH)))
 
 $(TMP_WWW_PATH)/koheron.svg:
 	mkdir -p $(@D)
@@ -162,10 +155,6 @@ $(TMP_WWW_PATH)/lato-v11-latin-900.woff2:
 	mkdir -p $(@D)
 	curl https://fonts.gstatic.com/s/lato/v13/tI4j516nok_GrVf4dhunkg.woff2 -o $@
 
-$(TMP_WWW_PATH)/glyphicons-halflings-regular.woff2:
-	mkdir -p $(@D)
-	curl https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/fonts/glyphicons-halflings-regular.woff2 -o $@
-
 $(TMP_WWW_PATH)/html-imports.min.js:
 	mkdir -p $(@D)
 	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js -o $@
@@ -178,7 +167,7 @@ $(TMP_WWW_PATH)/html-imports.min.js.map:
 # BASE ROOTFS
 ###############################################################################
 
-UBUNTU_VERSION ?= 24.04.5
+UBUNTU_VERSION ?= 26.04.1
 
 ROOT_TAR      := ubuntu-base-$(UBUNTU_VERSION)-base-$(UBUNTU_ARCH).tar.gz
 ROOT_TAR_URL  := https://cdimage.ubuntu.com/ubuntu-base/releases/$(UBUNTU_VERSION)/release/$(ROOT_TAR)
@@ -288,6 +277,11 @@ $(MANIFEST_TXT): FORCE
 	  echo "kernel=$(LINUX_TAG)"; \
 	  echo "u-boot=$(UBOOT_TAG)"; \
 	  echo "device-tree=$(DTREE_TAG)"; \
+	  echo "compiler_image=$(DOCKER_IMAGE)"; \
+	  echo "server_compiler=$(GCC_ARCH)-g++-$(GCC_VERSION)"; \
+	  echo "kernel_compiler=$(KERNEL_CC)"; \
+	  echo "uboot_compiler=$(UBOOT_CC)"; \
+	  echo "host_compiler=$(OS_HOSTCC)"; \
 	  bash "$(OS_PATH)/scripts/toolchain_versions.sh" "$(VIVADO_PATH)" "$(VITIS_PATH)"; \
 	  echo "koheron_version=$(KOHERON_VERSION)"; \
 	  echo "git_commit=$(GIT_COMMIT)"; \

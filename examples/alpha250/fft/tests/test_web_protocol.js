@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ts = require('typescript');
+const ts = require('../../../../web/transpile.cjs');
 
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console});

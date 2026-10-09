@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const test = require('node:test');
-const ts = require('typescript');
+const ts = require('../../transpile.cjs');
 const {JSDOM} = require('jsdom');
 const source = ts.transpileModule(fs.readFileSync('web/fft/plot/references.ts', 'utf8'),
     {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;

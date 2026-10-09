@@ -51,7 +51,9 @@ else
     HSI := source $(VIVADO_PATH)/settings64.sh && xsct
 endif
 BOOTGEN := source $(VIVADO_PATH)/settings64.sh && bootgen
-GCC_VERSION := 13
+GCC_VERSION := 15
+DOCKER_UBUNTU_VERSION ?= $(if $(filter 13,$(GCC_VERSION)),24.04,26.04)
+DOCKER_IMAGE ?= cross-armhf:$(DOCKER_UBUNTU_VERSION)
 
 DOCKER_PATH := $(SDK_PATH)/docker
 OS_PATH := $(SDK_PATH)/os
@@ -265,8 +267,8 @@ clean_all:
 
 else
 
-DOCKER_IMAGE ?= cross-armhf:24.04
-WEB_DOCKER_IMAGE ?= koheron-web:node20
+DOCKER_IMAGE ?= cross-armhf:$(DOCKER_UBUNTU_VERSION)
+WEB_DOCKER_IMAGE ?= koheron-web:node24
 
 endif
 
@@ -330,6 +332,6 @@ setup:
 	@if ! docker info >/dev/null 2>&1; then \
 		sudo setfacl -m u:$(shell id -u):rw /var/run/docker.sock; \
 	fi
-	docker build -f $(DOCKER_PATH)/Dockerfile -t $(DOCKER_IMAGE) $(DOCKER_PATH)
+	docker build -f $(DOCKER_PATH)/Dockerfile --build-arg UBUNTU_VERSION=$(DOCKER_UBUNTU_VERSION) --build-arg GCC_VERSION=$(GCC_VERSION) -t $(DOCKER_IMAGE) $(DOCKER_PATH)
 	docker build -f $(WEB_PATH)/Dockerfile.web -t $(WEB_DOCKER_IMAGE) $(WEB_PATH)
 	@echo 'Setup complete.'

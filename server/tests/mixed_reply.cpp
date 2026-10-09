@@ -271,7 +271,7 @@ enum class Mode { normal, partial, interrupt, failure, zero };
 // Keep fault-injection state observable across the linker-wrapped call.
 std::atomic<Mode> mode{Mode::normal};
 std::atomic<unsigned> calls{0};
-#ifdef __USE_TIME_BITS64
+#if defined(__USE_TIME_BITS64) && __TIMESIZE == 32
 // glibc redirects sendmsg to this symbol on 32-bit time64 systems.
 extern "C" ssize_t __real___sendmsg64(int, const msghdr*, int);
 #define __real_sendmsg __real___sendmsg64

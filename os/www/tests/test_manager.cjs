@@ -2,12 +2,12 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const {JSDOM} = require('jsdom');
-const ts = require('typescript');
+const ts = require('../../../web/transpile.cjs');
 const sources = ['web/instrument/poller.ts', 'os/www/instruments.ts',
     'os/www/instruments_widget.ts', 'os/www/koheron_server_log.ts',
     'os/www/koheron_system.ts', 'os/www/system_info_widget.ts', 'os/www/instrument_summary.ts'];
 const code = ts.transpileModule(sources.map(path => fs.readFileSync(path, 'utf8')).join('\n'),
-    {compilerOptions: {target: ts.ScriptTarget.ES2018}}).outputText;
+    {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText;
 function fixture(t, page = 'index.html', query = '') {
     const dom = new JSDOM(fs.readFileSync('os/www/' + page, 'utf8'), {
         url: 'http://board/koheron/' + page + query, runScripts: 'outside-only', pretendToBeVisual: true

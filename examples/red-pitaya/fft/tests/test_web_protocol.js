@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const ts = require('typescript');
+const ts = require('../../../../web/transpile.cjs');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({console, assert});
 for (const file of ['web/koheron.ts', 'web/fft/driver.ts', 'examples/red-pitaya/fft/web/fft.ts']) {
