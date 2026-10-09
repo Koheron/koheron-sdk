@@ -3,7 +3,8 @@
 Description=Nginx (fronting uWSGI)
 DefaultDependencies=no
 After=sysinit.target local-fs.target systemd-tmpfiles-setup.service uwsgi.socket
-Before=basic.target
+Before=shutdown.target
+Conflicts=shutdown.target
 Wants=uwsgi.socket
 
 [Service]
@@ -18,4 +19,4 @@ ExecStop=/bin/kill -s QUIT $MAINPID
 Restart=always
 
 [Install]
-WantedBy=basic.target
+WantedBy=multi-user.target

@@ -19,6 +19,7 @@ SERVICES = (
     'nginx', 'systemd-networkd.service', 'systemd-resolved.service',
     'systemd-timesyncd.service',
 )
+REENABLE = {'uwsgi', 'unzip-default-instrument', 'koheron-server', 'nginx'}
 
 
 @unittest.skipUnless(os.geteuid() == 0, 'Run as root inside the SDK build container')
@@ -71,7 +72,9 @@ fi
     def test_success_configures_network_and_enables_required_services(self):
         result = self.run_payload()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(set(self.commands()), {f'enable {name}' for name in SERVICES})
+        self.assertEqual(set(self.commands()),
+                         {f'{"reenable" if name in REENABLE else "enable"} {name}'
+                          for name in SERVICES})
         for interface in ('end0', 'end1'):
             self.assertIn('DHCP=ipv4', (self.root / f'etc/systemd/network/10-{interface}.network').read_text())
         self.assertEqual(os.readlink(self.root / 'etc/resolv.conf'),
@@ -86,7 +89,8 @@ fi
                 result = self.run_payload(fail_service=service)
                 self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
                 self.assertIn(f'Cannot enable {service}', result.stderr)
-                self.assertEqual(self.commands()[-1], f'enable {service}')
+                action = 'reenable' if service in REENABLE else 'enable'
+                self.assertEqual(self.commands()[-1], f'{action} {service}')
 
 
 if __name__ == '__main__':

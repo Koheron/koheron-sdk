@@ -1,9 +1,10 @@
 [Unit]
 Description=Koheron TCP/Websocket server
 DefaultDependencies=no
-# minimal boot deps to be safe; no network wait
+# Start as soon as prerequisites are ready without blocking basic.target.
 After=sysinit.target local-fs.target tmp.mount unzip-default-instrument.service
-Before=basic.target
+Before=shutdown.target
+Conflicts=shutdown.target
 Requires=unzip-default-instrument.service
 
 [Service]
@@ -16,4 +17,4 @@ TimeoutStopSec=30s
 StartLimitInterval=0
 
 [Install]
-WantedBy=basic.target
+WantedBy=multi-user.target

@@ -42,6 +42,12 @@ Ubuntu Base, while retaining copyright notices and runtime encoding data.
 
 uWSGI starts eagerly alongside other services and automatically inherits the
 Unix socket from systemd. Its Python initialization does not gate `basic.target`.
+Instrument extraction, the server and nginx also start with their existing early
+boot prerequisites, without blocking `basic.target` or services such as SSH.
+The server still waits for extraction and reports readiness with `Type=notify`;
+the IP LED helper waits for that readiness. These early services explicitly stop
+before `shutdown.target`. Image assembly recreates their enablement links under
+`multi-user.target`, removing legacy links under `basic.target`.
 The IP LED helper waits for an IPv4 address on `end0` or legacy `eth0` in the
 background, including when DHCP arrives after boot. It does not pull in
 `network-online.target`. A completed boot does not imply that DHCP or the web API
