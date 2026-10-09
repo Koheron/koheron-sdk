@@ -1,8 +1,18 @@
 source [file join [file dirname [info script]] "block_design.tcl"]
 
-set_property synth_checkpoint_mode None [get_files $bd_path/system.bd]
+if {$::env(FPGA_SYNTH_MODE) eq "ip"} {
+  # Outside the disposable project directory: block_design.tcl regenerates it.
+  file mkdir $::env(FPGA_IP_CACHE)
+  config_ip_cache -use_cache_location $::env(FPGA_IP_CACHE)
+  set_property synth_checkpoint_mode Hierarchical [get_files $bd_path/system.bd]
+} else {
+  set_property synth_checkpoint_mode None [get_files $bd_path/system.bd]
+}
 
 generate_target all [get_files $bd_path/system.bd]
+if {$::env(FPGA_SYNTH_MODE) eq "ip"} {
+  create_ip_run [get_files $bd_path/system.bd]
+}
 make_wrapper -files [get_files $bd_path/system.bd] -top
 
 add_files -norecurse $bd_path/hdl/system_wrapper.v

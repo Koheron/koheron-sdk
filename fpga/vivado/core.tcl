@@ -21,8 +21,14 @@ set rtl [concat \
   [glob -nocomplain $core_path/*.vhd] \
   [glob -nocomplain $core_path/*.xci] \
   [glob -nocomplain $core_path/*.vhdl]]
+# Testbenches are removed from the package below; their edits must not
+# invalidate a synthesis core (keep this in sync with fpga.mk).
+set package_rtl {}
+foreach f $rtl {
+  if {![regexp {_tb\.(v|sv|vh|vhd|vhdl)$} $f]} {lappend package_rtl $f}
+}
 set cfg [glob -nocomplain $core_path/core_config.tcl]
-set inputs [concat $rtl $cfg \
+set inputs [concat $package_rtl $cfg \
   [glob -nocomplain $core_path/*.tcl] \
   [glob -nocomplain $core_path/*.xdc] \
   [glob -nocomplain $core_path/*.mem] \

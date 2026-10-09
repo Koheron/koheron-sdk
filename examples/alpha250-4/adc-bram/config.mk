@@ -3,9 +3,10 @@ VERSION := 0.2.1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250-4
 
-MEMORY_YML = $(PROJECT_PATH)/memory.yml
+FPGA_LIB_TCL = $(FPGA_TCL_BRAM)
+FPGA_IMPL_TCL = $(PROJECT_PATH)/tcl/post_route.tcl
 
-TCL_FILES = $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl
+MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/alpha250-4/config/ports.xdc
 

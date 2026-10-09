@@ -78,6 +78,7 @@ help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
 	@echo ' - run          : Run the instrument'
 	@echo ' - fpga         : Build the FPGA bitstream'
+	@echo '                  FPGA_SYNTH_MODE=ip enables experimental per-IP synthesis caching'
 	@echo ' - timing       : Check routed FPGA timing (fails on violations)'
 	@echo '                  Set ENFORCE_TIMING := 1 in an example config.mk to enforce during builds'
 	@echo ' - server       : Build the server'
@@ -151,7 +152,10 @@ include $(CONFIG_MK)
 
 MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl
-TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(wildcard $(FPGA_PATH)/lib/*.tcl)
+include $(FPGA_PATH)/lib/dependencies.mk
+# Custom instruments retain the conservative shared-library dependency set.
+FPGA_LIB_TCL ?= $(wildcard $(FPGA_PATH)/lib/*.tcl)
+TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/*.tcl $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl $(BOARD_PATH)/config/*.tcl) $(FPGA_LIB_TCL) $(TCL_EXTRA_FILES)
 
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
 

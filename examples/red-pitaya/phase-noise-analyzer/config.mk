@@ -4,6 +4,10 @@ ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
 
+FPGA_LIB_TCL = $(FPGA_TCL_PNA_SINGLE_STREAM) $(FPGA_TCL_REDP)
+FPGA_IMPL_TCL = $(FPGA_TCL_PNA_ROUTE)
+TCL_EXTRA_FILES += $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
+
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/red-pitaya/config/ports.xdc
@@ -20,7 +24,6 @@ CORES += $(SDK_PATH)/fpga/cores/phase_prefilter_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
 CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
-TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
 DRIVERS += $(BOARD_PATH)/drivers/common.hpp
 DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp

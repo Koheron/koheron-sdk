@@ -11,6 +11,13 @@ if {$enforce_timing ne "0" && $enforce_timing ne "1"} {
 open_project $xpr_filename
 
 set impl_run [get_runs impl_1]
+# Make passes 1 only when an implementation-only Tcl input changed.
+# Keep the optional argument compatible with direct invocations of this script.
+set reset_impl [lindex $argv 4]
+if {$reset_impl ni {"" 0 1}} {error "reset_impl must be 0 or 1"}
+if {$reset_impl eq "1"} {
+  reset_run $impl_run
+}
 if {[get_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED $impl_run]} {
   set final_step {phys_opt_design (Post-Route)}
 } else {

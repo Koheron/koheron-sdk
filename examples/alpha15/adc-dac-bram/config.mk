@@ -3,6 +3,8 @@ VERSION := 0.1.0
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha15
 
+FPGA_LIB_TCL = $(FPGA_TCL_BRAM)
+
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/alpha15/config/ports.xdc

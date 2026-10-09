@@ -4,6 +4,9 @@ ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250-4
 
+FPGA_LIB_TCL = $(FPGA_TCL_PNA)
+FPGA_IMPL_TCL = $(FPGA_TCL_PNA_ROUTE)
+
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/alpha250-4/config/ports.xdc
@@ -33,10 +36,6 @@ include $(SDK_PATH)/server/drivers/phase-noise/fft.mk
 include $(SDK_PATH)/web/phase-noise/components.mk
 include $(SDK_PATH)/web/phase-noise/reference-clock/components.mk
 WEB_FILES += $(shell find "$(PROJECT_PATH)/web" -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' \))
-
-# Board Tcl changes must invalidate the generated Vivado project as well.
-TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(SDK_PATH)/fpga/lib/post_route_hold_fix.tcl $(SDK_PATH)/fpga/lib/pna_cordic.tcl $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl
-TCL_FILES += $(SDK_PATH)/fpga/lib/pna_filter.tcl
 
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
 
