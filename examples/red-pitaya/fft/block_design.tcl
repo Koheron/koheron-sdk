@@ -1,6 +1,11 @@
 source $board_path/config/ports.tcl
 source $board_path/base_system.tcl
 
+# This instrument has only PS masters. Compress their GP0 transaction IDs from
+# 12 to 6 bits to reduce crossbar response matching and routing. Do not enable
+# this for a design that routes a PL master's accesses back through the PS.
+set_property CONFIG.PCW_M_AXI_GP0_ENABLE_STATIC_REMAP 1 [get_bd_cells ps_0]
+
 # Hold unused board PWM outputs low.
 connect_port_pin dac_pwm_o [get_constant_pin 0 4]
 
