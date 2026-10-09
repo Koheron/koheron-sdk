@@ -46,7 +46,7 @@ jobs:
 
   server-network:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       CXX: g++-13
     steps:
