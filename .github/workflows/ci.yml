@@ -69,6 +69,7 @@ jobs:
           python3 -m unittest discover -s server/tests -p test_driver_locking.py -v
           python3 -m unittest discover -s server/tests -p test_config_files.py -v
           python3 -m unittest discover -s server/tests -p test_device_initialization.py -v
+          CXXFLAGS="$CXXFLAGS -D_FILE_OFFSET_BITS=64" python3 -m unittest discover -s server/tests -p test_memory_lifecycle.py -v
           python3 -m unittest discover -s server/tests -p test_spi_transfers.py -v
           python3 -m unittest discover -s server/tests -p test_i2c_transfers.py -v
           python3 -m unittest discover -s server/tests -p test_xadc_monitoring.py -v
