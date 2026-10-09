@@ -9,7 +9,7 @@ WEB_DOCKER_RUN := docker run --rm -t \
 # Typescript compiler
 ###############################################################################
 
-WEB_COMPILER_INPUTS := $(WEB_PATH)/package.json $(WEB_PATH)/package-lock.json $(WEB_PATH)/Dockerfile.web $(WEB_PATH)/build.cjs $(WEB_PATH)/transpile.cjs
+include $(WEB_PATH)/compiler-inputs.mk
 WEB_COMPILE ?= $(WEB_DOCKER_RUN) node /opt/app/build.cjs
 
 ###############################################################################

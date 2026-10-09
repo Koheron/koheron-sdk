@@ -44,6 +44,7 @@ api_clean:
 ###############################################################################
 
 WEB_PATH ?= $(OS_PATH)/../web
+include $(WEB_PATH)/compiler-inputs.mk
 WWW_PATH:= $(OS_PATH)/www
 TMP_WWW_PATH:= $(TMP)/www
 
