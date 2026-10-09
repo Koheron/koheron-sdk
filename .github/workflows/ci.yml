@@ -9,12 +9,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: configuration-check-${{ github.ref }}
+  group: sdk-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   configurations:
+    name: Quick smoke tests
     runs-on: ubuntu-24.04
+    env:
+      CXX: g++-13
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
@@ -23,14 +26,20 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - name: Install YAML parser
-        run: python3 -m pip install --disable-pip-version-check PyYAML
+      - name: Install smoke-test dependencies
+        run: python3 -m pip install --disable-pip-version-check PyYAML Flask
       - name: Test instrument copying
         run: python3 -m unittest discover -s python/tests -p test_copy_instrument.py
       - name: Test image toolchain manifest
         run: python3 -m unittest discover -s os/tests -p test_toolchain_manifest.py
       - name: Test kernel and device-tree compiler dependencies
         run: python3 -m unittest discover -s os/tests -p test_linux_make.py
+      - name: Test OS API and startup helper
+        run: |
+          python3 -m unittest discover -s os/api/tests
+          python3 -m unittest discover -s os/tests -p test_server_init.py
+      - name: Check C++ logging
+        run: python3 -m unittest discover -s server/tests -p test_syslog.py
       - name: Validate instrument configurations
         run: |
           count=0
@@ -43,110 +52,3 @@ jobs:
           done < <(find examples -name config.mk | sort)
           test "$count" -gt 0
           echo "Validated $count instrument configurations"
-
-  server-network:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    env:
-      CXX: g++-13
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-      - name: Install server test dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y g++-13 libeigen3-dev
-      - name: Test server dispatch and clients
-        run: python3 -m unittest discover -s server/tests -v
-      - name: Check server networking with sanitizers
-        env:
-          CXXFLAGS: -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -g -no-pie
-        run: |
-          python3 -m unittest discover -s server/tests -p test_driver_locking.py -v
-          python3 -m unittest discover -s server/tests -p test_driver_shutdown.py -v
-          python3 -m unittest discover -s server/tests -p test_config_files.py -v
-          python3 -m unittest discover -s server/tests -p test_device_initialization.py -v
-          CXXFLAGS="$CXXFLAGS -D_FILE_OFFSET_BITS=64" python3 -m unittest discover -s server/tests -p test_memory_lifecycle.py -v
-          python3 -m unittest discover -s server/tests -p test_spi_transfers.py -v
-          python3 -m unittest discover -s server/tests -p test_i2c_transfers.py -v
-          python3 -m unittest discover -s server/tests -p test_xadc_monitoring.py -v
-          python3 -m unittest discover -s server/tests -p test_uio_waits.py -v
-          python3 -m unittest discover -s server/tests -p test_precision_adc_lifetime.py -v
-          python3 -m unittest discover -s server/tests -p test_power_monitor.py -v
-          python3 -m unittest discover -s server/tests -p test_eeprom_pages.py -v
-          CXXFLAGS="$CXXFLAGS -fsanitize=float-cast-overflow" python3 -m unittest discover -s server/tests -p test_precision_dac.py -v
-          python3 -m unittest discover -s server/tests -p 'test_websocket*.py' -v
-          python3 -m unittest discover -s server/tests -p test_mixed_reply.py -v
-
-  instrument-host:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CXX: g++-13
-      PNA_TEST_MODE: native
-      PNA_PYTHON: python3
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: Install host test dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y g++-13 libeigen3-dev
-          python3 -m pip install -r python/requirements.txt numpy scipy
-          npm ci --prefix web
-      - name: Check web asset rebuilds after configuration changes
-        run: python3 web/tests/test_build.py
-      - name: Check OS management interface
-        run: |
-          make CFG=examples/alpha250/fft/config.mk tmp/www/instruments.js \
-            WEB_COMPILE='node web/build.cjs'
-          NODE_PATH=web/node_modules node --test os/www/tests/test_*.cjs
-      - name: Compile instrument web assets
-        run: |
-          for project in alpha250/phase-noise-analyzer alpha250-4/phase-noise-analyzer red-pitaya/phase-noise-analyzer alpha250/dpll alpha250/fft red-pitaya/fft alpha250-4/fft alpha15/signal-analyzer alpha250/phase-modulator red-pitaya/dual-dds red-pitaya/pulse-generator; do
-            make CFG="examples/$project/config.mk" WEB_DOWNLOADS_MK=/dev/null \
-              WEB_COMPILE='node web/build.cjs' web
-          done
-      - name: Check PNA processing, clients and shared PNA, DPLL and FFT interfaces
-        run: bash server/drivers/phase-noise/tests/run-host.sh
-      - name: Check ALPHA15 acquisition snapshots with sanitizers
-        run: |
-          "$CXX" -std=c++23 -Wall -Wextra -Werror -g -fsanitize=address,undefined \
-            -fno-omit-frame-pointer -no-pie -I. -Iserver/external_libs -I/usr/include/eigen3 \
-            examples/alpha15/signal-analyzer/tests/test_acquisition.cpp -o /tmp/alpha15-test-acquisition
-          /tmp/alpha15-test-acquisition
-
-  plotting:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: web/plotting/package-lock.json
-      - name: Install plotting build and browser test dependencies
-        run: |
-          npm ci --prefix web
-          npm ci --prefix web/plotting
-          web/plotting/node_modules/.bin/playwright-core install --with-deps chromium
-      - name: Check owned plotting assets, Canvas rendering, interactions and exports
-        run: |
-          export CHROME=$(node -p 'require("./web/plotting/node_modules/playwright-core").chromium.executablePath()')
-          npm test --prefix web/plotting

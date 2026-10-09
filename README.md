@@ -69,6 +69,12 @@ Pass `CFG=.../config.mk` to build and deployment targets. `make help` lists targ
 | `make list` | Lists example instruments. |
 | `make validate CFG=...` | Validates `config.mk` and `memory.yml`. |
 
+Pull requests and pushes run one smoke-test job with a one-minute timeout:
+example configurations, instrument copying, OS build dependencies, the management
+API, the startup helper and a small C++ logging check. Full server, sanitizer,
+instrument build, DSP and browser tests remain available to run locally when a
+change needs them.
+
 ## Creating a new instrument
 
 ```bash
