@@ -4,6 +4,23 @@ Build and installation: [SDK quick start](../README.md#quick-start).
 
 ## Settings
 
+The default runtime is Ubuntu Base **26.04.1** and Xilinx **2026.1 / Linux 6.18**, independent of `VIVADO_VERSION` (default **2025.1**). Bootloader, firmware and device-tree source releases follow the selected Vivado/Vitis toolchain. The reference development host remains Ubuntu 24.04; the default build container uses Ubuntu 26.04 and GCC 15.
+
+Override `LINUX_VERSION` and `UBUNTU_VERSION` to select earlier releases, for example:
+
+```sh
+make CFG=examples/alpha250/fft/config.mk VIVADO_VERSION=2025.1 \
+  LINUX_VERSION=2025.1 UBUNTU_VERSION=24.04.5 GCC_VERSION=13 image
+```
+
+Build the [Ubuntu 24.04/GCC 13 fallback container](../docker/README.md) before using this older runtime configuration.
+
+APT repositories are derived from the extracted Ubuntu rootfs's `/etc/os-release`. New Xilinx source releases require entries in `source-checksums.sha256`. Defaults refer to released versions, not development snapshots or moving branches.
+
+Rebuild boot and FPGA artifacts when changing Vivado/Vitis versions; cached artifacts are not proof of compatibility. Validate image builds separately from board boot, FPGA overlays, DMA/cache correctness and acquisition tests.
+
+The SDK defconfigs include the full Xilinx 2025.1 → 2026.1 config delta, compared against upstream [`xilinx_zynq_defconfig`](https://github.com/Xilinx/linux-xlnx/blob/xilinx-v2026.1/arch/arm/configs/xilinx_zynq_defconfig) and [`xilinx_defconfig`](https://github.com/Xilinx/linux-xlnx/blob/xilinx-v2026.1/arch/arm64/configs/xilinx_defconfig). Zynq gains explicit ext4, ACL and security-label support and removes redundant scheduler selections. ARM64 gains thermal support, CoreSight/default tracing, NVMe, Type-C, I3C, GPIO aggregation, RPMsg TTY and additional PCIe/PHY support; INA power monitors move from IIO to hwmon, and obsolete selections are removed. Koheron-specific settings are retained. Kconfig dependencies determine which drivers apply to each platform; these selections do not change the Vivado version or runtime kernel default.
+
 Set `PASSWORD` and `TIMEZONE` in the environment before `make image` to override the defaults in [rootfs.mk](./rootfs.mk).
 
 The image manifest records source tags separately from `vivado`, `vivado_build`,

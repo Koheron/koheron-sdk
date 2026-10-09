@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
-const ts = require('typescript');
+const ts = require('../../transpile.cjs');
 
 for (const [folder, name, method, rpc] of [
     ['temperature-sensor', 'TemperatureSensor', 'getTemperatures', 'get_temperatures'],

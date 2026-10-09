@@ -64,8 +64,8 @@ def dev_size_bytes(dev_path):
 
 def dev_is_readonly(dev_path):
     with open(dev_path, "rb", buffering=0) as f:
-        ro = fcntl.ioctl(f.fileno(), BLKROGET, b"\x00")
-        return bool(ro[0])
+        ro = fcntl.ioctl(f.fileno(), BLKROGET, bytes(struct.calcsize("I")))
+        return bool(struct.unpack("I", ro)[0])
 
 def open_exclusive_w(dev_path):
     fd = os.open(dev_path, os.O_WRONLY | os.O_EXCL | os.O_SYNC)

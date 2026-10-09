@@ -156,9 +156,12 @@ DEP := $(subst .o,.d,$(OBJ))
 # Compiler
 # -----------------------------------------------------------------------------
 
-SERVER_INCLUDE_DIRS = -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_INCLUDE_DIRS = -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -isystem /usr/include/eigen3 -I$(SDK_PATH) -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 
 SERVER_CCXX = $(DOCKER) ccache $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
+SERVER_COMPILER_STAMP := $(TMP_SERVER_PATH)/.compiler-settings
+$(eval $(call compiler_settings_stamp,$(SERVER_COMPILER_STAMP),$(GCC_ARCH)-g++-$(GCC_VERSION)))
+$(OBJ): $(SERVER_COMPILER_STAMP)
 
 SERVER_CCXXFLAGS = -Wall -Werror -Wextra
 SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast
@@ -206,11 +209,11 @@ PCH_FLAGS_STAMP := $(TMP_PROJECT_PATH)/pch/pch.flags
 
 $(PCH_FLAGS_STAMP): FORCE
 	@mkdir -p $(dir $@)
-	@printf '%s\n' '$(PCH_CXXFLAGS)' > $@.tmp
+	@printf '%s\n' '$(PCH_CXX)' '$(PCH_CXXFLAGS)' > $@.tmp
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp
 
-$(PCH_GCH): $(PCH_DST) $(PCH_FLAGS_STAMP)
+$(PCH_GCH): $(PCH_DST) $(PCH_FLAGS_STAMP) $(SERVER_COMPILER_STAMP)
 	$(PCH_CXX) -x c++-header $(PCH_CXXFLAGS) -o $@ $<
 
 # Use the PCH for all compilations and ensure it’s built first
@@ -322,7 +325,7 @@ JSON_CXX      := g++-$(GCC_VERSION)
 JSON_CXXFLAGS := -std=c++23 -O2 -DKOHERON_SERVER_BUILD $(SERVER_INCLUDE_DIRS)
 JSON_CXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 
-$(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(GEN_HEADERS) $(SERVER_PATH)/server.mk
+$(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(GEN_HEADERS) $(SERVER_COMPILER_STAMP) $(SERVER_PATH)/server.mk
 	$(DOCKER) $(JSON_CXX) $(JSON_CXXFLAGS) $< -o $@
 
 $(DRIVERS_JSON_OUT): $(DRIVERS_JSON_DUMP_EXE)

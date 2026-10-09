@@ -11,6 +11,18 @@ out="$repo/tmp/tests/alpha250-phase-noise-analyzer/rtl"
 mkdir -p "$out"
 cd "$out"
 
+# The 250 MHz history splits the 64-bit sum without dropping ADC samples.
+xvlog --sv "$repo/fpga/cores/phase_unwrapper_v1_0/phase_unwrapper.v" \
+      "$repo/examples/alpha250/phase-noise-analyzer/tests/test_phase_history_tb.sv" \
+      "$XILINX_VIVADO/data/verilog/src/glbl.v"
+xelab -L unisims_ver work.test_pna_phase_history_tb work.glbl -s test_pna_phase_history_tb
+xsim test_pna_phase_history_tb -runall > history.log 2>&1
+cat history.log
+rg -q 'PNA phase history checks passed' history.log
+if rg -q 'Fatal:|ERROR:|FATAL:' history.log; then
+    exit 1
+fi
+
 # Both instruments instantiate these same RTL cores with the same first two
 # seeds. Reuse the independent convolution and mixer-response regressions.
 shared_tests="$repo/examples/alpha250-4/phase-noise-analyzer/tests"

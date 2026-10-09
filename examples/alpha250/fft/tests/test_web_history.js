@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const ts = require('typescript');
+const ts = require('../../../../web/transpile.cjs');
 const root = path.resolve(__dirname, '../../../..');
 const context = vm.createContext({assert, console, Blob});
 for (const file of ['plot/spectrum-history.ts', 'plot/spectrum-views.ts', 'export-file/export-file.ts']) {

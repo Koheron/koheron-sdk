@@ -135,6 +135,7 @@ SHELL := /bin/bash
 TMP := {self.cache}
 OS_PATH := {SDK}/os
 UBUNTU_ARCH := armhf
+UBUNTU_VERSION := 24.04.5
 .PHONY: FORCE
 FORCE:
 include {SDK}/os/rootfs.mk

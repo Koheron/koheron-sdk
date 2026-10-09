@@ -1,4 +1,5 @@
-DOCKER_IMAGE ?= cross-armhf:24.04
+DOCKER_UBUNTU_VERSION ?= $(if $(filter 13,$(GCC_VERSION)),24.04,26.04)
+DOCKER_IMAGE ?= cross-armhf:$(DOCKER_UBUNTU_VERSION)
 DOCKER_WD    ?= /home/containeruser/wkspace
 DOCKER_UID    = $(shell id -u)
 DOCKER_GID    = $(shell id -g)

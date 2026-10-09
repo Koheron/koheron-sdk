@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const ts = require('typescript');
+const ts = require('../../../../web/transpile.cjs');
 const {JSDOM} = require('jsdom');
 const install = require('./fixtures/monitor-client.cjs');
 const root = path.resolve(__dirname, '../../../..');
@@ -33,7 +33,7 @@ async function host(t, options = {}) {
     'web/phase-noise/integer-input.ts',
     'web/phase-noise/analyzer/monitor.ts',
     'examples/alpha250/dpll/web/monitor.ts'];
-  w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText + '\nwindow.PnaMonitor = PnaMonitor; window.DpllMonitor = DpllMonitor;');
+  w.eval(ts.transpileModule(files.map(read).join('\n'), {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PnaMonitor = PnaMonitor; window.DpllMonitor = DpllMonitor;');
   const errors = [];
   const fail = error => { errors.push(error); monitor.dispose(); };
   const monitor = options.driverName

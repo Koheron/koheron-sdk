@@ -2,9 +2,9 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const {JSDOM} = require('jsdom');
-const ts = require('typescript');
+const ts = require('../../../web/transpile.cjs');
 const code = ts.transpileModule(fs.readFileSync('os/www/logs_rate.ts', 'utf8'),
-    {compilerOptions: {target: ts.ScriptTarget.ES2018}}).outputText;
+    {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText;
 function fixture(t) {
     const dom = new JSDOM(fs.readFileSync('os/www/logs_rate.html', 'utf8'), {
         url: 'http://board/koheron/logs_rate.html', runScripts: 'outside-only', pretendToBeVisual: true

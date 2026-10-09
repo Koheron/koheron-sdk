@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const ts = require('typescript');
+const ts = require('../../transpile.cjs');
 const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -18,7 +18,7 @@ function fixture(t, board) {
         ? 'examples/alpha250-4/phase-noise-analyzer/web/export-file/export-file.ts'
         : 'web/phase-noise/analyzer/export-file/export-file.ts';
     w.eval(ts.transpileModule(read('web/phase-noise/export-file/export-file.ts') + '\n' + read(adapter),
-        {compilerOptions: {target: ts.ScriptTarget.ES5}}).outputText + '\nwindow.ExportFile = ExportFile;');
+        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.ExportFile = ExportFile;');
     w.Date = class extends Date { constructor() { super(exportedAt); } };
     w.Blob = Blob;
     const downloads = [], revoked = [], timers = [], drawing = [];

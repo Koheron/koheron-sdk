@@ -72,6 +72,12 @@ harmonics introduced by the former deterministic 16-bit phase output. The
 downstream 0–8-bit CIC precision settings and radians-per-count scaling are
 unchanged; the phase accumulator resets on an acquisition epoch change or recovery.
 
+At 250 MS/s, both 64-bit phase histories use two registered 32-bit accumulation
+stages. The complete history is delayed by one additional ADC clock (4 ns),
+with one sample per clock and unchanged phase units. Both channels have the
+same delay; the frequency output is unchanged. This shortens the accumulator
+carry path without reducing phase precision or the sample rate.
+
 The acquisition toolbar selects **Standard** or **+1…+8 bits**. The CIC and
 compensation FIR retain 40 bits; the packet quantizer rounds to even and
 saturates into the 32-bit DMA output. Each extra bit halves radians per count

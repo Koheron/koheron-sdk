@@ -24,6 +24,7 @@ SERVER_CCXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) \
     -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/runtime -I$(SERVER_PATH)/hardware \
 	-I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
+SERVER_CCXXFLAGS += -isystem /usr/include/eigen3
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += -std=c++23 -pthread
@@ -79,7 +80,9 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/network/%.cpp | $(TMP_SERVER_PATH)
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/utilities/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
 
-$(OBJ): $(SERVER_PATH)/server-bare.mk
+SERVER_COMPILER_STAMP := $(TMP_SERVER_PATH)/.compiler-settings
+$(eval $(call compiler_settings_stamp,$(SERVER_COMPILER_STAMP),$(GCC_ARCH)-g++-$(GCC_VERSION)))
+$(OBJ): $(SERVER_COMPILER_STAMP) $(SERVER_PATH)/server-bare.mk
 
 $(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm

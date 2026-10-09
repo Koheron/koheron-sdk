@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
-const ts = require('typescript');
+const ts = require('../../transpile.cjs');
 const root = path.resolve(__dirname, '../../..');
 const settle = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); } };
 

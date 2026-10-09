@@ -1,22 +1,35 @@
-FROM ubuntu:24.04
+ARG UBUNTU_VERSION=26.04
+FROM ubuntu:${UBUNTU_VERSION}
+ARG GCC_VERSION=15
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ca-certificates wget unzip xz-utils curl \
     binutils-aarch64-linux-gnu binutils-arm-linux-gnueabihf \
-    gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+    gcc-${GCC_VERSION} g++-${GCC_VERSION} \
+    gcc-${GCC_VERSION}-arm-linux-gnueabihf g++-${GCC_VERSION}-arm-linux-gnueabihf \
+    gcc-${GCC_VERSION}-aarch64-linux-gnu g++-${GCC_VERSION}-aarch64-linux-gnu \
     gcc-arm-none-eabi \
-    flex bison bc qemu-user-static zerofree u-boot-tools libgnutls28-dev \
+    flex bison bc qemu-user zerofree u-boot-tools libgnutls28-dev \
     libeigen3-dev \
     libnewlib-arm-none-eabi \
     libssl-dev zlib1g-dev uuid-dev pkg-config \
     swig python3 python3-dev python3-setuptools device-tree-compiler \
     fdisk util-linux parted udev dosfstools e2fsprogs zip eatmydata \
     ccache gettext-base \
+    && if [ "$(. /etc/os-release; echo "$VERSION_ID")" = 24.04 ]; then apt-get install -y --no-install-recommends qemu-user-static; fi \
     && rm -rf /var/lib/apt/lists/*
 
-# Optional Eigen shim (see above)
+# Preserve the rootfs scripts' QEMU paths; newer Ubuntu names static binaries
+# qemu-arm/qemu-aarch64, while 24.04 provides separate *-static binaries.
+RUN for arch in arm aarch64; do \
+      if [ ! -x /usr/bin/qemu-${arch}-static ]; then \
+        ln -s /usr/bin/qemu-${arch} /usr/bin/qemu-${arch}-static; \
+      fi; \
+      ! readelf -l /usr/bin/qemu-${arch}-static | grep -q INTERP || exit 1; \
+    done
+
+# Eigen compatibility headers
 RUN ln -s /usr/include/eigen3/Eigen /usr/include/Eigen && \
     ln -s /usr/include/eigen3/unsupported /usr/include/unsupported
 
@@ -36,7 +49,10 @@ RUN curl -fsSL "${AARCH64_NONE_ELF_URL}" -o /tmp/agt.tar.xz \
 # Put it on PATH for all subsequent stages
 ENV PATH="/opt/aarch64-none-elf/bin:${PATH}"
 
-# Quick sanity check (optional)
-RUN aarch64-none-elf-gcc --version
+# Check the packaged native and cross compiler versions.
+RUN aarch64-none-elf-gcc --version \
+    && test "$(gcc-${GCC_VERSION} -dumpversion)" = "$GCC_VERSION" \
+    && test "$(arm-linux-gnueabihf-gcc-${GCC_VERSION} -dumpversion)" = "$GCC_VERSION" \
+    && test "$(aarch64-linux-gnu-gcc-${GCC_VERSION} -dumpversion)" = "$GCC_VERSION"
 
 ENV TERM=xterm-256color

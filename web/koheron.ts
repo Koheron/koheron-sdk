@@ -17,7 +17,7 @@ interface ICommand {
 interface CmdMessage {
     devid: number;
     cmd: ICommand;
-    data: Uint8Array;
+    data: Uint8Array<ArrayBuffer>;
 }
 
 interface Payload {
