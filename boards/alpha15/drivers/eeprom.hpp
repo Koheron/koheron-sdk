@@ -7,6 +7,8 @@
 #include <chrono>
 #include <cstring>
 #include <array>
+#include <algorithm>
+#include <type_traits>
 
 #include "server/runtime/services.hpp"
 #include "server/hardware/i2c_manager.hpp"
@@ -66,27 +68,29 @@ class Eeprom
     }
 
     uint32_t get_serial_number() {
-        std::array<uint32_t, 1> data;
-        read<eeprom_map::identifications::offset>(data);
+        std::array<uint32_t, 1> data{};
+        if (read<eeprom_map::identifications::offset>(data) < 0) { return 0; }
         return data[0];
     }
 
     template<int32_t offset, typename T, std::size_t N>
     int32_t write(const std::array<T, N>& data)
     {
+        static_assert(std::is_trivially_copyable_v<T>, "EEPROM stores raw object bytes");
+        static_assert(offset >= 0 && static_cast<std::size_t>(offset) <= EEPROM_SIZE &&
+                      N <= (EEPROM_SIZE - static_cast<std::size_t>(offset)) / sizeof(T),
+                      "Write out of EEPROM");
         constexpr uint32_t n_bytes = N * sizeof(T);
-        static_assert(offset + n_bytes <= EEPROM_SIZE, "Write out of EEPROM");
 
         uint32_t bytes_written = 0;
         const uint8_t *begin = reinterpret_cast<const uint8_t*>(data.data());
 
         while (bytes_written < n_bytes) {
-            // PAGESIZE cast required to compile in -O0.
-            // Should not be required anymore in C++17.
-            // https://stackoverflow.com/questions/40690260/undefined-reference-error-for-static-constexpr-member
-            auto size = std::min(uint32_t(PAGESIZE), n_bytes - bytes_written);
-            if (__write_packet(offset + bytes_written, begin + bytes_written, size) < 0) {
-                    return -1;
+            // The EEPROM wraps within its page if a packet crosses the boundary.
+            const uint32_t address = offset + bytes_written;
+            const auto size = std::min(PAGESIZE - address % PAGESIZE, n_bytes - bytes_written);
+            if (__write_packet(address, begin + bytes_written, size) < 0) {
+                return -1;
             }
             bytes_written += size;
         }
@@ -96,8 +100,13 @@ class Eeprom
     template<int32_t offset, typename T, std::size_t N>
     int32_t read(std::array<T, N>& data)
     {
+        static_assert(std::is_trivially_copyable_v<T>, "EEPROM stores raw object bytes");
+        static_assert(offset >= 0 && static_cast<std::size_t>(offset) <= EEPROM_SIZE &&
+                      N <= (EEPROM_SIZE - static_cast<std::size_t>(offset)) / sizeof(T),
+                      "Read out of EEPROM");
         constexpr uint32_t n_bytes = N * sizeof(T);
-        static_assert(offset + n_bytes <= EEPROM_SIZE, "Read out of EEPROM");
+
+        if constexpr (N == 0) { return 0; }
 
         uint8_t buffer[2];
         buffer[0] = static_cast<uint8_t>(offset >> 8);
