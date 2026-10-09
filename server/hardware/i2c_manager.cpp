@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <cstdint>
 #include <memory>
+#include <cerrno>
+#include <climits>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -46,8 +48,12 @@ std::expected<void, std::error_code> I2cDev::init() {
 }
 
 int I2cDev::write(int32_t addr, const uint8_t *buffer, size_t n_bytes) {
-    // Lock to avoid another process to change
-    // the driver address while writing
+    if (n_bytes > INT_MAX || (n_bytes != 0 && buffer == nullptr)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // Serialize address selection and I/O among threads sharing this device.
     std::lock_guard<std::mutex> lock(mutex);
 
     if (! is_ok()) {
@@ -58,12 +64,23 @@ int I2cDev::write(int32_t addr, const uint8_t *buffer, size_t n_bytes) {
         return -1;
     }
 
-    return ::write(fd, buffer, n_bytes);
+    if (n_bytes == 0) { return 0; }
+    const auto written = ::write(fd, buffer, n_bytes);
+    if (written < 0) { return -1; }
+    if (written != static_cast<ssize_t>(n_bytes)) {
+        errno = EIO;
+        return -1;
+    }
+    return static_cast<int>(written);
 }
 
 int I2cDev::read(int32_t addr, uint8_t *buffer, size_t n_bytes) {
-    // Lock to avoid another process to change
-    // the driver address while reading
+    if (n_bytes > INT_MAX || (n_bytes != 0 && buffer == nullptr)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // Serialize address selection and I/O among threads sharing this device.
     std::lock_guard lock(mutex);
 
     if (! is_ok()) {
@@ -74,24 +91,16 @@ int I2cDev::read(int32_t addr, uint8_t *buffer, size_t n_bytes) {
         return -1;
     }
 
-    int bytes_rcv = 0;
-    int64_t bytes_read = 0;
-
-    while (bytes_read < int64_t(n_bytes)) {
-        bytes_rcv = ::read(fd, buffer + bytes_read, n_bytes - bytes_read);
-
-        if (bytes_rcv == 0) {
-            return 0;
-        }
-
-        if (bytes_rcv < 0) {
-            return -1;
-        }
-
-        bytes_read += bytes_rcv;
+    if (n_bytes == 0) { return 0; }
+    // Each read is a distinct I2C transaction. Never try to fill a short read
+    // by starting another transaction, or report zero as a successful read.
+    const auto received = ::read(fd, buffer, n_bytes);
+    if (received < 0) { return -1; }
+    if (received != static_cast<ssize_t>(n_bytes)) {
+        errno = EIO;
+        return -1;
     }
-
-    return bytes_read;
+    return static_cast<int>(received);
 }
 
 int I2cDev::set_address(int32_t addr) {

@@ -2,7 +2,6 @@
 #define __ALPHA250_DRIVERS_PRECISION_ADC_HPP__
 
 #include <array>
-#include <atomic>
 #include <cstdint>
 #include <thread>
 #include <mutex>
@@ -28,13 +27,11 @@ class PrecisionAdc
 
     static constexpr uint8_t channel_num = 8;
     std::array<float, channel_num> analog_inputs_data{};
-    std::atomic<bool> adc_acquisition_started{false};
-
-    std::thread adc_read_thread;
     std::mutex acquisition_mtx;
+    // Destroyed first: request stop and join before the mutex/data go away.
+    std::jthread adc_read_thread;
 
-    void adc_acquisition_thread();
-    void start_adc_acquisition();
+    void adc_acquisition_thread(std::stop_token stop);
     uint32_t read(uint32_t address, uint32_t len);
     void write(uint32_t address, uint32_t value, uint32_t len);
     void set_channels(int32_t setup_idx);
