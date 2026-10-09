@@ -227,16 +227,19 @@ $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts: $(FPGA_PATH)/pl_wrap.dts | $(TMP_OS_PATH)
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi: $(TMP_OS_PATH)/pl-overlay/pl.dtsi FORCE
-	@sed 's/".bin"/"$(NAME).bit.bin"/g' $< > $@.tmp
+	@sed '/^[[:space:]]*firmware-name[[:space:]]*=/d' $< > $@.tmp
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp
 
 $(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) \
+  $(OS_PATH)/os.mk \
   $(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi \
   $(TMP_OS_PATH)/pl-overlay/memory.dtsi \
   $(TMP_OS_PATH)/pl-overlay/override.dtsi \
   $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
-	$(DOCKER) $(DTC_BIN) -@ -I dts -O dtb -b 0 \
+	# Runtime overlays are not targets for stacked overlays. Keep their fixups,
+	# but do not export symbols onto the permanent base-tree /__symbols__ node.
+	$(DOCKER) $(DTC_BIN) -I dts -O dtb -b 0 \
 	  -i $(TMP_OS_PATH)/pl-overlay \
 	  -o $@ $(TMP_OS_PATH)/pl-overlay/pl_wrap.dts
 	$(call ok,$@)

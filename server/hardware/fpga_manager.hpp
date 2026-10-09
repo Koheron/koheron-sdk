@@ -28,6 +28,8 @@ class FpgaManager {
     // Load using overlay (fpga_manager)
     // ------------------------------------------------------------------------
     const Path fmanager_flags    = "/sys/class/fpga_manager/fpga0/flags";
+    const Path fmanager_firmware = "/sys/class/fpga_manager/fpga0/firmware";
+    const Path fmanager_state    = "/sys/class/fpga_manager/fpga0/state";
     const Path overlay_path      = "/sys/kernel/config/device-tree/overlays/full";
     const Path overlay_fpga_done = "/sys/kernel/config/device-tree/overlays/full/status";
 
@@ -36,6 +38,7 @@ class FpgaManager {
     int mount_configfs();
     int setup_overlay_path();
     int setup_fmanager_flags();
+    int program_bitstream();
     int write_overlay();
     int load_bitstream_overlay();
 
