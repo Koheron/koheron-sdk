@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const test = require('node:test');
 const ts = require('../../transpile.cjs');
 const {JSDOM} = require('jsdom');
-const source = ts.transpileModule(fs.readFileSync('web/fft/plot/references.ts', 'utf8'),
+const source = ts.transpileModule(['web/plot-references/references.ts', 'web/plot-references/panel.ts', 'web/fft/plot/references.ts'].map(file => fs.readFileSync(file, 'utf8')).join('\n'),
     {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
 const status = () => ({fs:250e6, W1:.25, W2:.375, channel:0, window_index:1, clkIndex:'2', dds_freq:[1e6, 0]});
 function host(t, board = 'alpha250-4') {

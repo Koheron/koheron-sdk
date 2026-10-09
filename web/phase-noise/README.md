@@ -74,3 +74,17 @@ error guard, plot disposal, control disabling and connection shutdown.
 DPLL monitor. Fields provide `min`, `max` and `step`; hosts supply commands and
 accepted readbacks. All four interfaces use even CIC rates from 4 to 8192. Board averaging limits
 and delay units remain in each host's field metadata and adapter.
+
+The three PNA interfaces and the DPLL monitor share the FFT reference controls:
+up to eight named captures, visibility toggles, recapture, removal, clear/undo,
+and JSON save/load. The collection and panel live in `web/plot-references`;
+instrument adapters retain their own sample format and file validation. Existing
+FFT reference JSON files remain compatible with the FFT interfaces. PNA files
+use a separate format and must match the board/monitor that captured them.
+
+Each noise reference retains raw phase density, its acquisition settings and
+capture timestamp. Changing the live sample rate, phase/frequency display or
+smoothing preserves each reference's original frequency grid; ALPHA250-4 signed
+cross spectra retain their sign. CSV and PNG include visible references; **Save
+all** includes hidden references too. Recapture requires a valid live spectrum.
+Reference conversions are cached between ordinary live updates.

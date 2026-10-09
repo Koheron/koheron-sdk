@@ -45,9 +45,9 @@ function fixture(t, board) {
         cic_rate: 100, fft_navg: 8, avgxy_count: 64, analyzer_mode: 'RF', interferometer_delay: 1e-9};
     const plot = {frameStatus: parameters, frameReceivedAt: 'live-time', yLabel: 'Phase noise (dBc/Hz)',
         plot_data: [[100, -120], [200, NaN]], smooth_plot_data: [[100, -121], [200, Infinity]],
-        phase_psd: new Float32Array([-2, 4]), referenceParameters: {...parameters, channel: 0, fs: 2e6},
-        referenceReceivedAt: 'reference-time', reference_data: [[300, -130]],
-        reference_smooth_data: [], referencePSD: new Float32Array([-8]),
+        phase_psd: new Float32Array([-2, 4]),
+        visibleReferences:[{name:'Reference', color:'#a178b5', parameters:{...parameters, channel:0, fs:2e6},
+            capturedAt:'reference-time', data:[[300,-130]], smooth:[], psd:new Float32Array([-8])}],
         plotBasics: {plot: {getData: () => [{label: 'Live', color: '#019cd5'}, {label: 'Reference', color: '#a178b5'}, {color: 'ignored'}]}}};
     const exporter = new w.ExportFile(d, plot);
     return {w, d, plot, exporter, downloads, revoked, timers, drawing, canvas};
@@ -67,7 +67,7 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya', 'dpll']) {
         assert.ok(csv.includes(`"Reference clock",${board === 'red-pitaya' ? 'Fixed onboard' : 'Internal'}\n`));
         assert.ok(csv.includes('100,-120,-121,-2\n200,,,4\n'));
         const reference = csv.split('\nReference trace\n')[1];
-        assert.ok(reference.startsWith('"Frame received at",reference-time\n"Input channel",0\n"Sampling frequency (Hz)",2000000\n'));
+        assert.ok(reference.includes('"Frame received at",reference-time\n"Input channel",0\n"Sampling frequency (Hz)",2000000\n'));
         assert.ok(reference.endsWith('300,-130,,-8\n'));
         if (board === 'alpha250-4') {
             assert.ok(csv.includes('"LO 2 frequency (Hz)",30000000\n"LO 3 frequency (Hz)",40000000\n'));
@@ -90,8 +90,8 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya', 'dpll']) {
         assert.equal(h.downloads[0].blob.type, 'image/png');
         assert.equal(h.downloads[0].name, `phase-noise-${board}-2026-10-07T12-34-56-789Z.png`);
         assert.deepEqual(h.drawing[0], ['scale', 2, 2]);
-        assert.deepEqual(h.drawing.find(row => row[0] === 'drawImage'), ['drawImage', 0, 112, 600, 300]);
-        assert.deepEqual(h.drawing.at(-1), ['image', 1200, 884, 'image/png']);
+        assert.deepEqual(h.drawing.find(row => row[0] === 'drawImage'), ['drawImage', 0, 130, 600, 300]);
+        assert.deepEqual(h.drawing.at(-1), ['image', 1200, 920, 'image/png']);
         const labels = h.drawing.filter(row => row[0] === 'fillText').map(row => row[1]);
         assert.ok(labels.includes(`Phase noise (dBc/Hz) · ${board}`));
         assert.ok(labels.includes(board === 'alpha250-4'
@@ -115,7 +115,22 @@ test('exports remain disabled without a captured frame and omit an absent refere
     h.exporter.exportData(); h.exporter.exportPlot();
     assert.equal(h.downloads.length, 0);
     h.plot.frameStatus = {channel: 0};
-    h.plot.referenceParameters = undefined;
+    h.plot.visibleReferences = [];
     h.exporter.exportData();
     assert.ok(!(await h.downloads[0].blob.text()).includes('Reference trace'));
+});
+
+test('PNG wraps eight long reference names and decodes escaped labels without clipping the legend', t => {
+    const h = fixture(t, 'alpha250');
+    const refs = Array.from({length:8}, (_,i) => ({...h.plot.visibleReferences[0], name:'Reference '+i+' '+('x'.repeat(80)), color:'#a178b5'}));
+    h.plot.visibleReferences = refs;
+    h.plot.plotBasics.plot.getData = () => refs.map((r,i) => ({label:i === 0 ? 'Before &lt;filter&gt;' : r.name, color:r.color}));
+    h.exporter.exportPlot();
+    const texts=h.drawing.filter(row=>row[0]==='fillText');
+    assert(texts.some(row=>row[1]==='Before <filter>'));
+    for(const [,text,x] of texts) assert(x + text.length * 6 <= 600, text);
+    const swatches=h.drawing.filter(row=>row[0]==='fillRect' && row[3]===10);
+    assert(new Set(swatches.map(row=>row[2])).size>1);
+    const plotTop=h.drawing.find(row=>row[0]==='drawImage')[2];
+    assert(swatches.every(row=>row[2]+10<plotTop));
 });

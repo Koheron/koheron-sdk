@@ -110,7 +110,7 @@ async function host(t, failure = false) {
     };
     const files = ['web/instrument/events.ts', 'web/instrument/poller.ts', 'web/power-monitor/readout.ts', 'web/temperature-sensor/readout.ts', 'web/precision-channels/precision-dac.ts', 'web/fft/driver.ts', 'web/fft/controls/fft-app.ts', 'web/precision-channels/precision-channels-app.ts',
         'web/inputs/digit-input.ts', 'web/fft/plot/spectrum-history.ts', 'web/fft/plot/spectrum-views.ts',
-        'web/fft/plot/references.ts', 'web/fft/plot/plot.ts', 'web/fft/export-file/export-file.ts', 'web/fft/workspace.ts',
+        'web/plot-references/references.ts', 'web/plot-references/panel.ts', 'web/fft/plot/references.ts', 'web/fft/plot/plot.ts', 'web/fft/export-file/export-file.ts', 'web/fft/workspace.ts',
         'web/clock-generator/clock-generator.ts', 'web/clock-generator/clock-generator-app.ts', 'web/temperature-sensor/temperature-sensor.ts', 'web/power-monitor/power-monitor.ts',
         ...['adc-range/ltc2387.ts', 'decimator.ts', 'fft.ts', 'board-controls.ts', 'app.ts'].map(file => `${project}/web/${file}`)];
     w.eval(ts.transpileModule(files.map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n'), {

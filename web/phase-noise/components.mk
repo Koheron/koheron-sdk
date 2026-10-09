@@ -1,6 +1,7 @@
 # Common PNA assets. Include before instrument adapters and entry points.
 include $(SDK_PATH)/web/instrument/components.mk
 include $(SDK_PATH)/web/instrument/events.mk
+include $(SDK_PATH)/web/plot-references/components.mk
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 include $(SDK_PATH)/web/inputs/components.mk
 WEB_FILES += $(SDK_PATH)/web/phase-noise/integer-input.ts
@@ -9,6 +10,7 @@ WEB_FILES += $(SDK_PATH)/web/plot-basics/plot-basics.html
 WEB_FILES += $(SDK_PATH)/web/phase-noise/spectrum.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/export-file/export-file.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/export-file/export-file.html
+WEB_FILES += $(SDK_PATH)/web/phase-noise/references.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/plot.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/sample-rate.ts
 WEB_FILES += $(SDK_PATH)/web/phase-noise/connection-status.ts

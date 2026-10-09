@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="bootstrap.min.css">
   <link rel="stylesheet" href="main.css">
   <link rel="stylesheet" href="instrument.css">
+  <link rel="stylesheet" href="plot-references.css">
   <link rel="stylesheet" href="phase-noise-plot.css">
   <link rel="stylesheet" href="phase-precision.css">
   <link rel="stylesheet" href="dpll.css">
@@ -67,7 +68,7 @@
       </fieldset>
     <fieldset id="plot-controls" disabled class="spectrum-toolbar">
       <legend class="sr-only">Spectrum actions and export</legend>
-      <div class="plot-actions"><button id="fit-view" type="button" disabled title="Reset plot zoom to the full spectrum">Fit</button><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button><button id="clear-reference" type="button" disabled title="Clear the reference spectrum">Clear ref</button></div><div id="export-file"></div></div>
+      <div class="plot-actions"><button id="fit-view" type="button" disabled title="Reset plot zoom to the full spectrum">Fit</button><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button></div><div id="export-file"></div></div>
     </fieldset>
   <section class="spectrum-panel" aria-label="Noise spectrum">
     <div id="plot-wrap">
@@ -82,7 +83,7 @@
     </div>
   </section>
 
-      <div id="reference-info" class="reference-info" hidden><span>Reference </span><strong id="reference-status"></strong></div>
+      <div id="plot-references"></div>
       <details class="noise-offsets"><summary>Offset / phase noise</summary><table id="decade-values-table" aria-label="Noise at decade offsets"></table></details>
     </section>
     <section class="loop-controls-panel instrument-disclosures" aria-label="Feedback loop controls">

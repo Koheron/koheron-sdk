@@ -25,7 +25,7 @@ async function host(t, options = {}) {
     d.getElementById(id).appendChild(d.importNode(template.content, true));
   }
   const files = ['web/instrument/events.ts', 'web/phase-noise/measurements.ts', 'web/inputs/digit-input.ts', 'web/phase-noise/spectrum.ts',
-    'web/phase-noise/plot.ts', 'web/phase-noise/phase-precision.ts',
+    'web/plot-references/references.ts', 'web/plot-references/panel.ts', 'web/phase-noise/references.ts', 'web/phase-noise/plot.ts', 'web/phase-noise/phase-precision.ts',
     'web/phase-noise/analyzer/phase-noise-analyzer.ts',
     'web/phase-noise/analyzer/plot.ts',
     'web/phase-noise/export-file/export-file.ts',
@@ -67,7 +67,7 @@ test('monitor uses the shared PNA frame, precision and controls without loop wri
   assert.equal(d.getElementById('performance-status').hidden, false);
   assert.ok(state.calls.every(call => call.id === 'Dma'));
   d.getElementById('capture-reference').click();
-  assert.equal(monitor.plot.referenceParameters.channel, 0);
+  assert.equal(monitor.plot.references.items[0].parameters.channel, 0);
 });
 
 test('channel, decimation, averages and precision target the monitor only; reference stays on its captured grid', async t => {
@@ -89,8 +89,8 @@ test('channel, decimation, averages and precision target the monitor only; refer
   assert.deepEqual(errors, []);
   assert.ok(state.writes.every(call => call.id === 'Dma'));
   assert.deepEqual(state.writes.map(call => call.name), ['set_channel', 'set_cic_rate', 'set_fft_navg', 'set_phase_precision', 'reset_average']);
-  assert.equal(monitor.plot.referenceParameters.channel, 0);
-  assert.equal(monitor.plot.referenceParameters.fs, 6250000);
+  assert.equal(monitor.plot.references.items[0].parameters.channel, 0);
+  assert.equal(monitor.plot.references.items[0].parameters.fs, 6250000);
   assert.equal(monitor.plot.frameStatus.channel, 1);
   assert.equal(monitor.plot.frameStatus.fs, 3906250);
 });

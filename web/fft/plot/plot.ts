@@ -52,6 +52,7 @@ class Plot {
     public frameStatus: IFFTStatus;
 
     constructor(private document: Document, private fft: FFTDriver, private plotBasics: PlotBasics) {
+        PlotReferencePanel.mount(document);
         this.references = new FFTReferences(document.body?.dataset.board || '');
         this.references.onChange = () => this.refreshReferences();
         this.n_pts = fft.status.spectrum ? fft.status.spectrum.frequencies.length : fft.fft_size / 2;
@@ -371,7 +372,7 @@ class Plot {
         const traces: {label: string; color: string; data: number[][]}[] = [];
         if (this.average_data) { traces.push({label: 'Average', color: '#389168', data: this.average_data}); }
         if (this.maximum_data) { traces.push({label: 'Max hold', color: '#ba861a', data: this.maximum_data}); }
-        for (const reference of this.visibleReferences) { traces.push({label: reference.name.replace(/[&<>"']/g, char => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char])), color: reference.color, data: reference.data}); }
+        for (const reference of this.visibleReferences) { traces.push({label: PlotReferences.traceLabel(reference.name), color: reference.color, data: reference.data}); }
         this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, undefined, true, traces);
     }
 

@@ -27,9 +27,10 @@ abstract class PnaExportFile<Parameters> {
         const rows = [this.document.title, '"Exported at",' + new Date().toISOString(), '',
             ...this.metadata(frame, this.plot_.frameReceivedAt),
             ...this.rows(this.plot_.plot_data, this.plot_.smooth_plot_data, this.plot_.phase_psd)];
-        if (this.plot_.referenceParameters) {
-            rows.push('', 'Reference trace', ...this.metadata(this.plot_.referenceParameters, this.plot_.referenceReceivedAt),
-                ...this.rows(this.plot_.reference_data, this.plot_.reference_smooth_data, this.plot_.referencePSD));
+        const quote = (value: string) => '"' + value.replace(/"/g, '""') + '"';
+        for (const item of this.plot_.visibleReferences) {
+            rows.push('', 'Reference trace', '"Name",' + quote(item.name), '"Color",' + quote(item.color),
+                ...this.metadata(item.parameters, item.capturedAt), ...this.rows(item.data, item.smooth, item.psd));
         }
         this.download(new Blob([rows.join('\n') + '\n'], {type: 'text/csv;charset=utf-8'}), 'csv');
     }
@@ -46,13 +47,17 @@ abstract class PnaExportFile<Parameters> {
         const context = image.getContext('2d');
         if (!context) { return; }
         context.font = '12px sans-serif';
-        const wrap = (text: string): string[] => {
+        const wrap = (text: string, available = width - 24): string[] => {
             const lines: string[] = [];
             let line = '';
             for (const word of text.split(' ')) {
                 const next = line ? line + ' ' + word : word;
-                if (line && context.measureText(next).width > width - 24) { lines.push(line); line = word; }
-                else { line = next; }
+                if (context.measureText(next).width <= available) { line = next; continue; }
+                if (line) { lines.push(line); line = ''; }
+                for (const char of word) {
+                    if (line && context.measureText(line + char).width > available) { lines.push(line); line = ''; }
+                    line += char;
+                }
             }
             if (line) { lines.push(line); }
             return lines;
@@ -60,10 +65,25 @@ abstract class PnaExportFile<Parameters> {
         const labels = [...wrap(this.plot_.yLabel + ' · ' + (this.document.title.split(' · ')[1] || 'Koheron')),
             ...wrap('Live · ' + this.frameLabel(frame))];
         if (this.plot_.frameReceivedAt) { labels.push(...wrap('Received ' + this.plot_.frameReceivedAt)); }
-        if (this.plot_.referenceParameters) { labels.push(...wrap('Reference · ' + this.frameLabel(this.plot_.referenceParameters))); }
+        for (const item of this.plot_.visibleReferences) {
+            labels.push(...wrap(item.name + ' · ' + this.frameLabel(item.parameters)), ...wrap('Captured ' + item.capturedAt));
+        }
         const series = this.plot_.plotBasics.plot.getData();
-        const legend = series.filter(s => s.label).map(s => ({label: s.label, color: s.color}));
-        const headerHeight = 16 + labels.length * 18 + 24;
+        const legend = series.filter(s => s.label).map(s => {
+            // Flot labels contain escaped HTML; PNG uses the original text.
+            const text = this.document.createElement('textarea'); text.innerHTML = s.label;
+            return {label:text.value, color:s.color};
+        });
+        const legendRows: {label:string; color:string; x:number; row:number}[] = [];
+        let x = 12, row = 0;
+        for (const trace of legend) {
+            for (const label of wrap(trace.label, width - 56)) {
+                const advance = 32 + context.measureText(label).width;
+                if (x > 12 && x + advance > width - 12) { row++; x = 12; }
+                legendRows.push({label, color:trace.color, x, row}); x += advance;
+            }
+        }
+        const headerHeight = 16 + labels.length * 18 + (row + 1) * 24;
         image.width = canvas.width;
         image.height = Math.ceil((height + headerHeight + 30) * scale);
         context.scale(scale, scale);
@@ -72,14 +92,12 @@ abstract class PnaExportFile<Parameters> {
         context.fillStyle = '#333';
         context.font = '12px sans-serif';
         labels.forEach((label, i) => context.fillText(label, 12, 20 + i * 18));
-        let x = 12;
-        const legendY = headerHeight - 16;
-        for (const trace of legend) {
+        for (const trace of legendRows) {
+            const y = 16 + labels.length * 18 + trace.row * 24 + 8;
             context.fillStyle = trace.color;
-            context.fillRect(x, legendY, 10, 10);
+            context.fillRect(trace.x, y, 10, 10);
             context.fillStyle = '#333';
-            context.fillText(trace.label, x + 16, legendY + 10);
-            x += 32 + context.measureText(trace.label).width;
+            context.fillText(trace.label, trace.x + 16, y + 10);
         }
         context.drawImage(canvas, 0, headerHeight, width, height);
         context.textAlign = 'center';

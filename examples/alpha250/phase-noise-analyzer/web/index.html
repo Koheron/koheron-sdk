@@ -17,6 +17,7 @@
   <link rel="stylesheet" type="text/css" href="_koheron.css">
   <link rel="stylesheet" type="text/css" href="main.css">
   <link rel="stylesheet" href="instrument.css">
+  <link rel="stylesheet" href="plot-references.css">
   <link rel="stylesheet" href="phase-noise-plot.css">
   <link rel="stylesheet" href="workspace.css">
   <link rel="stylesheet" href="generator.css">
@@ -68,7 +69,7 @@
     </fieldset>
     <fieldset id="plot-controls" disabled class="spectrum-toolbar">
       <legend class="sr-only">Spectrum actions and export</legend>
-      <div class="plot-actions"><button id="fit-view" type="button" disabled title="Reset plot zoom to the full spectrum">Fit</button><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button><button id="clear-reference" type="button" disabled title="Clear the reference spectrum">Clear ref</button></div><div id="export-file"></div></div>
+      <div class="plot-actions"><button id="fit-view" type="button" disabled title="Reset plot zoom to the full spectrum">Fit</button><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button></div><div id="export-file"></div></div>
     </fieldset>
   </div>
   <section class="spectrum-panel" aria-label="Noise spectrum">
@@ -117,7 +118,7 @@
       </div>
     </details>
     <div class="measurement-details">
-      <div id="reference-info" class="reference-info" hidden><span class="readout-label">Reference</span><strong id="reference-status"></strong></div>
+      <div id="plot-references"></div>
       <details class="noise-offsets">
         <summary>Offset / phase noise</summary>
         <table id="decade-values-table" aria-label="Noise at decade offsets"></table>

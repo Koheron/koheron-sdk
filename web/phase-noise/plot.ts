@@ -30,8 +30,6 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
   public plot_data: Array<Array<number>>;
   private negative_plot_data: number[][] = [];
   private negative_smooth_data: number[][] = [];
-  private reference_negative_data: number[][] = [];
-  private reference_negative_smooth_data: number[][] = [];
   public phase_psd: Float32Array = new Float32Array(0);
   public smooth_plot_data: Array<Array<number>>;
   private linear_plot_data: Array<Array<number>>;
@@ -42,14 +40,13 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
   private frameSequence: number;
   private renderedPlotType: 'phase' | 'frequency';
   public frameReceivedAt: string;
-  private reference: {psd: Float32Array; parameters: P; receivedAt: string};
+  public references: PnaReferences<P>;
+  private referencePanel: PlotReferencePanel<PnaReference<P>>;
   private hasInitialFit = false;
-  private referencePlotType: string;
-  public reference_data: number[][];
-  public reference_smooth_data: number[][];
-  public get referenceParameters(): P { return this.reference?.parameters; }
-  public get referencePSD(): Float32Array { return this.reference?.psd; }
-  public get referenceReceivedAt(): string { return this.reference?.receivedAt; }
+  public get visibleReferences(): PnaReference<P>[] {
+    this.updateReferenceDisplay();
+    return this.references.items.filter(item => item.visible);
+  }
   public get frameStatus(): P { return this.frameParameters; }
 
   private laserPlotTypeInputs: HTMLInputElement[];
@@ -65,6 +62,7 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
     this.plot_data = [];
     this.smooth_plot_data = [];
     this.linear_plot_data = [];
+    this.initReferences();
     this.init();
     this.decadeValuesTable = <HTMLTableElement>document.getElementById('decade-values-table');
     this.document.addEventListener('visibilitychange', this.visibilityHandler);
@@ -285,44 +283,58 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
     }
   }
 
-  captureReference(): void {
-    if (!this.frameParameters || !this.phase_psd.subarray(2).some(v => this.validDensity(v))) { return; }
-    // Same snapshot model as the FFT workspace: retain linear density and the
-    // displayed frame's settings, so later rate/unit changes cannot alter it.
-    this.reference = {psd: this.phase_psd.slice(), parameters: {...this.frameParameters}, receivedAt: this.frameReceivedAt};
-    this.reference_data = undefined;
-    document.getElementById('capture-reference').textContent = 'Replace ref';
-    (document.getElementById('clear-reference') as HTMLButtonElement).disabled = false;
-    document.getElementById('reference-info').hidden = false;
-    const p = this.reference.parameters;
-    document.getElementById('reference-status').textContent =
-      this.referenceLabel(p);
-    document.getElementById('reference-info').title = `Captured ${new Date(this.reference.receivedAt).toLocaleString()}`;
-    this.updateReferenceDisplay();
-    this.plotBasics.refreshLegend();
-    this.redraw(() => {});
+  private initReferences(): void {
+    this.references = new PnaReferences<P>(this.document.body.dataset.board || 'analyzer', this.signedSpectrum());
+    this.referencePanel = new PlotReferencePanel(this.document, this.references, () => {
+      this.updateReferenceDisplay();
+      this.updateReferenceControls();
+      this.plotBasics.refreshLegend();
+      this.redraw(() => {});
+    }, item => this.replaceReference(item), item => {
+      const text = this.referenceLabel(item.parameters);
+      return {text, title:text + ' · ' + item.parameters.fs + ' samples/s · ' + item.psd.length + ' bins'};
+    });
   }
 
-  clearReference(): void {
-    this.reference = undefined;
-    this.reference_data = this.reference_smooth_data = undefined;
-    document.getElementById('capture-reference').textContent = 'Capture ref';
-    (document.getElementById('clear-reference') as HTMLButtonElement).disabled = true;
-    document.getElementById('reference-info').hidden = true;
-    this.plotBasics.refreshLegend();
-    this.redraw(() => {});
+  captureReference(): void {
+    if (!this.frameParameters || this.references.items.length >= PlotReferences.limit ||
+        !this.phase_psd.subarray(2).some(v => this.validDensity(v))) { return; }
+    this.references.capture(this.phase_psd, this.frameParameters, this.frameReceivedAt);
   }
+
+  replaceReference(item: PnaReference<P>): void {
+    if (!this.frameParameters || !this.phase_psd.subarray(2).some(v => this.validDensity(v))) { return; }
+    this.references.replace(item, this.phase_psd, this.frameParameters, this.frameReceivedAt);
+  }
+
+  clearReference(): void { this.references.clear(); }
 
   private updateReferenceDisplay(): void {
-    if (!this.reference || (this.reference_data && this.referencePlotType === this.laserPlotType)) { return; }
-    const {psd, parameters} = this.reference;
-    const binWidth = parameters.fs / (2 * (psd.length - 1));
-    this.reference_data = Array.from(psd, (_, i) => [i * binWidth, NaN]);
-    this.reference_smooth_data = this.reference_data.map(row => row.slice());
-    const linear = this.reference_data.map(row => row.slice());
-    this.computeDisplaySpectrum(psd, 2, this.reference_data, linear, this.reference_negative_data || (this.reference_negative_data = []));
-    this.computeSmoothedPlot(2, linear, this.reference_smooth_data, this.reference_negative_smooth_data || (this.reference_negative_smooth_data = []));
-    this.referencePlotType = this.laserPlotType;
+    for (const item of this.references.items) {
+      if (item.data && item.plotType === this.laserPlotType) { continue; }
+      const {psd, parameters} = item;
+      const binWidth = parameters.fs / (2 * (psd.length - 1));
+      item.data = Array.from(psd, (_, i) => [i * binWidth, NaN]);
+      item.smooth = item.data.map(row => row.slice());
+      const linear = item.data.map(row => row.slice());
+      item.negative = []; item.negativeSmooth = [];
+      this.computeDisplaySpectrum(psd, 2, item.data, linear, item.negative);
+      this.computeSmoothedPlot(2, linear, item.smooth, item.negativeSmooth);
+      item.plotType = this.laserPlotType;
+    }
+  }
+
+  private updateReferenceControls(): void {
+    const ready = !!this.frameParameters;
+    const full = this.references.items.length >= PlotReferences.limit;
+    const capture = this.document.getElementById('capture-reference') as HTMLButtonElement;
+    if (capture) {
+      capture.disabled = !ready || full;
+      capture.title = full ? '8 references captured. Recapture or remove an existing reference.'
+        : ready ? 'Capture the displayed live spectrum' : 'Waiting for a valid live spectrum';
+    }
+    (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = !this.references.items.length;
+    this.document.querySelectorAll<HTMLButtonElement>('.replace-reference').forEach(button => { button.disabled = !ready; });
   }
 
   private captureReady: boolean;
@@ -336,8 +348,7 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
       const status = this.document.getElementById('spectrum-status');
       if (status) { status.hidden = true; }
     }
-    const button = document.getElementById('capture-reference') as HTMLButtonElement;
-    if (button) { button.disabled = !ready; }
+    this.updateReferenceControls();
     const fit = document.getElementById('fit-view') as HTMLButtonElement;
     if (fit) { fit.disabled = !ready; }
     document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot').forEach(button => {
@@ -370,14 +381,17 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
 
   private redraw(callback: () => void): void {
     if (!this.plot_data.length) { return; }
+    const references = this.visibleReferences;
     this.plotBasics.redraw(this.plot_data, this.n_pts, this.peakDatapoint, this.yLabel, callback,
-      this.reference ? (this.showSmoothedInput?.checked ? this.reference_smooth_data : this.reference_data) : undefined,
-      false,
+      undefined, false,
       [
         ...(this.showSmoothedInput?.checked ? [{label: 'Smoothed', data: this.smooth_plot_data, color: '#006400'}] : []),
+        ...references.map(item => ({label:PlotReferences.traceLabel(item.name), color:item.color,
+          data:this.showSmoothedInput?.checked ? item.smooth : item.data})),
         ...(this.signedSpectrum() ? [{label: 'Negative estimates', data: this.negative_plot_data, color: '#c33', lines: {show: false}, points: {show: true, radius: 1.5}},
-        {data: this.showSmoothedInput?.checked ? this.negative_smooth_data : [], color: '#c33', lines: {show: false}, points: {show: true, radius: 1.5}},
-        {data: this.reference ? (this.showSmoothedInput?.checked ? this.reference_negative_smooth_data : this.reference_negative_data) : [], color: '#c33', lines: {show: false}, points: {show: true, radius: 1.5}}] : [])
+          {data: this.showSmoothedInput?.checked ? this.negative_smooth_data : [], color: '#c33', lines: {show: false}, points: {show: true, radius: 1.5}},
+          ...references.map(item => ({data:this.showSmoothedInput?.checked ? item.negativeSmooth : item.negative,
+            color:item.color, lines:{show:false}, points:{show:true, radius:1.5}}))] : [])
       ]);
   }
 
@@ -576,6 +590,7 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
 
   dispose(): void {
     this.disposed = true;
+    this.referencePanel?.dispose();
     window.clearTimeout(this.timer);
     window.cancelAnimationFrame(this.animation);
     this.document.removeEventListener('visibilitychange', this.visibilityHandler);
