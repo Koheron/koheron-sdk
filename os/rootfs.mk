@@ -339,6 +339,16 @@ $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py: $(OS_PATH)/scrip
 $(OVERLAY_DIR)/etc/systemd/system/%: $(OS_PATH)/systemd/%
 	install -D -m0644 $< $@
 
+# Re-evaluate platform selection when reusing a staged overlay. Other platforms
+# receive a comment-only drop-in, preserving their systemd watchdog defaults.
+$(OVERLAY_DIR)/etc/systemd/system.conf.d/60-koheron-watchdog.conf: $(OS_PATH)/config/systemd/60-koheron-watchdog.conf FORCE
+	@mkdir -p $(dir $@)
+	@{ if [ '$(ZYNQ_TYPE)' = zynq ]; then cat "$<"; \
+	   else printf '%s\n' '# No Koheron watchdog override for this platform.'; fi; } > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f -- $@.tmp $@
+	@rm -f -- $@.tmp
+	@chmod 0644 $@
+
 # uwsgi
 $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini: $(OS_PATH)/config/uwsgi.ini
 	install -D -m0644 $< $@
@@ -417,6 +427,7 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server-init.service \
   $(OVERLAY_DIR)/etc/systemd/system/ssh-host-keys.service \
   $(OVERLAY_DIR)/etc/systemd/system/ssh.service.d/host-keys.conf \
+  $(OVERLAY_DIR)/etc/systemd/system.conf.d/60-koheron-watchdog.conf \
   $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service \
   $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
