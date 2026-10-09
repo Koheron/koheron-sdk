@@ -7,12 +7,13 @@ const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../..');
 
 function fixture(t) {
-  const dom = new JSDOM('<button id="capture-reference"></button><button id="clear-reference"></button><div id="reference-info"><span id="reference-status"></span></div><table id="decade-values-table"></table>', {runScripts: 'outside-only', pretendToBeVisual: true});
+  const dom = new JSDOM('<button id="capture-reference"></button><div id="plot-references"></div><table id="decade-values-table"></table>', {runScripts: 'outside-only', pretendToBeVisual: true});
   t.after(() => dom.window.close());
   const w = dom.window;
   for (const [file, names] of [
     ['web/koheron.ts', ['Client']], ['web/phase-noise/spectrum.ts', ['readPnaSpectrum']],
-    ['web/phase-noise/plot.ts', ['PnaPlot']],
+    ['web/plot-references/references.ts', ['PlotReferences']], ['web/plot-references/panel.ts', ['PlotReferencePanel']],
+    ['web/phase-noise/references.ts', ['PnaReferences']], ['web/phase-noise/plot.ts', ['PnaPlot']],
     ['web/phase-noise/analyzer/plot.ts', ['Plot']]
   ]) {
     w.eval(ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'),
@@ -67,11 +68,12 @@ test('plot uses captured settings and sequence even when live controls disagree'
     rateStarted: w.performance.now(), displayedFrames: 0, receivedFrames: 0,
     readMs: 0, processMs: 0, drawMs: 0, schedulerMs: 0, lastTableUpdate: -Infinity,
     plotBasics: {setRangeX() {}, setLinY() {}, refreshLegend() {}, needsRedraw() {return false;}, redraw(...args) {args[4]();}}});
+  plot.initReferences();
   await plot.updatePlot();
   assert.equal(plot.plot_data[2][0], 250000);
   assert.equal(plot.frameStatus.channel, 1);
   plot.captureReference();
-  assert.equal(plot.referenceParameters.fs, 1e6);
+  assert.equal(plot.references.items[0].parameters.fs, 1e6);
   const count = plot.displayedFrames;
   plot._lastTick = -Infinity;
   await plot.updatePlot();

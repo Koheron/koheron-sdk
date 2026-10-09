@@ -8,10 +8,10 @@ const root = path.resolve(__dirname, '../../../..');
 const project = path.join(__dirname, '..');
 
 function fixture(t) {
-  const dom = new JSDOM('<body data-board="alpha250-4"><button id="capture-reference"></button><button id="clear-reference"></button><button id="fit-view"></button><div id="reference-info"><span id="reference-status"></span></div><table id="decade-values-table"></table><span id="refresh-rate"></span><div id="plot-placeholder"></div><input id="show-smoothed-trace" type="checkbox" checked><button class="export-data"></button><button class="export-plot"></button></body>', {runScripts: 'outside-only', pretendToBeVisual: true});
+  const dom = new JSDOM('<body data-board="alpha250-4"><button id="capture-reference"></button><button id="fit-view"></button><div id="plot-references"></div><table id="decade-values-table"></table><span id="refresh-rate"></span><div id="plot-placeholder"></div><input id="show-smoothed-trace" type="checkbox" checked><button class="export-data"></button><button class="export-plot"></button></body>', {runScripts: 'outside-only', pretendToBeVisual: true});
   t.after(() => dom.window.close());
   const w = dom.window;
-  w.eval(ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../../../../web/phase-noise/plot.ts'), 'utf8'),
+  w.eval(ts.transpileModule(['plot-references/references.ts', 'plot-references/panel.ts', 'phase-noise/references.ts', 'phase-noise/plot.ts'].map(file => fs.readFileSync(path.resolve(__dirname, '../../../../web', file), 'utf8')).join('\n'),
     {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PnaPlot = PnaPlot;');
   w.eval(ts.transpileModule(fs.readFileSync(path.join(project, 'web/plot.ts'), 'utf8'),
     {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.Plot = Plot;');
@@ -30,6 +30,7 @@ function fixture(t) {
     driver: {parameters: p, async getPhaseNoise() {return new Float32Array(1025).fill(-2);}},
     plotBasics: {setRangeX(a, b) {state.range = [a,b];}, setLinY() {state.fits++;},
       refreshLegend() {}, needsRedraw() {return false;}, redraw(...args) {state.redraw = args; args[4]();}}});
+  plot.initReferences();
   plot.setFreqAxis();
   return {w, plot, state};
 }
@@ -59,23 +60,23 @@ test('negative-only XY data remains capturable with signed reference bins and it
   assert.ok(plot.frameStatus);
   assert.equal(w.document.getElementById('capture-reference').disabled, false);
   plot.captureReference();
-  const reference = plot.referencePSD;
+  const reference = plot.references.items[0]?.psd;
   assert.equal(reference[64], -2);
-  const originalFrequency = plot.reference_data[64][0];
+  const originalFrequency = plot.references.items[0]?.data[64][0];
   plot.driver.parameters.fs /= 2;
   plot.driver.parameters.cic_rate *= 2;
   plot.driver.getPhaseNoise = async () => new Float32Array(1025).fill(8);
   plot._lastTick = -Infinity;
   await plot.updatePlot();
   assert.equal(reference[64], -2);
-  assert.equal(plot.reference_data[64][0], originalFrequency);
+  assert.equal(plot.references.items[0]?.data[64][0], originalFrequency);
   assert.notEqual(plot.plot_data[64][0], originalFrequency);
-  assert.equal(plot.referenceParameters.channel, 2);
+  assert.equal(plot.references.items[0]?.parameters.channel, 2);
   assert.equal(state.fits, 1);
   const markers = state.redraw[7].filter(series => series.points?.show);
   assert.ok(markers.every(series => series.lines.show === false));
   plot.clearReference();
-  assert.equal(plot.referencePSD, undefined);
+  assert.equal(plot.references.items[0]?.psd, undefined);
 });
 
 test('cached PSDs do not count as new display frames, and stopped pages do not redraw', async t => {
@@ -173,8 +174,8 @@ test('frequency-noise display and captured reference use each trace frequency ax
   const bin=64;
   const expected=10*Math.log10(2*plot.plot_data[bin][0]**2);
   assert.ok(Math.abs(plot.plot_data[bin][1]-expected)<1e-9);
-  assert.ok(Math.abs(plot.reference_data[bin][1]-plot.plot_data[bin][1]-10*Math.log10(4))<1e-9);
-  assert.equal(plot.referencePSD[bin],-2);
+  assert.ok(Math.abs(plot.references.items[0]?.data[bin][1]-plot.plot_data[bin][1]-10*Math.log10(4))<1e-9);
+  assert.equal(plot.references.items[0]?.psd[bin],-2);
 });
 
 test('Y requires its own two LOs, XY requires all four, and hidden pages stop polling', async t => {

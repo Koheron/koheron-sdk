@@ -1,0 +1,18 @@
+.instrument-workspace #plot-references .reference-panel { padding: 6px 0; }
+.instrument-workspace #plot-references .reference-count { margin-left: 5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.instrument-workspace #plot-references .reference-file-actions { display: flex; gap: 5px; margin: 6px 0; }
+.instrument-workspace #plot-references #clear-reference { margin-left: auto; }
+.instrument-workspace #plot-references .reference-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 2px 5px; padding: 5px 0; border-top: 1px solid var(--border-light); }
+.instrument-workspace #plot-references .reference-row input[type="text"] { grid-column: 2; grid-row: 1; width: 100%; min-width: 0; height: var(--control-height); padding: 2px 6px; border: 1px solid transparent; border-radius: 2px; background: transparent; font: inherit; }
+.instrument-workspace #plot-references .reference-row input[type="text"]:is(:hover, :focus) { border-color: var(--border-light); background: white; }
+.instrument-workspace #plot-references .reference-row small { grid-column: 2; grid-row: 2; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.instrument-workspace #plot-references .reference-row time { grid-column: 3; grid-row: 2; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.instrument-workspace #plot-references .reference-row-actions { grid-column: 3; grid-row: 1; display: flex; gap: 4px; }
+.instrument-workspace #plot-references .reference-row-actions button { font-size: 11px; }
+.instrument-workspace #plot-references .reference-undo { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+.instrument-workspace #plot-references .reference-undo[hidden] { display: none; }
+.instrument-workspace #plot-references .reference-undo span { min-width: 0; overflow-wrap: anywhere; }
+.instrument-workspace #plot-references .reference-undo button { margin-left: auto; }
+.instrument-workspace #plot-references .reference-row-actions .remove-reference { width: 24px; padding: 0; font-size: 18px; line-height: 1; }
+.instrument-workspace #plot-references #reference-message:empty { display: none; }
+.instrument-workspace #plot-references #reference-message { overflow-wrap: anywhere; }

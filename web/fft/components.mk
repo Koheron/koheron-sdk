@@ -1,6 +1,7 @@
 # One component list for every FFT board. Board entry points follow this include.
 include $(SDK_PATH)/web/instrument/components.mk
 include $(SDK_PATH)/web/instrument/events.mk
+include $(SDK_PATH)/web/plot-references/components.mk
 include $(SDK_PATH)/web/instrument/poller.mk
 WEB_FILES += $(SDK_PATH)/web/jquery.flot.d.ts
 include $(SDK_PATH)/web/inputs/components.mk

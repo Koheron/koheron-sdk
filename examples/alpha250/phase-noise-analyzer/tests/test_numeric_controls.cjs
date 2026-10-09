@@ -135,7 +135,7 @@ test('CSV uses the displayed frame metadata when editable controls have changed'
     w.URL.createObjectURL = value => { blob = value; return 'blob:http://test/download'; };
     w.URL.revokeObjectURL = () => {};
     w.HTMLAnchorElement.prototype.click = () => {};
-    new w.ExportFile(w.document, {frameStatus: {...h.parameters}, yLabel: 'Phase noise (dBc/Hz)', plot_data: [[1e3, -130]],
+    new w.ExportFile(w.document, {visibleReferences: [], frameStatus: {...h.parameters}, yLabel: 'Phase noise (dBc/Hz)', plot_data: [[1e3, -130]],
         smooth_plot_data: [[1e3, -130]], phase_psd: new Float32Array([2e-13])});
     h.enter(w.document.querySelector('.dds-input0'), '10.000123 MHz'); await settle();
     h.enter(w.document.querySelector('.dds-input1'), '12 kHz'); await settle();

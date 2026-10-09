@@ -6,10 +6,10 @@ const ts = require('../../../../web/transpile.cjs');
 const {JSDOM} = require('jsdom');
 
 function fixture(t) {
-    const dom = new JSDOM('<span id="refresh-rate">— FPS</span><table id="decade-values-table"></table><input id="show-smoothed-trace" type="checkbox" checked><button id="capture-reference" disabled></button><button id="clear-reference" disabled></button><div id="reference-info" hidden><span id="reference-status"></span></div>', {runScripts: 'outside-only', pretendToBeVisual: true});
+    const dom = new JSDOM('<span id="refresh-rate">— FPS</span><table id="decade-values-table"></table><input id="show-smoothed-trace" type="checkbox" checked><button id="capture-reference" disabled></button><div id="plot-references"></div>', {runScripts: 'outside-only', pretendToBeVisual: true});
     const w = dom.window;
     t.after(() => w.close());
-  w.eval(ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../../../../web/phase-noise/plot.ts'), 'utf8'),
+  w.eval(ts.transpileModule(['plot-references/references.ts', 'plot-references/panel.ts', 'phase-noise/references.ts', 'phase-noise/plot.ts'].map(file => fs.readFileSync(path.resolve(__dirname, '../../../../web', file), 'utf8')).join('\n'),
     {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.PnaPlot = PnaPlot;');
     w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../../../../web/phase-noise/analyzer/plot.ts'), 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText + '\nwindow.Plot = Plot;');
@@ -29,7 +29,7 @@ function fixture(t) {
         setRangeX(low, high) { state.range = [low, high]; },
         setLinY() { state.fits++; },
         refreshLegend() { state.legendRefreshes++; },
-        redraw(data, size, peak, label, callback, reference, final, traces) { state.redraw = {data, size, reference, smooth: traces?.[0]?.data}; }
+        redraw(data, size, peak, label, callback, reference, final, traces) { state.redraw = {data, size, reference:traces?.find(trace => trace.label === 'Reference 1')?.data, smooth:traces?.find(trace => trace.label === 'Smoothed')?.data, traces}; }
     };
     plot.driver = {
         parameters: {data_size: 16385, fs: 5e6, channel: 0, cic_rate: 20, fft_navg: 8, analyzer_mode: 'rf', fdds0: 10e6, fdds1: 20e6, interferometer_delay: 1e-9},
@@ -40,6 +40,7 @@ function fixture(t) {
     w.app = {dds: {async getDDSFreq() { return 10e6; }}};
     w.requestAnimationFrame = () => 0;
     plot._busy = false; plot._targetHz = 60; plot._lastTick = -1000;
+    plot.initReferences();
     plot.setFreqAxis();
     return {plot, state, window: w};
 }
@@ -173,16 +174,16 @@ test('FFT-style reference capture copies the full PSD and frame settings; replac
     const fits = state.fits;
     plot.captureReference();
     assert.equal(state.fits, fits, 'capture preserves the Y zoom');
-    assert.equal(plot.referencePSD.length, 16385);
-    assert.equal(plot.referencePSD[64], 2);
-    assert.equal(w.document.getElementById('capture-reference').textContent, 'Replace ref');
+    assert.equal(plot.references.items[0]?.psd.length, 16385);
+    assert.equal(plot.references.items[0]?.psd[64], 2);
+    assert.equal(w.document.getElementById('reference-count').textContent, '1 / 8');
     assert.equal(w.document.getElementById('clear-reference').disabled, false);
-    assert.equal(w.document.getElementById('reference-info').hidden, false);
+    assert.equal(w.document.querySelectorAll('.reference-row').length, 1);
     plot.phase_psd.fill(20);
     plot.driver.parameters.fs = 1e6;
     plot.driver.parameters.channel = 1;
-    assert.equal(plot.referencePSD[64], 2);
-    assert.equal(plot.referenceParameters.channel, 0);
+    assert.equal(plot.references.items[0]?.psd[64], 2);
+    assert.equal(plot.references.items[0]?.parameters.channel, 0);
     plot._busy = false; plot._lastTick = -1000;
     await plot.updatePlot();
     assert.equal(state.redraw.reference[64][0], 64 * 5e6 / 32768);
@@ -191,43 +192,43 @@ test('FFT-style reference capture copies the full PSD and frame settings; replac
     plot._busy = false; plot._lastTick = -1000;
     await plot.updatePlot();
     assert.equal(state.redraw.reference[64][1], 10 * Math.log10(2 * (64 * 5e6 / 32768) ** 2));
-    plot.captureReference();
-    assert.equal(plot.referenceParameters.channel, 1);
-    assert.equal(plot.referenceParameters.fs, 1e6);
+    plot.replaceReference(plot.references.items[0]);
+    assert.equal(plot.references.items[0]?.parameters.channel, 1);
+    assert.equal(plot.references.items[0]?.parameters.fs, 1e6);
     const fitsBeforeClear = state.fits;
     plot.clearReference();
     assert.equal(state.fits, fitsBeforeClear, 'clear preserves the Y zoom');
-    assert.equal(plot.referencePSD, undefined);
-    assert.equal(plot.reference_data, undefined);
-    assert.equal(w.document.getElementById('capture-reference').textContent, 'Capture ref');
+    assert.equal(plot.references.items[0]?.psd, undefined);
+    assert.equal(plot.references.items[0]?.data, undefined);
+    assert.equal(w.document.getElementById('reference-count').textContent, '0 / 8');
     assert.equal(w.document.getElementById('clear-reference').disabled, true);
-    assert.equal(w.document.getElementById('reference-info').hidden, true);
+    assert.equal(w.document.querySelectorAll('.reference-row').length, 0);
 });
 
 test('settling, failed acquisition and unset LO disable capture without clearing the reference', async t => {
     const {plot, state, window: w} = fixture(t);
     w.document.body.insertAdjacentHTML('beforeend', '<div id="plot-placeholder"></div>');
     await plot.updatePlot(); plot.captureReference();
-    const psd = plot.referencePSD;
+    const psd = plot.references.items[0]?.psd;
     plot.driver.getPhaseNoise = async () => new Float32Array(16385);
     plot._busy = false; plot._lastTick = -1000;
     await plot.updatePlot();
     assert.equal(w.document.getElementById('capture-reference').disabled, true);
     assert.equal(w.document.getElementById('plot-placeholder').getAttribute('aria-label'), 'Acquisition settling; spectrum is not live');
     assert.equal(w.document.querySelector('.plot-empty'), null);
-    plot.captureReference(); assert.equal(plot.referencePSD, psd);
+    plot.captureReference(); assert.equal(plot.references.items[0]?.psd, psd);
     plot.driver.parameters.fdds0 = 0;
     plot._busy = false; plot._lastTick = -1000;
     await plot.updatePlot();
     assert.equal(w.document.getElementById('capture-reference').disabled, true);
-    assert.equal(plot.referencePSD, psd);
+    assert.equal(plot.references.items[0]?.psd, psd);
     plot.driver.parameters.fdds0 = 10e6;
     plot.driver.getPhaseNoise = async () => { throw new Error('Acquisition failed'); };
     w.console.error = () => {};
     plot._busy = false; plot._lastTick = -1000;
     await plot.updatePlot();
     assert.equal(w.document.getElementById('capture-reference').disabled, true);
-    assert.equal(plot.referencePSD, psd);
+    assert.equal(plot.references.items[0]?.psd, psd);
     plot.clearReference();
     assert.equal(state.redraw.reference, undefined);
 });
@@ -598,7 +599,7 @@ test('an empty or truncated spectrum cannot corrupt the retained axis or referen
     const {plot} = fixture(t);
     plot.plotBasics.redraw = (data, size, peak, label, done) => done();
     await plot.updatePlot(); plot.captureReference();
-    const points = plot.n_pts, frequency = plot.plot_data[64][0], reference = plot.referencePSD;
+    const points = plot.n_pts, frequency = plot.plot_data[64][0], reference = plot.references.items[0]?.psd;
     let delay;
     plot.schedule = value => { delay = value; };
     for (const length of [0, 1, 2]) {
@@ -606,7 +607,7 @@ test('an empty or truncated spectrum cannot corrupt the retained axis or referen
         plot._lastTick = -1000; await plot.updatePlot();
         assert.equal(plot.n_pts, points);
         assert.equal(plot.plot_data[64][0], frequency);
-        assert.equal(plot.referencePSD, reference);
+        assert.equal(plot.references.items[0]?.psd, reference);
         assert.equal(plot.frameStatus, undefined);
         assert.equal(delay, 500, 'invalid frames back off instead of spinning');
     }

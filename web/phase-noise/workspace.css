@@ -84,9 +84,6 @@
 .pna-workspace .pna-digit-control .lo-unit { width: 45px; padding: 2px 1px; font-size: 11px; border-left: 0; border-radius: 0 2px 2px 0; color: var(--muted); }
 .pna-workspace .pna-digit-control:has(.lo-unit) .digit-input { border-right: 0; border-radius: 2px 0 0 2px; }
 
-.pna-workspace .reference-info strong { color: #8a589d; }
-.pna-workspace .reference-info { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; padding: 3px 0; border-bottom: 1px solid var(--border-light); font-size: 11px; }
-.pna-workspace .reference-info strong { font-weight: 400; font-variant-numeric: tabular-nums; }
 
 .pna-workspace .pna-average-control { align-items: center; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; }
 .pna-workspace .pna-average-control #average-status { width: 43px; padding-left: 6px; text-align: right; color: var(--muted); font: 13px/18px ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }

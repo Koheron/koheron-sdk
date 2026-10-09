@@ -13,7 +13,6 @@
 .dpll-workspace #spectrum-status { position: absolute; top: 0; left: 0; right: 0; z-index: 2; margin: 0; padding: 6px; background: white; }
 .dpll-workspace .spectrum-readouts { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 10px 0; border-top: 1px solid var(--border-light); font-variant-numeric: tabular-nums; }
 .dpll-workspace .readout-label { display: block; font-size: 10px; color: #777; }
-.dpll-workspace .reference-info { padding: 6px 0; font-size: 11px; color: #666; }
 .dpll-workspace #decade-values-table { width: 100%; }
 .dpll-workspace #decade-values-table td, .dpll-workspace #decade-values-table th { padding: 3px 8px; border-bottom: 1px solid var(--border-light); }
 .dpll-workspace .diagram-panel { padding-left: 0; border-left: 0; border-top: 1px solid var(--border-light); margin-top: 10px; }

@@ -92,7 +92,7 @@ async function host(t, failure = false) {
         'web/precision-channels/precision-adc.ts','web/precision-channels/precision-dac.ts','web/precision-channels/precision-channels-app.ts',
         'web/temperature-sensor/temperature-sensor.ts','web/power-monitor/power-monitor.ts','web/board-controls/alpha-fft.ts',
         'web/fft/driver.ts','web/fft/controls/fft-app.ts','web/fft/plot/spectrum-history.ts','web/fft/plot/spectrum-views.ts',
-        'web/fft/plot/references.ts', 'web/fft/plot/plot.ts','web/fft/export-file/export-file.ts','web/fft/workspace.ts',`${project}/web/fft.ts`,`${project}/web/app.ts`];
+        'web/plot-references/references.ts', 'web/plot-references/panel.ts', 'web/fft/plot/references.ts', 'web/fft/plot/plot.ts','web/fft/export-file/export-file.ts','web/fft/workspace.ts',`${project}/web/fft.ts`,`${project}/web/app.ts`];
     w.eval(ts.transpileModule(files.map(file => fs.readFileSync(path.join(root,file),'utf8')).join('\n'), {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText + '\nwindow.workspace = app;');
     w.dispatchEvent(new w.Event('HTMLImportsLoaded')); await flush();
     t.after(() => { w.dispatchEvent(new w.Event('pagehide')); w.close(); });
