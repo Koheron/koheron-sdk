@@ -39,6 +39,17 @@ class DriverShutdownTest(unittest.TestCase):
             ('drivers.hpp', '#include "driver_shutdown_instrument.hpp"\n'),
             ('server/context/context.hpp', '#pragma once\nclass Context {};\n')])
 
+    def test_empty_instrument_shutdown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'empty.cpp'
+            source.write_text('#include "server/runtime/driver_manager.hpp"\n'
+                              'int main() { rt::DriverManager manager; manager.shutdown(); }\n')
+            self.compile_run([source, 'server/runtime/driver_manager.cpp'], headers=[
+                ('drivers_list.hpp', '#pragma once\n#include "server/runtime/drivers_table.hpp"\n'
+                 'using driver_list = std::tuple<>;\n'),
+                ('drivers.hpp', '#pragma once\n'),
+                ('server/context/context.hpp', '#pragma once\nclass Context {};\n')])
+
     def test_precision_adc_stops_before_destruction(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
