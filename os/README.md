@@ -28,9 +28,44 @@ The image manifest records source tags separately from `vivado`, `vivado_build`,
 Unavailable values produce a warning and `unknown`. This identifies the selected
 tools, not the history of cached artifacts; rebuild artifacts after changing tools.
 
+## Runtime FPGA loading
+
+Runtime instrument overlays describe devices only. The server removes the previous
+overlay, programs the full bitstream through the Xilinx FPGA Manager `firmware`
+attribute, verifies its `operating` state, then applies `pl.dtbo`. The generated
+overlay omits `firmware-name` and exported `__symbols__`, while retaining external
+and local phandle fixups. This avoids retaining properties on permanent
+device-tree nodes each time an instrument is switched. Boot-time board overlays
+still export symbols.
+
+Rebuild the server and `pl.dtbo` together when updating an existing instrument;
+the bitstream itself does not need rebuilding for this loading change. The direct
+loading path requires Xilinx's FPGA Manager sysfs interface (available in the
+2025.1 and 2026.1 kernels) and supports full-device designs without FPGA bridges.
+Bridge-dependent custom designs are rejected before removing the current overlay.
+Partial reconfiguration and stacked runtime overlays are not supported by this
+path. The legacy `/dev/xdevcfg` path is unchanged.
+
+The loader checks both the configfs overlay path and its status: Xilinx configfs
+can report `applied` after rejecting a malformed DTBO, but clears its path on
+failure. A failed load exits before driver initialization and lets the instrument
+installer restore and reprogram the previous installation.
+
 ## Tests
 
 Image-build tests are in [tests/](./tests/); instrument loading tests are in [api/tests/](./api/tests/).
+
+## Runtime kernel features
+
+The Zynq and ZynqMP defconfigs build in Unix socket diagnostics for the packaged
+uWSGI backlog monitor, autofs, UTS/network namespaces, cgroup BPF and nftables for
+systemd services, and SysRq/Yama for the distribution's sysctl settings. These
+features are built in because the OS image does not install kernel modules.
+The kernel log buffer is 128 KiB to retain boot diagnostics before journald starts.
+
+After changing either defconfig, check the generated kernel `.config`, rebuild
+the OS image, and verify boot logs, SSH, the management API and instrument
+switching on the target board. A kernel rebuild does not require an FPGA rebuild.
 
 ## Management web interface
 
