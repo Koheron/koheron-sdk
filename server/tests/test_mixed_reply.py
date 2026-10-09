@@ -15,7 +15,7 @@ class MixedReplyTest(unittest.TestCase):
         build = tempfile.TemporaryDirectory()
         cls.addClassCleanup(build.cleanup)
         cls.binary = Path(build.name) / 'mixed-reply'
-        command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall',
+        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
                    '-Wextra', '-Werror', '-pthread', '-Wl,--wrap=sendmsg',
                    '-Wl,--wrap=__sendmsg64',
                    '-I', str(ROOT), '-I', str(ROOT / 'server/external_libs'),

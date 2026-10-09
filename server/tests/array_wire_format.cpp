@@ -1,4 +1,4 @@
-// Run: g++ -std=c++20 -I. -Iserver/external_libs -Iserver/external_libs/eigen server/tests/array_wire_format.cpp -o /tmp/array-wire-test && /tmp/array-wire-test
+// Run: g++ -std=c++23 -I. -Iserver/external_libs -Iserver/external_libs/eigen server/tests/array_wire_format.cpp -o /tmp/array-wire-test && /tmp/array-wire-test
 #include "server/network/serializer_deserializer.hpp"
 #include <cassert>
 

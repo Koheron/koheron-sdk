@@ -171,7 +171,7 @@ SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION).$(shell git rev-parse
 SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += $(SERVER_EXTRA_CCXXFLAGS)
-SERVER_CCXXFLAGS += -std=c++20 -pthread -fdiagnostics-color=always
+SERVER_CCXXFLAGS += -std=c++23 -pthread -fdiagnostics-color=always
 
 .PHONY: gcc_flags
 gcc_flags:
@@ -215,7 +215,7 @@ $(PCH_GCH): $(PCH_DST) $(PCH_FLAGS_STAMP)
 
 # Use the PCH for all compilations and ensure it’s built first
 SERVER_CCXXFLAGS += -Winvalid-pch -include $(PCH_DST)
-$(OBJ): | $(PCH_GCH)
+$(OBJ): $(PCH_GCH)
 
 # -----------------------------------------------------------------------------
 # Compile objects
@@ -319,10 +319,10 @@ DRIVERS_JSON_DUMP_EXE := $(TMP_SERVER_PATH)/drivers_json_dump
 DRIVERS_JSON_OUT      := $(TMP_SERVER_PATH)/drivers.json
 
 JSON_CXX      := g++-$(GCC_VERSION)
-JSON_CXXFLAGS := -std=c++20 -O2 -DKOHERON_SERVER_BUILD $(SERVER_INCLUDE_DIRS)
+JSON_CXXFLAGS := -std=c++23 -O2 -DKOHERON_SERVER_BUILD $(SERVER_INCLUDE_DIRS)
 JSON_CXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 
-$(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(GEN_HEADERS)
+$(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(GEN_HEADERS) $(SERVER_PATH)/server.mk
 	$(DOCKER) $(JSON_CXX) $(JSON_CXXFLAGS) $< -o $@
 
 $(DRIVERS_JSON_OUT): $(DRIVERS_JSON_DUMP_EXE)

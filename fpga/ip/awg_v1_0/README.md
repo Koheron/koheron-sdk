@@ -259,7 +259,7 @@ clocks, including the intended Red Pitaya target.
 
 ```sh
 .venv/bin/python -m pytest fpga/ip/awg_v1_0/tests/test_client.py -q
-g++ -std=c++20 -Wall -Wextra -Werror -fno-exceptions -pthread -I. \
+g++ -std=c++23 -Wall -Wextra -Werror -fno-exceptions -pthread -I. \
     fpga/ip/awg_v1_0/tests/driver_test.cpp -o /tmp/dds-pm-driver-test
 /tmp/dds-pm-driver-test
 source /tools/Xilinx/2025.1/Vivado/settings64.sh

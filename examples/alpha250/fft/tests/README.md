@@ -20,7 +20,7 @@ After generating the FFT server headers (`make CFG=examples/alpha250/fft/config.
 server drivers_json`), check the owned-snapshot API contract:
 
 ```sh
-g++ -std=c++20 -fsyntax-only -DKOHERON_SERVER_BUILD \
+g++ -std=c++23 -fsyntax-only -DKOHERON_SERVER_BUILD \
     -I. -Iserver/external_libs -Itmp/examples/alpha250/fft/server \
     examples/alpha250/fft/tests/test_snapshot.cpp
 ```

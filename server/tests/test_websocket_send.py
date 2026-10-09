@@ -15,7 +15,7 @@ class WebSocketSendTest(unittest.TestCase):
         build = tempfile.TemporaryDirectory()
         cls.addClassCleanup(build.cleanup)
         cls.binary = Path(build.name) / 'websocket-send'
-        command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall',
+        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
                    '-Wextra', '-Werror', '-pthread', '-Wl,--wrap=sendmsg',
                    '-I', str(ROOT), '-I', str(ROOT / 'server/external_libs'),
                    '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]

@@ -16,9 +16,9 @@ namespace ut {
 
 constexpr bool host_is_be = (std::endian::native == std::endian::big);
 
-constexpr uint16_t bswap16(uint16_t x) noexcept { return __builtin_bswap16(x); }
-constexpr uint32_t bswap32(uint32_t x) noexcept { return __builtin_bswap32(x); }
-constexpr uint64_t bswap64(uint64_t x) noexcept { return __builtin_bswap64(x); }
+constexpr uint16_t bswap16(uint16_t x) noexcept { return std::byteswap(x); }
+constexpr uint32_t bswap32(uint32_t x) noexcept { return std::byteswap(x); }
+constexpr uint64_t bswap64(uint64_t x) noexcept { return std::byteswap(x); }
 
 template<class T>
 constexpr T to_be(T v) noexcept {

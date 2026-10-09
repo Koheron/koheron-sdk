@@ -2,6 +2,7 @@
 #define __SERVER_CONTEXT_CONFIG_MANAGER_HPP__
 
 #include "./config_ini.hpp"
+#include "./syslog.hpp"
 
 #include <filesystem>
 #include <string>
@@ -18,22 +19,24 @@ class ConfigManager {
 
         fs::create_directories(config_dir, ec);
         if (ec) {
-            return -1;
+            return report_error("create directory", ec);
         }
 
         cfg_.data.clear();
 
         bool exists = fs::exists(config_path, ec);
         if (ec) {
-            return -1;
+            return report_error("check file", ec);
         }
 
         if (exists) {
-            return cfg::load_ini(config_path, cfg_);
+            const auto result = cfg::load_ini(config_path, cfg_);
+            return result ? 0 : report_error("load", result.error());
         } else { // Create an empty file and keep cfg_ empty
             std::ofstream out(config_path);
+            out.close();
             if (!out) {
-                return -1;
+                return report_error("create file", std::make_error_code(std::io_errc::stream));
             }
         }
 
@@ -46,7 +49,9 @@ class ConfigManager {
     }
 
     void save() {
-        cfg::save_ini(config_path, cfg_);
+        if (const auto result = cfg::save_ini(config_path, cfg_); !result) {
+            report_error("save", result.error());
+        }
     }
 
     bool has(const std::string& sect, const std::string& key) {
@@ -59,6 +64,11 @@ class ConfigManager {
     }
 
   private:
+    int report_error(std::string_view operation, const std::error_code& error) const {
+        logf<ERROR>("Configuration {} failed for {}: {}\n", operation, config_path, error.message());
+        return -1;
+    }
+
     const Path config_dir = Path("/etc/koheron") / INSTRUMENT_NAME;
     const Path config_path = config_dir / "config.ini";
 

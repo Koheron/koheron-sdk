@@ -187,7 +187,7 @@ int main() {
                 with self.subTest(board=board, sample_rate=rate):
                     executable = temp / f"test-{rate}"
                     subprocess.run(compiler + [
-                        "-std=c++20", "-Wall", "-Wextra", "-Werror", "-Wpedantic", "-fno-exceptions",
+                        "-std=c++23", "-Wall", "-Wextra", "-Werror", "-Wpedantic", "-fno-exceptions",
                         f"-DTEST_SAMPLE_RATE={rate}",
                         f'-DPHASE_MODULATOR_HEADER="{root}/boards/{board}/drivers/phase-modulator.hpp"',
                         *(['-DTEST_RED_PITAYA'] if board == 'red-pitaya' else []),

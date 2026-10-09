@@ -12,6 +12,9 @@ Reference host: **Ubuntu 24.04** with **Vivado/Vitis 2025.1** under `/tools/Xili
 
 Install Vivado/Vitis and any required board files or licenses separately. `make setup` installs host dependencies, the Python environment and Koheron package, Docker and SDK Docker images.
 
+Server and instrument C++ builds use C++23 with GCC 13 or newer in Docker.
+The standalone C++ client continues to support C++20.
+
 ## Quick start
 
 ```bash

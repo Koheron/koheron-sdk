@@ -33,7 +33,7 @@ class ListenerShutdownTest(unittest.TestCase):
                             .replace('/var/run/koheron-server.sock', str(build / 'server.sock')))
         (build / 'drivers_list.hpp').write_text('#pragma once\n#include <tuple>\nusing driver_list = std::tuple<>;\n')
         cls.binary = build / 'listener-shutdown'
-        command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall',
+        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
                    '-Wextra', '-Werror', '-pthread', '-Wl,--wrap=read',
                    '-I', str(build), '-I', str(ROOT),
                    '-I', str(ROOT / 'server/external_libs'),

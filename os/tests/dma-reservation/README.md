@@ -27,7 +27,7 @@ when updating an existing SD card.
 Run the boundary, overlap, malformed/redacted input and 64-bit address checks:
 
 ```sh
-g++ -std=c++20 -Wall -Wextra -fsanitize=address,undefined -I. \
+g++ -std=c++23 -Wall -Wextra -fsanitize=address,undefined -I. \
     os/tests/dma-reservation/test_system_ram.cpp -o /tmp/test-system-ram
 /tmp/test-system-ram
 python3 os/tests/dma-reservation/test_overlay.py

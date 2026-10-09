@@ -133,7 +133,7 @@ bitstream and does not establish an absolute ADC/DAC noise-floor calibration.
 From the repository root, with the server external dependencies installed:
 
 ```sh
-g++ -std=c++20 -Wall -Wextra -Iserver/external_libs \
+g++ -std=c++23 -Wall -Wextra -Iserver/external_libs \
     examples/alpha250/phase-noise-analyzer/tests/test_moving_averager.cpp \
     -o /tmp/test_moving_averager
 /tmp/test_moving_averager

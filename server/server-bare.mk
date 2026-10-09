@@ -26,7 +26,7 @@ SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) \
 	-I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
-SERVER_CCXXFLAGS += -std=c++20 -pthread
+SERVER_CCXXFLAGS += -std=c++23 -pthread
 
 # -----------------------------------------------------------------------------
 # Memory header from YAML
@@ -78,6 +78,8 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/network/%.cpp | $(TMP_SERVER_PATH)
 
 $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/utilities/%.cpp | $(GEN_HEADERS)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
+
+$(OBJ): $(SERVER_PATH)/server-bare.mk
 
 $(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm

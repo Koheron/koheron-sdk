@@ -24,7 +24,7 @@ SERVER_CCXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/runtime -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
-SERVER_CCXXFLAGS += -std=c++20 -pthread
+SERVER_CCXXFLAGS += -std=c++23 -pthread
 
 # -----------------------------------------------------------------------------
 # Memory header from YAML
@@ -59,6 +59,8 @@ DEP := $(subst .o,.d,$(OBJ))
 
 GEN_HDRS := \
   $(TMP_SERVER_PATH)/memory.hpp
+
+$(OBJ): $(SERVER_PATH)/serverless.mk
 
 $(TMP_SERVER_PATH)/%.o: $(APP_PATH)/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
 	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<

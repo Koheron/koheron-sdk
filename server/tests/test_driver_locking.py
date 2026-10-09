@@ -47,7 +47,7 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
                    'runtime/runtime_executor.cpp', 'network/session.cpp',
                    'network/websocket.cpp', 'network/sha1.cpp', 'network/base64.cpp',
                    'utilities/rate_tracker.cpp', 'tests/driver_locking.cpp')
-        command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall',
+        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
                    '-Wextra', '-Werror', '-pthread', '-DKOHERON_SERVER_BUILD', '-Wl,--wrap=read',
                    '-I', str(build), '-I', str(ROOT), '-I', str(ROOT / 'server/tests'),
                    '-I', str(ROOT / 'server/external_libs'),
