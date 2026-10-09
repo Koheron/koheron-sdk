@@ -32,6 +32,11 @@ for {set channel 0} {$channel < 2} {incr channel} {
 
     set path cordic$channel
     check_phase_extractor $path
+    foreach {property expected} {DIN_WIDTH 16 DOUT_WIDTH 64 PIPELINED_OVERFLOW 1 PIPELINED_HISTORY 1} {
+        if {[get_property CONFIG.$property [get_bd_cells $path/phase_unwrapper]] != $expected} {
+            error "Wrong ALPHA250 phase history $property on channel $channel"
+        }
+    }
     set lfsr [get_bd_cells $path/lfsr]
     if {[get_property CONFIG.SEED $lfsr] != [lindex $rounding_seeds $channel] ||
         [get_property CONFIG.FEEDBACK_MASK $lfsr] != 0xd800000000000000 ||
