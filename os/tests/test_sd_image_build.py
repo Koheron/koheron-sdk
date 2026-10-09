@@ -69,7 +69,14 @@ with open(os.environ['MOCK_EVENTS'], 'a') as log:
 result = 0
 if command == 'dd':
     destination = next(a[3:] for a in args if a.startswith('of='))
-    Path(destination).write_bytes(b'untruncated image')
+    if 'conv=notrunc' in args:
+        result = int(os.environ.get('ZERO_TAIL_RESULT', '0'))
+        if result == 0:
+            # Exercise the real byte-offset flags on our temporary file only.
+            assert Path(destination) == Path(os.environ['MOCK_IMAGE'])
+            result = subprocess.run(['/bin/dd', *args]).returncode
+    else:
+        Path(destination).write_bytes(b'untruncated image')
 elif command == 'losetup':
     if '--find' in args:
         print('/dev/mockloop')
@@ -110,6 +117,10 @@ elif command == 'envsubst':
     print(text, end='')
 elif command == 'e2fsck':
     result = int(os.environ.get('FSCK_RESULT', '0'))
+elif command == 'zerofree':
+    assert not state['mounted'], state['mounted']
+    assert args == ['/dev/mockloopp2'], args
+    result = int(os.environ.get('ZEROFREE_RESULT', '0'))
 elif command == 'tune2fs' and '-l' in args:
     print('Block count: 1024\\nBlock size: 4096')
 elif command == 'parted' and 'print' in args:
@@ -125,6 +136,12 @@ elif command == 'sfdisk':
 elif command == 'truncate':
     with open(args[-1], 'r+b') as output:
         output.truncate(int(args[1]))
+        # Root starts at sector 32768 and has 1024 blocks of 4096 bytes.
+        # Seed data across its end to detect an off-by-one or wrong dd unit.
+        output.seek(32768 * 512 + 1024 * 4096 - 1)
+        output.write(b'AB')
+        output.seek(-1, 2)
+        output.write(b'C')
 elif command == 'zip':
     Path(args[2]).write_bytes(b'packaged image')
     result = int(os.environ.get('ZIP_RESULT', '0'))
@@ -146,13 +163,15 @@ sys.exit(result)
         for name in ('dd', 'losetup', 'mktemp', 'lsblk', 'mount', 'mountpoint',
                      'umount', 'chroot', 'blkid', 'envsubst', 'e2fsck', 'tune2fs',
                      'parted', 'sfdisk', 'truncate', 'zip', 'partprobe', 'udevadm',
-                     'sleep', 'mkfs.vfat', 'mkfs.ext4', 'chown', 'resize2fs', 'blockdev', 'mv'):
+                     'sleep', 'mkfs.vfat', 'mkfs.ext4', 'chown', 'resize2fs', 'blockdev', 'mv',
+                     'zerofree'):
             (self.bin / name).symlink_to(mock)
         self.environment = {
             **os.environ, 'PATH': str(self.bin) + ':' + os.environ['PATH'],
             'BASE_ROOTFS_TAR': str(self.base), 'EXTLINUX_CONF': str(self.os_path / 'extlinux.conf'),
             'MOCK_STATE': str(self.root / 'state'), 'MOCK_EVENTS': str(self.events),
             'MOCK_MOUNTS': str(self.mounts),
+            'MOCK_IMAGE': str(self.project / 'test.img'),
         }
 
     def build(self, boot_bin='boot.bin', **overrides):
@@ -259,8 +278,22 @@ source "$@"
         self.assertTrue(any(c[0] == 'parted' and 'print' in c for c in commands[resize:truncate]))
         self.assertTrue((self.project / 'test.zip').exists())
         detach = commands.index(['losetup', '-d', '/dev/mockloop'])
+        zerofree = commands.index(['zerofree', '/dev/mockloopp2'])
+        clear_tail = next(i for i, c in enumerate(commands)
+                          if c[0] == 'dd' and 'conv=notrunc' in c)
         package = next(i for i, c in enumerate(commands) if c[0] == 'zip')
-        self.assertLess(detach, package)
+        last_fsck = max(i for i, c in enumerate(commands) if c[0] == 'e2fsck')
+        self.assertLess(last_fsck, zerofree)
+        self.assertLess(zerofree, detach)
+        self.assertLess(detach, clear_tail)
+        self.assertLess(clear_tail, package)
+        self.assertEqual(commands[package][1:3], ['-X', '-9'])
+        image = (self.project / 'test.img').read_bytes()
+        root_end = 32768 * 512 + 1024 * 4096
+        self.assertEqual(len(image), root_end + 32 * 1024 * 1024)
+        self.assertTrue(image.startswith(b'untruncated image'))
+        self.assertEqual(image[root_end - 1:root_end], b'A')
+        self.assertEqual(image[root_end:], bytes(32 * 1024 * 1024))
         self.assertEqual(list(self.project.glob('.package.*')), [])
         self.assert_detached()
 
@@ -320,6 +353,16 @@ source "$@"
     def test_zip_failure_preserves_previous_archive_and_cleans_staging(self):
         result = self.assert_previous_zip_survives(ZIP_RESULT='12')
         self.assertEqual(result.returncode, 12, result.stdout + result.stderr)
+
+    def test_free_space_cleanup_failure_preserves_previous_archive(self):
+        result = self.assert_previous_zip_survives(ZEROFREE_RESULT='9')
+        self.assertEqual(result.returncode, 9, result.stdout + result.stderr)
+        self.assertFalse(any(c[0] == 'zip' or 'conv=notrunc' in c for c in self.commands()))
+
+    def test_cushion_cleanup_failure_preserves_previous_archive(self):
+        result = self.assert_previous_zip_survives(ZERO_TAIL_RESULT='8')
+        self.assertEqual(result.returncode, 8, result.stdout + result.stderr)
+        self.assertFalse(any(c[0] == 'zip' for c in self.commands()))
 
     def test_zip_failure_does_not_publish_first_archive(self):
         result = self.build(ZIP_RESULT='12')

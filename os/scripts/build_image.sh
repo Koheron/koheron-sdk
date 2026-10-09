@@ -344,7 +344,10 @@ losetup -c "$device" 2>/dev/null || true
 boot_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '2!d')"
 root_dev="/dev/$(lsblk -ln -o NAME -x NAME "$device" | sed '3!d')"
 
-# zerofree "$root_dev" >/dev/null 2>&1 || true
+# Deleted files and blocks moved by resize2fs can leave nonzero free space.
+# Clear only unallocated ext4 blocks while the filesystem is unmounted.
+# Failure must stop the build rather than publish an incompletely cleaned image.
+zerofree "$root_dev"
 
 # Release the loop before publishing an archive. A detach failure must not
 # replace a previously successful release ZIP.
@@ -353,6 +356,14 @@ if ! losetup -d "$device"; then
   exit 1
 fi
 device=""
+
+# The partition cushion is outside the shrunken filesystem, so zerofree cannot
+# reach it. Clear stale pre-shrink data there after detaching the loop, before
+# calculating the checksum. Keep the partition geometry and growth margin.
+root_end_bytes=$(( p2_start * 512 + root_bytes ))
+dd if=/dev/zero of="$image" bs=1M \
+  seek="$root_end_bytes" count="$(( new_img_bytes - root_end_bytes ))" \
+  oflag=seek_bytes iflag=count_bytes conv=notrunc status=none
 
 # --- package (sha + zip) ---
 # Stage on the output filesystem so the final rename is atomic. Starting with
@@ -375,7 +386,7 @@ package_dir=$(mktemp -d "$(cd "$tmp_project_path" && pwd)/.package.XXXXXXXXXX")
   # an empty or partially written .sha256 file.
   sha256sum -- "$img" > "$sha"
 
-  # -1 is much faster with small ratio loss; keep -X to strip extra attrs
-  zip -X -1 "$package_dir/$zipfile" "$img" "$manifest" "$sha"
+  # Favor a smaller download; compression runs only on the build host.
+  zip -X -9 "$package_dir/$zipfile" "$img" "$manifest" "$sha"
   mv -f -- "$package_dir/$zipfile" "$zipfile"
 )

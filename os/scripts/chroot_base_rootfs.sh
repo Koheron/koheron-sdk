@@ -98,15 +98,18 @@ eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
   openssh-server usbutils psmisc lsof parted curl less nano iw \
   cloud-guest-utils e2fsprogs bash-completion unzip udev net-tools netbase \
   lsb-base sudo rsync kmod nginx \
-  python3-flask uwsgi-core uwsgi-plugin-python3 python3-simplejson python3-systemd\
+  python3-flask uwsgi-core uwsgi-plugin-python3 python3-systemd \
   iproute2
 
 # glibc provides C.UTF-8 without the locales package or a generated archive.
 # Set it after installing systemd, which migrates /etc/default/locale.
 printf 'LANG=C.UTF-8\n' > /etc/default/locale
 
+# eatmydata is only needed while building; keep it out of the shipped rootfs.
+apt-get -yq -o Dpkg::Use-Pty=0 purge eatmydata libeatmydata1
+
 # Clean & hygiene
-eatmydata apt-get clean
+apt-get clean
 rm -rf /var/lib/apt/lists/*
 printf 'root:%s\n' "$PASSWD" | chpasswd
 rm -f /root/.bash_history /root/.ash_history /root/.python_history /root/.lesshst || true
