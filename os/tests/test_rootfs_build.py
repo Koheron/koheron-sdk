@@ -58,6 +58,32 @@ class FinalizeRootfsTest(unittest.TestCase):
         self.assertEqual(target.read_text(), 'original\n')
         self.assertFalse(machine_id.is_symlink())
 
+    def test_normalizes_root_directory_permissions(self):
+        for mode in (0o700, 0o775):
+            with self.subTest(mode=mode):
+                self.root.chmod(mode)
+                self.assertEqual(self.finalize().returncode, 0)
+                self.assertEqual(self.root.stat().st_mode & 0o777, 0o755)
+
+    def test_prunes_existing_docs_and_apt_caches_but_keeps_runtime_data(self):
+        remove = ('usr/share/doc/base/README', 'usr/share/man/man1/base.1',
+                  'usr/share/info/base.info', 'var/cache/apt/pkgcache.bin',
+                  'var/cache/apt/archives/base.deb', 'var/lib/apt/lists/packages')
+        keep = ('usr/share/doc/base/copyright', 'usr/lib/locale/C.utf8/LC_CTYPE',
+                'usr/lib/locale/locale-archive', 'usr/lib/gconv/encoding.so',
+                'var/lib/dpkg/status', 'etc/apt/sources.list')
+        for name in (*remove, *keep):
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('original\n')
+        for _ in range(2):
+            result = self.finalize()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for name in remove:
+                self.assertFalse((self.root / name).exists(), name)
+            for name in keep:
+                self.assertEqual((self.root / name).read_text(), 'original\n', name)
+
     def test_aarch64_helper_is_removed(self):
         helper = self.root / 'usr/bin/qemu-aarch64-static'
         helper.touch()

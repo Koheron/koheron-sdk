@@ -4,6 +4,29 @@
 import socket
 import struct
 import json
+import fcntl
+import time
+
+
+def has_ipv4_address():
+    # Match the interfaces used by Common.ip_on_leds, including older images.
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        for interface in ('end0', 'eth0'):
+            try:
+                address = fcntl.ioctl(probe.fileno(), 0x8915,
+                                     struct.pack('256s', interface.encode()))[20:24]
+                if address != b'\x00' * 4:
+                    return True
+            except OSError:
+                pass  # The interface may not exist yet or DHCP is pending.
+    return False
+
+
+def wait_for_ipv4():
+    if not has_ipv4_address():
+        print('Waiting for an IPv4 address for the IP LEDs', flush=True)
+        while not has_ipv4_address():
+            time.sleep(1)
 
 class KoheronClient:
     def __init__(self, unixsock=''):
@@ -82,6 +105,7 @@ def main():
     driver_id = client.drivers_idx.get('Common')
     if driver_id is None or 'ip_on_leds' not in client.cmds_idx_list[driver_id]:
         return
+    wait_for_ipv4()
     driver_id, cmd_id = client.get_ids('Common', 'ip_on_leds')
     client.send_command(driver_id, cmd_id)
 
