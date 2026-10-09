@@ -172,7 +172,23 @@ class Uio
             return false;
         }
 
-        auto cb = std::function<void(int)>(std::forward<Fn>(fn));
+        // Owner-side listen/unlisten calls are serialized. A callback may cancel
+        // or unlisten, but the owner must outlive it and perform the final join.
+        if (worker_.joinable()) {
+            if (worker_.get_id() == std::this_thread::get_id()) {
+                running_ = false;
+                return false;
+            }
+            worker_.join();
+            running_ = true;
+        }
+
+        // Preserve the existing empty std::function rejection when adapting it
+        // into a different callable wrapper.
+        if constexpr (std::is_same_v<std::decay_t<Fn>, std::function<void(int)>>) {
+            if (!fn) { running_ = false; return false; }
+        }
+        auto cb = std::move_only_function<void(int)>(std::forward<Fn>(fn));
 
         if (!cb) {
             running_ = false;
@@ -212,14 +228,12 @@ class Uio
 
     // Stop the async loop and join the thread.
     void unlisten() {
-        if (!running_.exchange(false)) {
-            return;
-        }
+        running_ = false;
 
         if (worker_.joinable()) {
             if (std::this_thread::get_id() == worker_.get_id()) {
-                // don't join self; let the owner thread join later
-                worker_.detach();
+                // Keep the thread joinable so owner-side teardown waits for it.
+                return;
             } else {
                 worker_.join();
             }

@@ -30,23 +30,19 @@ I2cDev::~I2cDev() {
     }
 }
 
-int I2cDev::init() {
+std::expected<void, std::error_code> I2cDev::init() {
     if (fd >= 0) {
-        return 0;
+        return {};
     }
 
-    const char *devpath = ("/dev/" + devname).c_str();
-
+    const std::string devpath = "/dev/" + devname;
+    fd = ::open(devpath.c_str(), O_RDWR | O_CLOEXEC);
     if (fd < 0) {
-        fd = ::open(devpath, O_RDWR);
-
-        if (fd < 0) {
-            return -1;
-        }
+        return std::unexpected(std::error_code(errno, std::generic_category()));
     }
 
     logf("I2cManager: Device {} initialized\n", devname);
-    return 0;
+    return {};
 }
 
 int I2cDev::write(int32_t addr, const uint8_t *buffer, size_t n_bytes) {
@@ -161,8 +157,11 @@ I2cDev& I2cManager::get(const std::string& devname) {
         return *empty_i2cdev;
     }
 
-    i2c_drivers[devname]->init();
-    return *i2c_drivers[devname];
+    auto& device = *i2c_drivers[devname];
+    if (const auto result = device.init(); !result) {
+        logf<ERROR>("I2cManager: open({}) failed: {}\n", devname, result.error().message());
+    }
+    return device;
 }
 
 } // namespace hw

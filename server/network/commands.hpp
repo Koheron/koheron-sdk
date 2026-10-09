@@ -20,6 +20,9 @@
 #include <initializer_list>
 #include <span>
 #include <mutex>
+#include <expected>
+#include <cerrno>
+#include <unistd.h>
 
 namespace net {
 
@@ -76,6 +79,8 @@ struct decayed_tuple_from_seq<Tuple, std::index_sequence<I...>> {
 class Command
 {
   public:
+    enum class DecodeError { io, disconnected, truncated, too_large, misaligned, invalid_transport };
+
     Command() noexcept
     : header(HEADER_START)
     {}
@@ -104,17 +109,21 @@ class Command
     template <typename T>
     bool read_one(T& v) {
         if constexpr (ut::resizableContiguousRange<T>) {
-            return recv(v) >= 0;
-        } else { // fixed-size / POD-ish types
+            return recv(v).has_value();
+        } else {
+            // Preserve scalar dispatch's existing representation and hot path.
             auto [status, value] = deserialize<T>();
-
-            if (status < 0) {
-                return false;
-            }
-
+            if (status < 0) { return false; }
             v = value;
             return true;
         }
+    }
+
+    template<ut::resizableContiguousRange R>
+    [[nodiscard]] std::expected<void, DecodeError> read_one_checked(R& v) {
+        const auto result = recv(v);
+        if (!result) { return std::unexpected(result.error()); }
+        return {};
     }
 
     rt::driver_id driver = 0;    // The driver to control
@@ -171,7 +180,7 @@ class Command
         }
     }
 
-    int64_t get_pack_length() {
+    std::expected<uint32_t, DecodeError> get_pack_length() {
         Buffer<sizeof(uint64_t)> buff;
         const auto err = read_exact(
             comm_fd,
@@ -180,47 +189,49 @@ class Command
 
         if (err != static_cast<ssize_t>(sizeof(uint32_t))) {
             log<ERROR>("Cannot read pack length\n");
-            return -1;
+            return std::unexpected(err < 0 ? DecodeError::io : DecodeError::disconnected);
         }
 
         return std::get<0>(buff.deserialize<uint32_t>());
     }
 
     template<ut::resizableContiguousRange R>
-    int recv(R& c) {
+    std::expected<std::size_t, DecodeError> recv(R& c) {
         if (socket_type == TCP || socket_type == UNIX) {
             // Read data directly from socket
             using T = R::value_type;
 
-            const auto nbytes_expected = get_pack_length();
-
-            if (nbytes_expected < 0) {
-                return -1;
-            }
+            const auto size = get_pack_length();
+            if (!size) { return std::unexpected(size.error()); }
+            const auto nbytes_expected = static_cast<int64_t>(*size);
 
             if (nbytes_expected > CMD_PAYLOAD_BUFFER_LEN) {
                 log<ERROR>("TCPSocket: dynamic container payload too large\n");
-                return -1;
+                return std::unexpected(DecodeError::too_large);
             }
 
             if (nbytes_expected % static_cast<int64_t>(sizeof(T)) != 0) {
                 log<ERROR>("TCPSocket: dynamic container payload size is not element-aligned\n");
-                return -1;
+                return std::unexpected(DecodeError::misaligned);
             }
 
             const auto length = nbytes_expected / static_cast<int64_t>(sizeof(T));
 
-            c.resize(static_cast<std::size_t>(length));
-
-            const auto nbytes_read = read_exact(
-                comm_fd,
-                std::as_writable_bytes(
-                    std::span{c.data(), static_cast<std::size_t>(length)}
-                )
-            );
+            ssize_t nbytes_read;
+            if constexpr (std::same_as<R, std::string>) {
+                c.resize_and_overwrite(static_cast<std::size_t>(length), [&](char* data, std::size_t) {
+                    nbytes_read = read_exact(comm_fd, std::as_writable_bytes(
+                        std::span{data, static_cast<std::size_t>(length)}));
+                    return nbytes_read > 0 ? static_cast<std::size_t>(nbytes_read) : 0;
+                });
+            } else {
+                c.resize(static_cast<std::size_t>(length));
+                nbytes_read = read_exact(comm_fd, std::as_writable_bytes(
+                    std::span{c.data(), static_cast<std::size_t>(length)}));
+            }
 
             if (nbytes_read < 0) {
-                return -1;
+                return std::unexpected(DecodeError::io);
             }
 
             if (nbytes_read == 0) {
@@ -229,12 +240,12 @@ class Command
                 }
 
                 log<ERROR>("TCPSocket: incomplete dynamic container payload\n");
-                return -1;
+                return std::unexpected(DecodeError::disconnected);
             }
 
             if (nbytes_read != nbytes_expected) {
                 log<ERROR>("TCPSocket: incomplete dynamic container payload\n");
-                return -1;
+                return std::unexpected(DecodeError::truncated);
             }
 
             session->rx_tracker.update(nbytes_read + sizeof(uint32_t));
@@ -247,7 +258,7 @@ class Command
 
             if (sizeof(uint32_t) > payload.remaining(payload_valid_bytes)) {
                 log<ERROR>("WebSocket::rcv dynamic container: Missing payload length\n");
-                return -1;
+                return std::unexpected(DecodeError::truncated);
             }
 
             const auto [length] = payload.deserialize<uint32_t>();
@@ -255,24 +266,24 @@ class Command
 
             if (length > CMD_PAYLOAD_BUFFER_LEN) {
                 log<ERROR>("WebSocket::rcv dynamic container: Payload size overflow\n");
-                return -1;
+                return std::unexpected(DecodeError::too_large);
             }
 
             if (length > remaining) {
                 log<ERROR>("WebSocket::rcv dynamic container: Malformed payload length\n");
-                return -1;
+                return std::unexpected(DecodeError::truncated);
             }
 
             if (length % sizeof(T) != 0) {
                 log<ERROR>("WebSocket::rcv dynamic container: Payload size is not element-aligned\n");
-                return -1;
+                return std::unexpected(DecodeError::misaligned);
             }
 
             payload.to_container(c, length);
             session->rx_tracker.update(length);
             return 0;
         } else {
-            return -1;
+            return std::unexpected(DecodeError::invalid_transport);
         }
     }
 
