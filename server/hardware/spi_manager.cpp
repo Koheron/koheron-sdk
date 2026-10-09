@@ -57,6 +57,8 @@ int SpiDev::init(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
     if (set_mode(mode_) < 0 ||
         set_speed(speed_) < 0 ||
         set_word_length(word_length_) < 0) {
+        // A partially configured device must not be advertised as ready.
+        ::close(std::exchange(fd, -1));
         return -1;
     }
 
@@ -69,13 +71,12 @@ int SpiDev::set_mode(uint8_t mode_) {
         return -1;
     }
 
-    mode = mode_;
-
-    if (::ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_MODE, &mode_) < 0) {
         logf<ERROR>("SPI_IOC_WR_MODE({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
+    mode = mode_;
     return 0;
 }
 
@@ -84,13 +85,12 @@ int SpiDev::set_full_mode(uint32_t mode32_) {
         return -1;
     }
 
-    mode32 = mode32_;
-
-    if (::ioctl(fd, SPI_IOC_WR_MODE32, &mode32) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_MODE32, &mode32_) < 0) {
         logf<ERROR>("SPI_IOC_WR_MODE32({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
+    mode32 = mode32_;
     return 0;
 }
 
@@ -99,13 +99,12 @@ int SpiDev::set_speed(uint32_t speed_) {
         return -1;
     }
 
-    speed = speed_;
-
-    if (::ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed_) < 0) {
         logf<ERROR>("SPI_IOC_WR_MAX_SPEED_HZ({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
+    speed = speed_;
     return 0;
 }
 
@@ -114,18 +113,17 @@ int SpiDev::set_word_length(uint8_t word_length_) {
         return -1;
     }
 
-    word_length = word_length_;
-
-    if (::ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length) < 0) {
+    if (::ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_length_) < 0) {
         logf<ERROR>("SPI_IOC_WR_BITS_PER_WORD({}): {}\n", devname, std::strerror(errno));
         return -1;
     }
 
+    word_length = word_length_;
     return 0;
 }
 
 int SpiDev::recv(std::span<uint8_t> buffer) {
-    if (!is_ok()) {
+    if (!is_ok() || buffer.size() > INT_MAX) {
         return -1;
     }
 
@@ -154,6 +152,9 @@ int SpiDev::recv(std::span<uint8_t> buffer) {
 }
 
 int SpiDev::recv(uint8_t* buffer, size_t n_bytes) {
+    if (n_bytes > INT_MAX || (n_bytes != 0 && buffer == nullptr)) {
+        return -1;
+    }
     return recv(std::span<uint8_t>(buffer, n_bytes));
 }
 
@@ -169,10 +170,15 @@ int SpiDev::transfer(std::span<const uint8_t> tx, std::span<uint8_t> rx) {
     }
 
     const size_t len = tx.empty() ? rx.size() : tx.size();
+    // spidev reports message lengths as int. Do not truncate a size_t to u32.
+    if (len > INT_MAX) { return -1; }
+    if (len == 0) { return 0; }
 
     spi_ioc_transfer tr{};
-    tr.tx_buf = reinterpret_cast<__u64>(tx.data());
-    tr.rx_buf = reinterpret_cast<__u64>(rx.data());
+    // Empty spans may retain a non-null data pointer; the kernel uses null
+    // pointers, not span lengths, to identify an unused transfer direction.
+    tr.tx_buf = tx.empty() ? 0 : reinterpret_cast<__u64>(tx.data());
+    tr.rx_buf = rx.empty() ? 0 : reinterpret_cast<__u64>(rx.data());
     tr.len    = static_cast<__u32>(len);
     tr.speed_hz      = speed;        // kernel uses current if 0; we set it
     tr.bits_per_word = word_length;  // likewise
@@ -181,6 +187,9 @@ int SpiDev::transfer(std::span<const uint8_t> tx, std::span<uint8_t> rx) {
 }
 
 int SpiDev::transfer(uint8_t* tx_buff, uint8_t* rx_buff, size_t len) {
+    if (len > INT_MAX || (len != 0 && tx_buff == nullptr && rx_buff == nullptr)) {
+        return -1;
+    }
     return transfer(
         std::span<const uint8_t>(tx_buff, tx_buff ? len : 0),
         std::span<uint8_t>(rx_buff, rx_buff ? len : 0)
