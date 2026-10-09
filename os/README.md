@@ -28,6 +28,20 @@ The image manifest records source tags separately from `vivado`, `vivado_build`,
 Unavailable values produce a warning and `unknown`. This identifies the selected
 tools, not the history of cached artifacts; rebuild artifacts after changing tools.
 
+The image uses glibc's built-in `C.UTF-8` locale. UTF-8 text remains supported,
+with C sorting and formatting conventions. To use another locale, install
+`locales`, generate the desired locale and run `update-locale`. Image finalization
+removes APT caches and package documentation, including files already present in
+Ubuntu Base, while retaining copyright notices and runtime encoding data.
+
+uWSGI starts eagerly alongside other services and automatically inherits the
+Unix socket from systemd. Its Python initialization does not gate `basic.target`.
+The IP LED helper waits for an IPv4 address on `end0` or legacy `eth0` in the
+background, including when DHCP arrives after boot. It does not pull in
+`network-online.target`. A completed boot does not imply that DHCP or the web API
+is already ready; measure those separately. The helper does not monitor later
+address changes after displaying the IP.
+
 ## Runtime FPGA loading
 
 Runtime instrument overlays describe devices only. The server removes the previous

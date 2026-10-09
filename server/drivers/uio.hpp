@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <thread>
+#include <mutex>
 #include <functional>
 #include <filesystem>
 #include <fstream>
@@ -20,6 +21,7 @@
 #include <string_view>
 
 #include <sys/mman.h>
+#include <sys/eventfd.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
@@ -30,15 +32,22 @@ class Uio
   public:
     Uio() = default;
 
-    // Non-copyable, movable (unique FD owner)
+    // Owner-thread moves stop listeners, then transfer the FD and mapping.
+    // Do not move/destroy the object from its own callback.
     Uio(const Uio&) = delete;
     Uio& operator=(const Uio&) = delete;
-    Uio(Uio&& other) noexcept : fd_(std::exchange(other.fd_, -1)) {}
+    Uio(Uio&& other) noexcept { *this = std::move(other); }
 
     Uio& operator=(Uio&& other) noexcept {
         if (this != &other) {
+            unlisten();
+            other.unlisten();
+            unmap();
             close_fd();
             fd_ = std::exchange(other.fd_, -1);
+            cancel_fd_ = std::exchange(other.cancel_fd_, -1);
+            map_base_ = std::exchange(other.map_base_, MAP_FAILED);
+            map_len_ = std::exchange(other.map_len_, 0);
         }
 
         return *this;
@@ -109,6 +118,8 @@ class Uio
             return -1;
         }
 
+        unlisten();
+        unmap();
         close_fd();
         fd_ = new_fd;
         return fd_;
@@ -142,21 +153,7 @@ class Uio
 
     template<class Rep, class Period>
     int wait_for_irq(std::chrono::duration<Rep, Period> timeout) {
-        using namespace std::chrono;
-        // Map "infinite" to -1
-        const auto ms = duration_cast<milliseconds>(timeout);
-        int tmo;
-
-        if (ms == milliseconds::max()) {
-            tmo = -1;
-        } else {
-            const auto clamped = ms.count() > static_cast<long long>(INT_MAX)
-                               ? static_cast<long long>(INT_MAX)
-                               : (ms.count() < 0 ? 0LL : ms.count());
-            tmo = static_cast<int>(clamped);
-        }
-
-        return wait_for_irq_impl(tmo);
+        return wait_for_irq_impl<false>(poll_timeout(timeout));
     }
 
     template <class Fn>
@@ -167,12 +164,13 @@ class Uio
             return false;
         }
 
-        if (running_.exchange(true)) {
+        if (running_) {
             logf<ERROR>("Uio: on_irq already running\n");
             return false;
         }
 
-        // Owner-side listen/unlisten calls are serialized. A callback may cancel
+        // Owner-side lifecycle calls are serialized. After listen returns,
+        // cancel may also be called by another thread. A callback may cancel
         // or unlisten, but the owner must outlive it and perform the final join.
         if (worker_.joinable()) {
             if (worker_.get_id() == std::this_thread::get_id()) {
@@ -180,7 +178,6 @@ class Uio
                 return false;
             }
             worker_.join();
-            running_ = true;
         }
 
         // Preserve the existing empty std::function rejection when adapting it
@@ -195,15 +192,27 @@ class Uio
             return false;
         }
 
+        // Serialize restart with a concurrent cancel so an old wakeup cannot
+        // arrive after we drain the descriptor and start the next worker.
+        std::lock_guard cancel_lock(cancel_mutex_);
+        // Only asynchronous listeners need a wakeup descriptor. Reuse it on
+        // restart, draining the previous cancellation after joining the worker.
+        if (!prepare_cancellation()) {
+            running_ = false;
+            return false;
+        }
+
         // Arm before entering the loop so the first IRQ can arrive.
         if (!arm_irq()) {
             running_ = false;
             return false;
         }
 
-        worker_ = std::thread([this, timeout, cb = std::move(cb)]() mutable {
+        running_ = true;
+        worker_ = std::thread([this, tmo = poll_timeout(timeout), cb = std::move(cb)]() mutable {
             while (running_) {
-                const int rc = wait_for_irq(timeout);
+                const int rc = wait_for_irq_impl<true>(tmo);
+                if (!running_) { break; } // Cancellation is not a timeout callback.
 
                 if (rc <= 0) { // Error or Timeout
                     cb(rc);
@@ -228,7 +237,7 @@ class Uio
 
     // Stop the async loop and join the thread.
     void unlisten() {
-        running_ = false;
+        cancel();
 
         if (worker_.joinable()) {
             if (std::this_thread::get_id() == worker_.get_id()) {
@@ -240,7 +249,17 @@ class Uio
         }
     }
 
-    void cancel() noexcept { running_.store(false); }
+    // Request asynchronous cancellation; unlisten() also joins the worker.
+    void cancel() noexcept {
+        std::lock_guard cancel_lock(cancel_mutex_);
+        if (running_.exchange(false) && cancel_fd_ >= 0) {
+            const uint64_t wake = 1;
+            ssize_t rc;
+            do { rc = ::write(cancel_fd_, &wake, sizeof(wake)); }
+            while (rc < 0 && errno == EINTR);
+            // EAGAIN means a wakeup is already pending; never block cancellation.
+        }
+    }
     bool is_running() const noexcept { return running_.load(); }
 
     // ------------------------------------------------------------------------
@@ -293,10 +312,12 @@ class Uio
     static constexpr std::string_view mem_name = mem::get_name(uio_mem);
 
     int fd_ = -1;
+    int cancel_fd_ = -1;
 
     // Worker thread for asynchrous API
     std::thread worker_;
     std::atomic<bool> running_{false};
+    std::mutex cancel_mutex_; // Never held while joining or invoking callbacks.
 
     // Memory map
     void* map_base_ = MAP_FAILED;
@@ -307,8 +328,42 @@ class Uio
             ::close(fd_);
             fd_ = -1;
         }
+        if (cancel_fd_ >= 0) {
+            ::close(cancel_fd_);
+            cancel_fd_ = -1;
+        }
     }
 
+    template<class Rep, class Period>
+    static int poll_timeout(std::chrono::duration<Rep, Period> timeout) {
+        using namespace std::chrono;
+        if (timeout < timeout.zero()) { return -1; }
+        const auto ms = duration_cast<milliseconds>(timeout);
+        if (ms == milliseconds::max()) { return -1; }
+        return ms.count() > INT_MAX ? INT_MAX : static_cast<int>(ms.count());
+    }
+
+    bool prepare_cancellation() {
+        if (cancel_fd_ < 0) {
+            cancel_fd_ = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+            if (cancel_fd_ < 0) {
+                logf<ERROR>("Uio: eventfd: {}\n", std::strerror(errno));
+                return false;
+            }
+        } else {
+            uint64_t pending;
+            ssize_t rc;
+            do { rc = ::read(cancel_fd_, &pending, sizeof(pending)); }
+            while (rc < 0 && errno == EINTR);
+            if (rc < 0 && errno != EAGAIN) {
+                logf<ERROR>("Uio: drain cancellation: {}\n", std::strerror(errno));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    template<bool Cancellable>
     int wait_for_irq_impl(int timeout_ms) {
         if (fd_ < 0) {
             logf<ERROR>("Uio: wait_for_irq on invalid fd\n");
@@ -318,7 +373,19 @@ class Uio
         struct pollfd pfd{fd_, POLLIN, 0};
 
         for (;;) {
-            int pr = ::poll(&pfd, 1, timeout_ms);
+            int pr;
+            if constexpr (Cancellable) {
+                if (!running_) { return 0; }
+                struct pollfd pfds[2]{pfd, {cancel_fd_, POLLIN, 0}};
+                pr = ::poll(pfds, 2, timeout_ms);
+                pfd.revents = pfds[0].revents;
+                if (pr > 0) {
+                    if (pfds[1].revents & POLLIN) { return 0; }
+                    if (pfds[1].revents & (POLLERR | POLLHUP | POLLNVAL)) { return -1; }
+                }
+            } else {
+                pr = ::poll(&pfd, 1, timeout_ms);
+            }
             if (pr < 0 && errno == EINTR) {
                 continue; // retry on signal
             }

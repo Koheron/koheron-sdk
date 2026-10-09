@@ -24,14 +24,9 @@ PrecisionAdc::PrecisionAdc()
     set_filter(setup_idx);
     set_adc_control();
 
-    start_adc_acquisition();
-}
-
-PrecisionAdc::~PrecisionAdc() {
-    adc_acquisition_started = false;
-    if (adc_read_thread.joinable()) {
-        adc_read_thread.join();
-    }
+    adc_read_thread = std::jthread([this](std::stop_token stop) {
+        adc_acquisition_thread(stop);
+    });
 }
 
 uint32_t PrecisionAdc::read(uint32_t address, uint32_t len) {
@@ -114,18 +109,10 @@ void PrecisionAdc::set_filter(int32_t setup_idx) {
             + (SINGLE_CYCLE << 16) + (0 << 11) + (FS << 0), 3);
 }
 
-void PrecisionAdc::start_adc_acquisition() {
-    if (! adc_acquisition_started) {
-        analog_inputs_data.fill(0.0);
-        adc_acquisition_started = true;
-        adc_read_thread = std::thread{&PrecisionAdc::adc_acquisition_thread, this};
-    }
-}
-
-void PrecisionAdc::adc_acquisition_thread() {
+void PrecisionAdc::adc_acquisition_thread(std::stop_token stop) {
     using namespace std::chrono_literals;
 
-    while (adc_acquisition_started) {
+    while (!stop.stop_requested()) {
         constexpr uint8_t cmd_byte = static_cast<uint8_t>((0u << 7) | (1u << 6) | (0x02u & 0x3Fu));
         std::array<uint8_t, 5> tx{};  // [cmd, dmy, dmy, dmy, dmy]
         std::array<uint8_t, 5> rx{};  // [dmy, b1,  b2,  b3,  ch ]

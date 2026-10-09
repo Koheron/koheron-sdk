@@ -9,6 +9,7 @@
 #include "server/hardware/system_ram.hpp"
 #include "server/drivers/uio.hpp"
 
+#include <cerrno>
 #include <cstdio>
 #include <cstdint>
 #include <tuple>
@@ -51,25 +52,20 @@ class Memory
     {}
 
     ~Memory() {
-        if constexpr (is_uio) {
-            if (uio_) {
-                uio_->unmap(); // Uio<> dtor closes the fd
-            }
-        } else {
+        // Uio owns its mapping and descriptor. Fallback mappings are owned here.
+        if (!uio_) {
             if (is_opened) {
-                const std::size_t pg = page_size();
-                const std::size_t delta = phys_addr & (pg - 1);
-                const std::size_t len = align_up(size + delta, pg);
-                ::munmap(mapped_base, len);
-
-                if (dev_fd >= 0) {
-                    ::close(dev_fd);
-                }
+                ::munmap(mapped_base, mapped_length);
+            }
+            if (dev_fd >= 0) {
+                ::close(dev_fd);
             }
         }
     }
 
     int open() {
+        // Keep existing pointers and mappings valid when initialization is retried.
+        if (is_opened) { return dev_fd; }
         logf("Memory[{}]: Opening {}\n", name, device);
 
         if constexpr (device.starts_with("/dev/mem_wc")) {
@@ -85,6 +81,7 @@ class Memory
             uio_.emplace();
 
             if (uio_->open() < 0) {
+                uio_.reset();
                 return open_via_devmem_fallback();
             }
 
@@ -92,6 +89,7 @@ class Memory
 
             if (!p) {
                 logf<ERROR>("Memory[{}]: UIO mmap failed\n", name);
+                uio_.reset();
                 return -1;
             }
 
@@ -101,7 +99,7 @@ class Memory
             dev_fd = uio_->fd();
             return dev_fd;
         } else {
-            const auto fd = ::open(device.data(), O_RDWR | O_SYNC);
+            const auto fd = ::open(device.data(), O_RDWR | O_SYNC | O_CLOEXEC);
 
             if (fd == -1) {
                 logf<ERROR>("Memory[{}]: Can't open {}\n", name, device);
@@ -394,6 +392,7 @@ class Memory
     uintptr_t base_address;  ///< Virtual memory base address of the driver
     bool is_opened;
     int dev_fd = -1;
+    std::size_t mapped_length = 0;
 
     std::optional<Uio<id>> uio_; // only used when device == "/dev/uio"
 
@@ -409,14 +408,17 @@ class Memory
         }
 
         const std::size_t len = align_up(size + delta, pg);
-        mapped_base = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
+        void* p = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
 
-        if (mapped_base == MAP_FAILED) {
-            is_opened = false;
-            mapped_base = nullptr;
+        if (p == MAP_FAILED) {
+            const int error = errno;
+            ::close(fd);
+            errno = error;
             return -1;
         }
 
+        mapped_base = p;
+        mapped_length = len;
         is_opened = true;
         base_address = reinterpret_cast<uintptr_t>(mapped_base) + delta;
         dev_fd = fd;
@@ -425,7 +427,7 @@ class Memory
 
     int open_via_devmem_fallback() {
         logf("Memory[{}]: Fallback to /dev/mem\n", name);
-        const int fdm = ::open("/dev/mem", O_RDWR | O_SYNC);
+        const int fdm = ::open("/dev/mem", O_RDWR | O_SYNC | O_CLOEXEC);
 
         if (fdm < 0) {
             return -1;

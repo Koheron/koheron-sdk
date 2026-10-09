@@ -16,7 +16,7 @@
 #include <unordered_map>
 #include <span>
 #include <string_view>
-#include <cassert>
+#include <climits>
 
 #include <linux/spi/spidev.h>
 
@@ -51,6 +51,11 @@ class SpiDev
 
     template<typename T>
     int write(const T* buffer, uint32_t len) {
+        // The byte count must fit both the kernel request and our int result.
+        // Check before multiplying, including on 32-bit hosts.
+        if (len > INT_MAX / sizeof(T) || (len != 0 && buffer == nullptr)) {
+            return -1;
+        }
         const uint8_t* p = reinterpret_cast<const uint8_t*>(buffer);
         return write_u8(p, size_t(len) * sizeof(T));
     }
@@ -90,22 +95,21 @@ class SpiDev
     int transfer(const std::array<uint8_t, Nt>& tx,
                  std::array<uint8_t, Nr>& rx,
                  std::size_t count) {
-        assert(count <= Nt && "count exceeds tx size");
-        assert(count <= Nr && "count exceeds rx size");
+        if (count > Nt || count > Nr) { return -1; }
         return transfer(std::span<const uint8_t>(tx.data(), count),
                         std::span<uint8_t>(rx.data(), count));
     }
 
     template<std::size_t N>
     int transfer(const std::array<uint8_t, N>& tx, std::size_t count) {
-        assert(count <= N && "count exceeds tx size");
+        if (count > N) { return -1; }
         return transfer(std::span<const uint8_t>(tx.data(), count),
                         std::span<uint8_t>());
     }
 
     template<std::size_t N>
     int transfer(std::array<uint8_t, N>& rx, std::size_t count) {
-        assert(count <= N && "count exceeds rx size");
+        if (count > N) { return -1; }
         return transfer(std::span<const uint8_t>(),
                         std::span<uint8_t>(rx.data(), count));
     }

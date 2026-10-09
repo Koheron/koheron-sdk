@@ -26,6 +26,7 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
     {}
 
     int open() {
+        failed_maps.clear();
         // Expand over all ids...
         ( [&]{
             if (std::get<ids>(mem_maps).open() < 0) {

@@ -34,6 +34,7 @@ force-unsafe-io
 EOF_DPKG_IO
 cat > /etc/dpkg/dpkg.cfg.d/01_nodoc <<'EOF_NODOC'
 path-exclude=/usr/share/doc/*
+path-include=/usr/share/doc/*/copyright
 path-exclude=/usr/share/man/*
 path-exclude=/usr/share/info/*
 path-exclude=/usr/share/locale/*
@@ -81,15 +82,13 @@ install -D -m0644 /dev/null /etc/modules
 
 # Do not build from stale indexes when a repository refresh only partly succeeds.
 apt-get update --error-on=any
-apt-get -yq -o Dpkg::Use-Pty=0 install --no-install-recommends locales eatmydata tzdata
+apt-get -yq -o Dpkg::Use-Pty=0 install --no-install-recommends eatmydata tzdata
 
 # systemd-related system users (tmpfiles expects them)
 getent group systemd-journal >/dev/null 2>&1 || groupadd --system systemd-journal
 id -u systemd-network >/dev/null 2>&1 || useradd --system --home /run/systemd/network --no-create-home --user-group systemd-network
 
-# Locale & timezone
-locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8
+# Timezone
 echo "$TIMEZONE" > /etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
@@ -101,6 +100,10 @@ eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
   lsb-base sudo rsync kmod nginx \
   python3-flask uwsgi-core uwsgi-plugin-python3 python3-simplejson python3-systemd\
   iproute2
+
+# glibc provides C.UTF-8 without the locales package or a generated archive.
+# Set it after installing systemd, which migrates /etc/default/locale.
+printf 'LANG=C.UTF-8\n' > /etc/default/locale
 
 # Clean & hygiene
 eatmydata apt-get clean

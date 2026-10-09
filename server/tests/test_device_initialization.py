@@ -5,6 +5,7 @@ import shlex
 import subprocess
 import tempfile
 import unittest
+from uio_fixture import prepare_uio_fixture
 ROOT = Path(__file__).resolve().parents[2]
 
 class DeviceInitializationTest(unittest.TestCase):
@@ -33,25 +34,7 @@ class DeviceInitializationTest(unittest.TestCase):
     def test_move_only_uio_callback_lifetime(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root/'sys/uio0/maps/map0').mkdir(parents=True)
-            (root/'sys/uio0/maps/map0/addr').write_text('0x1000\n')
-            (root/'dev').mkdir()
-            # Redirect only fixed discovery roots; use the production UIO code.
-            source = (ROOT/'server/drivers/uio.hpp').read_text()
-            self.assertEqual(source.count('"/sys/class/uio"'), 1)
-            self.assertEqual(source.count('fs::path("/dev")'), 1)
-            source = source.replace('"/sys/class/uio"', '"'+str(root/'sys')+'"')
-            source = source.replace('fs::path("/dev")', 'fs::path("'+str(root/'dev')+'")')
-            header = root/'server/drivers/uio.hpp'
-            header.parent.mkdir(parents=True)
-            header.write_text(source)
-            (root/'memory.hpp').write_text('''#pragma once
-#include <array>
-#include <tuple>
-#include <string_view>
-constexpr auto memory_array = std::array{std::tuple{uintptr_t{0x1000}, uint32_t{4096},
-uint32_t{3}, uint32_t{1}, std::string_view{"uio"}, std::string_view{"test"}}};
-''')
+            prepare_uio_fixture(root)
             self.compile_run(['server/tests/uio_callbacks.cpp'], includes=[root], args=[root])
 
 if __name__ == '__main__':

@@ -70,6 +70,15 @@ jobs:
           python3 -m unittest discover -s server/tests -p test_driver_shutdown.py -v
           python3 -m unittest discover -s server/tests -p test_config_files.py -v
           python3 -m unittest discover -s server/tests -p test_device_initialization.py -v
+          CXXFLAGS="$CXXFLAGS -D_FILE_OFFSET_BITS=64" python3 -m unittest discover -s server/tests -p test_memory_lifecycle.py -v
+          python3 -m unittest discover -s server/tests -p test_spi_transfers.py -v
+          python3 -m unittest discover -s server/tests -p test_i2c_transfers.py -v
+          python3 -m unittest discover -s server/tests -p test_xadc_monitoring.py -v
+          python3 -m unittest discover -s server/tests -p test_uio_waits.py -v
+          python3 -m unittest discover -s server/tests -p test_precision_adc_lifetime.py -v
+          python3 -m unittest discover -s server/tests -p test_power_monitor.py -v
+          python3 -m unittest discover -s server/tests -p test_eeprom_pages.py -v
+          CXXFLAGS="$CXXFLAGS -fsanitize=float-cast-overflow" python3 -m unittest discover -s server/tests -p test_precision_dac.py -v
           python3 -m unittest discover -s server/tests -p 'test_websocket*.py' -v
           python3 -m unittest discover -s server/tests -p test_mixed_reply.py -v
 

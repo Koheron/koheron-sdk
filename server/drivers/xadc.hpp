@@ -9,8 +9,10 @@
 #include <algorithm>
 #include <iterator>
 
-/// http://www.xilinx.com/support/documentation/user_guides/ug480_7Series_XADC.pdf
+/// https://docs.amd.com/r/en-US/ug480_7Series_XADC/Status-Registers
 namespace Xadc_regs {
+    // UG480: the 12-bit ADC code occupies the high bits of a 16-bit register.
+    constexpr double full_scale    = 65536.0;
     constexpr uint32_t set_chan     = 0x324;
     constexpr uint32_t avg_en       = 0x32C;
     constexpr uint32_t read         = 0x240;
@@ -68,37 +70,37 @@ class Xadc
     }
 
   float get_temperature() {
-    float ret = (xadc.read<Xadc_regs::TEMP>() * 503.975) / 65356 - 273.15;
+    float ret = (xadc.read<Xadc_regs::TEMP>() * 503.975) / Xadc_regs::full_scale - 273.15;
     return ret;
   }
   // return FPGA PL Vccint voltage
   float get_PlVccInt() {
-    return (xadc.read<Xadc_regs::PLVCCINT>() * 3.0) / 65356;
+    return (xadc.read<Xadc_regs::PLVCCINT>() * 3.0) / Xadc_regs::full_scale;
   }
 
   // return FPGA PL Vccaux voltage
   float get_PlVccAux() {
-    return (xadc.read<Xadc_regs::PLVCCAUX>() * 3.0) / 65356;
+    return (xadc.read<Xadc_regs::PLVCCAUX>() * 3.0) / Xadc_regs::full_scale;
   }
 
   // return FPGA PL Vbram voltage
   float get_PlVccBram() {
-    return (xadc.read<Xadc_regs::PLVCCBRAM>() * 3.0) / 65356;
+    return (xadc.read<Xadc_regs::PLVCCBRAM>() * 3.0) / Xadc_regs::full_scale;
   }
 
   // return FPGA PS Vccint voltage
   float get_PsVccInt() {
-    return (xadc.read<Xadc_regs::PSVCCINT>() * 3.0) / 65356;
+    return (xadc.read<Xadc_regs::PSVCCINT>() * 3.0) / Xadc_regs::full_scale;
   }
 
   // return FPGA PS Vccaux voltage
   float get_PsVccAux() {
-    return (xadc.read<Xadc_regs::PSVCCAUX>() * 3.0) / 65356;
+    return (xadc.read<Xadc_regs::PSVCCAUX>() * 3.0) / Xadc_regs::full_scale;
   }
 
   // return FPGA PS Vccmem voltage
   float get_PsVccMem() {
-    return (xadc.read<Xadc_regs::PSVCCMEM>() * 3.0) / 65356;
+    return (xadc.read<Xadc_regs::PSVCCMEM>() * 3.0) / Xadc_regs::full_scale;
   }
 
  private:
