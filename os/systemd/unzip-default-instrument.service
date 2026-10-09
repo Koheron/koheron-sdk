@@ -3,7 +3,8 @@ Description=Unzip default instrument to /tmp/live-instrument
 DefaultDependencies=no
 Requires=tmp.mount
 After=systemd-remount-fs.service tmp.mount local-fs.target
-Before=basic.target
+Before=shutdown.target
+Conflicts=shutdown.target
 
 [Service]
 Type=oneshot
@@ -11,4 +12,4 @@ ExecStart=/bin/bash /usr/local/instruments/unzip_default_instrument.sh
 RemainAfterExit=yes
 
 [Install]
-WantedBy=basic.target
+WantedBy=multi-user.target

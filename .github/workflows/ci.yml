@@ -31,6 +31,12 @@ jobs:
         run: python3 -m unittest discover -s os/tests -p test_toolchain_manifest.py
       - name: Test kernel and device-tree compiler dependencies
         run: python3 -m unittest discover -s os/tests -p test_linux_make.py
+      - name: Test systemd enablement and startup ordering
+        run: |
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          sudo systemctl start "user@$(id -u).service"
+          systemctl --user show-environment > /dev/null
+          /usr/bin/python3 -m unittest discover -s os/tests -p test_systemd_startup.py -v
       - name: Validate instrument configurations
         run: |
           count=0

@@ -37,13 +37,15 @@ sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 
 # ---- Enable services (create symlinks even in chroot) ----
-systemctl enable uwsgi
+# Recreate these links: older images enabled the services under basic.target.
+# Merely enabling them again leaves those old dependencies behind.
+systemctl reenable uwsgi
 systemctl enable uwsgi.socket
 systemctl enable grow-rootfs-once.service
-systemctl enable unzip-default-instrument
-systemctl enable koheron-server
+systemctl reenable unzip-default-instrument
+systemctl reenable koheron-server
 systemctl enable koheron-server-init
-systemctl enable nginx
+systemctl reenable nginx
 systemctl enable systemd-networkd.service
 systemctl enable systemd-resolved.service
 systemctl enable systemd-timesyncd.service
