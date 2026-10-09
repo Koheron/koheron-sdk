@@ -67,6 +67,8 @@ jobs:
           CXXFLAGS: -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -g -no-pie
         run: |
           python3 -m unittest discover -s server/tests -p test_driver_locking.py -v
+          python3 -m unittest discover -s server/tests -p test_config_files.py -v
+          python3 -m unittest discover -s server/tests -p test_device_initialization.py -v
           python3 -m unittest discover -s server/tests -p 'test_websocket*.py' -v
           python3 -m unittest discover -s server/tests -p test_mixed_reply.py -v
 
@@ -112,7 +114,7 @@ jobs:
         run: bash server/drivers/phase-noise/tests/run-host.sh
       - name: Check ALPHA15 acquisition snapshots with sanitizers
         run: |
-          "$CXX" -std=c++20 -Wall -Wextra -Werror -g -fsanitize=address,undefined \
+          "$CXX" -std=c++23 -Wall -Wextra -Werror -g -fsanitize=address,undefined \
             -fno-omit-frame-pointer -no-pie -I. -Iserver/external_libs -I/usr/include/eigen3 \
             examples/alpha15/signal-analyzer/tests/test_acquisition.cpp -o /tmp/alpha15-test-acquisition
           /tmp/alpha15-test-acquisition

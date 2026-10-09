@@ -13,6 +13,8 @@
 #include <vector>
 #include <atomic>
 #include <mutex>
+#include <expected>
+#include <system_error>
 
 #include "server/runtime/syslog.hpp"
 
@@ -73,7 +75,7 @@ class I2cDev
     std::atomic<int32_t> last_addr{-1};
     std::mutex mutex;
 
-    int init();
+    std::expected<void, std::error_code> init();
     int set_address(int32_t addr);
 
 friend class I2cManager;

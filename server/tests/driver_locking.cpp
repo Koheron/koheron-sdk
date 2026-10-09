@@ -365,13 +365,62 @@ void large_fixed_arrays() {
     check(LockingInstrument::calls == 1, "Large fixed-array invocation count");
 }
 
+// Expose the protected virtual through a member pointer without changing
+// production socket visibility or bypassing its real header decoder.
+struct SessionReader : net::Session { using net::Session::read_command; };
+int read_header(net::Session& session, net::Command& cmd) {
+    return (session.*&SessionReader::read_command)(cmd);
+}
+void checked_decode() {
+    using Error = net::Command::DecodeError;
+    net::Command unattached;
+    std::string value;
+    auto invalid = unattached.read_one_checked(value);
+    check(!invalid && invalid.error()==Error::invalid_transport, "transport error lost");
+    for (size_t length : {size_t(0),size_t(8),size_t(32),size_t(4096),size_t(65536)}) {
+        Connection<net::UNIX> connection(1, false);
+        auto bytes = command(0);
+        append_be(bytes,length,4);
+        std::string expected(length,'x');
+        for(size_t i=0;i<length;i+=7) expected[i]='\0';
+        bytes.insert(bytes.end(),expected.begin(),expected.end());
+        connection.send(bytes); connection.send(command(1));
+        net::Command cmd;
+        check(read_header(*connection.session,cmd)==8,"header");
+        std::string out;
+        check(cmd.read_one_checked(out).has_value() && out==expected,"string decode");
+        net::Command next;
+        check(read_header(*connection.session,next)==8 && next.operation==1,"next header consumed");
+        net::Buffer<65536> buffer;
+        std::memcpy(buffer.data(), expected.data(), length);
+        buffer.to_container(out,length);
+        check(out==expected && buffer.position_value()==length,"WebSocket string copy");
+    }
+    for(auto [length,error] : {std::pair{uint32_t(net::CMD_PAYLOAD_BUFFER_LEN+1),Error::too_large},
+                              std::pair{uint32_t(3),Error::misaligned}}) {
+        Connection<net::UNIX> connection(1,false);
+        auto bytes=command(0); append_be(bytes,length,4); connection.send(bytes);
+        net::Command cmd; check(read_header(*connection.session,cmd)==8,"header");
+        std::vector<uint32_t> out;
+        const auto result=cmd.read_one_checked(out);
+        check(!result && result.error()==error,"length error lost");
+    }
+    Connection<net::UNIX> truncated(1,false);
+    auto bytes=command(0); append_be(bytes,16,4); bytes.push_back('x'); truncated.send(bytes);
+    ::shutdown(truncated.client,SHUT_WR);
+    net::Command cmd; check(read_header(*truncated.session,cmd)==8,"header");
+    std::string out="old"; const auto result=cmd.read_one_checked(out);
+    check(!result && result.error()==Error::disconnected && out.empty(),"partial string published");
+}
+
 int main(int argc, char** argv) {
     try {
         check(argc == 2, "Expected test case");
         services::provide<rt::DriverManager>();
         services::provide<rt::IExecutor>(std::make_shared<koheron::Executor>());
         const std::string test = argv[1];
-        if (test == "tcp-input") stalled_input<net::TCP>(false);
+        if (test == "checked-decode") checked_decode();
+        else if (test == "tcp-input") stalled_input<net::TCP>(false);
         else if (test == "unix-input") stalled_input<net::UNIX>(false);
         else if (test == "dynamic-input") stalled_input<net::TCP>(true);
         else if (test == "tcp-output") stalled_output<net::TCP>(3);

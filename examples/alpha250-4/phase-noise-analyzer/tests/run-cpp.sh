@@ -14,7 +14,7 @@ mkdir -p "$output"
 "$output/phase_spectrum"
 "$PNA_TEST_CXX" "${flags[@]}" "$tests/test_single_window_spectrum.cpp" server/external_libs/pffft/pffft.cpp -o "$output/single_window_spectrum"
 "$output/single_window_spectrum"
-"$PNA_TEST_CXX" -std=c++20 -O2 -pthread -I. -Iserver/external_libs -I/usr/include/eigen3 \
+"$PNA_TEST_CXX" -std=c++23 -O2 -pthread -I. -Iserver/external_libs -I/usr/include/eigen3 \
     "$tests/check_cross_density.cpp" server/external_libs/pffft/pffft.cpp -o "$output/check_cross_density"
 "$PNA_TEST_CXX" "${flags[@]}" "$tests/test_decimation.cpp" -o "$output/decimation"
 "$output/decimation"

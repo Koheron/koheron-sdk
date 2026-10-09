@@ -392,7 +392,7 @@ environment with the Koheron client, NumPy and SciPy):
 bash examples/alpha250/phase-noise-analyzer/tests/run.sh
 ```
 
-Run the host regression from the repository root (Python 3 and a C++20 compiler):
+Run the host regression from the repository root (Python 3 and a C++23 compiler):
 
 ```sh
 CXX=g++-13 python3 examples/alpha250/phase-noise-analyzer/tests/test_phase_calibration.py

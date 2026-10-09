@@ -15,7 +15,7 @@ class FirmwareFilesTest(unittest.TestCase):
         cls.addClassCleanup(build.cleanup)
         cls.binary = Path(build.name) / 'firmware-files'
         subprocess.run([
-            os.environ.get('CXX', 'g++'), '-std=c++20', '-O2', '-Wall', '-Wextra',
+            os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall', '-Wextra',
             '-Werror', '-Wpedantic', '-fno-exceptions', '-I', str(ROOT),
             str(ROOT / 'server/tests/firmware_files.cpp'), '-o', str(cls.binary),
         ], check=True, timeout=60)

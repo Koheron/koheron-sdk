@@ -54,7 +54,7 @@ class SyslogTest(unittest.TestCase):
             variant.write_text(header.replace('constexpr bool verbose = false;',
                                                f'constexpr bool verbose = {str(verbose).lower()};'))
             binary = include_dir / 'syslog'
-            command = [os.environ.get('CXX', 'g++'), '-std=c++20', '-O2',
+            command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2',
                        '-Wall', '-Wextra', '-Werror', '-I', str(include_dir)]
             command += shlex.split(os.environ.get('CXXFLAGS', ''))
             subprocess.run(command + [str(source), '-o', str(binary)],

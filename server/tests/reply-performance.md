@@ -70,7 +70,7 @@ CXX=g++-13 python3 -m unittest discover -s server/tests -v
 Build the standalone CPU benchmark from an SDK checkout with Eigen available:
 
 ```sh
-g++-13 -std=c++20 -O3 -flto -fno-math-errno -pthread \
+g++-13 -std=c++23 -O3 -flto -fno-math-errno -pthread \
   -I. -Iserver/external_libs -I/usr/include/eigen3 \
   server/tests/benchmark_replies.cpp server/utilities/rate_tracker.cpp \
   -o tmp/reply-benchmark
@@ -100,3 +100,51 @@ The original board server, FPGA hash, analyzer settings, nominal LOs, precision
 and native DAC words were restored and verified after each comparison. Only
 Red Pitaya hardware was tested. Raw measurements, reversible scripts
 and build logs are in the ignored local directory `tmp/shared-critical-paths/`.
+
+## C++23 comparison
+
+On 2026-10-09, the C++23 migration was compared with V1 `a5948d2d` on an
+ALPHA250 using GCC 15, ARMv7 hard float, `-O3 -flto -fno-math-errno`, static
+linking and CPU 1 affinity. The existing instrument stayed running. Both builds
+used this benchmark; the baseline used C++20 and the candidate C++23 with
+`std::byteswap`. Baseline/candidate/candidate/baseline runs each measured the
+median of fifteen 100000-call batches. Averaging each pair of medians gave:
+
+| Reply shape | C++20 ns | C++23 ns | Change |
+| --- | ---: | ---: | ---: |
+| array | 3578.96 | 3571.32 | -0.21% |
+| vector | 3616.38 | 3614.19 | -0.06% |
+| scalar | 1844.45 | 1843.80 | -0.04% |
+| status | 1916.02 | 1917.72 | +0.09% |
+| nested | 1921.42 | 1920.98 | -0.02% |
+
+No measurable regression was observed in these reply workloads. Separate
+code-generation probes produced identical `.text` bytes for all sixteen scalar
+encode/decode functions (signed/unsigned 16/32/64-bit integers, float and double)
+on ARMv7, AArch64 and x86-64 with both GCC 13 and GCC 15. This comparison covers
+packing/accounting CPU cost, not end-to-end acquisition or network throughput.
+Raw measurements and probe sources are in `tmp/cpp23-performance/` locally.
+
+## Further C++23 use
+
+The follow-up was compared with `38a8eb92` on the same ALPHA250. GCC 15
+microbenchmarks used eleven batches per run and old/new/new/old ordering. Fresh
+string allocation/copy with `resize_and_overwrite` reduced CPU time by 8–53%
+over 8, 32, 256, 4096 and 65536-byte inputs (4 KiB: 3126 to 2058 ns).
+Move-only callback dispatch took 15.07 ns versus 18.54 ns for `std::function`.
+These isolate the changed mechanisms; they do not measure complete network
+request latency or physical interrupt delivery.
+
+The configuration container remains `std::map`. For 64 string keys, `flat_map`
+lookup took 1172 versus 1165 ns, while inserting and erasing a key near the
+beginning took 10643 versus 1864 ns. This workload did not justify switching.
+
+Fixed-size command batches keep their existing decoded tuple representation.
+The checked variable-length API exposes `std::expected` errors and uses
+expected internally. Fixed-size scalar and batch decoding retain the original
+implementation. A GCC 13 production-header decode/invoke/reply test
+over a local UNIX socket measured 42419 ns for the baseline and 42547 ns for
+the candidate, within observed between-run variation. Each binary ran eleven
+20000-command batches pinned to CPU 1, in baseline/candidate/candidate/baseline
+order. The instrument stayed active. Sources and raw measurements are stored
+locally in `tmp/cpp23-phase2/`.

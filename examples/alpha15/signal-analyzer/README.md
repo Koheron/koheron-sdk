@@ -68,7 +68,7 @@ The regression suite requires Node.js, `typescript` and `jsdom` (see
 
 ```sh
 bash web/tests/run.sh alpha15
-g++ -std=c++20 -Wall -Wextra -Werror -I. -Iserver/external_libs -I/usr/include/eigen3 \
+g++ -std=c++23 -Wall -Wextra -Werror -I. -Iserver/external_libs -I/usr/include/eigen3 \
     examples/alpha15/signal-analyzer/tests/test_acquisition.cpp \
     -o /tmp/alpha15-test-acquisition
 /tmp/alpha15-test-acquisition

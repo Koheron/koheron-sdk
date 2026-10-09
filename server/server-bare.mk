@@ -27,7 +27,7 @@ SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) \
 SERVER_CCXXFLAGS += -isystem /usr/include/eigen3
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
-SERVER_CCXXFLAGS += -std=c++20 -pthread
+SERVER_CCXXFLAGS += -std=c++23 -pthread
 
 # -----------------------------------------------------------------------------
 # Memory header from YAML
@@ -82,7 +82,7 @@ $(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/utilities/%.cpp | $(GEN_HEADERS)
 
 SERVER_COMPILER_STAMP := $(TMP_SERVER_PATH)/.compiler-settings
 $(eval $(call compiler_settings_stamp,$(SERVER_COMPILER_STAMP),$(GCC_ARCH)-g++-$(GCC_VERSION)))
-$(OBJ): $(SERVER_COMPILER_STAMP)
+$(OBJ): $(SERVER_COMPILER_STAMP) $(SERVER_PATH)/server-bare.mk
 
 $(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm

@@ -27,7 +27,7 @@ SERVER_CCXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/runtime -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
 SERVER_CCXXFLAGS += -O3 -fno-math-errno
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
-SERVER_CCXXFLAGS += -std=c++20 -pthread
+SERVER_CCXXFLAGS += -std=c++23 -pthread
 
 # -----------------------------------------------------------------------------
 # Memory header from YAML
@@ -72,6 +72,7 @@ HARDWARE_OBJ := $(TMP_SERVER_PATH)/spi_manager.o $(TMP_SERVER_PATH)/i2c_manager.
 APP_OBJ := $(TMP_SERVER_PATH)/main.o
 
 OBJ := $(APP_OBJ) $(SERVER_LIB_OBJ) $(DRIVERS_OBJ) $(HARDWARE_OBJ) $(SERVER_NET_OBJ)
+$(OBJ): $(APP_PATH)/app.mk
 DEP := $(subst .o,.d,$(OBJ))
 -include $(DEP)
 

@@ -120,7 +120,7 @@ available for checking completion and diagnosing rejected records.
 
 ```sh
 .venv/bin/python -m pytest examples/alpha250-4/adc-dma/tests -q
-g++ -std=c++20 -Wall -Wextra -Werror -fsanitize=address,undefined \
+g++ -std=c++23 -Wall -Wextra -Werror -fsanitize=address,undefined \
     -Iexamples/alpha250-4/adc-dma/tests/stubs \
     examples/alpha250-4/adc-dma/tests/test_driver.cpp -o /tmp/quad-dma-driver-test
 /tmp/quad-dma-driver-test

@@ -13,8 +13,11 @@
 #include <vector>
 #include <charconv>
 #include <system_error>
+#include <expected>
 
 namespace rt::cfg {
+
+using Result = std::expected<void, std::error_code>;
 
 struct ini {
     // data[section][key] = value
@@ -28,11 +31,11 @@ inline std::string trim(std::string_view v) {
     return std::string(l, r);
 }
 
-inline int load_ini(const std::filesystem::path& p, ini& out) {
+[[nodiscard]] inline Result load_ini(const std::filesystem::path& p, ini& out) {
     std::ifstream f(p);
 
     if (!f) {
-        return -1;
+        return std::unexpected(std::make_error_code(std::io_errc::stream));
     }
 
     std::string line, sect;
@@ -71,7 +74,10 @@ inline int load_ini(const std::filesystem::path& p, ini& out) {
         out.data[sect][k] = v;
     }
 
-    return 0;
+    if (f.bad() || !f.eof()) {
+        return std::unexpected(std::make_error_code(std::io_errc::stream));
+    }
+    return {};
 }
 
 template<class T>
@@ -243,15 +249,19 @@ inline void erase(ini& cfg,
 }
 
 // atomic save: write tmp + rename
-inline bool save_ini(const std::filesystem::path& p, const ini& in) {
+[[nodiscard]] inline Result save_ini(const std::filesystem::path& p, const ini& in) {
     namespace fs = std::filesystem;
 
-    fs::create_directories(p.parent_path());
+    std::error_code ec;
+    if (!p.parent_path().empty()) {
+        fs::create_directories(p.parent_path(), ec);
+        if (ec) { return std::unexpected(ec); }
+    }
     auto tmp = p; tmp += ".tmp";
     {
         std::ofstream f(tmp, std::ios::trunc);
         if (!f) {
-            return false;
+            return std::unexpected(std::make_error_code(std::io_errc::stream));
         }
 
         for (auto& [sec, kv] : in.data) {
@@ -266,15 +276,16 @@ inline bool save_ini(const std::filesystem::path& p, const ini& in) {
             f << "\n";
         }
 
-        f.flush();
+        f.close();
 
         if (!f) {
-            return false;
+            return std::unexpected(std::make_error_code(std::io_errc::stream));
         }
     }
 
-    fs::rename(tmp, p);
-    return true;
+    fs::rename(tmp, p, ec);
+    if (ec) { return std::unexpected(ec); }
+    return {};
 }
 
 } // namespace rt::cfg
