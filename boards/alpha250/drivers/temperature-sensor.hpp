@@ -9,7 +9,6 @@
 
 #include <array>
 #include <cstdint>
-#include <numeric>
 
 class TemperatureSensor
 {
@@ -25,11 +24,15 @@ class TemperatureSensor
 
     float get_zynq_temperature() {
         auto& xadc = hw::get_memory<mem::xadc>();
-        zynq_temp[i] = (xadc.read<0x200>() * 503.975) / 65356 - 273.15;
-        i = (i + 1) % n_avg;
-        float sum = 0;
-        sum = std::accumulate(zynq_temp.data(), zynq_temp.data()+n_avg, sum);
-        return sum/n_avg;
+        // Average the 16-bit register codes exactly, without floating-point
+        // drift or reading unfilled history. UG480 uses a 65536 full scale.
+        zynq_sum -= zynq_codes[i];
+        zynq_codes[i] = static_cast<uint16_t>(xadc.read<0x200>());
+        zynq_sum += zynq_codes[i];
+        if (++i == n_avg) { i = 0; }
+        if (zynq_count < n_avg) { ++zynq_count; }
+        const double mean_code = static_cast<double>(zynq_sum) / zynq_count;
+        return static_cast<float>(mean_code * (503.975 / 65536.0) - 273.15);
     }
 
   private:
@@ -38,7 +41,9 @@ class TemperatureSensor
 
     static constexpr uint32_t n_avg = 100;
     uint32_t i = 0;
-    std::array<float, n_avg> zynq_temp;
+    uint32_t zynq_count = 0;
+    uint32_t zynq_sum = 0; // At most 100 * 65535, safely within uint32_t.
+    std::array<uint16_t, n_avg> zynq_codes{};
 
     // http://www.ti.com/lit/ds/symlink/tmp116.pdf
     static constexpr uint8_t temperature_msb = 0;

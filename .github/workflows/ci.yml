@@ -71,6 +71,8 @@ jobs:
           python3 -m unittest discover -s server/tests -p test_device_initialization.py -v
           python3 -m unittest discover -s server/tests -p test_spi_transfers.py -v
           python3 -m unittest discover -s server/tests -p test_i2c_transfers.py -v
+          python3 -m unittest discover -s server/tests -p test_xadc_monitoring.py -v
+          python3 -m unittest discover -s server/tests -p test_uio_waits.py -v
           python3 -m unittest discover -s server/tests -p 'test_websocket*.py' -v
           python3 -m unittest discover -s server/tests -p test_mixed_reply.py -v
 
