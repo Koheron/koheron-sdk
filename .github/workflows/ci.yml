@@ -46,7 +46,7 @@ jobs:
 
   server-network:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       CXX: g++-13
     steps:
@@ -67,6 +67,7 @@ jobs:
           CXXFLAGS: -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -g -no-pie
         run: |
           python3 -m unittest discover -s server/tests -p test_driver_locking.py -v
+          python3 -m unittest discover -s server/tests -p test_driver_shutdown.py -v
           python3 -m unittest discover -s server/tests -p test_config_files.py -v
           python3 -m unittest discover -s server/tests -p test_device_initialization.py -v
           CXXFLAGS="$CXXFLAGS -D_FILE_OFFSET_BITS=64" python3 -m unittest discover -s server/tests -p test_memory_lifecycle.py -v

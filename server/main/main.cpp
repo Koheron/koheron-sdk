@@ -77,5 +77,10 @@ int main() {
     // ---------- Server ----------
 
     rt::provide_executor<koheron::Executor>();
-    return net::run_server("Koheron server ready\n");
+    const auto result = net::run_server("Koheron server ready\n");
+    // Listener shutdown has joined all sessions. Stop driver workers before
+    // the service registry releases their MMIO mappings and bus devices.
+    services::remove<rt::IExecutor>();
+    dm->shutdown();
+    return result;
 }
