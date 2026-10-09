@@ -278,7 +278,11 @@ The table simulation defaults to four-bit chunks, Q1.11 and three clocks.
 `DPLL_GAIN_BENCH_OUT` override its settings/output directory.
 The corrector benchmark's first argument selects fused (1) or separate (0).
 Optional final arguments set initial gain stages, final CSA levels, carry-block
-width, I2/I3 gain stages and optional I2/I3 carry-block width. **`2 2 0 3 16` is the current mixed pipeline**;
+width, I2/I3 gain stages and optional I2/I3 carry-block width. `2 2 0 3 16`
+reproduces the historical 16-bit carry-block experiment with legacy feedback widths.
+This benchmark wrapper retains legacy feedback widths; the current controller
+uses eight extra phase fraction bits and eight-bit I2/I3 carry blocks, checked
+by `tests/run-table-system.sh` and `tests/check_phase_feedback.tcl`.
 `2 2 0 3` reproduces the historical mixed pipeline before widening feedback;
 `3 0 0 3` reproduces the slower all-three-clock fallback. `2 2 0` selects the
 all-two-clock ripple-carry variant, which fails timing.

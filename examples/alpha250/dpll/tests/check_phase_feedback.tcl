@@ -45,7 +45,7 @@ foreach channel {0 1} {
     }
     if {[get_property CONFIG.FUSED_DIFFERENCE [get_bd_cells detector$channel/phase_unwrapper]] != 1} {error "Wrong phase difference pipeline"}
     if {[get_property CONFIG.CANONICAL_INPUT [get_bd_cells detector$channel/phase_unwrapper]] != 1} {error "Wrong canonical phase range"}
-    if {[get_property CONFIG.TAIL_CARRY_BLOCK [get_bd_cells controller$channel]] != 16} {error "Wrong gain carry blocks"}
+    if {[get_property CONFIG.TAIL_CARRY_BLOCK [get_bd_cells controller$channel]] != 8} {error "Wrong gain carry blocks"}
     if {[get_property CONFIG.PHASE_FRACTION_BITS [get_bd_cells controller$channel]] != 8} {error "Wrong gain scaling"}
 }
 validate_bd_design
