@@ -15,6 +15,18 @@ tools, not the history of cached artifacts; rebuild artifacts after changing too
 
 Image-build tests are in [tests/](./tests/); instrument loading tests are in [api/tests/](./api/tests/).
 
+## Runtime kernel features
+
+The Zynq and ZynqMP defconfigs build in Unix socket diagnostics for the packaged
+uWSGI backlog monitor, autofs, UTS/network namespaces, cgroup BPF and nftables for
+systemd services, and SysRq/Yama for the distribution's sysctl settings. These
+features are built in because the OS image does not install kernel modules.
+The kernel log buffer is 128 KiB to retain boot diagnostics before journald starts.
+
+After changing either defconfig, check the generated kernel `.config`, rebuild
+the OS image, and verify boot logs, SSH, the management API and instrument
+switching on the target board. A kernel rebuild does not require an FPGA rebuild.
+
 ## Management web interface
 
 The OS serves the management pages at `/koheron/`: installed instruments,
