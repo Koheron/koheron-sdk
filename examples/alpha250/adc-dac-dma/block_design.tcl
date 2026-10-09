@@ -1,4 +1,28 @@
 source $board_path/starting_point.tcl
+
+# A small dual-clock FIFO moves DAC samples into the DAC clock domain.
+# SelectIO then receives a full cycle; no intermediate phase clock is needed.
+set_property XPM_LIBRARIES {XPM_CDC XPM_MEMORY XPM_FIFO} [current_project]
+set dma_bd_instance [current_bd_instance .]
+current_bd_instance adc_dac
+create_bd_pin -dir I dac_buffer_reset
+for {set i 0} {$i < 2} {incr i} {
+  set dac_data_pin [get_bd_pins selectio_dac$i/data_out_from_device]
+  disconnect_bd_net [get_bd_nets -of_objects $dac_data_pin] $dac_data_pin
+  delete_bd_objs [get_bd_cells Q_d2_noce_dac$i]
+}
+# This instrument broadcasts one waveform to both DACs. Share the clock
+# crossing so both output registers consume exactly the same sample.
+cell koheron:user:dac_output_buffer:1.0 dac_output_buffer {} {
+  adc_clk mmcm/clk_out1
+  reset dac_buffer_reset
+  dac_clk mmcm/clk_out2
+  din dac0
+  dout0 selectio_dac0/data_out_from_device
+  dout1 selectio_dac1/data_out_from_device
+}
+current_bd_instance $dma_bd_instance
+
 ##################################################
 # DMA
 ##################################################
@@ -18,29 +42,28 @@ connect_pins ps_0/S_AXI_GP0_ACLK ps_0/FCLK_CLK0
 connect_pins ps_0/S_AXI_HP0_ACLK ps_0/FCLK_CLK0
 connect_pins ps_0/S_AXI_HP2_ACLK ps_0/FCLK_CLK0
 
-cell xilinx.com:ip:axi_interconnect:2.1 dma_interconnect {
-  NUM_SI 3
-  NUM_MI 3
-  S01_HAS_REGSLICE 1
-  S02_HAS_REGSLICE 1
+# Each DMA address space has a single destination. Keep the 32-bit SG path
+# separate from the 64-bit sample paths instead of widening all traffic through
+# a shared crossbar. Register both sides of SG to break PS backpressure paths.
+foreach {name destination} {
+  dma_sg_interconnect S_AXI_GP0
+  dma_mm2s_interconnect S_AXI_HP0
+  dma_s2mm_interconnect S_AXI_HP2
 } {
-  ACLK ps_0/FCLK_CLK0
-  ARESETN proc_sys_reset_0/peripheral_aresetn
-  M00_AXI ps_0/S_AXI_GP0
-  M01_AXI ps_0/S_AXI_HP0
-  M02_AXI ps_0/S_AXI_HP2
-  S00_ACLK ps_0/FCLK_CLK0
-  S00_ARESETN proc_sys_reset_0/peripheral_aresetn
-  S01_ACLK ps_0/FCLK_CLK0
-  S01_ARESETN proc_sys_reset_0/peripheral_aresetn
-  S02_ACLK ps_0/FCLK_CLK0
-  S02_ARESETN proc_sys_reset_0/peripheral_aresetn
-  M00_ACLK ps_0/FCLK_CLK0
-  M00_ARESETN proc_sys_reset_0/peripheral_aresetn
-  M01_ACLK ps_0/FCLK_CLK0
-  M01_ARESETN proc_sys_reset_0/peripheral_aresetn
-  M02_ACLK ps_0/FCLK_CLK0
-  M02_ARESETN proc_sys_reset_0/peripheral_aresetn
+  cell xilinx.com:ip:axi_interconnect:2.1 $name {
+    NUM_SI 1
+    NUM_MI 1
+    S00_HAS_REGSLICE 1
+    M00_HAS_REGSLICE 1
+  } {
+    ACLK ps_0/FCLK_CLK0
+    ARESETN proc_sys_reset_0/interconnect_aresetn
+    S00_ACLK ps_0/FCLK_CLK0
+    S00_ARESETN proc_sys_reset_0/peripheral_aresetn
+    M00_ACLK ps_0/FCLK_CLK0
+    M00_ARESETN proc_sys_reset_0/peripheral_aresetn
+    M00_AXI ps_0/$destination
+  }
 }
 
 # ADC Streaming (S2MM)
@@ -60,6 +83,8 @@ cell koheron:user:reset_pulser:1.0 acq_reset_pulser {
   global_aresetn rst_adc_clk/peripheral_aresetn
   pulse_req [ctl_pin reset]
 }
+
+connect_pins adc_dac/dac_buffer_reset [get_not_pin acq_reset_pulser/local_aresetn]
 
 cell xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0 {
   S_TDATA_NUM_BYTES 2
@@ -106,11 +131,11 @@ cell xilinx.com:ip:axi_dma:7.1 axi_dma_0 {
 } {
   S_AXI_LITE axi_mem_intercon_0/M[add_master_interface]_AXI
   s_axi_lite_aclk ps_0/FCLK_CLK0
-  M_AXI_SG dma_interconnect/S00_AXI
+  M_AXI_SG dma_sg_interconnect/S00_AXI
   m_axi_sg_aclk ps_0/FCLK_CLK0
-  M_AXI_MM2S dma_interconnect/S01_AXI
+  M_AXI_MM2S dma_mm2s_interconnect/S00_AXI
   m_axi_mm2s_aclk ps_0/FCLK_CLK0
-  M_AXI_S2MM dma_interconnect/S02_AXI
+  M_AXI_S2MM dma_s2mm_interconnect/S00_AXI
   m_axi_s2mm_aclk ps_0/FCLK_CLK0
   S_AXIS_S2MM axis_clock_converter_0/M_AXIS
   axi_resetn proc_sys_reset_0/peripheral_aresetn
@@ -170,31 +195,17 @@ set_property offset [get_memory_offset dma] [get_bd_addr_segs {ps_0/Data/SEG_axi
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_GP0/GP0_HIGH_OCM }]
 set_property range 64K [get_bd_addr_segs {axi_dma_0/Data_SG/SEG_ps_0_GP0_HIGH_OCM}]
 set_property offset [get_memory_offset ocm_mm2s] [get_bd_addr_segs {axi_dma_0/Data_SG/SEG_ps_0_GP0_HIGH_OCM}]
-exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_GP0_HIGH_OCM]
-exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_GP0_HIGH_OCM]
 
-# MM2S on HP2
+# MM2S on HP0
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP0/HP0_DDR_LOWOCM }]
 set_property range [get_memory_range ram_mm2s] [get_bd_addr_segs {axi_dma_0/Data_MM2S/SEG_ps_0_HP0_DDR_LOWOCM}]
 set_property offset [get_memory_offset ram_mm2s] [get_bd_addr_segs {axi_dma_0/Data_MM2S/SEG_ps_0_HP0_DDR_LOWOCM}]
-exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP0_DDR_LOWOCM]
-exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM]
 
-# S2MM on HP0
+# S2MM on HP2
 assign_bd_address [get_bd_addr_segs {ps_0/S_AXI_HP2/HP2_DDR_LOWOCM }]
 assign_bd_address -target_address_space /axi_dma_0/Data_S2MM [get_bd_addr_segs ps_0/S_AXI_HP2/HP2_DDR_LOWOCM] -force
 set_property range [get_memory_range ram_s2mm] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP2_DDR_LOWOCM}]
 set_property offset [get_memory_offset ram_s2mm] [get_bd_addr_segs {axi_dma_0/Data_S2MM/SEG_ps_0_HP2_DDR_LOWOCM}]
-exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP2_DDR_LOWOCM]
-exclude_bd_addr_seg [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_HP2_DDR_LOWOCM]
-
-# Unmap unused segments
-#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP0_DDR_LOWOCM]
-#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_SG/SEG_ps_0_HP2_DDR_LOWOCM]
-#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_GP0_HIGH_OCM]
-#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_MM2S/SEG_ps_0_HP2_DDR_LOWOCM]
-#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_GP0_HIGH_OCM]
-#delete_bd_objs [get_bd_addr_segs axi_dma_0/Data_S2MM/SEG_ps_0_HP0_DDR_LOWOCM]
 
 # Hack to change the 32 bit auto width in AXI_DMA S_AXI_S2MM
 validate_bd_design
