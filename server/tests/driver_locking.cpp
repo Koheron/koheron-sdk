@@ -298,6 +298,21 @@ template<int Kind> void partial_batch() {
     check(slow.response(12) == scalar_response(9, 30), "Fragmented batch decoded incorrectly");
     check(LockingInstrument::calls == 1, "Fragmented batch invocation count");
 }
+template<int Kind> void invalid_driver() {
+    Connection<Kind> client(1);
+    for (uint16_t id : {uint16_t(drivers::table::size), uint16_t(0xffff)}) {
+        auto invalid = command(0);
+        invalid[4] = static_cast<unsigned char>(id >> 8);
+        invalid[5] = static_cast<unsigned char>(id);
+        client.send(invalid);
+        client.send(command(1));
+        check(client.response(12) == scalar_response(1, 7), "Invalid driver affected next command");
+    }
+    client.send(command(0xffff));
+    client.send(command(1));
+    check(client.response(12) == scalar_response(1, 7), "Invalid operation affected next command");
+}
+
 template<int Kind> void truncated_batch() {
     Connection<Kind> broken(1);
     auto bytes = four_scalars(); bytes.resize(bytes.size() - 1);
@@ -372,6 +387,8 @@ int main(int argc, char** argv) {
         else if (test == "fixed-ws") fixed_wire_format<net::WEBSOCK>();
         else if (test == "partial-tcp-batch") partial_batch<net::TCP>();
         else if (test == "partial-unix-batch") partial_batch<net::UNIX>();
+        else if (test == "invalid-driver-tcp") invalid_driver<net::TCP>();
+        else if (test == "invalid-driver-ws") invalid_driver<net::WEBSOCK>();
         else if (test == "truncated-tcp-batch") truncated_batch<net::TCP>();
         else if (test == "truncated-ws-batch") truncated_batch<net::WEBSOCK>();
         else if (test == "mixed-tcp") mixed_arguments<net::TCP>();
