@@ -4,14 +4,16 @@ Build and installation: [SDK quick start](../README.md#quick-start).
 
 ## Settings
 
-The default runtime is Ubuntu Base **26.04.1** and Xilinx **2026.1 / Linux 6.18**, independent of `VIVADO_VERSION` (default **2025.1**). Bootloader, firmware and device-tree source releases follow the selected Vivado/Vitis toolchain. Keep the development host and build container on Ubuntu 24.04; the board rootfs is a separate environment.
+The default runtime is Ubuntu Base **26.04.1** and Xilinx **2026.1 / Linux 6.18**, independent of `VIVADO_VERSION` (default **2025.1**). Bootloader, firmware and device-tree source releases follow the selected Vivado/Vitis toolchain. The reference development host remains Ubuntu 24.04; the default build container uses Ubuntu 26.04 and GCC 15.
 
 Override `LINUX_VERSION` and `UBUNTU_VERSION` to select earlier releases, for example:
 
 ```sh
 make CFG=examples/alpha250/fft/config.mk VIVADO_VERSION=2025.1 \
-  LINUX_VERSION=2025.1 UBUNTU_VERSION=24.04.5 image
+  LINUX_VERSION=2025.1 UBUNTU_VERSION=24.04.5 GCC_VERSION=13 image
 ```
+
+Build the [Ubuntu 24.04/GCC 13 fallback container](../docker/README.md) before using this older runtime configuration.
 
 APT repositories are derived from the extracted Ubuntu rootfs's `/etc/os-release`. New Xilinx source releases require entries in `source-checksums.sha256`. Defaults refer to released versions, not development snapshots or moving branches.
 

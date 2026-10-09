@@ -21,9 +21,12 @@ compiler-settings-force:
 define compiler_settings_stamp
 $(1): compiler-settings-force $(COMPILER_SETTINGS_MK)
 	@mkdir -p "$$(@D)"
-	@{ printf '%s\n' 'CC=$(2)' 'HOSTCC=$(OS_HOSTCC)' 'HOSTCXX=$(OS_HOSTCXX)' 'IMAGE=$(DOCKER_IMAGE)'; \
+	@stamp_tmp=$$$$(mktemp "$$@.tmp.XXXXXX"); \
+	trap 'rm -f "$$$$stamp_tmp"' EXIT; \
+	trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM; \
+	{ printf '%s\n' 'CC=$(2)' 'HOSTCC=$(OS_HOSTCC)' 'HOSTCXX=$(OS_HOSTCXX)' 'IMAGE=$(DOCKER_IMAGE)'; \
 	  $(if $(strip $(DOCKER_IMAGE)),docker image inspect --format '{{.Id}}' '$(DOCKER_IMAGE)',:); \
-	} > "$$@.tmp"
-	@cmp -s "$$@.tmp" "$$@" && rm "$$@.tmp" || mv "$$@.tmp" "$$@"
+	} > "$$$$stamp_tmp"; \
+	if ! cmp -s "$$$$stamp_tmp" "$$@"; then mv -f "$$$$stamp_tmp" "$$@"; fi
 endef
 endif
