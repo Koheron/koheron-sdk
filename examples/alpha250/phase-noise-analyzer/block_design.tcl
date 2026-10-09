@@ -71,6 +71,10 @@ for {set i 0} {$i < 2} {incr i} {
     # Separate mixer and prefilter rounding sequences for the two ADC channels.
     cordic::create cordic$i [lindex $rounding_seeds $i]
 
+    # Split the wide history carry path at 250 MHz. Both channels retain every
+    # sample and the same phase units, with one additional clock of history delay.
+    set_cell_props cordic$i/phase_unwrapper { PIPELINED_HISTORY 1 }
+
     connect_cell cordic$i {
         s_axis_data_a [get_concat_pin [list adc_dac/adc$i [get_constant_pin 0 16]]]
         s_axis_data_b dds$i/m_axis_data_tdata

@@ -87,7 +87,14 @@ vivado -mode batch -source examples/alpha250/phase-noise-analyzer/tests/check_fp
     -tclargs tmp/examples/alpha250/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
 ```
 
-The runner reuses the ALPHA250-4 tests for the shared phase-prefilter and LFSR
+The runner checks the 16-bit-input, 64-bit pipelined phase history against an
+independent signed arithmetic model. It covers carries and borrows across the
+low word, signed overflow in both directions, pi ties, full-width inputs,
+enable gating, pending upper-word updates, resets and the exact one-clock
+history delay. Unreachable history boundaries are seeded before exercising
+the normal input and accumulation path.
+
+The runner also reuses the ALPHA250-4 tests for the shared phase-prefilter and LFSR
 RTL. An independent convolution of four rectangular kernels checks all four
 full-precision sums, signed extremes, impulse response, stochastic rounding,
 pipeline delay and reset. Sequence checks cover deterministic seeds, balance
@@ -107,7 +114,8 @@ phase. Wider phase output alone does not satisfy this check. These model
 limits do not establish hardware accuracy or an analog noise floor.
 `PNA_VIVADO_PATH` overrides the default `/tools/Xilinx/2025.1/Vivado` model path.
 
-The block-design check verifies four prefilters, I/Q and rounding-bit ordering,
+The block-design check verifies both pipelined 64-bit accumulators, four
+prefilters, I/Q and rounding-bit ordering,
 clock/reset wiring, distinct channel seeds and the independent DAC/reference
 paths. The full build enforces routed setup, hold and bus-skew timing.
 
