@@ -3,6 +3,7 @@
 
 #include "server/hardware/fpga_manager.hpp"
 #include "server/hardware/firmware_files.hpp"
+#include "server/hardware/fpga_load.hpp"
 #include "server/runtime/syslog.hpp"
 
 #include <array>
@@ -349,37 +350,41 @@ int FpgaManager::setup_overlay_path() {
 }
 
 int FpgaManager::setup_fmanager_flags() {
-    FILE *xflag = fopen(fmanager_flags.c_str(), "w");
-    if (!xflag) {
-        logf<ERROR>("FpgaManager: setup_fmanager_flags: open('{}') failed ({}: {})\n",
-                                  fmanager_flags, errno, strerror(errno));
+    if (const auto error = write_fpga_attribute(fmanager_flags, "0\n")) {
+        logf<ERROR>("FpgaManager: setting flags at '{}' failed: {}\n",
+                    fmanager_flags, error.message());
         return -1;
     }
-    if (fwrite("0", 1, 1, xflag) != 1) {
-        logf<ERROR>("FpgaManager: setup_fmanager_flags: write('{}') failed ({}: {})\n",
-                                  fmanager_flags, errno, strerror(errno));
-        fclose(xflag);
+    return 0;
+}
+
+int FpgaManager::program_bitstream() {
+    const std::string firmware = INSTRUMENT_NAME ".bit.bin\n";
+    // Xilinx firmware_store() uses a NAME_MAX-sized buffer (including NUL).
+    if (firmware.size() >= 255) {
+        log<ERROR>("FpgaManager: firmware filename is too long\n");
         return -1;
     }
-    fclose(xflag);
+    if (const auto error = write_fpga_attribute(fmanager_firmware, firmware)) {
+        logf<ERROR>("FpgaManager: programming '{}' failed: {}\n",
+                    INSTRUMENT_NAME ".bit.bin", error.message());
+        return -1;
+    }
+    if (!fpga_attribute_is(fmanager_state, "operating")) {
+        logf<ERROR>("FpgaManager: FPGA is not operating after programming; see '{}'\n",
+                    fmanager_state);
+        return -1;
+    }
     return 0;
 }
 
 int FpgaManager::write_overlay() {
     const fs::path overlay = overlay_path / "path";
-    FILE *f = fopen(overlay.c_str(), "w");
-    if (!f) {
-        logf<ERROR>("FpgaManager: write_overlay: open('{}') failed ({}: {})\n",
-                                  overlay, errno, strerror(errno));
+    if (const auto error = write_fpga_attribute(overlay, "pl.dtbo\n")) {
+        logf<ERROR>("FpgaManager: applying overlay at '{}' failed: {}\n",
+                    overlay, error.message());
         return -1;
     }
-    const std::string echo = "pl.dtbo\n";
-    if (fwrite(echo.c_str(), echo.size(), 1, f) != 1) {
-        logf<ERROR>("FpgaManager: write_overlay: write('{}') failed\n", overlay);
-        fclose(f);
-        return -1;
-    }
-    fclose(f);
     return 0;
 }
 
@@ -396,24 +401,44 @@ int FpgaManager::load_bitstream_overlay() {
         logf<ERROR>("FpgaManager: could not prepare 'pl.dtbo' or '{}' for loading\n", bitbin);
         return -1;
     }
+    // Direct programming does not invoke the FPGA-region bridge notifier.
+    // SDK full-device designs have no FPGA bridges. Refuse bridge-dependent
+    // custom designs rather than bypass their isolation/ownership protocol.
+    const fs::path bridges{"/sys/class/fpga_bridge"};
+    if (fs::exists(bridges) && !fs::is_empty(bridges)) {
+        log<ERROR>("FpgaManager: direct full-device loading does not support FPGA bridges\n");
+        return -1;
+    }
+    if (!fs::exists(fmanager_firmware)) {
+        logf<ERROR>("FpgaManager: direct FPGA loading requires '{}'\n", fmanager_firmware);
+        return -1;
+    }
     if (setup_overlay_path() < 0) {
         logf<ERROR>("FpgaManager: setup_overlay_path() failed — cannot prepare overlay dir '{}'\n", overlay_path);
         return -1;
     }
-    if (setup_fmanager_flags() < 0) {
-        logf<ERROR>("FpgaManager: setup_fmanager_flags() failed — cannot write flags at '{}'\n", fmanager_flags);
+    const auto discard_overlay = [&]() {
+        if (::rmdir(overlay_path.c_str()) < 0 && errno != ENOENT) {
+            logf<ERROR>("FpgaManager: removing failed overlay '{}' failed: {}\n",
+                        overlay_path, strerror(errno));
+        }
+    };
+    if (setup_fmanager_flags() < 0 || program_bitstream() < 0) {
+        discard_overlay();
         return -1;
     }
     if (write_overlay() < 0) {
         logf<ERROR>("FpgaManager: write_overlay() failed — cannot write 'pl.dtbo' to '{}/path'\n", overlay_path);
+        discard_overlay();
         return -1;
     }
 
-    int rc = check_bitstream_loaded(overlay_fpga_done, 'a');
-    if (rc != 0) {
-        logf<ERROR>("FpgaManager: overlay apply failed — expected status 'a' in '{}'\n", overlay_fpga_done);
-        return rc;
+    if (!fpga_overlay_applied(overlay_path, "pl.dtbo")) {
+        logf<ERROR>("FpgaManager: overlay apply failed; see '{}'\n", overlay_fpga_done);
+        discard_overlay();
+        return -1;
     }
+    log("FpgaManager: Bitstream and device overlay successfully loaded\n");
 
     // UIO: per-device mapping lines
     bind_and_log_uio_mappings();
@@ -421,7 +446,7 @@ int FpgaManager::load_bitstream_overlay() {
     // mem_wc (only prints mappings if such devices exist)
     log_mem_wc_mappings();
 
-    return rc;
+    return 0;
 }
 
 // -----------------------------------------------------------------------------
