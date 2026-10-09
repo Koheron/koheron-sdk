@@ -25,6 +25,7 @@ class DriverContainer
   public:
     DriverContainer();
     ~DriverContainer();
+    void shutdown();
 
     template<driver_id driver>
     auto& get() {
@@ -37,6 +38,8 @@ class DriverContainer
   private:
     std::array<bool, drivers::table::size - drivers::table::offset> is_started;
     std::array<bool, drivers::table::size - drivers::table::offset> is_starting;
+    std::array<driver_id, drivers::table::size - drivers::table::offset> construction_order{};
+    std::size_t constructed_count = 0;
 
     using drivers_tuple_t = typename drivers::table::tuple_t;
     drivers_tuple_t driver_tuple;
@@ -54,6 +57,9 @@ class DriverManager
 
     explicit DriverManager(alloc_fail_cb on_alloc_fail = {});
     ~DriverManager();
+
+    // Call after RPC callers have stopped, with hardware services still alive.
+    void shutdown();
 
     template<driver_id id>
     auto& get() {

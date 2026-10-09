@@ -13,6 +13,7 @@ class PrecisionAdc
 {
   public:
     PrecisionAdc();
+    ~PrecisionAdc();
 
     uint32_t get_device_id() {
         return read(0x05, 1);

@@ -27,6 +27,13 @@ PrecisionAdc::PrecisionAdc()
     start_adc_acquisition();
 }
 
+PrecisionAdc::~PrecisionAdc() {
+    adc_acquisition_started = false;
+    if (adc_read_thread.joinable()) {
+        adc_read_thread.join();
+    }
+}
+
 uint32_t PrecisionAdc::read(uint32_t address, uint32_t len) {
     if (len == 0 || len > 3) {
         return 0;
@@ -110,15 +117,13 @@ void PrecisionAdc::set_filter(int32_t setup_idx) {
 void PrecisionAdc::start_adc_acquisition() {
     if (! adc_acquisition_started) {
         analog_inputs_data.fill(0.0);
+        adc_acquisition_started = true;
         adc_read_thread = std::thread{&PrecisionAdc::adc_acquisition_thread, this};
-        adc_read_thread.detach();
     }
 }
 
 void PrecisionAdc::adc_acquisition_thread() {
     using namespace std::chrono_literals;
-
-    adc_acquisition_started = true;
 
     while (adc_acquisition_started) {
         constexpr uint8_t cmd_byte = static_cast<uint8_t>((0u << 7) | (1u << 6) | (0x02u & 0x3Fu));
