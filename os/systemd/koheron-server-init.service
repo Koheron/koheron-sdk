@@ -1,11 +1,14 @@
 [Unit]
 Description=Display last digit of IP address on leds
-Requires=koheron-server.service 
-Wants=network-online.target
-After=koheron-server.service network-online.target
+Requires=koheron-server.service
+After=koheron-server.service
 
 [Service]
+# DHCP may arrive after boot. This helper waits without blocking the target.
+Type=simple
 ExecStart=/usr/bin/python3 /usr/local/koheron-server/koheron-server-init.py
+Restart=on-failure
+RestartSec=2s
 
 [Install]
 WantedBy=multi-user.target
