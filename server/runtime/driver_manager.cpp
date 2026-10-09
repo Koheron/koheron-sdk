@@ -51,7 +51,23 @@ DriverContainer::DriverContainer() {
     services::provide<Context>();
 }
 
-DriverContainer::~DriverContainer() = default;
+DriverContainer::~DriverContainer() {
+    shutdown();
+}
+
+void DriverContainer::shutdown() {
+    // Constructors can allocate dependencies recursively. Destroy dependents first,
+    // regardless of their order in the generated driver tuple.
+    auto destroy = [this]<std::size_t... ids>(driver_id id, std::index_sequence<ids...>) {
+        ((id == ids ? (std::get<ids - drivers::table::offset>(driver_tuple).reset(),
+                       std::get<ids - drivers::table::offset>(is_started) = false,
+                       void()) : void()), ...);
+    };
+    while (constructed_count != 0) {
+        destroy(construction_order[--constructed_count],
+                make_index_sequence_in_range<drivers::table::offset, drivers::table::size>());
+    }
+}
 
 template<driver_id driver>
 int DriverContainer::alloc() {
@@ -70,9 +86,10 @@ int DriverContainer::alloc() {
     }
 
     std::get<id>(is_starting) = true;
-    std::get<id>(driver_tuple) = make_driver<drivers::table::type_of<driver>>();;
+    std::get<id>(driver_tuple) = make_driver<drivers::table::type_of<driver>>();
     std::get<id>(is_starting) = false;
     std::get<id>(is_started) = true;
+    construction_order[constructed_count++] = driver;
 
     return 0;
 }
@@ -87,7 +104,18 @@ DriverManager::DriverManager(alloc_fail_cb on_alloc_fail)
 {
 }
 
-DriverManager::~DriverManager() = default;
+DriverManager::~DriverManager() {
+    shutdown();
+}
+
+void DriverManager::shutdown() {
+    // Do not hold the allocation mutex while joining workers: they may still
+    // access already constructed dependencies through get_driver().
+    driver_container.shutdown();
+    for (auto& started : is_started) {
+        started.store(false, std::memory_order_release);
+    }
+}
 
 template<driver_id id>
 void DriverManager::alloc_core_() {

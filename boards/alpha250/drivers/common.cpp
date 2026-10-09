@@ -15,8 +15,9 @@ Common::Common()
 : leds(std::make_unique<LedsController>())
 , precisionadc(rt::get_driver<PrecisionAdc>()) // Initialize PrecisionADC
 {
-    leds->setter([&](uint32_t v){
-        rt::get_driver<GpioExpander>().set_led(v);
+    auto& gpio = rt::get_driver<GpioExpander>();
+    leds->setter([&gpio](uint32_t v){
+        gpio.set_led(v);
     });
 }
 
