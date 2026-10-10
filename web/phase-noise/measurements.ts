@@ -45,7 +45,6 @@ class PnaMeasurementReadout {
         for (const node of [this.power, this.phase, this.time, this.range]) {
             if (node) { node.textContent = '—'; node.removeAttribute('title'); }
         }
-        this.range?.removeAttribute('title');
     }
 
     render(measurements: IMeasurements): void {

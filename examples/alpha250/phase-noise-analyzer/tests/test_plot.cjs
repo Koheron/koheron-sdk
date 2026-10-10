@@ -420,8 +420,37 @@ test('FPS counts completed valid spectrum displays; reference redraws and unavai
     now += 1000;
     plot.driver.getPhaseNoise = async () => new Float32Array(16385);
     await plot.updatePlot();
-    assert.equal(w.document.getElementById('refresh-rate').textContent, '— FPS');
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '0 FPS');
     assert.equal(plot.displayedFrames, 0);
+});
+
+test('FPS spans settling replies, counts only new valid spectra and falls to zero while settling', async t => {
+    const {plot, window: w} = fixture(t);
+    let now = 0, sequence = 0, ready = false;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    w.document.body.insertAdjacentHTML('beforeend', '<div><div id="plot-placeholder"></div></div>');
+    plot.driver.getSpectrumSnapshot = async () => ({sequence, state: ready ? 1 : 0,
+        parameters: {...plot.driver.parameters}, values: new Float32Array(9).fill(ready ? 2 : 0)});
+    plot.plotBasics.redraw = (data, size, peak, label, done) => done();
+    const rate = w.document.getElementById('refresh-rate');
+    for (let i = 1; i <= 10; i++) {
+        now = i * 100; sequence = i; ready = i % 2 === 1;
+        await plot.updatePlot();
+    }
+    assert.equal(rate.textContent, '5 FPS');
+    assert.match(rate.title, /polling 10\/s/);
+    assert.equal(w.document.getElementById('capture-reference').disabled, true);
+    assert.equal(w.document.getElementById('spectrum-status').hidden, false);
+    // Repeated settling snapshots remain connected, but are never display frames.
+    for (let i = 11; i <= 20; i++) { now = i * 100; await plot.updatePlot(); }
+    assert.equal(rate.textContent, '0 FPS');
+    assert.match(rate.title, /polling 10\/s/);
+    now = 2100; sequence++; ready = true; await plot.updatePlot();
+    assert.equal(w.document.getElementById('capture-reference').disabled, false);
+    assert.equal(w.document.getElementById('spectrum-status').hidden, true);
+    plot.markUnavailable('Disconnected');
+    assert.equal(rate.textContent, '— FPS');
+    assert.doesNotMatch(rate.title, /read .* ms/);
 });
 
 test('polling respects the target, permits only one in-flight read, and pauses while hidden', async t => {
@@ -577,7 +606,7 @@ test('cached zero spectra skip repainting, retain zoom support and recover when 
     assert.equal(plot.frameStatus, undefined);
     now += 1000; await plot.updatePlot();
     assert.equal(draws, 1, 'a valid capture below the phase resolution does not repaint at the polling rate');
-    assert.equal(w.document.getElementById('refresh-rate').textContent, '— FPS');
+    assert.equal(w.document.getElementById('refresh-rate').textContent, '0 FPS');
     assert.equal(w.document.getElementById('capture-reference').disabled, true);
     plot.plotBasics.needsRedraw = () => true;
     now += 1000; await plot.updatePlot();
