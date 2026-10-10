@@ -9,6 +9,28 @@ from native_fixture import NativeFixture, archive
 
 
 class NativeApiTest(NativeFixture):
+    def test_pending_activation_does_not_admit_more_status_readers(self):
+        gate = self.root / 'hold-status'
+        gate.touch()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            snapshot = pool.submit(self.details)
+            try:
+                deadline = time.monotonic() + 3
+                while not (self.root / 'status-entered').exists():
+                    self.assertLess(time.monotonic(), deadline); time.sleep(.01)
+                activation = pool.submit(self.request, '/api/instruments/run/new')
+                time.sleep(.05)
+                later = pool.submit(self.request, '/api/instruments/details')
+                status, body, _ = later.result(timeout=1)
+                self.assertEqual(status, 200)
+                self.assertIsNone(json.loads(body)['live_instrument'])
+                self.assertFalse(any(line.startswith('stop ') for line in self.operations()))
+            finally:
+                gate.unlink()
+            self.assertEqual(snapshot.result(timeout=5)['live_instrument']['name'], 'old')
+            self.assertEqual(activation.result(timeout=5)[0], 200)
+        self.assertEqual(self.details()['live_instrument']['name'], 'new')
+
     def test_status_snapshot_cannot_mix_two_installations(self):
         gate = self.root / 'hold-status'
         gate.touch()

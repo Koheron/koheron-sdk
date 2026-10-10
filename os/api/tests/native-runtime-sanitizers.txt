@@ -1,0 +1,81 @@
+g++-15 -I/usr/include/p11-kit-1 -I/usr/include/json-c -O1 -g -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread -MMD -MP -fsanitize=address,undefined -fno-omit-frame-pointer -c /work/os/api/native/api_main.cpp -o tmp/native-api/asan/api_main.o
+g++-15 -O1 -g -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread -MMD -MP -fsanitize=address,undefined -fno-omit-frame-pointer tmp/native-api/asan/api_main.o tmp/native-api/asan/journal.o tmp/native-api/asan/common.o tmp/native-api/asan/archive.o -fsanitize=address,undefined -lmicrohttpd -lzip -ljson-c -lsystemd -lunistring -pthread -o tmp/native-api/asan/koheron-api
+test_api_restart_recovers_identity (test_native_api.NativeApiTest.test_api_restart_recovers_identity) ... ok
+test_archive_metadata_replaces_invalid_utf8 (test_native_api.NativeApiTest.test_archive_metadata_replaces_invalid_utf8) ... ok
+test_commands_download_and_missing_file (test_native_api.NativeApiTest.test_commands_download_and_missing_file) ... ok
+test_default_cannot_be_deleted (test_native_api.NativeApiTest.test_default_cannot_be_deleted) ... ok
+test_delete_removes_archive_and_inventory (test_native_api.NativeApiTest.test_delete_removes_archive_and_inventory) ... ok
+test_disconnected_upload_is_cleaned_up (test_native_api.NativeApiTest.test_disconnected_upload_is_cleaned_up) ... ok
+test_failed_rollback_reports_stopped (test_native_api.NativeApiTest.test_failed_rollback_reports_stopped) ... ok
+test_failed_run_reports_restored_instrument (test_native_api.NativeApiTest.test_failed_run_reports_restored_instrument) ... ok
+test_invalid_identity_is_not_reported (test_native_api.NativeApiTest.test_invalid_identity_is_not_reported) ... ok
+test_invalid_loaded_utf8_is_unknown (test_native_api.NativeApiTest.test_invalid_loaded_utf8_is_unknown) ... ok
+test_log_routes_and_invalid_limits (test_native_api.NativeApiTest.test_log_routes_and_invalid_limits) ... ok
+test_malformed_metadata_uses_utf8_replacement_semantics (test_native_api.NativeApiTest.test_malformed_metadata_uses_utf8_replacement_semantics) ... ok
+test_manifest_release_and_raw_routes (test_native_api.NativeApiTest.test_manifest_release_and_raw_routes) ... ok
+test_missing_identity_does_not_guess_default (test_native_api.NativeApiTest.test_missing_identity_does_not_guess_default) ... ok
+test_missing_instrument_and_method (test_native_api.NativeApiTest.test_missing_instrument_and_method) ... ok
+test_missing_system_files (test_native_api.NativeApiTest.test_missing_system_files) ... ok
+test_missing_version_reports_unknown (test_native_api.NativeApiTest.test_missing_version_reports_unknown) ... ok
+test_parallel_readers_keep_valid_responses (test_native_api.NativeApiTest.test_parallel_readers_keep_valid_responses) ... ok
+test_pending_activation_does_not_admit_more_status_readers (test_native_api.NativeApiTest.test_pending_activation_does_not_admit_more_status_readers) ... ok
+test_service_exit_clears_live_status (test_native_api.NativeApiTest.test_service_exit_clears_live_status) ... ok
+test_status_snapshot_cannot_mix_two_installations (test_native_api.NativeApiTest.test_status_snapshot_cannot_mix_two_installations) ... ok
+test_status_uses_loaded_identity_and_version (test_native_api.NativeApiTest.test_status_uses_loaded_identity_and_version) ... ok
+test_successful_run_changes_loaded_identity (test_native_api.NativeApiTest.test_successful_run_changes_loaded_identity) ... ok
+test_truncated_multipart_preserves_archive (test_native_api.NativeApiTest.test_truncated_multipart_preserves_archive) ... ok
+test_upload_bad_crc_preserves_archive (test_native_api.NativeApiTest.test_upload_bad_crc_preserves_archive) ... ok
+test_upload_does_not_change_loaded_version (test_native_api.NativeApiTest.test_upload_does_not_change_loaded_version) ... ok
+test_upload_filename_normalization_matches_existing_contract (test_native_api.NativeApiTest.test_upload_filename_normalization_matches_existing_contract) ... ok
+test_upload_invalid_zip_preserves_archive (test_native_api.NativeApiTest.test_upload_invalid_zip_preserves_archive) ... ok
+test_upload_missing_version_preserves_archive (test_native_api.NativeApiTest.test_upload_missing_version_preserves_archive) ... ok
+test_valid_upload_atomically_replaces_version (test_native_api.NativeApiTest.test_valid_upload_atomically_replaces_version) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 4.229s
+
+OK
+test_absolute_path_does_not_stop (test_native_install.NativeInstallTest.test_absolute_path_does_not_stop) ... ok
+test_backslash_does_not_stop (test_native_install.NativeInstallTest.test_backslash_does_not_stop) ... ok
+test_crc_failure_does_not_stop (test_native_install.NativeInstallTest.test_crc_failure_does_not_stop) ... ok
+test_duplicate_normalized_member_does_not_stop (test_native_install.NativeInstallTest.test_duplicate_normalized_member_does_not_stop) ... ok
+test_empty_version_does_not_stop (test_native_install.NativeInstallTest.test_empty_version_does_not_stop) ... ok
+test_failed_previous_restart_reports_stopped (test_native_install.NativeInstallTest.test_failed_previous_restart_reports_stopped) ... ok
+test_first_install_failure_leaves_no_live_directory (test_native_install.NativeInstallTest.test_first_install_failure_leaves_no_live_directory) ... ok
+test_identity_override_does_not_stop (test_native_install.NativeInstallTest.test_identity_override_does_not_stop) ... ok
+test_inactive_previous_is_not_started_after_failure (test_native_install.NativeInstallTest.test_inactive_previous_is_not_started_after_failure) ... ok
+test_invalid_version_encoding_does_not_stop (test_native_install.NativeInstallTest.test_invalid_version_encoding_does_not_stop) ... ok
+test_invalid_zip_does_not_stop (test_native_install.NativeInstallTest.test_invalid_zip_does_not_stop) ... ok
+test_led_failure_preserves_success (test_native_install.NativeInstallTest.test_led_failure_preserves_success) ... ok
+test_legacy_payload_is_supported (test_native_install.NativeInstallTest.test_legacy_payload_is_supported) ... ok
+test_missing_fpga_payload_does_not_stop (test_native_install.NativeInstallTest.test_missing_fpga_payload_does_not_stop) ... ok
+test_missing_version_does_not_stop (test_native_install.NativeInstallTest.test_missing_version_does_not_stop) ... ok
+test_non_executable_does_not_stop (test_native_install.NativeInstallTest.test_non_executable_does_not_stop) ... ok
+test_start_failure_restores_previous (test_native_install.NativeInstallTest.test_start_failure_restores_previous) ... ok
+test_stop_failure_preserves_previous (test_native_install.NativeInstallTest.test_stop_failure_preserves_previous) ... ok
+test_success_preserves_executable_permissions (test_native_install.NativeInstallTest.test_success_preserves_executable_permissions) ... ok
+test_symlink_member_does_not_stop (test_native_install.NativeInstallTest.test_symlink_member_does_not_stop) ... ok
+test_traversal_does_not_stop (test_native_install.NativeInstallTest.test_traversal_does_not_stop) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 1.773s
+
+OK
+test_bad_identifier_is_rejected (test_native_led.NativeLedTest.test_bad_identifier_is_rejected) ... ok
+test_driver_without_leds_exits_before_network_wait (test_native_led.NativeLedTest.test_driver_without_leds_exits_before_network_wait) ... ok
+test_fragmented_metadata_uses_discovered_ids (test_native_led.NativeLedTest.test_fragmented_metadata_uses_discovered_ids) ... ok
+test_non_array_metadata_fails (test_native_led.NativeLedTest.test_non_array_metadata_fails) ... ok
+test_truncated_metadata_fails (test_native_led.NativeLedTest.test_truncated_metadata_fails) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.206s
+
+OK
+test_notify_and_reuse_inherited_socket (test_native_activation.NativeActivationTest.test_notify_and_reuse_inherited_socket) ... ok
+test_version_preflight_needs_no_board_files_or_services (test_native_activation.NativeActivationTest.test_version_preflight_needs_no_board_files_or_services) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.210s
+
+OK
+{"clients": 32, "duration_s": 30, "successful_requests": 70755, "aborted_uploads": 500, "leftovers": []}

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <array>
+#include <atomic>
 #include <charconv>
 #include <csignal>
 #include <cstring>
@@ -58,10 +59,18 @@ struct Instrument {
         auto value = object(); add(value, "name", text(name)); add(value, "version", text(version)); add(value, "is_default", boolean(is_default)); return value;
     }
 };
+struct PendingActivation {
+    std::atomic<bool>& flag;
+    explicit PendingActivation(std::atomic<bool>& value) : flag(value) { flag.store(true, std::memory_order_release); }
+    ~PendingActivation() { flag.store(false, std::memory_order_release); }
+    PendingActivation(const PendingActivation&) = delete;
+    PendingActivation& operator=(const PendingActivation&) = delete;
+};
 class App {
     std::mutex state_mutex_;
     std::mutex mutation_mutex_;
     mutable std::shared_mutex live_mutex_;
+    std::atomic<bool> activation_pending_{false};
     std::vector<Instrument> inventory_;
     std::optional<std::string> log_cursor_, invocation_;
     std::optional<std::uint64_t> log_timestamp_;
@@ -77,8 +86,11 @@ class App {
         return {archive.stem().string(), std::move(version), is_default(archive)};
     }
     Json live() const {
+        // shared_mutex can prefer readers indefinitely. Announce a waiting
+        // activation so new polling requests let existing snapshots drain.
+        if (activation_pending_.load(std::memory_order_acquire)) return {};
         std::shared_lock lock(live_mutex_, std::try_to_lock);
-        if (!lock.owns_lock()) return {};
+        if (!lock.owns_lock() || activation_pending_.load(std::memory_order_acquire)) return {};
         try {
             if (!unit_is_active(settings)) return {};
             const auto name_file = read_file(settings.live / ".instrument-name"), version_file = read_file(settings.live / "version");
@@ -90,6 +102,7 @@ class App {
     }
     Reply run(std::string_view requested) {
         std::lock_guard transaction(mutation_mutex_);
+        PendingActivation pending(activation_pending_);
         std::unique_lock activation(live_mutex_);
         const auto name = safe_filename(std::string(requested) + ".zip");
         const auto archive = settings.instruments / name;

@@ -53,3 +53,50 @@ staging under `/var/lib/koheron-native-boot-evidence` and serial/SSH access.
 See the evidence report for staging, measured boot times, restoration and the
 matched image-size comparison. This test reboots and temporarily changes the
 production service configuration; it does not flash the generated image.
+
+For an extended, opt-in LAN stress run, stage the three binaries, missing libraries under
+`lib/`, the API service/socket, nginx configs and `red_pitaya_stress_board.py`
+under `/tmp/koheron-native-stress`. Run that script's `setup` action on the
+board, then run the host client:
+
+```sh
+python3 os/api/tests/red_pitaya_stress.py \
+  --ssh-command 'ssh root@192.168.1.85' --output tmp/native-stress/load.json
+```
+
+The private frontend listens on `192.168.1.85:18089`; adjust the staged nginx
+bind address and client/SSH arguments for another board. The default run ramps
+through 1/8/32/64 clients, soaks for five minutes at 32, then mixes concurrent
+readers with 30 activations, 10 failed-start rollbacks, uploads/deletes, 500
+interrupted uploads, 50 restarts and three intentional SIGKILL recoveries.
+The private fixture disables systemd start-rate limits to permit rapid test
+restarts. It uses dummy executable payloads and never programs the FPGA.
+Telemetry sampled about once per second includes API/nginx PSS, descriptors,
+threads and CPU ticks; sampling work adds to the interval.
+The host client's `finally` block stops private services and removes their units;
+if the host process is terminated abruptly, run the board script's `cleanup`
+action yourself. Copy `telemetry.jsonl` and `cleanup.json` before deleting the
+staging directory. Production units/files remain untouched.
+
+Host sanitizer checks use the same Docker image with a separate build directory:
+
+```sh
+docker run --rm -v "$PWD:/work" -w /work \
+  -e NATIVE_API_BIN_DIR=tmp/native-api/asan \
+  -e ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:log_path=/work/tmp/asan-report \
+  -e UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:log_path=/work/tmp/ubsan-report \
+  koheron-management-tests sh -ec '
+    make -j2 -f os/api/Makefile CXX=g++-15 BUILD_DIR=$NATIVE_API_BIN_DIR \
+      CXXFLAGS="-O1 -g -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread -MMD -MP -fsanitize=address,undefined -fno-omit-frame-pointer" \
+      LDFLAGS="-fsanitize=address,undefined"
+    for suite in api install led activation; do
+      python3 -m unittest discover -s os/api/tests -p "test_native_$suite.py" -v
+    done
+    python3 os/api/tests/sanitizer_stress.py
+  '
+```
+
+Check that no sanitizer diagnostic files are created: several invalid-input
+tests intentionally expect nonzero exits and capture the child process's stderr.
+The three host fault-injection tests use a separate preload shim and are covered
+by the ordinary Docker suite.

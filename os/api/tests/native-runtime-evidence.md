@@ -17,7 +17,7 @@ have the same 32 MiB partition-growth cushion.
 | Artifact | Current V1 Python/uWSGI | Native C++23 | Reduction |
 |---|---:|---:|---:|
 | SD image | 334.00 MiB | 276.00 MiB | **58.00 MiB (17.4%)** |
-| Download ZIP | 79.41 MiB | 61.86 MiB | **17.55 MiB (22.1%)** |
+| Download ZIP | 79.41 MiB | 61.85 MiB | **17.56 MiB (22.1%)** |
 | Allocated rootfs content (`du -s -B1`) | 245.44 MiB | 189.46 MiB | **55.98 MiB (22.8%)** |
 
 This comparison isolates this migration, including removal of Python-dependent
@@ -25,10 +25,16 @@ cloud-guest-utils and replacement of its growth helper. It does not include
 savings from earlier nginx/rootfs PRs. The native image has 179 installed
 packages versus 204 for Python. [Raw size evidence](native-runtime-image-size.json)
 includes byte counts, SHA-256 hashes, partition/ext4 geometry, all common package
-versions and the added/removed packages. Images are built once; ZIP metadata
-and filesystem geometry can cause small variations in a rebuild.
+versions and the added/removed packages. The native image was rebuilt after
+the activation fairness fix described below; ZIP metadata and filesystem
+geometry can cause small variations in a rebuild.
 
 ## Physical board reboot measurements
+
+These measurements use the initial migration at `2b7168a0`. The later stress
+test uses the corrected activation fairness implementation and records its
+separate executable hash. The six reboot measurements have not been repeated
+with that correction.
 
 Six **software reboots**, in three pairs with alternating pair order:
 Python/native, native/Python, Python/native. The board retains the same installed
@@ -70,6 +76,9 @@ units and the three-minute automatic recovery timer are removed.
 
 ## Physical board measurements
 
+These benchmark pairs use the initial migration at `2b7168a0`; they were not
+repeated after the activation fairness correction.
+
 Red Pitaya at `192.168.1.85`, running Ubuntu 26.04.1 and Linux 6.18.0-xilinx.
 Both API variants read the same installed FFT 0.3.0, live files and journals.
 They run sequentially on loopback port 18085, with the production instrument,
@@ -94,7 +103,8 @@ latency sample, per-process memory samples, responses and executable hashes.
 
 ## Physical board functional tests
 
-The compiled ARMhf executables pass **57 black-box tests** directly on the board:
+The compiled ARMhf executables pass **57 black-box tests** directly on the board
+in the initial migration test phase:
 HTTP routes, concurrent status, Unicode filename normalization, multipart
 uploads and interrupted transfers, ZIP CRC/path/type validation, permissions,
 rollback, socket activation and fragmented LED RPC. Service control in these
@@ -120,18 +130,70 @@ the production Python API file hash is unchanged. LED RPC succeeds; the LED
 appearance is not visually inspected. Instrument activation tests use dummy
 payloads and do not reprogram the FPGA.
 
+## Sustained stress and activation fairness correction
+
+The first stress run found reader starvation: continuous status polling could
+keep `std::shared_mutex` readers ahead of a waiting activation. The first
+activation under 16 readers exceeded its client's 10-second timeout and only
+proceeded when polling subsided. [Pre-fix evidence](native-runtime-stress-before-fix.json)
+and a [deterministic failing regression](native-runtime-starvation-before.txt)
+record the old executable separately.
+
+The correction announces a pending activation before waiting for the snapshot
+lock. New status requests return the existing `null` live-status representation
+during activation, allowing earlier readers to finish without admitting more
+readers. The regression now passes, including coherent old/new snapshots.
+
+The corrected ARMhf binary was tested through a private nginx frontend over LAN
+at `192.168.1.85:18089`, using actual systemd and journals. Four 30-second phases
+at 1, 8, 32 and 64 clients, followed by a five-minute 32-client soak, completed
+**142,863 requests with zero HTTP or response-validation errors**. The soak
+completed **104,593 requests**, averaging **348.5 requests/s**, with **299.5 ms
+p99** latency. The API PID remained constant and its restart count was zero.
+
+With 16 concurrent readers active, all **30 instrument switches**, **10 failed
+startup rollbacks**, **10 unsafe-extraction rejections**, and **30 two-MiB
+upload/delete cycles** completed. The user requested stopping the extended run
+after those cycles. The mixed reader phase was interrupted; its final counts
+and validation are unavailable and excluded from the request totals. The later
+500 interrupted board uploads, 50 restarts and three forced-kill checks were
+not run. They remain optional paths in the reproduction harness.
+
+Median idle API PSS was **7,920 KiB before** the soak and **8,100 KiB afterward**
+(+180 KiB); descriptors and threads returned to **5** and **2**. Combined nginx
+PSS stayed at **3,202 KiB**. Telemetry sampled about every **1.30 s** records
+these values and the higher transient load usage; this finite test does not
+establish the absence of all leaks. No kernel OOM or segmentation fault was
+recorded during the run. All **100 native LED RPC calls** against the production
+FFT succeeded during the soak, redisplaying the existing IP digit.
+
+[Raw stress results](native-runtime-stress-red-pitaya.json) include executable
+hashes, completed phases/actions, the stop reason, journals, cleanup and
+sanitizer metadata. [Raw telemetry](native-runtime-stress-telemetry.jsonl)
+contains every sample. The private units were stopped and removed, with no
+temporary upload/extraction files left. Production PIDs remained server **151**,
+uWSGI **394**, nginx **399**, and the production API file hash was unchanged.
+Dummy activation payloads do not access the FPGA; no image was flashed.
+
+Separately, the corrected host build passed **58 tests under AddressSanitizer
+and UndefinedBehaviorSanitizer**, then a 30-second, 32-client fixture load of
+**70,755 requests** and **500 interrupted uploads**. Leak detection was enabled;
+no sanitizer diagnostic files were produced. [Console output](native-runtime-sanitizers.txt)
+and the raw stress record give the compiler flags and binary hashes. The three
+preload fault-injection tests run in the ordinary **61-test Docker suite**.
+
 ## Build and image checks
 
 - The default Ubuntu 26.04 builder compiles ARMhf and ARM64 binaries with GCC 15;
   an ARM64 QEMU version check also passes. There is no GCC 13 fallback.
-- The dedicated Docker CI command passes **60 native tests**, including three
+- The dedicated Docker CI command passes **61 native tests**, including three
   injected filesystem failures; **10** growth tests, **5** rootfs settings
   tests and **2** private-chroot enablement tests.
 - The OS regression suite passes **95 tests**, with the two root-only chroot
   tests skipped on the host and passed separately in Docker. All **3** real
   user-systemd ordering tests pass. Compiler-cache and APT-refresh checks pass.
-- The assembled Red Pitaya image is **276 MiB**; its ZIP is **61.86 MiB**.
-  Read-only inspection reports **190 MiB** of allocated rootfs content, three
+- The assembled Red Pitaya image is **276 MiB**; its ZIP is **61.85 MiB**.
+  Read-only inspection reports **189.46 MiB** of allocated rootfs content, three
   native executables, correct API enablement, and zero installed Python,
   libpython, uWSGI or cloud-guest-utils packages.
 - The actual image API serves inventory and build-manifest HTTP responses in a

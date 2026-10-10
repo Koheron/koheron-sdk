@@ -1,7 +1,6 @@
 {
   "date": "2026-10-10",
   "baseline_commit": "902bd235c7582d31f0778b8b29b54e3e1864cd26",
-  "native_commit": "2b7168a0b478d85ac93bfd5432b4fbb79cee519b",
   "builder_image_id": "sha256:c90842ea998da8e40ef697c8d1986e73a73d5c469ffa0e525f839275098f0025",
   "ubuntu_base": {
     "file": "ubuntu-base-26.04.1-base-armhf.tar.gz",
@@ -890,12 +889,12 @@
     "native": {
       "image_path": "tmp/examples/red-pitaya/fft/red-pitaya-fft.img",
       "image_bytes": 289406976,
-      "image_sha256": "ff601ae1f88b9d74b4582fb27501b09670eef2d364aeda238a8d460ee8feeebe",
-      "zip_bytes": 64860769,
-      "zip_sha256": "7711ada55a38c61f308d593719bf4a53819573e26d53a3298a35912cafa2d042",
-      "rootfs_allocated_bytes": 198664192,
-      "rootfs_apparent_bytes": 174319533,
-      "ext4_block_count": 58393,
+      "image_sha256": "7984c53096f67f96a9f98c43c4623378553bc10044c44a5d0b7ac8c87fa266f4",
+      "zip_bytes": 64853161,
+      "zip_sha256": "af4d815a5998d6d6f021ab6353f6ab776ef4eb45bd34bbac624057b5969a72dd",
+      "rootfs_allocated_bytes": 198660096,
+      "rootfs_apparent_bytes": 174319669,
+      "ext4_block_count": 58392,
       "ext4_block_size": 4096,
       "configured_base_bytes": 55820251,
       "configured_base_sha256": "f53a26f6aafdd6378083f8e7bdd197479149442b0c26a89cf51baed80ccdd88f",
@@ -903,7 +902,7 @@
       "partition_table": {
         "partitiontable": {
           "label": "dos",
-          "id": "0x87b1f6ee",
+          "id": "0xee14770e",
           "device": "/dev/loop1",
           "unit": "sectors",
           "sectorsize": 512,
@@ -922,7 +921,13 @@
             }
           ]
         }
+      },
+      "native_binary_sha256": {
+        "koheron-install": "745dd082ba512ad346650f9483bd8f4bb6f9a2513ae0d29add15260647d96128",
+        "koheron-server-init": "4aa1d28d671627abbb56eb21b2029c90a374457c5b819c20672708e66e0bf433",
+        "koheron-api": "164cbe9316e4ce9e9e29e4c50ac487a2ac125889a85e744d76daec19c4f7138d"
       }
     }
-  }
+  },
+  "native_source_sha256": "221e6dc77afd883f54c4a47806db5cff9bf1c8bb446796d265d8a67004365ebc"
 }

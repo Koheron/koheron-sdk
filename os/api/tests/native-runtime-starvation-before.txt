@@ -1,0 +1,18 @@
+make: Nothing to be done for 'all'.
+test_pending_activation_does_not_admit_more_status_readers (test_native_api.NativeApiTest.test_pending_activation_does_not_admit_more_status_readers) ... ERROR
+
+======================================================================
+ERROR: test_pending_activation_does_not_admit_more_status_readers (test_native_api.NativeApiTest.test_pending_activation_does_not_admit_more_status_readers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/work/os/api/tests/test_native_api.py", line 24, in test_pending_activation_does_not_admit_more_status_readers
+    status, body, _ = later.result(timeout=1)
+                      ~~~~~~~~~~~~^^^^^^^^^^^
+  File "/usr/lib/python3.14/concurrent/futures/_base.py", line 452, in result
+    raise TimeoutError()
+TimeoutError
+
+----------------------------------------------------------------------
+Ran 1 test in 1.298s
+
+FAILED (errors=1)
