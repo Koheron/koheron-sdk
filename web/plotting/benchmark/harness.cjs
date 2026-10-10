@@ -27,6 +27,7 @@ async function install(target, variant) {
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText});
     await target.addScriptTag({path: path.join(__dirname, 'workload.js')});
     if (variant === 'persistence') await target.evaluate(() => {
+        document.body.style.setProperty('--plot-persistence-color','#607f8e');
         const setup = window.setup;
         window.setup = index => { setup(index); basics.setPersistence(true,1,.15); render(); };
     });

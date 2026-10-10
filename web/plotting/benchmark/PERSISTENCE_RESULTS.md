@@ -12,8 +12,9 @@ fading continues. Spectra skipped by browser paint are not represented.
 
 Two bounded RGBA canvases retain history pixels and rasterize the next live
 trace. The visible history canvas sits behind the regular base canvas and
-ignores pointer events. Rasterizing the trace at full opacity before adding it
-avoids bright seams at batched stroke boundaries. Smooth CSS opacity decay is
+ignores pointer events. Rasterizing the trace at full opacity before blending it
+avoids bright seams at batched stroke boundaries. Source-over transparency
+keeps overlapping muted trails from saturating to white. Smooth CSS opacity decay is
 periodically committed to the pixel buffer with a reduction below 1/2, allowing
 even the final 8-bit alpha level to clear. Frame tokens prevent reference/cursor
 redraws from adding the same spectrum again. Disabling or shutting down clears
@@ -23,7 +24,8 @@ labels persistence settings; CSV retains raw samples.
 ## Paired CPU comparison
 
 Both variants use the current owned renderer/widget. `owned` leaves persistence
-off; `persistence` enables a 1 s decay and 15% intensity. Three rounds measure
+off; `persistence` enables a 1 s decay and 15% intensity with the FFT
+muted trail color and source-over transparency. Three rounds measure
 180 paired frames after 30 warmup frames per scenario. Each same-origin child
 has a 1000 × 500 CSS pixel plot at DPR 1; the parent viewport is 2400 × 800.
 Drawing order alternates each frame and positions swap each round.
@@ -35,9 +37,9 @@ CPU is the mean persistence-minus-owned time over all 540 frame pairs.
 
 | Scenario | Redraw CPU median (ms) | Redraw CPU p95 (ms) | Added paired CPU (ms/frame) |
 | --- | ---: | ---: | ---: |
-| fft-linear-4 | 1.0 → 3.3 | 1.2 → 3.8 | 2.364 |
-| fft-deep-zoom | 0.5 → 2.3 | 0.7 → 2.6 | 1.811 |
-| fft-log-4 | 1.0 → 2.7 | 1.4 → 3.3 | 1.780 |
+| fft-linear-4 | 1.0 → 3.4 | 1.2 → 3.9 | 2.394 |
+| fft-deep-zoom | 0.5 → 2.3 | 0.7 → 2.7 | 1.758 |
+| fft-log-4 | 0.9 → 2.7 | 1.5 → 3.5 | 1.884 |
 
 The feature adds roughly 2 ms of timed redraw CPU in these fixtures. Combined
 median rAF cadence stays 16.7 ms, which does not establish a complete display
@@ -57,6 +59,8 @@ Validation:
 - Persistence browser checks at DPR 1/2 cover elapsed decay, tiny alpha steps,
   pause/resume, same-frame redraws, parameter edits, resets, memory release,
   source preservation and context restoration after a rendering exception.
+  Repeated received frames retain their trail color after a new live trace
+  is drawn and in PNG composition; the newest trace keeps its original blue.
 - The actual FFT controls run against simulated spectra: trusted drag zoom,
   reference capture, history switching, clear, desktop/narrow layouts,
   disposal and full-DPI PNG/CSV exports pass. Screenshots were inspected.
@@ -64,9 +68,9 @@ Validation:
   and Canvas rendering at DPR 1/2 (0% pixels differing beyond the 8-level
   tolerance). Hook compatibility, interactions, resizing, normalization,
   repeated ranges and original FFT/PNA exports pass. Both asset checks pass.
-- All 233 web Node regressions pass. FFT checks and the persistence/export
-  browser checks were repeated after the final export changes.
-- Nine instrument web configurations build across ALPHA250, ALPHA250-4,
+- All 68 shared/FFT web Node regressions pass, plus the persistence/export
+  browser checks after the blending fix.
+- Four FFT instrument web configurations build across ALPHA250, ALPHA250-4,
   ALPHA15 and Red Pitaya.
-- Hardware tests and FPGA/server builds were not run. Firefox and Safari were
-  not tested.
+- The live FFT UI is verified on Red Pitaya. Signal characterization and
+  FPGA/server builds were not run. Firefox and Safari were not tested.

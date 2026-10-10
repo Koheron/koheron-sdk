@@ -450,9 +450,11 @@ class PlotBasics {
             plot.drawSeriesToCanvas(this.persistenceColor ? {...series, color: this.persistenceColor} : series, trace);
             // Composite a complete opaque trace once. Applying transparency to
             // each batched stroke would brighten shared endpoints and crossings.
-            // Add new light in the buffer's time reference. The final opacity
-            // brings it back to today's intensity while older light decays.
-            layer.globalCompositeOperation = 'lighter';
+            // Blend opacity without adding RGB channels: repeated muted
+            // traces must not saturate to white and vanish on the background.
+            // Compensate for the layer's current fade so new trails enter at
+            // the selected intensity while the existing pixels keep aging.
+            layer.globalCompositeOperation = 'source-over';
             layer.globalAlpha = Math.min(1, this.persistenceIntensity / opacity);
             layer.drawImage(this.persistenceTrace, 0, 0);
             layer.globalAlpha = 1;

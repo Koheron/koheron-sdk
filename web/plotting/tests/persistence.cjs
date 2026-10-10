@@ -80,8 +80,43 @@ const {previewHTML} = require('../benchmark/persistence-preview.cjs');
             assert.equal(result.slowCleared,0,'small decay steps do not leave stuck 8-bit ghost pixels');
             assert.ok(result.disabled && result.released && result.sourceUnchanged);
             assert.ok(result.caught && result.restored,'detached rendering restores the live context after exceptions');
+            const accumulation = await page.evaluate(() => {
+                setup(0);
+                let now=0;
+                Object.defineProperty(performance,'now',{configurable:true,value:()=>now});
+                basics.plot_placeholder[0].style.setProperty('--plot-persistence-color','#607f8e');
+                basics.setPlot(1,1024,-180,-65);
+                basics.range_x={from:1,to:1024}; basics.range_y={from:-180,to:-65};
+                basics.setPersistence(true,1,.25);
+                const old=Array.from({length:1024},(_,i)=>[i+1,-110]);
+                const current=old.map(([x])=>[x,-145]);
+                const draw=(data,frame)=>basics.redraw(data,data.length,[],'Power',()=>{},undefined,true,[],undefined,frame);
+                const sample=(canvas,y)=>{
+                    const p=basics.plot.pointOffset({x:512,y}),ratio=canvas.width/basics.plot.getPlaceholder().width();
+                    return Array.from(canvas.getContext('2d').getImageData(Math.floor(p.left*ratio),Math.floor(p.top*ratio),1,1).data);
+                };
+                draw(old,0); const initial=sample(basics.persistenceLayer,-110);
+                // Distinct received frames can occupy the same pixels. Their
+                // trails must stay colored instead of adding up to white.
+                for(let frame=1;frame<=60;frame++){now=frame*20;draw(old,frame);}
+                const repeated=sample(basics.persistenceLayer,-110);
+                now+=20;draw(current,61);
+                const retained=sample(basics.persistenceLayer,-110);
+                const exported=sample(basics.getExportCanvas(),-110);
+                const live=sample(basics.plot.getCanvas(),-145);
+                basics.plot.shutdown();delete performance.now;
+                return {initial,repeated,retained,exported,live};
+            });
+            assert.ok(accumulation.initial[3]>=60 && accumulation.initial[3]<=65,
+                'a new trail starts at the selected 25% intensity');
+            for(const pixels of [accumulation.repeated,accumulation.retained,accumulation.exported]){
+                assert.ok(pixels[3]>80 && [96,127,142].every((value,i)=>Math.abs(pixels[i]-value)<=3),
+                    'overlapping trails retain their muted color after live redraws and PNG composition');
+            }
+            assert.ok([1,156,213].every((value,i)=>Math.abs(accumulation.live[i]-value)<=2),
+                'the current trace keeps the original blue above the retained trails');
             assert.deepEqual(errors,[]); await page.close();
-            console.log(`Persistence trails, elapsed decay, pause, resets, DPR ${scale}, buffers and source preservation: PASS`);
+            console.log(`Persistence trails, repeated-frame color, elapsed decay, pause, resets, DPR ${scale}, buffers and source preservation: PASS`);
         }
         const page = await browser.newPage({viewport:{width:1200,height:850},deviceScaleFactor:2});
         const errors=[]; page.on('pageerror',e=>errors.push(e.message));
