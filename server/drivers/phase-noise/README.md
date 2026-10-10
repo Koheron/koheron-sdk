@@ -75,7 +75,8 @@ instruments show an unavailable value rather than stale coverage.
 
 ## Atomic spectrum snapshot
 
-All three designs expose `get_spectrum_snapshot()`. The result is a tuple:
+ALPHA250, ALPHA250-4, Red Pitaya and the ALPHA250 DPLL monitor expose
+`get_spectrum_snapshot()`. The result is a tuple:
 
 ```
 (sequence, state, precision, fs, channel, cic_rate, fft_navg,

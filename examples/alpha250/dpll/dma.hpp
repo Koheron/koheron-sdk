@@ -16,6 +16,9 @@ class Dma {
     bool set_phase_precision(uint32_t bits) { return core.set_phase_precision(bits); }
     auto get_parameters() { return core.get_parameters(); }
     auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
+    auto get_spectrum_snapshot_since(uint32_t sequence_hi, uint32_t sequence_lo) const {
+        return core.get_spectrum_snapshot_since(sequence_hi, sequence_lo);
+    }
     auto get_phase_noise() const { return core.get_phase_noise(); }
     auto get_average_status() const { return core.get_average_status(); }
     auto get_precision_status() { return core.get_precision_status(); }
