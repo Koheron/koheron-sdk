@@ -99,5 +99,7 @@ boundary and in the rest of the instrument UI.
 Performance conditions, metrics, profiling and baseline rules are in
 [benchmark/README.md](benchmark/README.md). Measured results are recorded in
 [benchmark/RESULTS.md](benchmark/RESULTS.md),
-[benchmark/CONTINUED_RESULTS.md](benchmark/CONTINUED_RESULTS.md) and the latest
-range-update comparison in [benchmark/RANGE_RESULTS.md](benchmark/RANGE_RESULTS.md).
+[benchmark/CONTINUED_RESULTS.md](benchmark/CONTINUED_RESULTS.md), the
+range-update comparison in [benchmark/RANGE_RESULTS.md](benchmark/RANGE_RESULTS.md)
+and the latest extrema-loop comparison in
+[benchmark/EXTREMA_RESULTS.md](benchmark/EXTREMA_RESULTS.md).
