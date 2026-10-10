@@ -1,4 +1,5 @@
 /* Shared instrument controls. Hosts own layout, sizing and responsive rules. */
+html { scrollbar-gutter: stable; }
 .instrument-workspace {
   --accent: hsl(196, 99%, 42%);
   --accent-dark: hsl(196, 99%, 32%);
@@ -12,8 +13,8 @@
 }
 .instrument-workspace * { box-sizing: border-box; }
 .instrument-workspace [hidden] { display: none !important; }
-.instrument-workspace .app-header { flex: none; min-height: 38px; display: flex; align-items: center; gap: 12px; padding: 4px 12px; border-bottom: 1px solid var(--border-light); }
-.instrument-workspace .brand img { display: block; width: 88px; }
+.instrument-workspace .app-header { flex: none; min-height: 38px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 4px 12px; border-bottom: 1px solid var(--border-light); }
+.instrument-workspace .brand img { display: block; width: 88px; aspect-ratio: 35 / 12; }
 .instrument-workspace h1 { margin: 0; padding-left: 12px; border-left: 1px solid var(--border); font-size: 14px; font-weight: 700; }
 .instrument-workspace .board-tag { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .instrument-workspace #refresh-rate { flex: 0 0 45px; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -46,7 +47,7 @@
 .instrument-workspace .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; position: relative; z-index: 1; }
 .instrument-workspace .segmented input:disabled + span { opacity: .5; cursor: default; }
 
-.instrument-workspace .digit-input { height: var(--control-height); min-width: 0; padding: 2px 6px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; color: #333; text-align: right; font: 13px/18px ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.instrument-workspace :is(.digit-input, .pna-digit-control input) { height: var(--control-height); min-width: 0; padding: 2px 6px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; color: #333; text-align: right; font: 13px/18px ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }
 .instrument-workspace .digit-input::selection { background: var(--accent); color: white; }
 .instrument-workspace :is(.digit-control, .pna-digit-control) .pm-frequency-help { display: none; position: absolute; top: calc(100% + 3px); right: 0; z-index: 10; max-width: 240px; padding: 3px 6px; border: 1px solid #ddad9f; border-radius: 2px; background: white; color: #a53e25; font: 10px/1.3 Lato, sans-serif; pointer-events: none; }
 .instrument-workspace :is(.digit-control, .pna-digit-control) .pm-frequency-help[data-state="error"] { display: block; }
@@ -60,6 +61,11 @@
 .instrument-workspace .connection-status[data-state="error"]::before { background: #bc4828; }
 .instrument-workspace .connection-error { display: inline-flex; margin: 0; padding: 0; }
 .instrument-workspace .connection-error button { padding: 2px 6px; font-size: 11px; }
+
+/* Keep loading controls and changing readings in the same slots. */
+.instrument-workspace #export-file { display: flex; min-width: 7em; min-height: var(--control-height); }
+.instrument-workspace .spectrum-readouts strong { display: inline-block; width: var(--readout-width, 18ch); height: 1.4em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.instrument-workspace #plot-references { min-height: calc(var(--control-height) + 52px); }
 
 /* Opt in on a sidebar; hosts can set spacing without copying the marker. */
 .instrument-workspace .instrument-disclosures summary { display: flex; align-items: center; gap: var(--disclosure-gap, 6px); min-height: 24px; list-style: none; }

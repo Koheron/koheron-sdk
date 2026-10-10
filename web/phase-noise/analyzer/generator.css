@@ -40,6 +40,10 @@
 .pna-workspace .dds-pm-widget .pm-advanced { gap: 4px 8px; padding-top: 5px; }
 .pna-workspace .dds-pm-widget .pm-status-slot { height: 16px; }
 
-@container pna (min-width: 1100px) {
-  .pna-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 140px); }
+.pna-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 140px); }
+@container (min-width: 561px) {
+  .pna-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 88px); }
+}
+@container (min-width: 865px) {
+  .pna-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 62px); }
 }

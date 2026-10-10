@@ -33,6 +33,9 @@
 .fft-workspace .spectrum-readouts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 20px; padding: 5px 0; flex: none; padding-top: 26px; }
 .fft-workspace .spectrum-readouts > div { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 .fft-workspace .spectrum-readouts strong { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fft-workspace #peak-level { --readout-width: 20ch; }
+.fft-workspace #bin-spacing { --readout-width: 14ch; }
+.fft-workspace #fft-size { --readout-width: 12ch; }
 .fft-workspace .plot-help { margin-left: auto; color: var(--muted); font-size: 11px; }
 .fft-workspace .board-details { margin-top: 3px; border-top: 1px solid var(--border-light); }
 .fft-workspace summary { cursor: pointer; padding: 5px 0; color: #555; }
@@ -89,10 +92,20 @@
 .fft-workspace #history-view { position: absolute; inset: 0; }
 .fft-workspace .fft-sidebar { min-width: 0; }
 .fft-workspace #precision-channels { grid-column: 1 / -1; }
+.fft-workspace[data-board='red-pitaya'] #board-acquisition-note { display: block !important; width: 110px; min-height: 1.4em; }
+.fft-workspace[data-board='red-pitaya'] #board-acquisition-note[hidden] { visibility: hidden; }
 
 /* Match PNA's compact presentation of the shared DAC widget. */
 .fft-workspace .dds-pm-widget :is(.pm-toolbar, .pm-footnote) { display: none; }
 .fft-workspace .dds-pm-widget :is(.pm-number, .pm-frequency-number, select, button, .pm-output, .pm-pm) { height: var(--control-height); }
+.fft-workspace .dds-pm-widget .pm-placeholder { height: var(--control-height); }
+.fft-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 170px); }
+@container (min-width: 561px) {
+    .fft-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 102px); }
+}
+@container (min-width: 865px) {
+    .fft-workspace .dds-pm-widget .pm-initial-layout { height: calc(var(--pm-loading-channels) * 68px); }
+}
 .fft-workspace .dds-pm-widget :is(.pm-number, .pm-frequency-number) { font-size: 15px; padding-top: 2px; padding-bottom: 2px; }
 .fft-workspace .dds-pm-widget .pm-frequency-help { top: calc(var(--control-height) + 1px); }
 .fft-workspace .dds-pm-widget :is(.pm-frequency-control, .pm-input-unit) .pm-frequency-help:not([data-state="error"]) { display: none; }

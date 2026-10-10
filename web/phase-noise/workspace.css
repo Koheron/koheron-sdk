@@ -18,7 +18,7 @@
 .pna-workspace label, .pna-workspace .control-label { white-space: nowrap; }
 .pna-workspace input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; width: 90px; }
 .pna-workspace .toggle { display: inline-flex; align-items: center; gap: 5px; }
-.pna-workspace .oscillator-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 12px; width: 100%; min-width: 0; }
+.pna-workspace .oscillator-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 12px; width: 100%; min-width: 0; min-height: var(--control-height); }
 .pna-workspace .oscillator-label { color: var(--muted); }
 .pna-workspace .oscillator-grid { display: flex; flex-wrap: wrap; gap: 4px 8px; }
 .pna-workspace .oscillator-field { display: flex; align-items: center; gap: 5px; }
@@ -40,12 +40,16 @@
 .pna-workspace .toolbar-actions > button:first-child { border-radius: 2px 0 0 2px; }
 .pna-workspace .spectrum-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; margin: 0; }
 .pna-workspace #plot-wrap { flex: 1; min-height: 300px; height: auto; max-height: 1000px; overflow: visible; }
+.pna-workspace #spectrum-status { position: absolute; top: 8px; left: 48px; right: 12px; z-index: 2; margin: 0; padding: 4px 8px; background: rgb(255 255 255 / 92%); color: var(--muted); pointer-events: none; }
 .pna-workspace #plot-title { position: absolute; bottom: -22px; width: 100%; color: var(--muted); font-size: 11px; }
 .pna-workspace #hover-datapoint, .pna-workspace #click-datapoint, .pna-workspace #peak-datapoint { pointer-events: none; border: 1px solid var(--border); border-radius: 2px; font-size: 11px; padding: 2px 4px !important; z-index: 1; }
 .pna-workspace .spectrum-readouts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 20px; padding: 26px 0 5px; }
-.pna-workspace .spectrum-readouts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; }
-.pna-workspace .jitter-range { color: var(--muted); font-size: 11px; }
+.pna-workspace .spectrum-readouts > div { display: flex; align-items: baseline; gap: 3px 6px; white-space: nowrap; }
+.pna-workspace .jitter-range { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.pna-workspace #jitter-range { display: inline-block; width: 24ch; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; }
 .pna-workspace .spectrum-readouts strong { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pna-workspace .carrier-power-span { --readout-width: 12ch; }
+.pna-workspace :is(.phase-jitter-span, .time-jitter-span) { --readout-width: 24ch; }
 .pna-workspace .spectrum-note { color: var(--muted); font-size: 11px; margin: 0 0 6px; }
 .pna-workspace .pna-sidebar { min-width: 0; }
 .pna-workspace .measurement-details { display: flex; flex-direction: column; border-top: 1px solid var(--border-light); margin-top: 8px; }
@@ -67,10 +71,16 @@
   .pna-workspace .oscillator-field label { width: 100%; }
   .pna-workspace .oscillator-field .pna-digit-control { width: 100%; }
   .pna-workspace .oscillator-field .dds-input { flex: 1; width: 124px; }
+  .pna-workspace .oscillator-controls { --oscillator-rows: 1; min-height: calc(1.4em + 5px + var(--oscillator-rows) * (1.4em + 5px + var(--control-height)) + (var(--oscillator-rows) - 1) * 4px); }
+  .pna-workspace[data-board='alpha250-4'] .oscillator-controls { --oscillator-rows: 2; }
   .pna-workspace .tracking-readout { font-size: 10px; }
   .pna-workspace .spectrum-panel { flex: none; }
   .pna-workspace #plot-wrap { flex: none; height: 46dvh; min-height: 250px; }
   .pna-workspace .spectrum-readouts { gap: 3px 14px; }
+}
+@container pna (max-width: 364px) {
+  .pna-workspace .oscillator-controls { --oscillator-rows: 2; }
+  .pna-workspace[data-board='alpha250-4'] .oscillator-controls { --oscillator-rows: 4; }
 }
 
 .pna-workspace #decade-values-table { table-layout: fixed; }
@@ -78,11 +88,11 @@
 
 /* One digit tuner for every numeric setting, without adding toolbar height. */
 .pna-workspace .pna-digit-control { position: relative; display: inline-flex; min-width: 0; }
-.pna-workspace .pna-digit-control .digit-input { width: 90px; }
+.pna-workspace .pna-digit-control input { width: 90px; }
 .pna-workspace .pna-digit-control .pm-frequency-help[data-state="error"] { width: 200px; }
 .pna-workspace .pna-digit-control .dds-input { width: 136px; }
 .pna-workspace .pna-digit-control .lo-unit { width: 45px; padding: 2px 1px; font-size: 11px; border-left: 0; border-radius: 0 2px 2px 0; color: var(--muted); }
-.pna-workspace .pna-digit-control:has(.lo-unit) .digit-input { border-right: 0; border-radius: 2px 0 0 2px; }
+.pna-workspace .pna-digit-control:has(.lo-unit) input { border-right: 0; border-radius: 2px 0 0 2px; }
 
 
 .pna-workspace .pna-average-control { align-items: center; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; }
