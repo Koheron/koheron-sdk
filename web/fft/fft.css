@@ -67,9 +67,10 @@
     .fft-workspace .spectrum-readouts { gap: 3px 14px; }
 }
 
-.fft-workspace .history-toolbar, .fft-workspace #trace-controls, .fft-workspace #history-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
-.fft-workspace .history-toolbar { flex: none; padding: 6px 0 3px; }
-.fft-workspace #clear-history { margin-left: auto; }
+.fft-workspace .history-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 8px; flex: none; padding: 6px 0 3px; }
+.fft-workspace #trace-controls { display: contents; }
+.fft-workspace .trace-options, .fft-workspace #history-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; grid-column: 1; grid-row: 1; }
+.fft-workspace #clear-history { grid-column: 2; grid-row: 1; }
 .fft-workspace #spectrum-view { width: 124px; }
 .fft-workspace #history-controls label { display: inline-flex; align-items: center; gap: 5px; }
 .fft-workspace #history-duration { width: 62px; }
@@ -136,8 +137,26 @@
     .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-.fft-workspace #persistence-controls { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.fft-workspace .trace-options { gap: 4px; }
+.fft-workspace .trace-toggle { display: inline-flex; align-items: center; gap: 5px; min-height: var(--control-height); padding: 2px 8px; border: 1px solid var(--border-light); border-radius: 3px; background: #fafafa; cursor: pointer; }
+.fft-workspace .trace-toggle:has(input:checked) { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-light); }
+.fft-workspace .trace-toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fft-workspace .trace-toggle input:focus-visible { outline: none; }
+.fft-workspace .trace-toggle:has(input:disabled) { opacity: .45; cursor: default; }
+.fft-workspace #persistence-controls { display: grid; grid-template-columns: auto minmax(180px, 220px) minmax(0, 1fr) auto; grid-column: 1 / -1; grid-row: 2; align-items: center; gap: 6px 16px; padding: 6px 10px; border: 1px solid var(--border-light); border-left: 3px solid var(--accent); border-radius: 3px; background: #f7fafb; }
 .fft-workspace #persistence-controls label { display: inline-flex; align-items: center; gap: 5px; }
-.fft-workspace #persistence-decay { width: 70px; }
-.fft-workspace #persistence-intensity { width: 76px; }
-.fft-workspace #persistence-intensity-value { min-width: 3ch; font-variant-numeric: tabular-nums; }
+.fft-workspace #persistence-decay { width: 64px; background: white; }
+.fft-workspace #persistence-intensity { appearance: none; -webkit-appearance: none; min-width: 64px; width: 100%; height: var(--control-height); margin: 0 3px; padding: 0; background: transparent; cursor: pointer; }
+.fft-workspace #persistence-intensity::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #d6e1e6; }
+.fft-workspace #persistence-intensity::-moz-range-track { height: 4px; border-radius: 2px; background: #d6e1e6; }
+.fft-workspace #persistence-intensity::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border: 2px solid white; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.fft-workspace #persistence-intensity::-moz-range-thumb { width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.fft-workspace #persistence-intensity-value { min-width: 4ch; color: var(--accent-dark); font-weight: 600; font-variant-numeric: tabular-nums; }
+.fft-workspace .persistence-hint { color: var(--muted); font-size: 11px; text-align: right; }
+@container fft (max-width: 600px) {
+    .fft-workspace .trace-toggle { padding: 2px 6px; font-size: 11px; }
+    .fft-workspace #persistence-controls { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+    .fft-workspace .persistence-intensity-control { grid-column: 1 / -1; grid-row: 2; }
+    .fft-workspace .persistence-hint { display: none; }
+    .fft-workspace #clear-persistence { grid-column: 2; grid-row: 1; }
+}

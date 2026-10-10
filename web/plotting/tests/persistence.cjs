@@ -133,7 +133,9 @@ const {previewHTML} = require('../benchmark/persistence-preview.cjs');
         await page.locator('#spectrum-view').selectOption('spectrum');
         assert.equal(await page.locator('#persistence-controls').isVisible(),true);
         await page.setViewportSize({width:390,height:844});
-        await page.waitForFunction(()=>basics.persistenceLayer?.width===basics.plot.getCanvas().width);
+        // Both buffers can still have their old size while resize is queued.
+        await page.waitForFunction(()=>basics.persistenceLayer?.width===basics.plot.getCanvas().width &&
+            basics.plot.getCanvas().clientWidth===document.getElementById('plot-placeholder').clientWidth);
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'controls fit a narrow viewport');
         await page.screenshot({path:'tmp/plotting/screenshots/persistence-mobile.png'});
         await page.evaluate(()=>spectrum.dispose());
