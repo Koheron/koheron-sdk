@@ -44,3 +44,12 @@ systemd units, nginx on 18087 and dummy instrument payloads. It also exercises
 the native LED RPC against the running FFT server. These scripts remove their
 temporary processes and units without changing production services. They do
 not flash an SD card or validate FPGA programming or acquisition.
+
+`red_pitaya_boot_evidence.py` is a separate, opt-in reboot harness. It stages
+current V1 Python and native service variants on the existing rootfs, backs up
+the touched configuration and installs a recovery timer. It requires persistent
+staging under `/var/lib/koheron-native-boot-evidence` and serial/SSH access.
+`boot_http_probe.cpp` independently records API readiness through nginx.
+See the evidence report for staging, measured boot times, restoration and the
+matched image-size comparison. This test reboots and temporarily changes the
+production service configuration; it does not flash the generated image.
