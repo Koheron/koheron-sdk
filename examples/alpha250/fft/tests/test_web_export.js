@@ -5,7 +5,9 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const ts = require('../../../../web/transpile.cjs');
 const source = path.resolve(__dirname, '../../../../web/fft/export-file/export-file.ts');
-const context = vm.createContext({assert, console, Blob});
+const context = vm.createContext({assert, console, Blob, Date: class extends Date {
+    constructor(value) { super(value ?? '2026-10-10T18:10:11.123Z'); }
+}});
 vm.runInContext(ts.transpileModule(fs.readFileSync(source, 'utf8'), {
     compilerOptions: {target: ts.ScriptTarget.ES2020}
 }).outputText, context);
@@ -23,9 +25,10 @@ vm.runInContext(`
         let scaled, copied, background, image, download;
         const canvas = {width: 320 * density, height: 200 * density, clientWidth: 320};
         const ctx = {
+            measureText(value) { return {width: value.length * 6}; },
             scale(x, y) { scaled = [x, y]; },
             fillRect(...args) { background = args; },
-            fillText(value, x, y) { text.push({value, x, y, font: this.font}); },
+            fillText(value, x, y) { text.push({value, x, y, font: this.font, color: this.fillStyle}); },
             drawImage(...args) { copied = args; }
         };
         const doc = {
@@ -50,10 +53,10 @@ vm.runInContext(`
         assert.equal(text[0].value, 'ALPHA250 FFT · Voltage noise (nV/√Hz)');
         assert.equal(text[1].value, 'ADC 1 · Hann · 250 MS/s');
         assert.equal(text[2].value, 'Frequency (MHz)');
-        assert.equal(download.name, 'koheron_fft.png');
+        assert.equal(download.name, 'fft-alpha250-2026-10-10T18-10-11-123Z.png');
         buttons.get('.export-data')();
         const csv = await download.blob.text();
-        assert.equal(download.name, 'koheron_fft.csv');
+        assert.equal(download.name, 'fft-alpha250-2026-10-10T18-10-11-123Z.csv');
         assert.ok(csv.includes('Input channel,1'));
         assert.ok(csv.includes('Sampling frequency (Hz),250000000'));
         assert.ok(csv.includes('Reference clock,Internal'));
@@ -102,6 +105,23 @@ vm.runInContext(`
         assert.ok(rpCsv.startsWith('Koheron Red Pitaya FFT'));
         assert.ok(rpCsv.includes('Reference clock,Fixed onboard'));
         assert.ok(rpCsv.includes('Sampling frequency (Hz),125000000'));
+        assert.equal(download.name, 'fft-red-pitaya-2026-10-10T18-10-11-123Z.csv');
+        const names = Array.from({length:8}, (_, i) => 'R' + i + ' ' + 'x'.repeat(77));
+        spectrum.visibleReferences = names.map(name => ({name, color:'#a178b5', status:spectrum.frameStatus}));
+        text.length = 0;
+        rpExporter.exportPlot();
+        assert.ok(text.length > names.length + 3, 'long reference names wrap rather than shrink');
+        for (const line of text) { assert.ok(line.x + line.value.length * 6 <= 320 - 12, line.value); }
+        const referenceText = text.filter(line => line.color === '#a178b5').map(line => line.value).join('').replaceAll(' ', '');
+        assert.equal(referenceText, names.map(name => name + ' · ADC 1 · Hann · 125 MS/s').join('').replaceAll(' ', ''));
+        assert.equal(image.width, 320 * density, 'wrapping preserves every backing-canvas pixel');
+        let complete;
+        doc.createElement = () => image = {getContext() { return ctx; }, toBlob(callback) { complete = callback; }};
+        spectrum.visibleReferences = []; spectrum.view = 'spectrum';
+        rpExporter.exportPlot();
+        spectrum.view = 'density'; complete(new Blob(['image'], {type:'image/png'}));
+        assert.equal(download.name, 'fft-red-pitaya-2026-10-10T18-10-11-123Z.png', 'PNG names describe the view at click time');
+        spectrum.view = 'spectrum';
         spectrum.frameStatus.clkIndex = '2';
         spectrum.frameStatus.fs = 250e6;
     }
