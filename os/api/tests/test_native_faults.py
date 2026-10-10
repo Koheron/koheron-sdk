@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import subprocess
+import json
 
 from native_fixture import BIN_DIR, NativeFixture
 
@@ -23,6 +24,27 @@ class NativeFaultTest(NativeFixture):
         self.inject('extract'); self.assert_old()
         self.assertFalse(any(line.startswith('stop ') for line in self.operations()))
         self.assertEqual(list(self.root.glob('.instrument-*')), [])
+
+    def test_capacity_preflight_rejects_before_stopping(self):
+        self.environment.update(LD_PRELOAD=str(self.library), NATIVE_IO_FAULT='capacity')
+        self.start_api()
+        status, body, _ = self.request('/api/instruments/preflight/new')
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)['code'], 'insufficient_space')
+        status, body, _ = self.request('/api/instruments/activate/new', b'', method='POST')
+        self.assertEqual(status, 507)
+        self.assertEqual(json.loads(body)['code'], 'insufficient_space')
+        self.assert_old()
+        self.assertFalse(any(line.startswith('stop ') for line in self.operations()))
+
+    def test_directory_sync_failure_reports_actual_default(self):
+        self.environment.update(LD_PRELOAD=str(self.library), NATIVE_IO_FAULT='sync-directory')
+        self.start_api()
+        self.assertEqual(self.request('/api/instruments/default/new', b'', method='POST')[0], 500)
+        actual = (self.store / 'default').read_text().strip().removesuffix('.zip')
+        inventory = json.loads(self.request('/api/instruments/details')[1])['instruments']
+        self.assertEqual([i['name'] for i in inventory if i['is_default']], [actual])
+        self.assertEqual(list(self.store.glob('.preference-*')), [])
 
     def test_swap_failure_restores_and_restarts_previous(self):
         self.inject('swap'); self.assert_old()

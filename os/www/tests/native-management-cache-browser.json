@@ -1,0 +1,11 @@
+{
+  "recorded_utc": "2026-10-10T11:11:58.698Z",
+  "checks": [
+    "new HTML still uses the old cached bundle when its URL is unchanged",
+    "the generated content version bypasses the existing cached bundle",
+    "no-cache revalidates the versioned bundle on the next navigation"
+  ],
+  "unversionedReads": 1,
+  "versionedReads": 2,
+  "errors": []
+}

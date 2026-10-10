@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const {JSDOM} = require('jsdom');
 const ts = require('../../../web/transpile.cjs');
 const sources = ['web/instrument/poller.ts', 'os/www/instruments.ts',
+    'os/www/runtime.ts',
     'os/www/instruments_widget.ts', 'os/www/koheron_server_log.ts',
     'os/www/koheron_system.ts', 'os/www/system_info_widget.ts', 'os/www/instrument_summary.ts'];
 const code = ts.transpileModule(sources.map(path => fs.readFileSync(path, 'utf8')).join('\n'),
@@ -24,7 +25,7 @@ function fixture(t, page = 'index.html', query = '') {
             this.onload();
         }
     };
-    w.eval(code + "\nObject.assign(window, { Instruments, InstrumentsWidget, KoheronLogWidget, SystemInfoWidget, InstrumentSummaryWidget });");
+    w.eval(code + "\nObject.assign(window, { Instruments, InstrumentsWidget, KoheronLogWidget, KoheronLogView, SystemInfoWidget, InstrumentSummaryWidget });");
     return {w, requests, doc: w.document, flush: () => new Promise(resolve => setImmediate(resolve))};
 }
 const installed = {instruments: [
@@ -109,21 +110,23 @@ test('status errors recover and encoded instrument names stay intact', async t =
 test('log pause survives in-flight fetch; resume and bounded grouping work', async t => {
     const {w, doc, flush} = fixture(t);
     let complete;
+    w.WebSocket = class { constructor() { throw new Error('Blocked'); } };
     w.fetch = () => new Promise(resolve => { complete = resolve; });
     w.eval('new KoheronLogWidget(document)');
     doc.querySelector('#log-pause').click();
-    complete({ok: true, json: async () => ({cursor: '1', entries: [{ts: null, msg: 'late'}]})});
+    complete({ok: true, text: async () => JSON.stringify({type: 'logs', reset: false, cursor: '1', entries: [{ts: null, msg: 'late'}]})});
     await flush();
-    assert.equal(doc.querySelector('#koheron-log').textContent, '');
+    assert.equal(doc.querySelectorAll('#koheron-log .log-line').length, 0);
     assert.equal(doc.querySelector('#log-status').textContent, 'Paused');
     doc.querySelector('#log-pause').click();
-    complete({ok: true, json: async () => ({cursor: '2', entries: [{ts: null, msg: 'ready'}]})});
+    complete({ok: true, text: async () => JSON.stringify({type: 'logs', reset: false, cursor: '2', entries: [{ts: null, msg: 'ready'}]})});
     await flush(); assert.match(doc.querySelector('#koheron-log').textContent, /ready/);
-    w.eval(`const format = KoheronLogWidget.prototype.makeCoalescingFormatter(document.querySelector('#koheron-log'), () => false);
-        format(Array.from({length: 1200}, (_, i) => ({ts: null, msg: String(i)})));
-        format([{ts: null, msg: '1199'}]);`);
-    const lines = doc.querySelector('#koheron-log').textContent.split('\n');
-    assert.equal(lines.length, 1000); assert.match(lines[999], /×2/);
+    w.eval(`const pre = document.createElement('pre'); document.body.appendChild(pre);
+        pre.id = 'view-test'; const view = new KoheronLogView(pre, () => false);
+        view.append(Array.from({length: 1200}, (_, i) => ({ts: null, msg: String(i)})));
+        view.append([{ts: null, msg: '1199'}]);`);
+    const lines = doc.querySelectorAll('#view-test .log-line');
+    assert.equal(lines.length, 1000); assert.match(lines[999].textContent, /×2/);
 });
 
 test('system metadata is text and has a working retry', async t => {
@@ -137,10 +140,59 @@ test('system metadata is text and has a working retry', async t => {
     assert.equal(doc.querySelector('#release-table img'), null);
 });
 
-test('summary accepts literal percent in instrument name', t => {
-    const {w, requests, doc} = fixture(t, 'instrument_summary.html', '?name=fft%25test');
+test('summary accepts literal percent in instrument name', async t => {
+    const {w, requests, doc, flush} = fixture(t, 'instrument_summary.html', '?name=fft%25test');
     w.eval('new InstrumentSummaryWidget(document)');
     assert.equal(doc.querySelector('#instrument-name').textContent, 'fft%test');
     assert.match(requests[1].url, /fft%25test$/);
+    requests[2].reply(200, {ready: true, warnings: [], archive: {}});
+    await flush();
+});
+
+test('summary without a name offers a clear route back without perpetual loading', t => {
+    const {w, requests, doc} = fixture(t, 'instrument_summary.html');
+    w.eval('new InstrumentSummaryWidget(document)');
+    assert.equal(requests.length, 0);
+    assert.equal(doc.querySelector('#instrument-name').textContent, 'No instrument selected');
+    assert.match(doc.querySelector('#instrument-details-status').textContent, /Choose an instrument/);
+    assert.equal(doc.querySelector('#instrument-check-heading').closest('section').hidden, true);
+    assert.equal(doc.querySelector('#commands-heading').closest('section').hidden, true);
+});
+
+test('summary check prevents overlapping requests and re-enables retry after failure', async t => {
+    const {w, requests, doc, flush} = fixture(t, 'instrument_summary.html', '?name=fft');
+    w.eval('new InstrumentSummaryWidget(document)');
+    const button = doc.querySelector('#instrument-check-refresh');
+    assert.equal(button.disabled, true); button.click(); assert.equal(requests.length, 3);
+    requests[2].reply(500, {error: 'Cannot check the instrument'}); await flush();
+    assert.equal(button.disabled, false); assert.equal(button.textContent, 'Check again');
+    button.click(); assert.equal(requests.length, 4);
+    requests[3].reply(200, {ready: true}); await flush();
+    assert.match(doc.querySelector('#instrument-check').textContent, /Ready to run/);
+});
+
+test('commands timeout has a working retry and cannot erase an independent details error', t => {
+    const {w, requests, doc} = fixture(t, 'instrument_summary.html', '?name=fft');
+    w.eval('new InstrumentSummaryWidget(document)');
+    requests[0].reply(200, {instruments: []});
+    assert.equal(requests[1].timeout, 8000); requests[1].ontimeout();
+    const retry = doc.querySelector('#instrument-commands-retry'); assert.equal(retry.hidden, false);
+    retry.click(); assert.equal(requests.length, 4); assert.equal(retry.hidden, true);
+    requests[3].reply(200, [{class: 'Common', functions: [{name: '<img src=x>', args: [], ret_type: 'void'}]}]);
+    assert.equal(doc.querySelector('#instrument-commands-status').hidden, true);
+    assert.match(doc.querySelector('#instrument-details-status').textContent, /no longer installed/);
+    assert.match(doc.querySelector('#instrument-commands').textContent, /<img src=x>/);
+    assert.equal(doc.querySelector('#instrument-commands img'), null);
+});
+
+test('command description distinguishes unavailable metadata from malformed metadata', t => {
+    const {w, requests, doc} = fixture(t, 'instrument_summary.html', '?name=fft');
+    w.eval('new InstrumentSummaryWidget(document)');
+    requests[1].reply(200, {});
+    assert.equal(doc.querySelector('#instrument-commands-retry').hidden, false);
+    doc.querySelector('#instrument-commands-retry').click();
+    requests[3].reply(404, 'Missing');
+    assert.equal(doc.querySelector('#instrument-commands-retry').hidden, true);
+    assert.match(doc.querySelector('#instrument-commands-status').textContent, /No command description/);
 });
 

@@ -1,0 +1,177 @@
+{
+  "recorded_utc": "2026-10-10T11:17:29.165130+00:00",
+  "application_base_commit": "4a454a8a27036444905afc64c75782fe3533853b",
+  "failure": {
+    "browser": "Existing user Chrome profile",
+    "url": "http://192.168.1.85/koheron/",
+    "console": "ReferenceError: RuntimeStream is not defined",
+    "observed_utc": "2026-10-10T11:03:06.420Z",
+    "initial_ui": "Connecting, empty instrument list, log and health",
+    "javascript_url_before": "http://192.168.1.85/koheron/instruments.js"
+  },
+  "fix": "Generated management pages use content-hash versions for all four CSS/JS assets; nginx requires cache revalidation.",
+  "user_chrome_after": {
+    "url": "http://192.168.1.85/koheron/",
+    "connection": "Connected",
+    "instrument": "fft",
+    "log_status": "Live",
+    "health_rows": 11,
+    "script_url": "http://192.168.1.85/koheron/instruments.js?v=2148d18a4c49dd83"
+  },
+  "build_checks": {
+    "web_build_regressions": 3,
+    "management_web_target": "passed",
+    "nginx_syntax_on_board": "passed"
+  },
+  "cache_regression": "native-management-cache-browser.json",
+  "cache_checks": 3,
+  "hardware_browser_record": "native-management-cache-board-browser.json",
+  "hardware_browser_checks": 9,
+  "http_verification": {
+    "/koheron/": {
+      "status": 200,
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 11:12:50 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "5019",
+        "Last-Modified": "Sat, 10 Oct 2026 11:12:40 GMT",
+        "Connection": "close",
+        "Vary": "Accept-Encoding",
+        "ETag": "\"6aca1da8-139b\"",
+        "Expires": "Sat, 10 Oct 2026 11:12:49 GMT",
+        "Cache-Control": "no-cache",
+        "Accept-Ranges": "bytes"
+      },
+      "sha256": "148a15c23720430833a6529a5f496bc1e201606f22e5c4f1e91873260c8e14d3"
+    },
+    "/koheron/main.css?v=9c0cf2560880262c": {
+      "status": 200,
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 11:12:50 GMT",
+        "Content-Type": "text/css",
+        "Content-Length": "3591",
+        "Last-Modified": "Sat, 10 Oct 2026 11:12:40 GMT",
+        "Connection": "close",
+        "ETag": "\"6aca1da8-e07\"",
+        "Expires": "Sat, 10 Oct 2026 11:12:49 GMT",
+        "Cache-Control": "no-cache",
+        "Accept-Ranges": "bytes"
+      },
+      "sha256": "9c0cf2560880262c566b04b4453fc8d7de384dc37b2d5ef80d6f5943ac238c22"
+    },
+    "/koheron/instrument.css?v=5e7f110b26d2e333": {
+      "status": 200,
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 11:12:50 GMT",
+        "Content-Type": "text/css",
+        "Content-Length": "6490",
+        "Last-Modified": "Sat, 10 Oct 2026 11:12:40 GMT",
+        "Connection": "close",
+        "ETag": "\"6aca1da8-195a\"",
+        "Expires": "Sat, 10 Oct 2026 11:12:49 GMT",
+        "Cache-Control": "no-cache",
+        "Accept-Ranges": "bytes"
+      },
+      "sha256": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761"
+    },
+    "/koheron/system.css?v=ef2d181b1dee29c2": {
+      "status": 200,
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 11:12:50 GMT",
+        "Content-Type": "text/css",
+        "Content-Length": "10771",
+        "Last-Modified": "Sat, 10 Oct 2026 11:12:41 GMT",
+        "Connection": "close",
+        "ETag": "\"6aca1da9-2a13\"",
+        "Expires": "Sat, 10 Oct 2026 11:12:49 GMT",
+        "Cache-Control": "no-cache",
+        "Accept-Ranges": "bytes"
+      },
+      "sha256": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a"
+    },
+    "/koheron/instruments.js?v=2148d18a4c49dd83": {
+      "status": 200,
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 11:12:50 GMT",
+        "Content-Type": "application/javascript",
+        "Content-Length": "85332",
+        "Last-Modified": "Sat, 10 Oct 2026 11:12:40 GMT",
+        "Connection": "close",
+        "ETag": "\"6aca1da8-14d54\"",
+        "Expires": "Sat, 10 Oct 2026 11:12:49 GMT",
+        "Cache-Control": "no-cache",
+        "Accept-Ranges": "bytes"
+      },
+      "sha256": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5"
+    }
+  },
+  "deployed_sha256": {
+    "koheron.conf": "93168832bcc5033e68c01bc82e5385b72c3c3406bac2ac9a1407242dcd175683",
+    "www/index.html": "148a15c23720430833a6529a5f496bc1e201606f22e5c4f1e91873260c8e14d3",
+    "www/instrument.css": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761",
+    "www/instrument_summary.html": "0f9db655d843d056f33bcbc00a45be082519144f10c3276fb42e7eddfc78f852",
+    "www/instruments.js": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5",
+    "www/logs_rate.html": "26add41f96c6b55d499ff4f5ee3ecfa3921d9f0b60ffbaad2197d92a5100dcf2",
+    "www/main.css": "9c0cf2560880262c566b04b4453fc8d7de384dc37b2d5ef80d6f5943ac238c22",
+    "www/system.css": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a"
+  },
+  "all_eight_deployed_files_match_build": true,
+  "source_sha256": {
+    "os/config/nginx-server.conf": "93168832bcc5033e68c01bc82e5385b72c3c3406bac2ac9a1407242dcd175683",
+    "os/rootfs.mk": "b56c0566b9b244482e2ede3ce7478e6829b64d8251a0e66e196e3f2495039b0c",
+    "web/version_assets.py": "805fe510657e590b3fae7372113b0344d0cdac75decf8166ae1519bb406215d6",
+    "web/tests/test_build.py": "64367b8e5d0252670bf7ce66b6b321cde1f76c56200395423f267fe23327b1fc",
+    "os/www/tests/management_cache_browser.cjs": "e3f3809a5c37844f83659516ffee57f3b73657760d9530f48dee758f8974a358"
+  },
+  "services_after": [
+    {
+      "Id": "koheron-server.service",
+      "ActiveState": "active",
+      "MainPID": "151",
+      "NRestarts": "0"
+    },
+    {
+      "Id": "koheron-api.service",
+      "ActiveState": "active",
+      "MainPID": "8502",
+      "NRestarts": "0"
+    },
+    {
+      "Id": "nginx.service",
+      "ActiveState": "active",
+      "MainPID": "399",
+      "NRestarts": "0"
+    }
+  ],
+  "production_fft_probe": {
+    "recorded_utc": "2026-10-10T11:17:29.079999+00:00",
+    "host": "192.168.1.85",
+    "live_instrument": {
+      "name": "fft",
+      "version": "0.3.0",
+      "is_default": true
+    },
+    "server_version": "1.0",
+    "fft_size": 2048,
+    "number_averages": 1023,
+    "window_index": 1,
+    "drivers": [
+      "Common",
+      "FFT",
+      "KServer",
+      "PhaseModulator",
+      "RedPitayaAdcCalibration",
+      "Xadc"
+    ],
+    "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+  },
+  "production_fft_probe_matches_prior_deployment": true,
+  "backup_directory": "/var/lib/koheron-management-cache-backup-20261010",
+  "scope": "Updated management HTML, assets and nginx cache policy; no API binary or service unit changes, instrument lifecycle actions, FPGA programming, reboot or stress run.",
+  "screenshot": "native-management-cache-desktop.png"
+}

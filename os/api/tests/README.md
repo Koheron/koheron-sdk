@@ -1,5 +1,251 @@
 # Native management runtime tests
 
+[Log tools validation](native-management-log-ux-validation.json) records the latest
+API/UI refinement: incremental rows, text selection and scroll preservation,
+search/severity filters, Current run / All runs, visible truncation and lost-history
+notices, and the latest timestamp for repeated messages. Build checks pass
+separately: 123 native tests, 17 rootfs checks, 57 UI regressions, 33 focused
+ASan/UBSan/leak tests, three web-build regressions and the GCC 15/C++23 ARMhf
+API/web build.
+
+Nine journal tests use real private files imported with `systemd-journal-remote`.
+They cover rotation, vacuum, expired cursors, strict invocation matching, a
+430-entry backlog, exact/oversized 4 KiB messages and UTF-8 boundaries, severity
+labels and stronger journal priorities, and encoded-byte limits without dropping
+pending entries. The importer and `journal-probe` are host test tools only.
+The Docker suite below builds the helper automatically. UI tests preserve actual
+message-node identity and Range selection across updates, filter incoming rows,
+bound retention, preserve the scroll anchor and follow simulated service run IDs.
+
+[Seven production checks](native-management-log-ux-red-pitaya.json) pass through
+the Red Pitaya's normal nginx listener, including current-invocation filtering
+over WS and HTTP and an unknown invocation returning no unrelated history.
+The [actual Chrome record](../../www/tests/native-management-log-ux-chrome.json)
+shows search, severity and run filters, selected text surviving a live repeat,
+its latest timestamp changing, and Pause/Resume replaying one missed entry once.
+Koheron's plain-text severity labels are recognized because its stderr journal
+messages otherwise inherit info priority. Controls fit the 320px layout without
+horizontal overflow, and the versioned bundle has no observed console warnings
+or errors. Seven public assets match the final build and revalidate.
+
+The FFT remains PID 10199 with 2048 points, 1023 averages and Hann window;
+nginx remains PID 399. Only the management API restarted, ending at PID 16001.
+The previous API/UI are retained at
+`/var/lib/koheron-management-log-ux-backup-20261010`; temporary staging is removed.
+Journal vacuum/truncation and automatic run changes are tested in isolated host
+fixtures, without restarting the live instrument or injecting oversized messages.
+The production probe below now runs all seven checks. Earlier records retain
+their original hashes and measurements.
+
+[Earlier WebSocket log validation](native-management-log-stream-validation.json) records
+the dedicated instrument journal stream, bounded cursor replay, HTTP fallback
+and pause/resume. Build checks pass separately: 113 native tests, 17 rootfs
+tests, 46 browser regressions, 23 management tests with ASan/UBSan/leak detection,
+three web build regressions and the Docker C++23/GCC 15 ARMhf API/web targets.
+The browser regressions cover blocked sockets, heartbeat timeouts, stale
+HTTP/WS races, hidden pages, BFCache, invalid batches and duplicate prevention.
+
+On the Red Pitaya's regular port 80, [five production checks](native-management-log-stream-red-pitaya.json)
+verify history parity with HTTP, real incremental journal entries, cursor replay,
+stale cursor recovery and origin rejection. Three light TCP connect/close probes
+arrived in 5.36, 50.52 and 50.65 ms, including LAN and journald delay. These are
+samples of the new stream, not a comparison or stress/boot benchmark.
+The [existing user Chrome](../../www/tests/native-management-log-stream-chrome.json)
+shows Connected and Live. Pause keeps board controls connected and the displayed
+repeat count frozen at four; a TCP log during the pause appears once on Resume,
+raising the count to five. The final versioned bundle has no observed JavaScript
+errors or warnings. Seven public assets match the final build and revalidate.
+
+The FFT PID remains 10199, with 2048 points, 1023 averages and Hann window.
+It had been restarted before this test's baseline; earlier records retain their
+original PID 151. Only the API restarts, from PID 8502 to 15419; nginx PID 399
+is preserved. No FPGA programming, image flash, reboot or instrument lifecycle
+operation was performed. The previous API/UI/site are backed up at
+`/var/lib/koheron-management-logs-backup-20261010`.
+
+To repeat the light production log checks from the host:
+
+```sh
+python3 os/api/tests/red_pitaya_log_stream.py \
+  --host BOARD --output /path/to/log-stream.json
+```
+
+The probe requires the instrument's standard TCP port 36000 and only connects
+and closes; it does not send acquisition commands. An initial helper used port
+8080 without a WebSocket upgrade and produced journal handshake warnings;
+the corrected run above passed, with unchanged FFT state. WebSocket fallback
+failure races are simulated in host regressions, rather than disrupting the
+board's network.
+
+[Management cache repair](../../www/tests/native-management-cache-validation.json)
+records the failure in the user's existing Chrome: the updated management HTML
+could not initialize because an older cached bundle lacked `RuntimeStream`.
+The three generated pages now reference script and stylesheet URLs with content
+hashes; changes to either asset rebuild all affected page versions. nginx
+requires revalidation with `Cache-Control: no-cache`.
+
+Three build regressions pass, including JavaScript and CSS dependency changes.
+A [real browser cache regression](../../www/tests/native-management-cache-browser.json)
+first retains an old cached bundle despite newer HTML, then confirms that the
+generated URL bypasses it and subsequent navigation revalidates. The existing
+Chrome tab now shows Connected, running FFT, live logs and 11 health rows.
+The [board browser repeat](../../www/tests/native-management-cache-board-browser.json)
+covers the nine read-only checks described below, including the manager heartbeat
+and live FFT data. The C++ API, instrument process and FFT settings are unchanged.
+To repeat the cache regression after `make www`:
+
+```sh
+CHROMIUM_PATH=/path/to/chromium \
+node os/www/tests/management_cache_browser.cjs
+```
+
+As with the other browser harnesses, `PUPPETEER_MODULE` and `BROWSER_OUTPUT`
+select the installed module and evidence directory.
+
+[Deployed management verification](native-management-deployed-red-pitaya.json)
+records the current API and UI installed at the board's regular port-80 URL,
+`http://192.168.1.85/koheron/`. The earlier repeat tests below used a private
+preview listener and removed its services afterward; they did not update that
+URL. This deployment installs the runtime libraries, native binaries, service
+units, nginx configuration and web assets, and disables the old uWSGI service.
+All 30 installed files match the build. API/socket/nginx are enabled for boot;
+the board was not rebooted and a complete OS image was not flashed.
+
+The [browser record](../../www/tests/native-management-deployed-red-pitaya-browser.json)
+covers nine read-only checks against the real running FFT: status, journal and
+health, a 12-second WebSocket connection without HTTP fallback, compatibility,
+command details, live transfer rates, four viewport widths and the FFT's live
+spectrum over its instrument WebSocket connection. There are no
+JavaScript errors, failed resource requests or horizontal overflow. Reviewed
+screenshots: [desktop](../../www/tests/native-management-deployed-red-pitaya-desktop.png)
+and [mobile](../../www/tests/native-management-deployed-red-pitaya-mobile.png),
+plus [the live FFT](../../www/tests/native-management-deployed-red-pitaya-fft.png).
+The FFT and nginx PIDs remain 151 and 399. TCP reads still return 2048 points,
+1023 averages and Hann window; no instrument lifecycle action or FPGA programming
+was performed. The old UI/API/configuration are retained on the board at
+`/var/lib/koheron-management-backup-20261010`.
+
+The user's existing Chrome initially failed on the FFT page: nginx returned
+403 for `jquery.min.js`, whose archive permissions were 0600. Bootstrap's JS
+and CSS had the same permissions. `download_verified.sh` now publishes verified
+public inputs as 0644 and repairs verified cached files. Three regression tests
+cover fresh downloads under a restrictive umask, cached permission repair
+without a download, and preserving the previous file on checksum failure.
+The board's three live assets and stored FFT archive permissions were repaired;
+all 41 archive payload hashes remain unchanged. After reloading the user's
+Chrome, the live spectrum renders at 56–58 FPS with Hann and 2,048 points.
+
+To repeat the deployed FFT 0.3.0 UI verification without instrument mutations:
+
+```sh
+MANAGEMENT_URL=http://BOARD/koheron/ \
+CHROMIUM_PATH=/path/to/chromium \
+node os/www/tests/management_readonly_browser.cjs
+```
+
+`PUPPETEER_MODULE` can select Puppeteer Core outside Node's default search path;
+`BROWSER_OUTPUT` selects the record and screenshot directory.
+
+[Full Red Pitaya repeat validation](native-management-red-pitaya-retest-validation.json)
+tests the polished application at `dc70fcc3`: 27 native integration checks and
+16 Chromium checks, including UI boot selection, activation, ZIP upload/removal,
+compatibility rejection, failed-start rollback and diagnostics. The [raw board
+record](native-management-red-pitaya-retest.json), [browser record](../../www/tests/native-management-red-pitaya-retest-browser.json)
+and [browser output](../../www/tests/native-management-red-pitaya-retest-browser.txt)
+preserve the results. The ARMhf API/UI build targets and doctor pass; unchanged
+artifacts match the polish snapshot. A [read-only production FFT probe](native-management-red-pitaya-retest-fft.json)
+matches before the UI run and after cleanup: FFT 0.3.0, server 1.0, 2048 points,
+1023 averages and Hann window. Production PIDs/API hash remain unchanged,
+and private units/staging are removed. No FPGA programming, image deployment,
+reboot or extended stress run is involved. Reviewed screenshots:
+[desktop](../../www/tests/native-management-red-pitaya-retest-desktop.png),
+[mobile](../../www/tests/native-management-red-pitaya-retest-mobile.png).
+
+The extended browser checks use the full `red_pitaya_integration.py
+--management-controls --hardening --preview` fixtures. Add `scope` and
+`wide-spectrum-analysis` with the harness's `package()`/`upload()` helpers, then
+set `MANAGEMENT_ACTION_TESTS=1` and `MANAGEMENT_UPLOAD_FIXTURE=/path/to/ui-upload.zip`
+when invoking `management_polish_browser.cjs`. Generate that dummy ZIP with
+`package('ui-upload')`; it is uploaded and removed only through the private API.
+For the separate production probe, run on the host:
+
+```sh
+PYTHONPATH=python .venv/bin/python os/api/tests/red_pitaya_readonly_probe.py \
+  --host BOARD --output /path/to/fft-probe.json
+```
+
+[UI polish validation](../../www/tests/native-management-polish-validation.json)
+records 36 browser regressions, the TypeScript/web build, and a targeted Chromium
+run against private services on the physical Red Pitaya. It covers readable
+lifecycle feedback, manual connection retry, action-menu dismissal, keyboard
+focus, command-load retry, and 320/390/768/1360px layouts. Startup durations now
+retain millisecond precision; small packages retain byte precision. The native
+binaries are unchanged from the hardening snapshot below.
+[Board cleanup](native-management-polish-red-pitaya.json) and
+[console output](native-management-polish-red-pitaya.txt) record production PID
+and API preservation. The [browser record](../../www/tests/native-management-polish-browser.json)
+separates real API interactions from request failures simulated in Chromium.
+Reviewed screenshots: [desktop](../../www/tests/native-management-polish-desktop.png),
+[mobile](../../www/tests/native-management-polish-mobile.png),
+[mobile actions](../../www/tests/native-management-polish-mobile-menu.png),
+[details](../../www/tests/native-management-polish-details.png).
+
+For a short UI preview, stage `red_pitaya_ui_preview.py` alongside
+`red_pitaya_integration.py`, the private binaries, configs, libraries and `www/`.
+Run it with `--preview`; it serves four dummy instruments for up to three
+minutes, then removes its services. Touch `/tmp/native-management/preview-done`
+to finish early. Run the host browser checks with Puppeteer Core and Chromium:
+
+```sh
+MANAGEMENT_URL=http://BOARD:18087/koheron/ \
+CHROMIUM_PATH=/path/to/chromium \
+node os/www/tests/management_polish_browser.cjs
+```
+
+`PUPPETEER_MODULE` can select an installed module outside the default Node search
+path; `BROWSER_OUTPUT` selects the screenshot/record directory. Copy the board's
+`integration.json` and `preview.txt` before removing its staging directory.
+This preview does not run the native integration or stress suites.
+
+[Hardening validation](native-management-hardening-validation.json) records the
+preceding follow-up checks and artifact hashes: 109 native tests, 101 sanitizer
+tests, 26 browser regressions, and ARMhf/ARM64 builds. The suite covers foreign
+browser requests, navigation/HEAD side effects, reflected HTML, strict metadata,
+idle WebSocket expiration, late HTTP results, cancellation, fallback recovery,
+and validation before replacing the boot-default archive.
+The [hardening board record](native-management-hardening-red-pitaya.json) and
+[console output](native-management-hardening-red-pitaya.txt) cover 27 private
+fixture checks, including the browser boundary, proxy port preservation,
+heartbeat expiration, default replacement, and the POST activation log bookmark.
+[Hardening Chromium results](../../www/tests/native-management-hardening-browser.json)
+record desktop/mobile controls and a stable heartbeat without HTTP fallback.
+The earlier extension measurements below refer to the original implementation
+snapshot; their hashes are preserved.
+
+[Management validation](native-management-validation.json) records source and
+binary hashes for the API/UI extension: 100 native tests, 19 browser regressions,
+ARMhf/ARM64 builds and 92 sanitizer tests. The new cases cover compatibility,
+staging capacity, lifecycle controls, boot selection, durability failures and
+the bounded WebSocket protocol/connection lifecycle.
+
+[Red Pitaya results](native-management-red-pitaya.json) and
+[console output](native-management-red-pitaya.txt) record 19 checks through
+private systemd notify services and a separate nginx listener on the physical
+board. `red_pitaya_integration.py --management-controls` selects these cases;
+add `--hardening` for the browser request boundary and heartbeat checks.
+`--preview` temporarily serves staged management assets for browser inspection.
+The harness runs on the existing laboratory image with Python available; it is
+not part of the standard board runtime. It leaves the production FFT server,
+nginx and API unchanged, removes its units and performs no FPGA/acquisition,
+SD flashing, reboot or extended stress test.
+
+[Browser results](../../www/tests/native-management-browser.json) record real
+Chromium Stop/Start, preflight and viewport checks against that private board
+listener, with no page errors or horizontal overflow at 390 pixels. Reviewed
+screenshots: [desktop](../../www/tests/native-management-desktop.png),
+[preflight](../../www/tests/native-management-preflight.png),
+[mobile](../../www/tests/native-management-mobile.png).
+
 Build and run the black-box suite with the same Ubuntu 26.04/GCC 15 toolchain
 used for board binaries:
 
@@ -94,14 +340,13 @@ docker run --rm -v "$PWD:/work" -w /work \
     make -j2 -f os/api/Makefile CXX=g++-15 BUILD_DIR=$NATIVE_API_BIN_DIR \
       CXXFLAGS="-O1 -g -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread -MMD -MP -fsanitize=address,undefined -fno-omit-frame-pointer" \
       LDFLAGS="-fsanitize=address,undefined"
-    for suite in api install led activation; do
+    for suite in api install boot led activation management hardening; do
       python3 -m unittest discover -s os/api/tests -p "test_native_$suite.py" -v
     done
-    python3 os/api/tests/sanitizer_stress.py
   '
 ```
 
 Check that no sanitizer diagnostic files are created: several invalid-input
 tests intentionally expect nonzero exits and capture the child process's stderr.
-The three host fault-injection tests use a separate preload shim and are covered
+The eight host fault-injection tests use a separate preload shim and are covered
 by the ordinary Docker suite.

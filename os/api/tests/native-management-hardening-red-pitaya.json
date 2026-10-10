@@ -1,0 +1,156 @@
+{
+  "checks": [
+    "systemd notify readiness and nginx HTTP Unix-socket proxy",
+    "multipart upload and real systemd instrument activation",
+    "instrument cursor includes the first startup message of the new invocation",
+    "drivers.json download",
+    "unsafe extraction fails before stopping the running service",
+    "failed readiness restores files and restarts the previous service",
+    "instrument log stream follows the restored service invocation",
+    "real journal tail, timestamps, bookmark and incremental cursor",
+    "socket activation survives API restart and recovers loaded identity",
+    "stopped instrument status",
+    "default protection and archive deletion",
+    "native preflight verifies archive and staging capacity",
+    "D-Bus start/stop/restart preserve loaded files",
+    "atomic boot selection persists across API restart",
+    "real board RAM, storage, uptime and systemd readiness",
+    "WebSocket status updates and ping through real nginx Unix-socket proxy",
+    "board compatibility rejection leaves private instrument running",
+    "structured readiness failure and successful rollback",
+    "bounded diagnostic export includes real journal and health",
+    "POST activation log bookmark includes first new startup message",
+    "boot-default replacement validates compatibility before committing and preserves valid updates",
+    "foreign browser mutations and navigation rejected through nginx without side effects",
+    "HEAD cannot activate or delete instruments",
+    "same-origin commands and WebSocket preserve proxy Host port",
+    "reflected legacy errors use plain text and nosniff",
+    "malformed compatibility JSON is rejected on ARMhf",
+    "nginx WebSocket heartbeat retains responsive peer and expires unmatched pong"
+  ],
+  "activation_ms": 219.24744699936127,
+  "journal_sample": {
+    "cursor": "s=70db68278b75470eb9ed441375a4d68f;i=5498;b=8675d505758f4b3986ad7dc3937d4154;m=47d69dbda;t=65d75e15954c2;x=44eb62a017435bc8",
+    "entries": [
+      {
+        "ts": 1791610330479904,
+        "msg": "native-instrument-old"
+      },
+      {
+        "ts": 1791610331242526,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610331949432,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791610332082553,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610333182505,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610333443048,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610333976787,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610334598705,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610335538882,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791610335658836,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610440639015,
+        "msg": "native-instrument-old"
+      },
+      {
+        "ts": 1791610441189009,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610441758846,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791610441878537,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610442748425,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610442959105,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610443338887,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610443858521,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610444788580,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791610444918463,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610518439047,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610542679099,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610732318768,
+        "msg": "native-instrument-old"
+      },
+      {
+        "ts": 1791610732858493,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791610733438498,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791610733548738,
+        "msg": "native-instrument-new"
+      }
+    ]
+  },
+  "production_pids_before": {
+    "koheron-server": "151",
+    "uwsgi": "394",
+    "nginx": "399"
+  },
+  "production_api_hash": "f369d1250fd9a68fab70b9298bf1f91a1b9843c152603be7817dfe2fd2eb94de",
+  "api_sha256": "8a920dedeb4e2251a7208e758d0da0deeb675a9ad7e065587783fa056f9f07e8",
+  "ui_sha256": "dc11d4ac199582789403108d7d98829e4265bfb4b6ff6caad8143b314f93f829",
+  "production_pids_after": {
+    "koheron-server": "151",
+    "uwsgi": "394",
+    "nginx": "399"
+  },
+  "production_api_unchanged": true,
+  "temporary_units_removed": true
+}

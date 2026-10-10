@@ -1,0 +1,6 @@
+nginx: the configuration file /tmp/native-management/nginx-private.conf syntax is ok
+nginx: configuration file /tmp/native-management/nginx-private.conf test is successful
+PASS: systemd notify readiness and nginx HTTP Unix-socket proxy
+PASS: private UI fixtures staged without changing production instruments
+PREVIEW_READY
+PASS: temporary services removed; production PIDs and API unchanged

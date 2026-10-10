@@ -119,6 +119,8 @@ Instrument ZIP: `tmp/<project>/<NAME>.zip`, also copied to `tmp/<board>/instrume
 - Driver metadata (`drivers.json`).
 - Built web assets referenced by the server.
 - A `version` file tying the artefacts together.
+- `instrument.json` identifying the board, architecture and runtime requirements
+  for deployment preflight.
 
 ## Image contents
 

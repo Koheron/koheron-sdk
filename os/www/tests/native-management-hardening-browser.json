@@ -1,0 +1,48 @@
+{
+  "geometry": {
+    "width": 390,
+    "scrollWidth": 390,
+    "live": "new",
+    "health": "Uptime5h 22mLoad \u00b7 1/5/15m0.19 \u00b7 0.17 \u00b7 0.09RAM available247.1 MiBRAM total368.6 MiBInstrument storage161.0 MiB freeStaging storage161.0 MiB freeInstrument serviceactiveService resultsuccessAPI initialization0.00 sServer startup0.07 sBoot extraction0.86 s",
+    "operation": "Instrument start completed"
+  },
+  "errors": [],
+  "requests": [
+    "http://192.168.1.85:18087/koheron/",
+    "http://192.168.1.85:18087/koheron/main.css",
+    "http://192.168.1.85:18087/koheron/instrument.css",
+    "http://192.168.1.85:18087/koheron/system.css",
+    "http://192.168.1.85:18087/koheron/koheron_logo.svg",
+    "http://192.168.1.85:18087/koheron/instruments.js",
+    "http://192.168.1.85:18087/api/logs/koheron?lines=200",
+    "http://192.168.1.85:18087/api/system/build",
+    "http://192.168.1.85:18087/koheron/kbird.ico",
+    "http://192.168.1.85:18087/api/instruments/control/stop",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D54d5%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D47d9c5e3c%3Bt%3D65d75e18bd723%3Bx%3D3da866c33660e77a",
+    "http://192.168.1.85:18087/api/system/status",
+    "http://192.168.1.85:18087/api/instruments/control/start",
+    "http://192.168.1.85:18087/api/system/status",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D54d5%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D47d9c5e3c%3Bt%3D65d75e18bd723%3Bx%3D3da866c33660e77a",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/logs/koheron/incr?cursor=s%3D70db68278b75470eb9ed441375a4d68f%3Bi%3D5515%3Bb%3D8675d505758f4b3986ad7dc3937d4154%3Bm%3D4807bd71e%3Bt%3D65d75e46b5005%3Bx%3D19187ad69175252e",
+    "http://192.168.1.85:18087/api/instruments/preflight/new"
+  ],
+  "checks": [
+    "real WebSocket connection with heartbeat and no HTTP fallback",
+    "UI stop/start",
+    "preflight UI",
+    "desktop and 390px layout",
+    "no page errors"
+  ],
+  "api_sha256": "8a920dedeb4e2251a7208e758d0da0deeb675a9ad7e065587783fa056f9f07e8",
+  "ui_sha256": "dc11d4ac199582789403108d7d98829e4265bfb4b6ff6caad8143b314f93f829"
+}

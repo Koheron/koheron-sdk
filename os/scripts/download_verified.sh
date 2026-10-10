@@ -26,6 +26,9 @@ verify() {
 }
 
 if [ -f "$destination" ] && verify "$destination"; then
+  # These public build inputs are also served by nginx from instrument archives.
+  # Repair older cached downloads created with mktemp's private permissions.
+  chmod 0644 "$destination"
   echo "Verified $destination"
   exit 0
 fi
@@ -40,5 +43,6 @@ if ! verify "$download"; then
   echo "SHA-256 mismatch for $archive (expected $expected)" >&2
   exit 1
 fi
+chmod 0644 "$download"
 mv -f "$download" "$destination"
 echo "Verified $destination"

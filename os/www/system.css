@@ -9,7 +9,7 @@
 .system-workspace .muted { color: var(--muted); font-weight: 400; }
 .system-workspace .live-strip { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--border-light); }
 .system-workspace #live-name { font-size: 15px; overflow-wrap: anywhere; }
-.system-workspace #live-version { font-variant-numeric: tabular-nums; }
+.system-workspace #live-version { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .system-workspace #open-instrument { margin-left: auto; color: var(--accent-dark); }
 .system-workspace .system-grid { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 24px; }
 .system-workspace .system-primary { min-width: 0; }
@@ -28,7 +28,7 @@
 .system-workspace td:first-child a { color: #333; font-weight: 700; overflow-wrap: anywhere; }
 .system-workspace td:first-child a:hover { color: var(--accent-dark); text-decoration: underline; }
 .system-workspace #instruments-table td:first-child { width: 44%; }
-.system-workspace #instruments-table td:nth-child(2) { width: 16%; color: var(--muted); }
+.system-workspace #instruments-table td:nth-child(2) { width: 16%; color: var(--muted); overflow-wrap: anywhere; }
 .system-workspace .actions-heading { text-align: right; }
 .system-workspace .row-actions { display: flex; justify-content: flex-end; gap: 6px; align-items: center; }
 .system-workspace .row-actions > :first-child { min-width: 44px; text-align: center; }
@@ -45,6 +45,14 @@
 .system-workspace #release-table th { width: 82px; padding-right: 10px; }
 .system-workspace #release-table td { font-size: 11px; }
 .system-workspace .log-section { margin-top: 20px; }
+.system-workspace .log-filters { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; }
+.system-workspace .log-filters label { display: flex; align-items: center; gap: 6px; }
+.system-workspace .log-search { flex: 1 1 160px; min-width: 0; }
+.system-workspace .log-search input { width: 100%; min-width: 0; font: inherit; padding: 4px 6px; border: 1px solid var(--border-light); border-radius: 2px; }
+.system-workspace .log-line { display: block; }
+.system-workspace .log-line[hidden] { display: none; }
+.system-workspace .log-truncated { color: #f1c279; }
+.system-workspace .log-empty { color: #91a7b6; }
 .system-workspace #koheron-log { margin: 0 0 8px; height: 300px; overflow: auto; padding: 10px 12px; border: 1px solid #263640; border-radius: 2px; background: #14212a; color: #e0e7ec; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .system-workspace .log-time { color: #91a7b6; }
 .system-workspace .log-line[data-level="warning"] { color: #f1c279; }
@@ -59,6 +67,22 @@
 .system-workspace .command-input-type { color: #24749b; }
 .system-workspace .command-output-type { color: #28753b; }
 .system-workspace .summary-heading { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin: 16px 0; overflow-wrap: anywhere; }
+.system-workspace .lifecycle-controls { margin-left: 0; }
+.system-workspace .operation-status { padding: 8px 10px; border-left: 2px solid var(--accent-dark); background: #f6f8f9; }
+.system-workspace .operation-status[data-state="error"] { border-color: #a53e25; }
+.system-workspace .preflight-panel { margin-top: 14px; padding: 12px; border: 1px solid var(--border-light); }
+.system-workspace .preflight-panel + section { margin-top: 20px; }
+.system-workspace .instrument-options summary { font-size: 11px; font-weight: 400; padding: 5px; border-radius: 2px; }
+.system-workspace .instrument-options summary:hover, .system-workspace .instrument-options[open] summary { color: var(--accent-dark); background: var(--accent-light); }
+.system-workspace .instrument-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 6px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; }
+.system-workspace .instrument-menu button { width: 100%; white-space: nowrap; }
+.system-workspace .instrument-options { min-width: 48px; }
+.system-workspace .build-details { margin-top: 18px; }
+.system-workspace #health-table th { width: 48%; }
+.system-workspace #health-table td { text-align: right; }
+.system-workspace #health-table[data-stale="true"] td { color: var(--muted); }
+.system-workspace #diagnostics-download { font-size: 11px; }
+.system-workspace .system-sidebar .section-heading { align-items: baseline; }
 @media (max-width: 900px) {
   .system-workspace .system-grid { grid-template-columns: minmax(0, 1fr); }
   .system-workspace .system-sidebar { border-left: 0; border-top: 1px solid var(--border-light); padding: 16px 0 0; }
@@ -69,9 +93,17 @@
   .system-workspace .system-main { padding: 12px; }
   .system-workspace #open-instrument { margin-left: 0; }
   .system-workspace th, .system-workspace td { padding: 8px 4px; }
-  .system-workspace .row-actions { flex-wrap: wrap; }
+  .system-workspace .row-actions { flex-direction: column; align-items: flex-end; }
   .system-workspace #instruments-table td:first-child { width: auto; }
+  .system-workspace .instrument-version { display: block; max-width: 7ch; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .system-workspace .log-footer { align-items: flex-start; }
+}
+@media (pointer: coarse), (max-width: 540px) {
+  .system-workspace { --control-height: 36px; }
+  .system-workspace .instrument-options summary { min-height: 36px; display: list-item; box-sizing: border-box; padding: 10px 6px; }
+  .system-workspace .instrument-menu button { min-height: 44px; }
+  .system-workspace .row-actions > a, .system-workspace #open-instrument { display: inline-flex; align-items: center; min-height: 36px; }
+  .system-workspace .app-header nav a { display: inline-flex; align-items: center; min-height: 36px; }
 }
 
 /* Data-rate monitor: one compact chart and a horizontally scrollable table. */

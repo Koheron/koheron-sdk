@@ -106,6 +106,117 @@ Instrument installation stages and validates files before stopping the service,
 waits for systemd readiness and restores the previous installation on failure.
 Uploads are capped at 20 MiB; extraction is capped at 256 MiB and 10,000 entries.
 
+The management API also exposes deployment checks, service controls, board
+health and diagnostic export. The existing host SDK routes retain their response
+formats. New mutations require POST; their failures return JSON with `code`,
+`error` and `rollback` (`not_needed`, `restored` or `failed`). An operation in
+progress rejects another new mutation with HTTP 409 instead of queuing it.
+
+| Method | Route | Result |
+| --- | --- | --- |
+| GET | `/api/instruments/preflight/NAME` | Compatibility, archive contents/size, staging capacity, warnings and `ready`. |
+| POST | `/api/instruments/activate/NAME` | Validate, stage and activate; return the final operation result. |
+| POST | `/api/instruments/control/start` | Start the loaded installation without re-extracting its ZIP. |
+| POST | `/api/instruments/control/stop` | Stop it and retain its files and identity. |
+| POST | `/api/instruments/control/restart` | Restart the loaded installation without re-extraction. |
+| POST | `/api/instruments/default/NAME` | Validate and persist the boot preference without changing the running instrument. |
+| GET | `/api/system/status` | Instrument inventory, loaded identity, current/last operation and sampled health. |
+| GET | `/api/system/diagnostics` | Download metadata, status and bounded journal excerpts as JSON. |
+| WebSocket | `/api/events` | The same status snapshots, on operation changes and every two seconds. |
+| WebSocket | `/api/logs/koheron/events?cursor=CURSOR` | Recent instrument logs followed by incremental journal batches. Cursor is optional. |
+| GET | `/api/logs/koheron/tail?cursor=CURSOR` | One bounded batch using the same log protocol, for HTTP fallback. |
+
+Service controls use systemd D-Bus jobs and wait for completion, including
+`Type=notify` readiness. Activation reports validation, extraction, stopping,
+starting and rollback. The loaded identity remains available when the service
+is stopped. Legacy archives remain usable, with a warning that board compatibility
+cannot be verified. New builds include `instrument.json` with format version 1,
+board, architecture, SDK version and minimum management API version. ELF machine
+and class checks also reject a mismatched executable independently of metadata.
+Checks run before stopping an instrument; they do not prove that an FPGA design
+or driver will work on hardware.
+
+Preflight budgets the new extraction, file allocation overhead and a 4 MiB
+reserve while the previous files remain allocated. External processes can still
+consume space after the check; extraction failures leave the running instrument
+intact. Uploads have a shared two-writer limit and free-space reservations.
+nginx streams request bodies directly to the native writer. File contents and
+containing directories are synced for archive and boot preference commits. If
+directory syncing fails after a rename, the API reports failure and keeps its
+inventory consistent with the visible files; callers should read status before
+retrying.
+
+Browser API requests must have matching Origin/Referer and fetch-site headers
+when present. Navigation and embedded-resource requests cannot run mutations,
+and HEAD never activates or removes an instrument. nginx preserves the request
+host, including its port, and supplies the actual scheme. SDK and CLI clients
+without browser provenance headers retain the existing GET run/delete routes.
+Legacy text replies use `text/plain` with `nosniff`; JSON contracts are unchanged.
+Compatibility JSON must be valid UTF-8, strict JSON, and contain no trailing data.
+Replacing the selected boot-default archive reruns preflight before committing
+the upload. Invalid replacements preserve the existing archive and preference.
+
+Health reads Linux uptime, load averages, `MemAvailable`, filesystem capacity
+and systemd service properties. Samples are shared for two seconds. Timing
+values use microseconds: API initialization covers inventory/listener setup,
+while service timestamps refer to the current invocation on the monotonic boot
+clock. Server startup is readiness minus execution start; boot extraction is
+the extraction service's execution duration. Restarting the API or instrument
+updates its invocation timing; these values are not a fresh cold-boot benchmark.
+Unavailable values stay unavailable rather than becoming zero readings.
+Diagnostic exports limit journal messages to 4 KiB each and 512 KiB of encoded
+journal context. Oversized inventories or build metadata are omitted explicitly;
+the complete download is bounded to 1 MiB.
+
+Each WebSocket endpoint is read-only and accepts at most eight clients, leaving HTTP
+capacity for commands. It checks browser origin, handles ping/close frames and
+disconnects slow clients with bounded buffering. Every ten seconds it sends a
+ping; peers must return the matching pong within five seconds to retain their
+slot. The management page shares one
+connection for instrument state, activation progress and health. It reconnects,
+falls back to HTTP status reads, and suspends the connection while hidden.
+Logs have a separate connection so Pause releases the journal reader without
+interrupting controls or health. The native reader stays open and follows
+journal notifications; the browser no longer polls while that stream is healthy.
+Both transports return `{type: "logs", cursor, entries, reset}`; entries contain
+microsecond `ts`, `msg`, effective `prio` (0–7) and boolean `truncated`. Priority
+uses systemd's value and recognizes Koheron's leading `PANIC:`, `CRITICAL:`,
+`ERROR:` and `WARNING:` labels, keeping whichever severity is stronger.
+Initial history is the latest
+200 entries. Each batch has at most 200 entries, 4 KiB of source message per
+entry and less than 64 KiB of encoded JSON; oversized messages keep a complete
+UTF-8 prefix and display a truncation marker.
+Backlogs drain in bounded batches. Empty batches every two seconds keep the
+browser watchdog alive. Reconnect and Resume seek after the last delivered
+cursor. An invalid or expired cursor returns `reset: true` and recent history;
+the widget clears its old history and displays a lost-history notice. Journal
+rotation retains valid cursors; removing their files triggers the same reset.
+The display retains 1,000 grouped rows. Appending logs preserves existing message
+nodes and text selection; pruning older rows preserves the visible scroll anchor.
+Repeat groups show the latest timestamp, with first/latest times in the tooltip.
+Truncated messages remain separate because equal prefixes can hide different messages.
+
+Search and severity filters apply to retained and incoming rows without reconnecting.
+Download exports the visible groups. “All runs” covers this boot; “Current run”
+uses the instrument service's `InvocationID`, exposed as
+`health.instrument_service.invocation` in status snapshots. Both log endpoints
+accept optional `invocation=ID` (32 lowercase hex digits), and match it strictly.
+The widget follows a new run ID while “Current run” is selected, starting a new
+cursor and clearing previous rows. The option is unavailable until the service
+reports a valid run ID. Follow, Pause and Resume work with either scope.
+
+Blocked or stalled log sockets retry with a 1–10 second backoff and use bounded
+HTTP batches once per second in the meantime; the badge reads “Live · polling”.
+HTTP log reads time out after eight seconds. Pause, hidden pages and page
+transitions cancel pending reads and close the log socket; BFCache restoration
+resumes it. Late replies cannot overwrite a newer cursor or update paused logs.
+For log peers with blocked writes, the API stops reading and closes them after
+two seconds; outgoing buffers remain bounded. The original journal HTTP routes
+remain available for SDK clients.
+HTTP status reads time out after eight seconds and are cancelled when the page
+is hidden or disposed. Late HTTP results cannot replace a newer WebSocket
+snapshot. Lost or malformed status disables mutations until valid status returns.
+
 Boot extraction uses `koheron-install --extract-default`. It reads the selected
 archive from `/usr/local/instruments/default`, validates and stages it before
 replacing `/tmp/live-instrument`, and does not control services. systemd starts
@@ -152,9 +263,18 @@ showed that per-request gzip reduced bytes but increased download latency.
 The OS serves the management pages at `/koheron/`: installed instruments,
 running status, server logs, system information and data rates. These pages
 live in `os/www/` and share the instrument control styles in
-`web/instrument/instrument.css`. Their assets ship with the OS image. The single-page manager
-shows installed instruments, logs and system details together. It supports
+`web/instrument/instrument.css`. Their assets ship with the OS image. The pages
+use content versions for their script and stylesheet URLs, and nginx requires
+cache revalidation. This keeps existing browser profiles on the current assets
+after an in-place API/UI update. `make www` refreshes the three management pages
+when their script or stylesheet contents change.
+The single-page manager shows installed instruments, logs and system details together. It supports
 upload/run/remove feedback, live status updates and log pause, follow and download.
+The live instrument strip adds Start/Stop/Restart. Each instrument's More menu
+offers compatibility checks, boot selection and removal; the details page also
+shows preflight results. Health and diagnostic download use the existing sidebar,
+with build metadata collapsed underneath. Activation progress and rollback
+outcomes share one status line above the instrument list.
 
 Build them with `make CFG=examples/alpha250/fft/config.mk www`. The output is
 `tmp/www/`. Run the host regression suite after installing the dependencies

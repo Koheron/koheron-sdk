@@ -1,7 +1,10 @@
 """Regressions for web source selection and compiler dependency changes."""
+import hashlib
 import os
 from pathlib import Path
+import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -58,6 +61,66 @@ include {WEB}/web.mk
                     make()
                     self.assertEqual(len(events.read_text().splitlines()), count)
                     make('-q')
+
+    def test_management_pages_refresh_asset_versions_after_js_and_css_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'www'
+            source.mkdir()
+            for path in (WEB.parent / 'os/www').iterdir():
+                if path.suffix in ('.ts', '.html', '.css'):
+                    shutil.copyfile(path, source / path.name)
+            compiler = root / 'compiler.py'
+            compiler.write_text(f"""import pathlib, sys
+pathlib.Path(sys.argv[2]).write_text(pathlib.Path({str(source / 'runtime.ts')!r}).read_text())
+""")
+            (root / 'Makefile').write_text(f"""OS_PATH := {WEB.parent}/os
+WEB_PATH := {WEB}
+TMP := {root}/out
+WEB_COMPILE := python3 {compiler}
+.PHONY: FORCE
+FORCE:
+include $(OS_PATH)/rootfs.mk
+""")
+            output = root / 'out/www'
+            pages = ('index.html', 'instrument_summary.html', 'logs_rate.html')
+            assets = ('instruments.js', 'main.css', 'instrument.css', 'system.css')
+
+            def make(*args):
+                subprocess.run(['make', '--no-print-directory', f'WWW_PATH={source}',
+                                *args, *(str(output / name) for name in pages)],
+                               cwd=root, check=True, capture_output=True, text=True)
+
+            def versions():
+                values = {}
+                for name in pages:
+                    html = (output / name).read_text()
+                    found = dict(re.findall(r'/koheron/([^"\'?]+)\?v=([0-9a-f]+)', html))
+                    self.assertEqual(set(found), set(assets))
+                    for asset in assets:
+                        self.assertEqual(found[asset], hashlib.sha256((output / asset).read_bytes()).hexdigest()[:16])
+                    self.assertEqual(stat.S_IMODE((output / name).stat().st_mode), 0o644)
+                    values[name] = found
+                return values
+
+            make()
+            initial = versions()
+            make('-q')
+            runtime = source / 'runtime.ts'
+            runtime.write_text(runtime.read_text() + '\n// New runtime implementation\n')
+            make()
+            javascript_update = versions()
+            for name in pages:
+                self.assertNotEqual(javascript_update[name]['instruments.js'], initial[name]['instruments.js'])
+                self.assertEqual(javascript_update[name]['system.css'], initial[name]['system.css'])
+            css = source / 'system.css'
+            css.write_text(css.read_text() + '\n/* New management layout */\n')
+            make()
+            stylesheet_update = versions()
+            for name in pages:
+                self.assertNotEqual(stylesheet_update[name]['system.css'], javascript_update[name]['system.css'])
+                self.assertEqual(stylesheet_update[name]['instruments.js'], javascript_update[name]['instruments.js'])
+            make('-q')
 
     def test_config_change_replaces_older_assets_and_typescript_sources(self):
         with tempfile.TemporaryDirectory() as directory:

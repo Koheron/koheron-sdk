@@ -1,0 +1,9 @@
+PASS: current management page identifies the real running FFT and exposes lifecycle controls
+PASS: real board health, operating-system information and instrument journal render
+PASS: real port-80 WebSocket remains connected for 12 seconds without HTTP fallback
+PASS: production FFT compatibility check and keyboard focus round trip
+PASS: management layouts fit 320, 390, 768 and 1360 pixel screens
+PASS: production instrument details, commands and compatibility render
+PASS: production transfer-rate page receives live server statistics
+PASS: real FFT page receives instrument WebSocket frames and renders a live 2048-point spectrum
+PASS: no browser JavaScript errors or failed resource requests

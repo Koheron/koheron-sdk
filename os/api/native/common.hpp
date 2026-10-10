@@ -46,6 +46,10 @@ void append(Json& target, Json value);
 [[nodiscard]] std::optional<std::string> read_file(const fs::path& path, std::size_t limit = 4 * 1024 * 1024);
 void write_all(int fd, std::span<const char> bytes);
 void write_file(const fs::path& path, std::string_view bytes, unsigned mode = 0644);
+void sync_directory(const fs::path& path);
+void atomic_write(const fs::path& path, std::string_view bytes);
+[[nodiscard]] Json kv_file(const fs::path& path);
+[[nodiscard]] std::uint64_t monotonic_us();
 [[nodiscard]] fs::path temporary_directory(const fs::path& parent, std::string_view prefix);
 [[nodiscard]] std::pair<fs::path, Fd> temporary_file(const fs::path& parent, std::string_view prefix);
 [[nodiscard]] std::string safe_filename(std::string_view filename);
@@ -60,10 +64,13 @@ struct Settings {
     std::string unit = "koheron-server.service";
     std::string led_unit = "koheron-server-init.service";
     std::string systemctl = "/bin/systemctl";
+    // Fixture roots also make collection testable without mocking Linux syscalls.
+    fs::path proc = "/proc";
 };
 
 // posix_spawn avoids running C++ code in a forked, multithreaded HTTP process.
 [[nodiscard]] int command(const std::vector<std::string>& arguments);
 void service_action(const Settings& settings, std::string_view action, std::string_view unit);
 [[nodiscard]] bool unit_is_active(const Settings& settings);
+[[nodiscard]] Json service_status(const Settings& settings, std::string_view unit);
 } // namespace koheron::management

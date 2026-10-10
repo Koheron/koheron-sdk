@@ -1,0 +1,73 @@
+{
+  "recorded_utc": "2026-10-10T14:13:11.991898+00:00",
+  "browser": "Actual user Chrome profile, verified with browser controls; a separate test tab kept the user FFT tab intact.",
+  "url": "http://192.168.1.85/koheron/",
+  "connection": "Connected",
+  "log_status": "Live",
+  "health_rows": 11,
+  "script_url": "http://192.168.1.85/koheron/instruments.js?v=6ea92862bd01d695",
+  "javascript_errors_and_warnings": [],
+  "search": {
+    "query": "WebSocket",
+    "visible_groups": 11,
+    "retained_groups": 48,
+    "hidden_rows": 37,
+    "hidden_rows_have_no_layout_rectangles": true
+  },
+  "severity": {
+    "selected": "Errors",
+    "visible_groups": 2,
+    "retained_groups": 48,
+    "messages": [
+      "CRITICAL: Cannot connect websocket to client",
+      "ERROR: An error occured during session"
+    ],
+    "classification": "Known Koheron severity labels recover messages stored by journald at priority 6."
+  },
+  "run_scope": {
+    "selected": "Current run",
+    "first_message": "FpgaManager: Loading fft.bit.bin",
+    "previous_run_shutdown_excluded": true,
+    "retained_groups": 26
+  },
+  "live_repeat": {
+    "selected_word": "TCPSocket",
+    "selection_verification": "Visual inspection of actual Chrome screenshots before and after one TCP disconnect; the same word remains selected.",
+    "occurrences_before": 5,
+    "occurrences_after": 6,
+    "first_utc": "2026-10-10T14:06:17.262Z",
+    "latest_before_utc": "2026-10-10T14:06:17.793Z",
+    "latest_after_utc": "2026-10-10T14:09:25.166Z",
+    "scroll_before": 0,
+    "scroll_after": 0,
+    "follow_checked_before": false,
+    "follow_checked_after": false
+  },
+  "pause_resume": {
+    "board_connection_while_paused": "Connected",
+    "paused_status": "Paused",
+    "occurrences_before": 6,
+    "occurrences_after_probe_while_paused": 6,
+    "occurrences_after_resume": 7,
+    "result": "One missed log replays once within the same selected run and search filter."
+  },
+  "layout": {
+    "requested_narrow_viewport": {
+      "width": 320,
+      "height": 900
+    },
+    "narrow_content_width": 305,
+    "narrow_scroll_width": 305,
+    "narrow_filter_right_edges": [
+      293,
+      190.125,
+      138.671875
+    ],
+    "desktop_content_width": 1920,
+    "desktop_scroll_width": 1920,
+    "result": "New controls wrap within the page; no horizontal overflow. Temporary viewport override reset."
+  },
+  "clear_search": "Normal Select All / Backspace clears the filter and restores 48 of 48 groups.",
+  "fft_user_tab": "Observed Live spectrum at 56 FPS; no FFT controls changed.",
+  "limits": "Journal truncation/vacuum and automatic changes of run ID are covered by private host fixtures and UI regressions. The live instrument was not restarted, and no synthetic large journal messages were injected on the board."
+}

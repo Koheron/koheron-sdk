@@ -1,0 +1,86 @@
+{
+  "source_base": "d3e5d2c40811893c73b69ed3e272353882cfd76a",
+  "source_sha256": {
+    "Makefile": "fc61cc32d5445718be1facc7b571f595f487abfca06a8ee03cb15305aa402d70",
+    "os/api/Makefile": "e3c008df85d0456ba218527badec9eefa8b7ad6895db06fffc6b0f7f84557906",
+    "os/api/native/api_main.cpp": "dd54d3e41e9a1490258011d3ce0a950cec490f3acb2d0762ad34145558406cb4",
+    "os/api/native/archive.cpp": "69bcda7565ddd894e9c7a92c09413b27179b5bca908374226389e4b1b0ac76b2",
+    "os/api/native/archive.hpp": "2720c06dece5157cbdfdb3113e82d14bec989579cdee5b37fcd92bd8f6fe63ff",
+    "os/api/native/common.cpp": "22a63c1975b25d2ac2f07f461a5e9f98059c1964d513163a2810ed73a06a09ae",
+    "os/api/native/common.hpp": "062de6046052ade0ebe906fc547cf8bdac981a6949118b2b18b04aa6ac05203c",
+    "os/api/native/events.cpp": "2098bc18599cc67a900a075ea845d6587292bbd6a52c8d2610b17e4377b5223e",
+    "os/api/native/events.hpp": "fdbdec833a8f6dd1dd15728737687e329b21a73df8cf996a46fbb354fa432b11",
+    "os/api/native/health.cpp": "78b13812fa51db7cf9fc887a0ebda1bae2a2b952a5ac07d674619b82923de841",
+    "os/api/native/health.hpp": "8b555af03f670b15d2ab02c2fb25a7cabfa707a50c9ec7439850f909729995e5",
+    "os/api/tests/fail_io.cpp": "2ebc8b3e6c13a2880e4cdec70eb59ac9b6e0480a41a2254121282133a08fcf82",
+    "os/api/tests/native_fixture.py": "9507b4904224fd285b77dd3239c4ef0972949f15c43063815c3b92a8209a961e",
+    "os/api/tests/red_pitaya_integration.py": "13fe879cfac87019ccc94a6a1f4296331a40c9f2c6cfa3b2921ab6d242a9e040",
+    "os/api/tests/test_native_faults.py": "fe2389bc900721d914f93567f91de3f5c1e462e377f0a7c30005aa0a11fd17fb",
+    "os/api/tests/test_native_install.py": "f106521564bd8f4fdefe3fb6b6701f4fa28b6166b17824837e57cd7fc2fc21f1",
+    "os/api/tests/test_native_management.py": "a2e9352acdb065afa8490126f1a6af2f7d43d07828ecc950ec5813ee5c267aeb",
+    "os/rootfs.mk": "bbdb3880b9f931966160b4c9e9000459ede070829144d8fd5b637c45e7e3b4ff",
+    "os/www/index.html": "6c4f10d29de44731a2df8c93683ea9cc370b5fde0fd41b830f077ce7fc298f3e",
+    "os/www/instrument_summary.html": "cb2fb8a8161acf2b06fa06f36dcceaed7252afbb9482959a0e4c1fc310cfbf5d",
+    "os/www/instrument_summary.ts": "dc2bb9538cab505a88407beae9837ceef77ea8b284ee37aa6e783d88ec329785",
+    "os/www/instruments.ts": "3b178f39cc32a30e439cc89998efd96a0c3618477cfb6877826971465306d52b",
+    "os/www/instruments_widget.ts": "3b78b00c0a882883af11d39116e5103a3ca8cd817c7d3cc8b153cd47657d9c20",
+    "os/www/runtime.ts": "cfe02cf315206eaebb4e633cafcf2bdbed311ad396fdfe37c077254f4d53dab6",
+    "os/www/system.css": "ccd296644a2c0d6d429a3ff8caae4ce1bd78d31b7dd15d3164a6c9c869c3e644",
+    "os/www/system_info_widget.ts": "83627801a65c2d5ab85447ed05b84592c195155d2c01432417761868912bb823",
+    "os/www/tests/test_manager.cjs": "315d2a8ffd144b5664d681a2a649b49818a3bfc3162d809e822e28b87c3f5898",
+    "os/www/tests/test_runtime.cjs": "dc6c7a898017e50c324c257955dc6e25d540d24064210d57183ee4189eefaae5",
+    "python/koheron/instrument_manifest.py": "6cbc66d3d33e4f03a111611a080636a56de9ed5301914f6e97c0abc700ea1bbf",
+    "python/tests/test_instrument_manifest.py": "47eee1c35e2b07f6f9afa05329953b4ffb0b1e0e3779cbe4b6a932322219317b"
+  },
+  "build_checks": {
+    "native_tests": 100,
+    "grow_rootfs_tests": 10,
+    "rootfs_settings_tests": 5,
+    "rootfs_overlay_tests": 2,
+    "browser_regressions": 19,
+    "type_script": "passed",
+    "architectures": [
+      "armhf",
+      "arm64"
+    ],
+    "sanitized_tests": 92,
+    "sanitizer_diagnostic_files": [],
+    "manifest_generator_tests": 1,
+    "doctor": "passed"
+  },
+  "artifacts_sha256": {
+    "tmp/api/armhf/koheron-api": "82d8c61de28d322fae924d7e2fe43c63a1004344b79700eb8411ecba3edf7e24",
+    "tmp/api/armhf/koheron-install": "9d907f152d1550619fb122eb01f3c2b907658857017c7904ee85750a25232237",
+    "tmp/api/armhf/koheron-server-init": "80acfcefb17d3cdffe4a496df64b556ad793f549f63b75c2e490400cc4cd6c53",
+    "tmp/api/arm64/koheron-api": "4370f5e3886599d2749aadfbcfeedba6d44b6b394ee3e77b03d21e9ee74e14f9",
+    "tmp/api/arm64/koheron-install": "d1e6b25e4f98a0d165d159960c9a02dd3fae8a53777c5be10b2e414911a4ec46",
+    "tmp/api/arm64/koheron-server-init": "f885cae532f19943e9defd156e82fe97ffa9b4232bea4d1100a473e75bc4de1c",
+    "tmp/www/instruments.js": "cf42c1627ca1ba0be4ae11103fd3a0844ba66283c60f975b2811405a3f926d92"
+  },
+  "hardware": {
+    "board": "red-pitaya",
+    "address": "192.168.1.85",
+    "checks": 19,
+    "raw_record": "native-management-red-pitaya.json",
+    "production_unchanged": true,
+    "scope": "Private systemd notify fixture instruments and nginx; no FPGA programming, production instrument restart, SD image flash, cold reboot or extended stress run"
+  },
+  "visual_checks": {
+    "record": "../../www/tests/native-management-browser.json",
+    "desktop": [
+      1360,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "page_errors": [],
+    "mobile_horizontal_overflow": false,
+    "actions": [
+      "stop",
+      "start",
+      "preflight"
+    ]
+  }
+}

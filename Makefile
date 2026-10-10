@@ -211,9 +211,13 @@ include $(WEB_MK)
 # - Web files (HTML, CSS, Javascript)
 
 # Zip file that contains all the files needed to run the instrument:
-$(INSTRUMENT_ZIP): $(SERVER) $(DRIVERS_JSON_OUT) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
+INSTRUMENT_MANIFEST := $(TMP_PROJECT_PATH)/instrument.json
+$(INSTRUMENT_MANIFEST): $(CONFIG_MK) $(BOARD_MK) $(SDK_PATH)/Makefile $(SDK_PATH)/python/koheron/instrument_manifest.py | $(TMP_PROJECT_PATH)/
+	$(VENV)/bin/python3 $(SDK_PATH)/python/koheron/instrument_manifest.py --board "$(BOARD)" --architecture "$(UBUNTU_ARCH)" --sdk-version "$(KOHERON_VERSION)" --output "$@"
+
+$(INSTRUMENT_ZIP): $(SERVER) $(DRIVERS_JSON_OUT) $(BITSTREAM) $(WEB_ASSETS) $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM).bin $(VERSION_FILE) $(INSTRUMENT_MANIFEST) | $(TMP_PROJECT_PATH)/ $(TMP)/$(BOARD)/instruments/
 	rm -f $(INSTRUMENT_ZIP)
-	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(DRIVERS_JSON_OUT) $(WEB_ASSETS) $(VERSION_FILE)
+	zip --junk-paths $(INSTRUMENT_ZIP) $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(DRIVERS_JSON_OUT) $(WEB_ASSETS) $(VERSION_FILE) $(INSTRUMENT_MANIFEST)
 	cp $(INSTRUMENT_ZIP) $(TMP)/$(BOARD)/instruments/$(NAME).zip
 	$(call ok,$@)
 

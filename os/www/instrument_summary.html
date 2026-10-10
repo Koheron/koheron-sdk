@@ -18,8 +18,13 @@
   <main class="system-main">
     <a href="/koheron/">← Installed instruments</a>
     <div class="summary-heading"><h2 id="instrument-name">Instrument details</h2><span class="muted">Version <span id="instrument-version">—</span></span></div>
+    <p id="instrument-details-status" class="status-line" role="status" hidden></p>
+    <section class="preflight-panel" aria-labelledby="instrument-check-heading">
+      <div class="section-heading"><h2 id="instrument-check-heading">Compatibility and storage</h2><button id="instrument-check-refresh" type="button">Check again</button></div>
+      <div id="instrument-check" role="status">Checking instrument…</div>
+    </section>
     <section aria-labelledby="commands-heading">
-      <h2 id="commands-heading">Available commands</h2>
+      <div class="section-heading"><h2 id="commands-heading">Available commands</h2><button id="instrument-commands-retry" type="button" hidden>Retry</button></div>
       <p id="instrument-commands-status" class="status-line" role="status">Loading…</p>
       <div id="instrument-commands" class="instrument-disclosures"></div>
     </section>

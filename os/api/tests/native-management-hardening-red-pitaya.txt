@@ -1,0 +1,31 @@
+nginx: the configuration file /tmp/native-management/nginx-private.conf syntax is ok
+nginx: configuration file /tmp/native-management/nginx-private.conf test is successful
+PASS: systemd notify readiness and nginx HTTP Unix-socket proxy
+PASS: multipart upload and real systemd instrument activation
+PASS: instrument cursor includes the first startup message of the new invocation
+PASS: drivers.json download
+PASS: unsafe extraction fails before stopping the running service
+PASS: failed readiness restores files and restarts the previous service
+PASS: instrument log stream follows the restored service invocation
+PASS: real journal tail, timestamps, bookmark and incremental cursor
+PASS: socket activation survives API restart and recovers loaded identity
+PASS: stopped instrument status
+PASS: default protection and archive deletion
+PASS: native preflight verifies archive and staging capacity
+PASS: D-Bus start/stop/restart preserve loaded files
+PASS: atomic boot selection persists across API restart
+PASS: real board RAM, storage, uptime and systemd readiness
+PASS: WebSocket status updates and ping through real nginx Unix-socket proxy
+PASS: board compatibility rejection leaves private instrument running
+PASS: structured readiness failure and successful rollback
+PASS: bounded diagnostic export includes real journal and health
+PASS: POST activation log bookmark includes first new startup message
+PASS: boot-default replacement validates compatibility before committing and preserves valid updates
+PASS: foreign browser mutations and navigation rejected through nginx without side effects
+PASS: HEAD cannot activate or delete instruments
+PASS: same-origin commands and WebSocket preserve proxy Host port
+PASS: reflected legacy errors use plain text and nosniff
+PASS: malformed compatibility JSON is rejected on ARMhf
+PASS: nginx WebSocket heartbeat retains responsive peer and expires unmatched pong
+PREVIEW_READY
+PASS: temporary services removed; production PIDs and API unchanged

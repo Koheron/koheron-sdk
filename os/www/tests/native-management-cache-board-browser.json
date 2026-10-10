@@ -1,0 +1,75 @@
+{
+  "recorded_utc": "2026-10-10T11:14:59.577Z",
+  "url": "http://192.168.1.85/koheron/",
+  "scope": "Read-only production verification: GET requests and FFT reads; no lifecycle, upload, default, removal or acquisition-setting actions",
+  "checks": [
+    "current management page identifies the real running FFT and exposes lifecycle controls",
+    "real board health, operating-system information and instrument journal render",
+    "real port-80 WebSocket remains connected for 12 seconds without HTTP fallback",
+    "production FFT compatibility check and keyboard focus round trip",
+    "management layouts fit 320, 390, 768 and 1360 pixel screens",
+    "production instrument details, commands and compatibility render",
+    "production transfer-rate page receives live server statistics",
+    "real FFT page receives instrument WebSocket frames and renders a live 2048-point spectrum",
+    "no browser JavaScript errors or failed resource requests"
+  ],
+  "viewports": [
+    {
+      "width": 320,
+      "scrollWidth": 320
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768
+    },
+    {
+      "width": 1360,
+      "scrollWidth": 1360
+    }
+  ],
+  "statusReads": 0,
+  "websocketFrames": [
+    {
+      "instrument": "fft",
+      "phase": "idle"
+    },
+    {
+      "instrument": "fft",
+      "phase": "idle"
+    },
+    {
+      "instrument": "fft",
+      "phase": "idle"
+    },
+    {
+      "instrument": "fft",
+      "phase": "idle"
+    },
+    {
+      "instrument": "fft",
+      "phase": "idle"
+    },
+    {
+      "instrument": "fft",
+      "phase": "idle"
+    },
+    {
+      "instrument": "fft",
+      "phase": "idle"
+    }
+  ],
+  "instrumentSocketUrls": [
+    "ws://192.168.1.85:8080/",
+    "ws://192.168.1.85:8080/",
+    "ws://192.168.1.85:8080/",
+    "ws://192.168.1.85:8080/",
+    "ws://192.168.1.85:8080/"
+  ],
+  "instrumentFrames": 18,
+  "errors": [],
+  "failures": []
+}

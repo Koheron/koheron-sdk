@@ -1,5 +1,7 @@
 #include "archive.hpp"
 #include "journal.hpp"
+#include "health.hpp"
+#include "events.hpp"
 
 #include <microhttpd.h>
 #include <systemd/sd-daemon.h>
@@ -18,6 +20,7 @@
 #include <shared_mutex>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <utility>
@@ -28,30 +31,28 @@ constexpr std::size_t max_upload = 20 * 1024 * 1024;
 struct Reply {
     unsigned status = 200;
     std::string body;
-    std::string type = "text/html; charset=utf-8";
+    std::string type = "text/plain; charset=utf-8";
     std::string disposition;
 };
 Reply json_reply(Json value, unsigned status = 200) { return {status, encode(value) + '\n', "application/json", {}}; }
 Reply error_reply(std::string_view error, unsigned status) {
     auto value = object(); add(value, "error", text(error)); return json_reply(std::move(value), status);
 }
-Json kv_file(const fs::path& path) {
-    const auto bytes = read_file(path);
-    if (!bytes) return {};
-    auto result = object();
-    std::string_view remaining(*bytes);
-    while (!remaining.empty()) {
-        const auto end = remaining.find('\n');
-        const auto line = trim(remaining.substr(0, end));
-        if (!line.empty() && !line.starts_with('#')) {
-            const auto equals = line.find('=');
-            if (equals != line.npos) add(result, trim(std::string_view(line).substr(0, equals)), text(trim(std::string_view(line).substr(equals + 1))));
-        }
-        if (end == remaining.npos) break;
-        remaining.remove_prefix(end + 1);
-    }
-    return result;
+Reply failure(std::string_view code, std::string_view message, unsigned status = 400, std::string_view rollback = "not_needed") {
+    auto value = object(); add(value, "code", text(code)); add(value, "error", text(message)); add(value, "rollback", text(rollback));
+    return json_reply(std::move(value), status);
 }
+struct Operation {
+    std::string action, instrument, phase = "idle", code, message, rollback = "not_needed";
+    std::uint64_t started_us = 0, finished_us = 0, revision = 0;
+    Json json() const {
+        auto result = object();
+        add(result, "action", text(action)); add(result, "instrument", text(instrument)); add(result, "phase", text(phase));
+        add(result, "code", text(code)); add(result, "message", text(message)); add(result, "rollback", text(rollback));
+        add(result, "started_us", integer(started_us)); add(result, "finished_us", integer(finished_us)); add(result, "revision", integer(revision));
+        add(result, "busy", boolean(started_us != 0 && finished_us == 0)); return result;
+    }
+};
 struct Instrument {
     std::string name, version;
     bool is_default = false;
@@ -74,6 +75,32 @@ class App {
     std::vector<Instrument> inventory_;
     std::optional<std::string> log_cursor_, invocation_;
     std::optional<std::uint64_t> log_timestamp_;
+    Operation operation_;
+    std::mutex health_mutex_, upload_mutex_;
+    std::string cached_health_;
+    std::uint64_t health_sample_ = 0;
+    std::atomic<std::uint64_t> api_ready_{0};
+    const std::uint64_t api_started_ = monotonic_us();
+    unsigned uploads_ = 0;
+
+    void phase(std::string_view value) {
+        { std::lock_guard lock(state_mutex_); operation_.phase = value; ++operation_.revision; }
+        if (events) events->wake();
+    }
+    void begin(std::string_view action, std::string_view name) {
+        { std::lock_guard lock(state_mutex_);
+            const auto revision = operation_.revision + 1;
+            operation_ = Operation{}; operation_.revision = revision; operation_.action = action;
+            operation_.instrument = name; operation_.phase = "validating"; operation_.started_us = realtime_us(); }
+        if (events) events->wake();
+    }
+    void finish(std::string_view code = {}, std::string_view message = {}, std::string_view rollback = "not_needed") {
+        { std::lock_guard lock(state_mutex_);
+            operation_.phase = code.empty() ? "succeeded" : "failed"; operation_.code = code; operation_.message = message;
+            operation_.rollback = rollback; operation_.finished_us = realtime_us(); ++operation_.revision; }
+        if (events) events->wake();
+    }
+    Json operation() { std::lock_guard lock(state_mutex_); return operation_.json(); }
 
     bool is_default(const fs::path& archive) const {
         const auto preference = read_file(settings.instruments / "default");
@@ -81,9 +108,21 @@ class App {
     }
     Instrument instrument(const fs::path& archive) const {
         std::string version = "0.0.0";
-        try { const auto data = Archive(archive).member("version"); if (data && !trim(*data).empty()) version = trim(*data); }
+        try { const auto data = Archive(archive).member("version", 4096); if (data && !trim(*data).empty()) version = trim(*data); }
         catch (const InvalidArchive&) {}
         return {archive.stem().string(), std::move(version), is_default(archive)};
+    }
+    Json identity() const {
+        const auto name_file = read_file(settings.live / ".instrument-name", 4096), version_file = read_file(settings.live / "version", 4096);
+        if (!name_file || !version_file || utf8(*name_file) != *name_file || utf8(*version_file) != *version_file) return {};
+        const auto name = trim(*name_file);
+        if (name.empty() || safe_filename(name + ".zip") != name + ".zip") return {};
+        return Instrument{name, trim(*version_file), is_default(settings.instruments / (name + ".zip"))}.json();
+    }
+    Json current() const {
+        std::shared_lock lock(live_mutex_, std::try_to_lock);
+        if (!lock.owns_lock() || activation_pending_.load(std::memory_order_acquire)) return {};
+        try { return identity(); } catch (...) { return {}; }
     }
     Json live() const {
         // shared_mutex can prefer readers indefinitely. Announce a waiting
@@ -93,29 +132,39 @@ class App {
         if (!lock.owns_lock() || activation_pending_.load(std::memory_order_acquire)) return {};
         try {
             if (!unit_is_active(settings)) return {};
-            const auto name_file = read_file(settings.live / ".instrument-name"), version_file = read_file(settings.live / "version");
-            if (!name_file || !version_file || utf8(*name_file) != *name_file || utf8(*version_file) != *version_file) return {};
-            const auto name = trim(*name_file);
-            if (name.empty() || safe_filename(name + ".zip") != name + ".zip") return {};
-            return Instrument{name, trim(*version_file), is_default(settings.instruments / (name + ".zip"))}.json();
+            return identity();
         } catch (const std::exception&) { return {}; }
     }
-    Reply run(std::string_view requested) {
-        std::lock_guard transaction(mutation_mutex_);
+    Reply run(std::string_view requested, bool modern = false) {
+        std::unique_lock transaction(mutation_mutex_, std::defer_lock);
+        if (modern) { if (!transaction.try_lock()) return failure("busy", "Another instrument operation is in progress", 409); }
+        else transaction.lock();
         PendingActivation pending(activation_pending_);
         std::unique_lock activation(live_mutex_);
         const auto name = safe_filename(std::string(requested) + ".zip");
         const auto archive = settings.instruments / name;
-        if (!fs::exists(archive)) return {404, "Instrument " + std::string(requested) + ".zip not found", {}, {}};
+        if (!fs::exists(archive)) return modern ? failure("not_found", "Instrument archive not found", 404) : Reply{404, "Instrument " + std::string(requested) + ".zip not found", {}, {}};
+        begin("activate", requested);
         std::optional<std::string> invocation;
         { std::lock_guard lock(state_mutex_); invocation = invocation_; }
         const auto before = bookmark(settings.unit, invocation);
         const auto started = before && before->timestamp ? *before->timestamp : realtime_us();
-        try { install(archive, settings); }
-        catch (const std::exception& error) {
+        try { install(archive, settings, [this](std::string_view value) { phase(value); }); }
+        catch (const DeploymentError& error) {
+            activation.unlock(); activation_pending_.store(false, std::memory_order_release);
+            finish(error.code, error.what(), error.rollback);
             std::cerr << "Instrument installation failed: " << error.what() << '\n';
-            return {500, "Failed to install instrument " + std::string(requested) + ".zip", {}, {}};
+            return modern ? failure(error.code, error.what(), error.code == "insufficient_space" ? 507 : error.rollback == "not_needed" && error.code != "stop_failed" ? 422 : 500, error.rollback)
+                          : Reply{500, "Failed to install instrument " + std::string(requested) + ".zip", {}, {}};
         }
+        catch (const std::exception& error) {
+            activation.unlock(); activation_pending_.store(false, std::memory_order_release);
+            finish("installation_failed", error.what());
+            std::cerr << "Instrument installation failed: " << error.what() << '\n';
+            return modern ? failure("installation_failed", error.what(), 500) : Reply{500, "Failed to install instrument " + std::string(requested) + ".zip", {}, {}};
+        }
+        activation.unlock(); activation_pending_.store(false, std::memory_order_release);
+        finish({}, "Instrument " + std::string(requested) + " is running");
         const auto after = bookmark(settings.unit);
         {
             std::lock_guard lock(state_mutex_);
@@ -123,10 +172,39 @@ class App {
             log_cursor_ = before && !before->cursor.empty() ? std::optional(before->cursor) : std::nullopt;
             log_timestamp_ = started;
         }
+        if (modern) return json_reply(operation());
         return {200, "Instrument " + std::string(requested) + ".zip successfully installed", {}, {}};
     }
 public:
     Settings settings;
+    std::unique_ptr<EventHub> events;
+    std::unique_ptr<EventHub> log_events;
+    void ready() { api_ready_ = monotonic_us(); }
+    bool reserve_upload() {
+        std::lock_guard lock(upload_mutex_);
+        struct statvfs space{};
+        if (uploads_ >= 2 || ::statvfs(settings.instruments.c_str(), &space) < 0 ||
+            static_cast<std::uint64_t>(space.f_bavail) * space.f_frsize < (uploads_ + 1) * max_upload + 4 * 1024 * 1024) return false;
+        ++uploads_; return true;
+    }
+    void release_upload() { std::lock_guard lock(upload_mutex_); --uploads_; }
+    Json health() {
+        std::lock_guard lock(health_mutex_);
+        if (cached_health_.empty() || monotonic_us() - health_sample_ >= 2000000) {
+            cached_health_ = encode(system_health(settings, api_ready_.load(std::memory_order_acquire), api_started_)); health_sample_ = monotonic_us();
+        }
+        return parse(cached_health_);
+    }
+    Json details(bool names_only = false) {
+        auto running = live(), values = array();
+        { std::lock_guard lock(state_mutex_); for (const auto& item : inventory_) append(values, names_only ? text(item.name) : item.json()); }
+        if (names_only && running) running = text(field(running.get(), "name"));
+        auto result = object(); add(result, "instruments", std::move(values)); add(result, "live_instrument", std::move(running)); return result;
+    }
+    Json snapshot() {
+        auto result = object(); add(result, "type", text("status")); add(result, "instruments", details());
+        add(result, "current_instrument", current()); add(result, "operation", operation()); add(result, "health", health()); return result;
+    }
     explicit App(Settings config) : settings(std::move(config)) {
         for (const auto& file : fs::directory_iterator(settings.instruments)) {
             if (file.is_regular_file() && file.path().extension() == ".zip") inventory_.push_back(instrument(file.path()));
@@ -141,8 +219,11 @@ public:
         std::lock_guard transaction(mutation_mutex_);
         Archive archive(temporary);
         if (!archive.member("version")) return {400, "Instrument archive missing version file", {}, {}};
-        archive.validate();
         const auto target = settings.instruments / name;
+        if (is_default(target)) {
+            const auto checked = preflight(temporary, settings);
+            if (!checked.ready()) return failure(checked.code, checked.message, checked.code == "insufficient_space" ? 507 : 422);
+        } else archive.validate();
         fs::rename(temporary, target);
         auto value = instrument(target);
         {
@@ -150,22 +231,60 @@ public:
             std::erase_if(inventory_, [&](const Instrument& current) { return current.name == value.name; });
             inventory_.push_back(std::move(value));
         }
+        if (events) events->wake();
+        sync_directory(settings.instruments);
         return {200, "Instrument " + std::string(name) + " uploaded.", {}, {}};
     }
-    Reply route(std::string_view path, MHD_Connection* connection) {
+    Reply route(std::string_view path, MHD_Connection* connection, std::string_view method = "GET") {
         if (path == "/api/instruments" || path == "/api/instruments/details") {
-            auto running = live(), values = array();
-            { std::lock_guard lock(state_mutex_);
-                for (const auto& item : inventory_) append(values, path.ends_with("/details") ? item.json() : text(item.name)); }
-            if (!path.ends_with("/details") && running) running = text(field(running.get(), "name"));
-            auto result = object(); add(result, "instruments", std::move(values)); add(result, "live_instrument", std::move(running));
-            return json_reply(std::move(result));
+            return json_reply(details(!path.ends_with("/details")));
+        }
+        for (const std::string_view action : {"activate", "preflight", "default", "control"}) {
+            const std::string prefix = "/api/instruments/" + std::string(action) + "/";
+            if (!path.starts_with(prefix)) continue;
+            const auto name = path.substr(prefix.size());
+            if (name.empty() || name.contains('/') || safe_filename(name) != name) return failure("invalid_name", "Invalid instrument name", 400);
+            if (method != (action == "preflight" ? "GET" : "POST")) return failure("method_not_allowed", "Method not allowed", 405);
+            if (action == "activate") return run(name, true);
+            std::unique_lock transaction(mutation_mutex_, std::try_to_lock);
+            if (!transaction.owns_lock()) return failure("busy", "Another instrument operation is in progress", 409);
+            if (action == "control") {
+                if (name != "start" && name != "stop" && name != "restart") return failure("invalid_action", "Unknown instrument action");
+                PendingActivation pending(activation_pending_); std::unique_lock activation(live_mutex_);
+                auto loaded = identity();
+                if (!loaded || !fs::is_regular_file(settings.live / "serverd")) return failure("no_instrument", "No instrument is loaded", 409);
+                begin(name, field(loaded.get(), "name")); phase(name == "stop" ? "stopping" : name == "restart" ? "restarting" : "starting");
+                try {
+                    service_action(settings, name, settings.unit);
+                    activation.unlock(); activation_pending_.store(false, std::memory_order_release);
+                    finish({}, "Instrument " + std::string(name) + " completed"); return json_reply(operation());
+                } catch (const std::exception& error) {
+                    if (activation.owns_lock()) activation.unlock();
+                    activation_pending_.store(false, std::memory_order_release);
+                    const auto code = std::string(name) + "_failed"; finish(code, error.what()); return failure(code, error.what(), 500);
+                }
+            }
+            const auto archive = settings.instruments / (std::string(name) + ".zip");
+            if (!fs::exists(archive)) return failure("not_found", "Instrument archive not found", 404);
+            auto checked = preflight(archive, settings);
+            if (action == "preflight") return json_reply(checked.json());
+            if (!checked.ready()) return failure(checked.code, checked.message, 422);
+            try { atomic_write(settings.instruments / "default", std::string(name) + ".zip\n"); }
+            catch (const std::exception& error) {
+                { std::lock_guard lock(state_mutex_); for (auto& item : inventory_) item.is_default = is_default(settings.instruments / (item.name + ".zip")); }
+                if (events) events->wake();
+                return failure("preference_failed", std::string("Could not confirm boot preference durability: ") + error.what() + ". Check the current default before retrying.", 500);
+            }
+            { std::lock_guard lock(state_mutex_); for (auto& item : inventory_) item.is_default = item.name == name; }
+            if (events) events->wake();
+            auto result = object(); add(result, "default_instrument", text(name)); return json_reply(std::move(result));
         }
         for (const std::string_view action : {"run", "delete", "commands"}) {
             const std::string prefix = "/api/instruments/" + std::string(action) + "/";
             if (!path.starts_with(prefix)) continue;
             const auto name = path.substr(prefix.size());
             if (name.empty() || name.contains('/')) return {404, "Not found", {}, {}};
+            if (action != "commands" && method != "GET") return failure("method_not_allowed", "Method not allowed", 405);
             if (action == "run") return run(name);
             const auto zip = safe_filename(std::string(name) + ".zip");
             const auto archive = settings.instruments / zip;
@@ -183,10 +302,43 @@ public:
             if (item == inventory_.end()) return {404, "Instrument not found", {}, {}};
             if (item->is_default) return {200, "Default instrument cannot be removed", {}, {}};
             fs::remove(archive); inventory_.erase(item);
+            sync_directory(settings.instruments);
+            if (events) events->wake();
             return {200, "Instrument " + zip + " removed.", {}, {}};
         }
         if (path.starts_with("/api/system/")) {
             const auto part = path.substr(12);
+            if (part == "status") return json_reply(snapshot());
+            if (part == "diagnostics") {
+                auto result = snapshot(), logs = array();
+                auto manifest = kv_file(settings.manifest), release = kv_file(settings.release);
+                add(result, "manifest", manifest ? std::move(manifest) : object()); add(result, "release", release ? std::move(release) : object());
+                std::size_t budget = 512 * 1024;
+                for (const auto& unit : {settings.unit, std::string("koheron-api.service"), std::string("unzip-default-instrument.service")}) {
+                    auto log = object(), entries = array();
+                    for (const auto& entry : read_logs(unit, {}, 200).entries) {
+                        if (!budget) break;
+                        const auto length = std::min(entry.message.size(), std::size_t(4096));
+                        auto item = object(); add(item, "ts", entry.timestamp ? integer(*entry.timestamp) : Json{});
+                        add(item, "msg", text(entry.message.substr(0, length))); add(item, "truncated", boolean(length < entry.message.size()));
+                        const auto encoded_size = encode(item).size();
+                        if (encoded_size > budget) break;
+                        budget -= encoded_size; append(entries, std::move(item));
+                    }
+                    add(log, "unit", text(unit)); add(log, "entries", std::move(entries)); append(logs, std::move(log));
+                }
+                add(result, "logs", std::move(logs)); add(result, "generated_us", integer(realtime_us()));
+                if (encode(result).size() > 1024 * 1024) {
+                    json_object_object_del(result.get(), "instruments");
+                    add(result, "inventory_omitted", boolean(true));
+                }
+                if (encode(result).size() > 1024 * 1024) {
+                    json_object_object_del(result.get(), "manifest"); json_object_object_del(result.get(), "release");
+                    add(result, "metadata_omitted", boolean(true));
+                }
+                if (encode(result).size() > 1024 * 1024) return failure("diagnostics_too_large", "Diagnostic context exceeded the download limit", 500);
+                auto reply = json_reply(std::move(result)); reply.disposition = "attachment; filename=koheron-diagnostics.json"; return reply;
+            }
             if (part == "build") {
                 auto manifest = kv_file(settings.manifest), release = kv_file(settings.release), result = object();
                 add(result, "manifest", manifest ? std::move(manifest) : object());
@@ -210,6 +362,13 @@ public:
             const auto suffix = path.substr(logs.size());
             const char* requested_cursor = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "cursor");
             std::optional<std::string> cursor = requested_cursor && *requested_cursor ? std::optional(std::string(requested_cursor)) : std::nullopt;
+            if (suffix == "/tail") {
+                const char* requested = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "invocation");
+                if (requested && !valid_invocation(requested)) return error_reply("invalid invocation", 400);
+                if (cursor && (cursor->size() > 1024 || !std::ranges::all_of(*cursor,
+                    [](unsigned char c) { return c >= 33 && c <= 126; }))) return error_reply("invalid cursor", 400);
+                return Reply{200, follow_logs(settings.unit, cursor, requested ? std::optional(std::string(requested)) : std::nullopt)(), "application/json", {}};
+            }
             if (suffix.empty()) {
                 int limit = 200;
                 if (const char* requested = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "lines")) {
@@ -263,10 +422,12 @@ struct Request {
     std::uint64_t received = 0, uploaded = 0;
     std::optional<Reply> error;
     bool responded = false;
+    bool reserved = false;
     explicit Request(App& value) : app(value) {}
     ~Request() {
         if (processor) MHD_destroy_post_processor(processor);
         if (!temporary.empty()) { std::error_code ignored; fs::remove(temporary, ignored); }
+        if (reserved) app.release_upload();
     }
 };
 MHD_Result post(void* context, MHD_ValueKind, const char* key, const char* filename, const char*, const char*,
@@ -277,6 +438,8 @@ MHD_Result post(void* context, MHD_ValueKind, const char* key, const char* filen
         if (request.field_name.empty()) {
             request.field_name = key; request.filename = safe_filename(key);
             if (!request.filename.ends_with(".zip")) { request.error = Reply{400, "Invalid instrument filename", {}, {}}; return MHD_NO; }
+            if (!request.app.reserve_upload()) { request.error = failure("upload_capacity", "Upload capacity is unavailable; wait for other uploads or free storage", 503); return MHD_NO; }
+            request.reserved = true;
             auto [path, fd] = temporary_file(request.app.settings.instruments, ".upload-");
             request.temporary = std::move(path); request.upload = std::move(fd);
         }
@@ -292,11 +455,12 @@ MHD_Result post(void* context, MHD_ValueKind, const char* key, const char* filen
     }
 }
 MHD_Result respond(MHD_Connection* connection, Reply reply) {
-    if (reply.type.empty()) reply.type = "text/html; charset=utf-8";
+    if (reply.type.empty()) reply.type = "text/plain; charset=utf-8";
     auto* response = MHD_create_response_from_buffer(reply.body.size(), reply.body.data(), MHD_RESPMEM_MUST_COPY);
     if (!response) return MHD_NO;
     MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_TYPE, reply.type.c_str());
     MHD_add_response_header(response, MHD_HTTP_HEADER_CACHE_CONTROL, "no-store");
+    MHD_add_response_header(response, "X-Content-Type-Options", "nosniff");
     if (!reply.disposition.empty()) MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_DISPOSITION, reply.disposition.c_str());
     const auto result = MHD_queue_response(connection, reply.status, response);
     MHD_destroy_response(response);
@@ -307,7 +471,15 @@ MHD_Result handle(void* context, MHD_Connection* connection, const char* url, co
     try {
         if (!*request_context) {
             auto request = std::make_unique<Request>(*static_cast<App*>(context));
-            if (std::string_view(method) == "POST" && std::string_view(url) == "/api/instruments/upload") {
+            const std::string_view path(url);
+            const bool mutation = path.starts_with("/api/instruments/run/") || path.starts_with("/api/instruments/delete/") ||
+                path.starts_with("/api/instruments/activate/") || path.starts_with("/api/instruments/default/") ||
+                path.starts_with("/api/instruments/control/") || path == "/api/instruments/upload";
+            const auto header = [&](const char* name) { const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, name); return value ? std::string_view(value) : std::string_view(); };
+            if (!same_origin(connection) || (mutation && (header("Sec-Fetch-Mode") == "navigate" ||
+                (!header("Sec-Fetch-Dest").empty() && header("Sec-Fetch-Dest") != "empty"))))
+                request->error = failure("origin_rejected", "Browser requests must come from this board's interface", 403);
+            if (!request->error && std::string_view(method) == "POST" && path == "/api/instruments/upload") {
                 request->processor = MHD_create_post_processor(connection, 8192, post, request.get());
                 if (!request->processor) request->error = Reply{400, "Instrument upload failed.", {}, {}};
             }
@@ -318,7 +490,7 @@ MHD_Result handle(void* context, MHD_Connection* connection, const char* url, co
         if (request.responded) return MHD_YES;
         if (*size != 0) {
             request.received += *size;
-            if (request.received > max_upload) request.error = Reply{413, "Instrument upload exceeds 20 MiB limit", {}, {}};
+            if (!request.error && request.received > max_upload) request.error = Reply{413, "Instrument upload exceeds 20 MiB limit", {}, {}};
             if (!request.error && request.processor && MHD_post_process(request.processor, bytes, *size) == MHD_NO && !request.error)
                 request.error = Reply{400, "Instrument upload failed.", {}, {}};
             *size = 0;
@@ -326,6 +498,10 @@ MHD_Result handle(void* context, MHD_Connection* connection, const char* url, co
         }
         request.responded = true;
         if (request.error) return respond(connection, std::move(*request.error));
+        if (std::string_view(url) == "/api/events" || std::string_view(url) == "/api/logs/koheron/events") {
+            if (std::string_view(method) != "GET") return respond(connection, failure("method_not_allowed", "Method not allowed", 405));
+            return (std::string_view(url) == "/api/events" ? request.app.events : request.app.log_events)->upgrade(connection);
+        }
         if (std::string_view(method) == "POST" && std::string_view(url) == "/api/instruments/upload") {
             // Finalization detects a missing closing multipart boundary.
             auto* processor = std::exchange(request.processor, nullptr);
@@ -337,8 +513,12 @@ MHD_Result handle(void* context, MHD_Connection* connection, const char* url, co
             catch (const InvalidArchive& error) { std::cerr << error.what() << '\n'; return respond(connection, {400, "Invalid instrument archive", {}, {}}); }
         }
         if (std::string_view(url) == "/api/instruments/upload") return respond(connection, {405, "Method not allowed", {}, {}});
-        if (std::string_view(method) != "GET" && std::string_view(method) != "HEAD") return respond(connection, {405, "Method not allowed", {}, {}});
-        return respond(connection, request.app.route(url, connection));
+        const std::string_view path(url);
+        const bool command = path.starts_with("/api/instruments/activate/") || path.starts_with("/api/instruments/default/") || path.starts_with("/api/instruments/control/");
+        if (command) {
+            if (request.received) return respond(connection, failure("unexpected_body", "This command does not accept a request body"));
+        } else if (std::string_view(method) != "GET" && std::string_view(method) != "HEAD") return respond(connection, {405, "Method not allowed", {}, {}});
+        return respond(connection, request.app.route(path, connection, method));
     } catch (const std::exception& error) {
         std::cerr << "API request failed: " << error.what() << '\n';
         return respond(connection, {500, "Internal server error", {}, {}});
@@ -389,6 +569,7 @@ int main(int argc, char** argv) {
             else if (option == "--unit") settings.unit = value;
             else if (option == "--led-unit") settings.led_unit = value;
             else if (option == "--systemctl") settings.systemctl = value;
+            else if (option == "--proc") settings.proc = value;
             else if (option == "--socket") socket_path = value;
             else if (option == "--port") {
                 unsigned number = 0;
@@ -401,7 +582,11 @@ int main(int argc, char** argv) {
         sigset_t signals; sigemptyset(&signals); sigaddset(&signals, SIGINT); sigaddset(&signals, SIGTERM);
         if (pthread_sigmask(SIG_BLOCK, &signals, nullptr) != 0) throw std::runtime_error("Could not block shutdown signals");
         App app(std::move(settings));
-        const unsigned flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_THREAD_PER_CONNECTION | MHD_USE_ITC | MHD_USE_ERROR_LOG;
+        app.events = std::make_unique<EventHub>([&app] { return encode(app.snapshot()); });
+        app.log_events = std::make_unique<EventHub>(EventHub::Stream{}, [&app](std::optional<std::string> cursor, std::optional<std::string> invocation) {
+            return follow_logs(app.settings.unit, std::move(cursor), std::move(invocation));
+        });
+        const unsigned flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_THREAD_PER_CONNECTION | MHD_USE_ITC | MHD_USE_ERROR_LOG | MHD_ALLOW_UPGRADE;
         MHD_Daemon* raw_daemon = nullptr;
         Fd listener;
         if (port == 0) {
@@ -422,10 +607,13 @@ int main(int argc, char** argv) {
         if (!raw_daemon) throw std::runtime_error("Could not start HTTP daemon");
         (void)listener.release(); // libmicrohttpd owns the listening descriptor now.
         std::unique_ptr<MHD_Daemon, decltype(&MHD_stop_daemon)> daemon(raw_daemon, MHD_stop_daemon);
+        app.ready();
         sd_notify(0, "READY=1\nSTATUS=Management API is ready");
         std::cout << "Koheron management API ready" << std::endl;
         int signal = 0; sigwait(&signals, &signal);
         sd_notify(0, "STOPPING=1");
+        app.events->stop();
+        app.log_events->stop();
         daemon.reset();
         if (!owned_socket.empty()) fs::remove(owned_socket);
         return 0;

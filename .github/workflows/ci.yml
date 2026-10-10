@@ -30,10 +30,16 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check PyYAML
       - name: Test instrument copying
         run: python3 -m unittest discover -s python/tests -p test_copy_instrument.py
+      - name: Test instrument compatibility metadata
+        run: python3 -m unittest discover -s python/tests -p test_instrument_manifest.py
       - name: Test image toolchain manifest
         run: python3 -m unittest discover -s os/tests -p test_toolchain_manifest.py
       - name: Test kernel and device-tree compiler dependencies
         run: python3 -m unittest discover -s os/tests -p test_linux_make.py
+      - name: Check downloaded asset permissions
+        run: python3 -m unittest discover -s os/tests -p test_download_verified.py
+      - name: Check web build and management asset versions
+        run: python3 web/tests/test_build.py
       - name: Check C++ logging
         run: python3 -m unittest discover -s server/tests -p test_syslog.py
       - name: Validate instrument configurations
@@ -60,3 +66,18 @@ jobs:
         run: |
           docker build -f os/api/tests/Dockerfile -t koheron-management-tests .
           docker run --rm -v "$PWD:/work" -w /work koheron-management-tests
+  management-ui:
+    name: Management UI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check TypeScript and browser behavior
+        run: |
+          docker build -f web/Dockerfile.web -t koheron-web web
+          docker run --rm -v "$PWD:/work" -w /work koheron-web sh -ec '
+            node --test os/www/tests/test_*.cjs
+            node /opt/app/build.cjs --output /tmp/koheron-manager.js web/koheron.ts web/instrument/poller.ts os/www/*.ts
+          '
