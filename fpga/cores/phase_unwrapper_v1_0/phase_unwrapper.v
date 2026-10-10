@@ -7,7 +7,8 @@ module phase_unwrapper #
   parameter integer PIPELINED_OVERFLOW = 0,
   parameter integer PIPELINED_HISTORY = 0,
   parameter integer FUSED_DIFFERENCE = 0,
-  parameter integer CANONICAL_INPUT = 0
+  parameter integer CANONICAL_INPUT = 0,
+  parameter integer LOOKAHEAD_HISTORY = 0
 )
 (
   input  wire clk,
@@ -15,7 +16,7 @@ module phase_unwrapper #
   input  wire rst,
   input  wire signed [DIN_WIDTH-1:0] phase_in,
   output wire signed [DIN_WIDTH+1-1:0] freq_out,
-  output reg signed [DOUT_WIDTH-1:0] phase_out,
+  output wire signed [DOUT_WIDTH-1:0] phase_out,
   output reg overflow
 );
 
@@ -23,23 +24,51 @@ module phase_unwrapper #
   localparam PI = 2**(DIN_WIDTH-3);
   localparam TWOPI = 2**(DIN_WIDTH-2);
 
+  // Split history keeps its existing extra clock and takes precedence over
+  // lookahead. Unsupported lookahead widths retain the conventional adder.
+  localparam USE_LOOKAHEAD = LOOKAHEAD_HISTORY && PIPELINED_OVERFLOW &&
+      !PIPELINED_HISTORY && DOUT_WIDTH>32 && DOUT_WIDTH>DIN_WIDTH+1;
+
+  initial begin
+    if (DIN_WIDTH < 3 || DOUT_WIDTH < DIN_WIDTH)
+      $fatal(1, "Phase unwrapper requires DIN_WIDTH >= 3 and DOUT_WIDTH >= DIN_WIDTH");
+    if (FUSED_DIFFERENCE && DIN_WIDTH < 4)
+      $fatal(1, "Fused difference requires DIN_WIDTH >= 4");
+    if (PIPELINED_HISTORY &&
+        (DOUT_WIDTH <= 32 || DIN_WIDTH >= 32 || !PIPELINED_OVERFLOW))
+      $fatal(1, "Split history requires DOUT_WIDTH > 32, DIN_WIDTH < 32 and delayed overflow");
+  end
+
   reg signed [DIN_WIDTH-1:0] phase_in0;
   reg signed [DIN_WIDTH+1-1:0] diff;
   reg signed [DIN_WIDTH+1-1:0] unwrapped_diff;
 
-  initial phase_out = 0;
+  reg signed [DOUT_WIDTH-1:0] phase_state=0;
   initial unwrapped_diff = 0;
   initial phase_in0 = 0;
   initial diff = 0;
   initial overflow = 0;
 
   wire signed [DOUT_WIDTH:0] next_phase;
+  wire signed [DOUT_WIDTH:0] conventional_phase;
+  // Keep the smaller legacy datapath for clocks that do not need cached
+  // prefixes. Synthesis removes it when the lookahead output is selected.
   phase_unwrapper_adder #(.WIDTH(DOUT_WIDTH+1),.BLOCK(PIPELINED_OVERFLOW ? 8 : 0)) history_add(
       {phase_out[DOUT_WIDTH-1],phase_out},
       {{(DOUT_WIDTH-DIN_WIDTH){unwrapped_diff[DIN_WIDTH]}},unwrapped_diff},
-      1'b0,next_phase);
+      1'b0,conventional_phase);
+  generate if (USE_LOOKAHEAD) begin : lookahead_history
+    wire [DOUT_WIDTH-1:0] accumulated_phase;
+    phase_unwrapper_lookahead #(.WIDTH(DOUT_WIDTH),.STEP_WIDTH(DIN_WIDTH+1)) history_add(
+        .clk(clk),.rst(rst),.enable(acc_on),.step(unwrapped_diff),.phase(accumulated_phase));
+    // This is only an output alias, not another register or pipeline stage.
+    assign phase_out=accumulated_phase;
+  end else begin : conventional_history
+    assign phase_out=phase_state;
+    assign next_phase=conventional_phase;
+  end endgenerate
 
-  // Compute phase difference
+  // Reset/enable control history only: difference samples advance every clock.
   always @(posedge clk) begin
     phase_in0 <= phase_in;
     diff <= phase_in - phase_in0;
@@ -121,8 +150,6 @@ module phase_unwrapper #
   // Accumulate phase. The monitor can delay its history one clock while
   // keeping the frequency bus and independent feedback accumulator unchanged.
   generate if (PIPELINED_HISTORY) begin : split_history
-    if (DOUT_WIDTH <= 32 || DIN_WIDTH >= 32 || !PIPELINED_OVERFLOW)
-      initial $error("Split history requires a wide monitor and delayed overflow");
     reg [31:0] low_state=0;
     reg signed [1:0] upper_step=0;
     reg overflow_pending=0;
@@ -132,7 +159,7 @@ module phase_unwrapper #
         $signed({phase_out[DOUT_WIDTH-1],phase_out[DOUT_WIDTH-1:32]})+$signed(upper_step);
     always @(posedge clk) begin
       if(rst) begin
-        low_state<=0;upper_step<=0;phase_out<=0;
+        low_state<=0;upper_step<=0;phase_state<=0;
         overflow_pending<=0;overflow<=0;
       end else begin
         if(acc_on) begin
@@ -140,20 +167,20 @@ module phase_unwrapper #
           upper_step<=unwrapped_diff[DIN_WIDTH] ?
               (low_next[32] ? 2'sd0 : -2'sd1) : (low_next[32] ? 2'sd1 : 2'sd0);
         end else upper_step<=0;
-        phase_out<={upper_next[DOUT_WIDTH-33:0],low_state};
+        phase_state<={upper_next[DOUT_WIDTH-33:0],low_state};
         overflow_pending<=upper_next[DOUT_WIDTH-32]!=upper_next[DOUT_WIDTH-33];
         overflow<=overflow | overflow_pending;
       end
     end
-  end else begin : full_history
+  end else if (!USE_LOOKAHEAD) begin : full_history
   always @(posedge clk) begin
     if (rst) begin
-      phase_out <= 0;
+      phase_state <= 0;
     end else begin
       if (acc_on) begin
-        phase_out <= next_phase[DOUT_WIDTH-1:0];
+        phase_state <= next_phase[DOUT_WIDTH-1:0];
       end else begin
-        phase_out <= phase_out;
+        phase_state <= phase_out;
       end
     end
   end
@@ -187,6 +214,85 @@ module phase_unwrapper #
 
   assign freq_out = unwrapped_diff;
 
+endmodule
+
+// Own both history and cached zero/one prefixes so they cannot be clocked,
+// enabled or reset separately. The prefixes describe the current registered
+// phase, not a delayed sample. This replaces the caller's accumulator register.
+// A signed narrow step changes the upper word by at most one. Its next
+// prefix flags can therefore be predicted from comparisons with 0, 1, -1
+// and -2, independently of the wide sum. The late low-word carry reaches
+// only a local toggle/mux rather than another wide combinational chain.
+module phase_unwrapper_lookahead #(
+    parameter integer WIDTH=64,
+    parameter integer STEP_WIDTH=17
+)(input wire clk,rst,enable,
+  input wire [STEP_WIDTH-1:0] step,
+  output reg [WIDTH-1:0] phase=0);
+    initial begin
+        if (STEP_WIDTH < 2 || WIDTH <= STEP_WIDTH)
+            $fatal(1, "Lookahead requires WIDTH > STEP_WIDTH >= 2");
+    end
+    localparam GROUP_BITS=4;
+    localparam GROUPS=(WIDTH-STEP_WIDTH+GROUP_BITS-1)/GROUP_BITS;
+    wire [WIDTH-1:0] x=phase;
+    wire [WIDTH-1:0] sum;
+    always @(posedge clk) begin
+        if (rst) phase<=0;
+        else if (enable) phase<=sum;
+    end
+    reg [GROUPS-1:0] zero_prefix={GROUPS{1'b1}};
+    reg [GROUPS-1:0] one_prefix={{(GROUPS-1){1'b0}},1'b1};
+    wire [STEP_WIDTH:0] low_sum={1'b0,x[STEP_WIDTH-1:0]}+{1'b0,step};
+    wire carry_up=low_sum[STEP_WIDTH] && !step[STEP_WIDTH-1];
+    wire borrow_down=!low_sum[STEP_WIDTH] && step[STEP_WIDTH-1];
+    assign sum[STEP_WIDTH-1:0]=low_sum[STEP_WIDTH-1:0];
+
+    // Preserve the small comparator groups so synthesis cannot turn the
+    // parallel prefix comparisons into a serial chain of wide LUT terms.
+    (* keep = "true" *) wire [GROUPS-1:0] rest_zero_group,rest_one_group;
+    genvar g,b;
+    for (g=0;g<GROUPS;g=g+1) begin : upper
+        localparam BASE=STEP_WIDTH+g*GROUP_BITS;
+        localparam N=(WIDTH-BASE<GROUP_BITS) ? WIDTH-BASE : GROUP_BITS;
+        wire up=carry_up && one_prefix[g];
+        wire down=borrow_down && zero_prefix[g];
+        if (g==0) begin : first_comparison
+            if (N==1) begin : single
+                assign rest_zero_group[g]=1;
+                assign rest_one_group[g]=1;
+            end else begin : multiple
+                assign rest_zero_group[g]=!(|x[BASE+N-1:BASE+1]);
+                assign rest_one_group[g]=&x[BASE+N-1:BASE+1];
+            end
+        end else begin : comparison
+            assign rest_zero_group[g]=!(|x[BASE +: N]);
+            assign rest_one_group[g]=&x[BASE +: N];
+        end
+        for (b=0;b<N;b=b+1) begin : bit_sum
+            if (b==0) begin : first
+                assign sum[BASE+b]=x[BASE+b]^(up | down);
+            end else begin : prefix
+                assign sum[BASE+b]=x[BASE+b]^((up && (&x[BASE+b-1:BASE])) |
+                    (down && !(|x[BASE+b-1:BASE])));
+            end
+        end
+        if (g>0) begin : prediction
+            wire is_one=x[STEP_WIDTH] && (&rest_zero_group[g-1:0]);
+            wire is_minus_two=!x[STEP_WIDTH] && (&rest_one_group[g-1:0]);
+            always @(posedge clk) begin
+                if (rst) begin
+                    zero_prefix[g]<=1;
+                    one_prefix[g]<=0;
+                end else if (enable) begin
+                    zero_prefix[g]<=carry_up ? one_prefix[g] :
+                        borrow_down ? is_one : zero_prefix[g];
+                    one_prefix[g]<=carry_up ? is_minus_two :
+                        borrow_down ? zero_prefix[g] : one_prefix[g];
+                end
+            end
+        end
+    end
 endmodule
 
 // Short local carry chains, connected by the 7-series dedicated carry fabric.

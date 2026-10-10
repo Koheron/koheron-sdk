@@ -51,7 +51,7 @@ module test_pna_phase_history_tb;
             // These boundaries are unreachable in a short phase walk. Seed
             // consistent state, then use the normal datapath to cross them.
             rst=0; acc_on=1;
-            dut.phase_out=value;
+            dut.phase_state=value;
             dut.split_history.low_state=value[31:0];
             expected=value;
         end

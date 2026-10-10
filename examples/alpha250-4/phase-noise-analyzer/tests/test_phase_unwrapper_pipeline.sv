@@ -23,8 +23,8 @@ module test_phase_unwrapper_pipeline;
             rst=1; input_phase=0; acc_on=1;
             repeat(8) @(negedge clk);
             rst=0;
-            direct.phase_out=direction ? 32'h80000100 : 32'h7fffff00;
-            pipelined.phase_out=direct.phase_out;
+            direct.phase_state=direction ? 32'h80000100 : 32'h7fffff00;
+            pipelined.phase_state=direct.phase_state;
             for (i=0;i<400;i=i+1) begin
                 input_phase=direction ? -i*13 : i*13;
                 acc_on=(i%7)!=3;
