@@ -13,14 +13,18 @@ async function load(browser, variant, scale = 1) {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.setContent('<!doctype html><html><body style="margin:8px;font:14px Arial"></body></html>');
-    await page.addScriptTag({path: process.env.PLOT_JQUERY || path.join(__dirname, 'baseline/jquery.min.js')});
-    if (!['original', 'previous', 'owned'].includes(variant)) throw new Error(`Unknown variant: ${variant}`);
-    const dir = variant === 'original' ? path.join(__dirname, 'baseline') : path.join(root, `tmp/plotting/${variant === 'previous' ? 'comparison' : 'owned'}`);
-    for (const name of scripts) await page.addScriptTag({path: path.join(dir, name)});
-    const basicsPath = variant === 'owned' ? path.join(root, 'web/plot-basics/plot-basics.ts') : path.join(dir, 'plot-basics.ts');
-    await page.addScriptTag({content: ts.transpileModule(fs.readFileSync(basicsPath, 'utf8'),
-        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText});
-    await page.addScriptTag({path: path.join(__dirname, 'workload.js')});
+    await install(page, variant);
     return {page, errors};
 }
-module.exports = {launch, load, root, scripts, ts};
+// Pages and same-origin frames use the same assets and seeded workload.
+async function install(target, variant) {
+    if (!['original', 'previous', 'owned'].includes(variant)) throw new Error(`Unknown variant: ${variant}`);
+    await target.addScriptTag({path: process.env.PLOT_JQUERY || path.join(__dirname, 'baseline/jquery.min.js')});
+    const dir = variant === 'original' ? path.join(__dirname, 'baseline') : path.join(root, `tmp/plotting/${variant === 'previous' ? 'comparison' : 'owned'}`);
+    for (const name of scripts) await target.addScriptTag({path: path.join(dir, name)});
+    const basicsPath = variant === 'owned' ? path.join(root, 'web/plot-basics/plot-basics.ts') : path.join(dir, 'plot-basics.ts');
+    await target.addScriptTag({content: ts.transpileModule(fs.readFileSync(basicsPath, 'utf8'),
+        {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText});
+    await target.addScriptTag({path: path.join(__dirname, 'workload.js')});
+}
+module.exports = {launch, load, install, root, scripts, ts};

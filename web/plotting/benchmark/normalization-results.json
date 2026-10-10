@@ -1,0 +1,619 @@
+{
+  "browser": "154.0.8037.57",
+  "cpu": "Intel(R) Core(TM) Ultra X7 368H",
+  "platform": "linux 6.17.0-1032-oem",
+  "method": "two same-origin frames, alternating redraw order within each rAF",
+  "headless": true,
+  "gpu": "disabled",
+  "viewport": [
+    2400,
+    800
+  ],
+  "plotViewport": [
+    1000,
+    500
+  ],
+  "dpr": 1,
+  "hover": false,
+  "heapSampling": false,
+  "frames": 180,
+  "rounds": 3,
+  "results": [
+    {
+      "round": 0,
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "previous": {
+          "median": 1.199999988079071,
+          "p95": 1.4000000059604645,
+          "mean": 1.1788888891537985,
+          "max": 2.199999988079071,
+          "samples": 180
+        },
+        "owned": {
+          "median": 1.100000023841858,
+          "p95": 1.5,
+          "mean": 1.1627777786718474,
+          "max": 2.300000011920929,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 2.9802322387695312e-8,
+        "p95": 0.4000000059604645,
+        "mean": 0.01611111048195097,
+        "max": 0.8999999761581421,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "mean": 16.66536312849162,
+        "max": 16.800000000000182,
+        "samples": 179
+      }
+    },
+    {
+      "round": 0,
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "previous": {
+          "median": 1.0999999940395355,
+          "p95": 2.300000011920929,
+          "mean": 1.2666666661699613,
+          "max": 5,
+          "samples": 180
+        },
+        "owned": {
+          "median": 1.0999999940395355,
+          "p95": 2.100000023841858,
+          "mean": 1.1377777783407106,
+          "max": 3,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0.09999999403953552,
+        "p95": 1.199999988079071,
+        "mean": 0.12888888782925076,
+        "max": 3,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "mean": 16.6659217877095,
+        "max": 16.800000000000182,
+        "samples": 179
+      }
+    },
+    {
+      "round": 0,
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "previous": {
+          "median": 0.20000001788139343,
+          "p95": 0.5999999940395355,
+          "mean": 0.26444444358348845,
+          "max": 0.7000000178813934,
+          "samples": 180
+        },
+        "owned": {
+          "median": 0.20000001788139343,
+          "p95": 0.5999999940395355,
+          "mean": 0.25999999973509047,
+          "max": 0.800000011920929,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0,
+        "p95": 0.30000001192092896,
+        "mean": 0.004444443848397997,
+        "max": 0.40000003576278687,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "mean": 16.66592178770949,
+        "max": 16.80000000000109,
+        "samples": 179
+      }
+    },
+    {
+      "round": 0,
+      "scenario": "scope-2",
+      "redrawMS": {
+        "previous": {
+          "median": 0.800000011920929,
+          "p95": 0.9000000059604645,
+          "mean": 0.8005555555224418,
+          "max": 1.399999976158142,
+          "samples": 180
+        },
+        "owned": {
+          "median": 0.699999988079071,
+          "p95": 0.800000011920929,
+          "mean": 0.7005555561847157,
+          "max": 0.9000000059604645,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0.09999999403953552,
+        "p95": 0.30000001192092896,
+        "mean": 0.09999999933772617,
+        "max": 0.7999999523162842,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "mean": 16.66592178770949,
+        "max": 16.80000000000109,
+        "samples": 179
+      }
+    },
+    {
+      "round": 0,
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "previous": {
+          "median": 1.5,
+          "p95": 2,
+          "mean": 1.4883333325386048,
+          "max": 2.5999999940395355,
+          "samples": 180
+        },
+        "owned": {
+          "median": 1.4000000059604645,
+          "p95": 2,
+          "mean": 1.4383333340287208,
+          "max": 2.800000011920929,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0.09999999403953552,
+        "p95": 0.699999988079071,
+        "mean": 0.04999999850988388,
+        "max": 0.7999999821186066,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "mean": 16.66648044692737,
+        "max": 16.80000000000291,
+        "samples": 179
+      }
+    },
+    {
+      "round": 1,
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "owned": {
+          "median": 1.100000023841858,
+          "p95": 1.600000023841858,
+          "mean": 1.2238888886239794,
+          "max": 2.4000000059604645,
+          "samples": 180
+        },
+        "previous": {
+          "median": 1.2000000178813934,
+          "p95": 1.699999988079071,
+          "mean": 1.3016666668984624,
+          "max": 2.600000023841858,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "owned",
+        "previous"
+      ],
+      "deltaMS": {
+        "median": -0.09999999403953552,
+        "p95": 0.5,
+        "mean": -0.07777777827448315,
+        "max": 0.7000000178813934,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "mean": 16.666480446927377,
+        "max": 16.800000000000182,
+        "samples": 179
+      }
+    },
+    {
+      "round": 1,
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "owned": {
+          "median": 1.399999976158142,
+          "p95": 2,
+          "mean": 1.5094444438815118,
+          "max": 3,
+          "samples": 180
+        },
+        "previous": {
+          "median": 1.4000000059604645,
+          "p95": 2.0999999940395355,
+          "mean": 1.5438888882597288,
+          "max": 4.5999999940395355,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "owned",
+        "previous"
+      ],
+      "deltaMS": {
+        "median": -0.09999999403953552,
+        "p95": 0.7000000178813934,
+        "mean": -0.03444444437821706,
+        "max": 0.9000000357627869,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "mean": 16.665921787709497,
+        "max": 16.800000000000182,
+        "samples": 179
+      }
+    },
+    {
+      "round": 1,
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "owned": {
+          "median": 0.19999998807907104,
+          "p95": 0.4000000059604645,
+          "mean": 0.201111111872726,
+          "max": 0.699999988079071,
+          "samples": 180
+        },
+        "previous": {
+          "median": 0.19999998807907104,
+          "p95": 0.4000000059604645,
+          "mean": 0.2111111107799742,
+          "max": 0.8999999761581421,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "owned",
+        "previous"
+      ],
+      "deltaMS": {
+        "median": 0,
+        "p95": 0.20000001788139343,
+        "mean": -0.009999998907248179,
+        "max": 0.40000003576278687,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "mean": 16.66648044692738,
+        "max": 16.80000000000109,
+        "samples": 179
+      }
+    },
+    {
+      "round": 1,
+      "scenario": "scope-2",
+      "redrawMS": {
+        "owned": {
+          "median": 0.6000000238418579,
+          "p95": 0.800000011920929,
+          "mean": 0.6444444437821706,
+          "max": 0.9000000059604645,
+          "samples": 180
+        },
+        "previous": {
+          "median": 0.7999999821186066,
+          "p95": 0.9000000059604645,
+          "mean": 0.7683333335651292,
+          "max": 1.0999999940395355,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "owned",
+        "previous"
+      ],
+      "deltaMS": {
+        "median": -0.10000002384185791,
+        "p95": 0.19999995827674866,
+        "mean": -0.12388888978295856,
+        "max": 0.20000001788139343,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "mean": 16.6659217877095,
+        "max": 16.80000000000109,
+        "samples": 179
+      }
+    },
+    {
+      "round": 1,
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "owned": {
+          "median": 0.800000011920929,
+          "p95": 1.9000000059604645,
+          "mean": 0.9277777782744832,
+          "max": 2.300000011920929,
+          "samples": 180
+        },
+        "previous": {
+          "median": 0.800000011920929,
+          "p95": 1.7999999821186066,
+          "mean": 0.9627777780095736,
+          "max": 2.399999976158142,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "owned",
+        "previous"
+      ],
+      "deltaMS": {
+        "median": -2.9802322387695312e-8,
+        "p95": 0.30000001192092896,
+        "mean": -0.034999999735090465,
+        "max": 1.100000023841858,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999709,
+        "p95": 16.700000000000728,
+        "mean": 16.6659217877095,
+        "max": 16.80000000000109,
+        "samples": 179
+      }
+    },
+    {
+      "round": 2,
+      "scenario": "fft-linear-4",
+      "redrawMS": {
+        "previous": {
+          "median": 1.0999999940395355,
+          "p95": 1.5999999940395355,
+          "mean": 1.1688888867696126,
+          "max": 2.100000023841858,
+          "samples": 180
+        },
+        "owned": {
+          "median": 1.0999999940395355,
+          "p95": 1.4000000059604645,
+          "mean": 1.1244444439808527,
+          "max": 2,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0,
+        "p95": 0.4000000059604645,
+        "mean": 0.04444444278875987,
+        "max": 0.8999999761581421,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "mean": 16.66536312849162,
+        "max": 16.800000000000182,
+        "samples": 179
+      }
+    },
+    {
+      "round": 2,
+      "scenario": "pna-log-3",
+      "redrawMS": {
+        "previous": {
+          "median": 1,
+          "p95": 1.5999999940395355,
+          "mean": 1.0916666669978037,
+          "max": 2.0999999940395355,
+          "samples": 180
+        },
+        "owned": {
+          "median": 1,
+          "p95": 1.5,
+          "mean": 1.0472222205665376,
+          "max": 2.199999988079071,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0.09999999403953552,
+        "p95": 0.40000003576278687,
+        "mean": 0.04444444643126594,
+        "max": 0.800000011920929,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "mean": 16.665921787709497,
+        "max": 16.800000000000182,
+        "samples": 179
+      }
+    },
+    {
+      "round": 2,
+      "scenario": "fft-deep-zoom",
+      "redrawMS": {
+        "previous": {
+          "median": 0.20000001788139343,
+          "p95": 0.5,
+          "mean": 0.23777777933412128,
+          "max": 0.9000000059604645,
+          "samples": 180
+        },
+        "owned": {
+          "median": 0.19999998807907104,
+          "p95": 0.5,
+          "mean": 0.2127777773472998,
+          "max": 0.800000011920929,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 2.9802322387695312e-8,
+        "p95": 0.29999998211860657,
+        "mean": 0.025000001986821493,
+        "max": 0.800000011920929,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "mean": 16.665921787709497,
+        "max": 16.800000000000182,
+        "samples": 179
+      }
+    },
+    {
+      "round": 2,
+      "scenario": "scope-2",
+      "redrawMS": {
+        "previous": {
+          "median": 0.7999999821186066,
+          "p95": 0.9000000059604645,
+          "mean": 0.7688888869351811,
+          "max": 2.9000000059604645,
+          "samples": 180
+        },
+        "owned": {
+          "median": 0.699999988079071,
+          "p95": 0.800000011920929,
+          "mean": 0.6588888891869121,
+          "max": 0.9000000059604645,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0.09999999403953552,
+        "p95": 0.4000000059604645,
+        "mean": 0.10999999774826898,
+        "max": 2.4000000059604645,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "mean": 16.6659217877095,
+        "max": 16.80000000000109,
+        "samples": 179
+      }
+    },
+    {
+      "round": 2,
+      "scenario": "pna-log-y",
+      "redrawMS": {
+        "previous": {
+          "median": 0.9000000059604645,
+          "p95": 2.100000023841858,
+          "mean": 1.076111111872726,
+          "max": 2.5,
+          "samples": 180
+        },
+        "owned": {
+          "median": 0.9000000059604645,
+          "p95": 2,
+          "mean": 1.0411111094885401,
+          "max": 2.7000000178813934,
+          "samples": 180
+        }
+      },
+      "deltaOrder": [
+        "previous",
+        "owned"
+      ],
+      "deltaMS": {
+        "median": 0.09999996423721313,
+        "p95": 0.5999999642372131,
+        "mean": 0.03500000238418579,
+        "max": 0.9000000357627869,
+        "samples": 180
+      },
+      "frameIntervalMS": {
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "mean": 16.66592178770949,
+        "max": 16.80000000000109,
+        "samples": 179
+      }
+    }
+  ],
+  "sourceSHA256": {
+    "web/plot-basics/plot-basics.ts": "9cb418e19bc1bdcb55e5644b867f37b29cb47afcc135df2d609b62e087d0d3ba",
+    "web/plotting/benchmark/workload.js": "2f051b8c246142f7a11bfd0d3dcaa97c67aeb549dfa78171b7557e813a240265",
+    "web/plotting/benchmark/paired.cjs": "cc4e79848020a1c5de9fd0f928f132183b4ecacf93f88f3668dbf43df2f1f47f",
+    "web/plotting/benchmark/harness.cjs": "328acf69bbe266766f1d7626fc20ad193fca448b85a8d597b1193f8058752891",
+    "web/plotting/src/jquery.colorhelpers.js": "09da5c94edc26c5d097343447ec56bb31f618d9d476a7652022f1b0a22643de8",
+    "web/plotting/src/jquery.flot.axislabels.js": "002fd1985afe180e48a8551e18d2689826be3dda3009a1ce1cf006706a9726f6",
+    "web/plotting/src/jquery.flot.canvas.js": "9931d4a47df2181e243900b9d4956e97faf8c954f7dfbea3ffdc580e5898b0a1",
+    "web/plotting/src/jquery.flot.js": "e0484fb113889c1a15eaae6772792ab679bac2bdcca5461e1e69c7de13c021d5",
+    "web/plotting/src/jquery.flot.resize.js": "8aa93543f14b3c327178134ecea4c358fa0ccd6bc6f008392ac8ccbf56a651ad",
+    "web/plotting/src/jquery.flot.selection.js": "34f312f671137e3e328f8404148e049078ae6feae4dca1ae47dcb23eb64eb1e8",
+    "web/plotting/src/jquery.flot.time.js": "a582c832adc7138a6b05aaf61f16ebac274701f1be4afea77e739a1c34b9c41a"
+  },
+  "cpuAffinity": "0-3",
+  "comparisonSnapshot": {
+    "created": "2026-10-10T17:07:37.362Z",
+    "sha256": {
+      "jquery.flot.js": "d77d71db618b8b373d196c6b55d18ac7899c8c723c692e8ee6ee0cfa4a26b246",
+      "jquery.flot.resize.js": "9cc2778b4c6379691c110f2e94e81bb2b3f36bf6e170816364743d699451d95f",
+      "jquery.flot.selection.js": "5fadba41621edf56ead2205e5362dec4289ece222bc92b6ecf32ca568a064e65",
+      "jquery.flot.time.js": "cc3e54c567464f94303203a77aacc3c5bc1db7d5484d99e89450b6b0965d24f3",
+      "jquery.flot.axislabels.js": "4dcef7a048dd3203031c82677c888f12611bc741ef3a170b20097f8302372f0e",
+      "jquery.flot.canvas.js": "9b5c1a907a71ba720433eff902ac9db789e3f21600018f89b64d0d8181f90604",
+      "plot-basics.ts": "9cb418e19bc1bdcb55e5644b867f37b29cb47afcc135df2d609b62e087d0d3ba"
+    }
+  }
+}

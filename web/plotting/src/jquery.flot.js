@@ -1087,19 +1087,32 @@ Licensed under the MIT license.
         // Fast canonical XY path used only by PlotBasics without data hooks.
         function processXYData(s) {
             var data = s.data, points = s.datapoints.points, fakeInfinity = Number.MAX_VALUE;
-            var x, y, p;
+            var x, y, p, batched = !!s.lines.batchSize;
             var xmin = Infinity, xmax = -Infinity,
                 ymin = Infinity, ymax = -Infinity;
             for (var j = 0, k = 0; j < data.length; j++, k += 2) {
                 p = data[j];
-                x = p == null || p[0] == null ? null : +p[0];
-                y = p == null || p[1] == null ? null : +p[1];
+                x = p == null ? null : p[0];
+                y = p == null ? null : p[1];
+                // Instrument samples are normally finite numbers. Exclude
+                // Infinity sentinels too, as they cannot set autoscale bounds.
+                if (typeof x === "number" && typeof y === "number" &&
+                    x > -fakeInfinity && x < fakeInfinity && y > -fakeInfinity && y < fakeInfinity) {
+                    if (x < xmin) xmin = x;
+                    if (x > xmax) xmax = x;
+                    if (y < ymin) ymin = y;
+                    if (y > ymax) ymax = y;
+                    if (points[k] !== x) points[k] = x;
+                    if (points[k + 1] !== y) points[k + 1] = y;
+                    continue;
+                }
+                x = x == null ? null : +x;
+                y = y == null ? null : +y;
                 if (isNaN(x)) x = null;
                 if (isNaN(y)) y = null;
-                // Batched instrument traces have always drawn nonfinite
-                // samples as gaps, rather than artificial huge spikes.
-                if (s.lines.batchSize && y != null && !isFinite(y)) y = null;
-                if (s.lines.batchSize && x != null && !isFinite(x)) x = null;
+                // Batched instrument traces draw nonfinite samples as gaps.
+                if (batched && y != null && !isFinite(y)) y = null;
+                if (batched && x != null && !isFinite(x)) x = null;
                 if (x === Infinity) x = fakeInfinity;
                 if (x === -Infinity) x = -fakeInfinity;
                 if (y === Infinity) y = fakeInfinity;

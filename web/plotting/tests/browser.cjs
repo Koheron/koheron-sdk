@@ -173,6 +173,55 @@ const {launch, load, root} = require('../benchmark/harness.cjs');
         assert.deepEqual(normalization.shrunk, [1,9,2,10]); assert.equal(normalization.reused, true);
         assert.deepEqual(normalization.steps, [1,1,2,1,2,2,3,2,3,3]);
         assert.equal(normalization.calls, 1); assert.equal(normalization.pluginValue, 99); assert.equal(normalization.pluginNewBuffer, true);
+        // The finite-number shortcut must preserve the generic normalizer's
+        // coercion and autoscale semantics through reused, shrinking buffers.
+        const numericCases = await page.evaluate(() => {
+            const elements = [0,1].map(() => $('<div style="width:400px;height:200px">').appendTo('body'));
+            const options = {grid:{show:false}, xaxis:{min:-10,max:10}, yaxis:{min:-10,max:10},
+                series:{lines:{show:false}, points:{show:false}, shadowSize:0}};
+            const regular = $.plot(elements[0], [], options);
+            const fast = $.plot(elements[1], [], {...options,series:{...options.series,reuseDatapoints:true}});
+            const cases = [
+                [[0,Number.MIN_VALUE], [1,-Number.MIN_VALUE], [2,Number.MAX_VALUE/2], [3,-Number.MAX_VALUE/2]],
+                [[1,2], ['2','3'], [true,false], [null,4], [5,undefined], null, [6,NaN], [Infinity,7],
+                    [-Infinity,8], [9,Infinity], [10,-Infinity], [Number.MAX_VALUE,11], [-Number.MAX_VALUE,-12],
+                    [13,Number.MAX_VALUE], [14,-Number.MAX_VALUE]],
+                [[2,3]],
+                Array.from({length:128}, (_,i) => i % 17 ? [i,Math.sin(i)] : [i,NaN]),
+                [null, [3,4], null]
+            ];
+            const snapshot = plot => {
+                const axes = plot.getAxes();
+                return {points:[...plot.getData()[0].datapoints.points],
+                    bounds:[axes.xaxis.datamin,axes.xaxis.datamax,axes.yaxis.datamin,axes.yaxis.datamax]};
+            };
+            const result = [];
+            for (const data of cases) {
+                data.forEach(row => {if (row) Object.freeze(row);}); Object.freeze(data);
+                regular.setData([Object.freeze({data})]); fast.setData([Object.freeze({data})]);
+                result.push({expected:snapshot(regular),actual:snapshot(fast)});
+            }
+            regular.shutdown(); fast.shutdown(); elements.forEach(el => el.remove());
+            return result;
+        });
+        for (const row of numericCases) assert.deepEqual(row.actual,row.expected,
+            'finite, subnormal, coerced, missing and sentinel coordinates retain normalization/bounds');
+        const batchedNumbers = await page.evaluate(() => {
+            const el = $('<div style="width:400px;height:200px">').appendTo('body');
+            const plot = $.plot(el, [{data:[[1,2],[2,Infinity],[3,-Infinity],[Infinity,4],[-Infinity,-3],
+                [5,NaN],[6,undefined],[null,7],['7','8'],[Number.MAX_VALUE,9],[-Number.MAX_VALUE,-9],
+                [8,Number.MAX_VALUE],[9,-Number.MAX_VALUE]]}],
+                {grid:{show:false},xaxis:{min:-10,max:10},yaxis:{min:-10,max:10},
+                    series:{reuseDatapoints:true,lines:{show:false,batchSize:32},shadowSize:0}});
+            const axes = plot.getAxes();
+            const result = {points:[...plot.getData()[0].datapoints.points],
+                bounds:[axes.xaxis.datamin,axes.xaxis.datamax,axes.yaxis.datamin,axes.yaxis.datamax]};
+            plot.shutdown(); el.remove(); return result;
+        });
+        assert.deepEqual(batchedNumbers, {points:[1,2,null,null,null,null,null,null,null,null,
+            null,null,null,null,null,null,7,8,Number.MAX_VALUE,9,-Number.MAX_VALUE,-9,
+            8,Number.MAX_VALUE,9,-Number.MAX_VALUE],bounds:[1,9,-9,9]},
+            'batched infinities are gaps; finite MAX_VALUE sentinels remain points but not bounds');
         const fallback = await page.evaluate(() => {
             const result = [];
             const element = $('<div style="width:400px;height:200px">').appendTo('body');

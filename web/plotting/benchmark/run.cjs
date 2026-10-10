@@ -11,6 +11,10 @@ const arg = (key, fallback) => process.argv.find(x => x.startsWith('--' + key + 
     const browser = await launch();
     const report = {browser: browser.version(), cpu: os.cpus()[0].model, platform: `${os.platform()} ${os.release()}`,
         headless: true, gpu: 'disabled', viewport: [1000, 500], dpr: 1, frames, rounds, results: []};
+    if (os.platform() === 'linux' && fs.existsSync('/proc/self/status')) {
+        const affinity = fs.readFileSync('/proc/self/status', 'utf8').match(/^Cpus_allowed_list:\s*(.+)$/m);
+        if (affinity) report.cpuAffinity = affinity[1].trim();
+    }
     report.sourceSHA256 = {};
     for (const name of ['web/plot-basics/plot-basics.ts', 'web/plotting/benchmark/workload.js',
         ...fs.readdirSync(path.join(root, 'web/plotting/src')).map(name => 'web/plotting/src/' + name)]) {

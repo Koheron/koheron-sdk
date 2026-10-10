@@ -8,8 +8,10 @@
     "build": "node build.cjs",
     "test": "node --test tests/assets.cjs && node tests/browser.cjs && node tests/ranges.cjs && node tests/exports.cjs",
     "benchmark": "node benchmark/run.cjs",
+    "benchmark:paired": "node benchmark/paired.cjs",
     "snapshot": "node build.cjs && node benchmark/snapshot.cjs",
     "pretest": "node build.cjs",
-    "prebenchmark": "node build.cjs"
+    "prebenchmark": "node build.cjs",
+    "prebenchmark:paired": "node build.cjs"
   }
 }
