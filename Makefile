@@ -87,6 +87,7 @@ help:
 	@echo ' - uboot        : Build the board bootloader independently of FPGA and Linux'
 	@echo ' - image        : Build the full image'
 	@echo '                  Set PASSWORD in the environment to customize the image root password'
+	@echo ' - flash        : Flash the existing release ZIP (run image first)'
 	@echo ' - block_design : Build the Vivado block design interactively'
 	@echo ' - open_project : Open the Vivado .xpr project'
 	@echo ' - doctor       : Check host tools and optional CFG before building'

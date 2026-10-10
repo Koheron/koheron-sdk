@@ -28,6 +28,9 @@ make -j CFG=examples/alpha250/fft/config.mk image
 
 Extract the `.img` from `tmp/examples/alpha250/fft/alpha250-fft.zip` and write it to an SD card. Writing erases the card; keep the supplied V0 card to return to V0.
 
+`make CFG=examples/alpha250/fft/config.mk flash` writes the existing release ZIP
+without rebuilding it. Run `make image` first when the image needs updating.
+
 Insert the card with the board powered off, then boot and find its IP address. The image includes the FFT instrument. Use an example for your board when setting `CFG`.
 
 Build and deploy subsequent instrument changes:
@@ -64,6 +67,7 @@ Pass `CFG=.../config.mk` to build and deployment targets. `make help` lists targ
 | `make os` | Builds the Linux root filesystem for the selected board. |
 | `make uboot` | Builds the board bootloader; select its release with `UBOOT_VERSION=...`. |
 | `make image` | Produces a bootable SD card image combining OS, boot files and instrument artefacts. |
+| `make flash` | Writes the existing release ZIP to an SD card; requires a previously built image. |
 | `make run` | Builds, uploads and starts the instrument, then streams logs. |
 | `make copy CFG=... DEST=...` | Copies an instrument's sources and sets its package name from the destination directory. |
 | `make doctor` | Checks host tools and an optional `CFG`. |
@@ -76,6 +80,8 @@ A separate Docker job builds and tests the native C++23 management runtime,
 installer and LED helper with GCC 15. Full server, sanitizer,
 instrument build, DSP and browser tests remain available to run locally when a
 change needs them.
+A build dependency job checks cached driver, compiler, kernel, bootloader and
+FPGA selections without requiring Xilinx tools or board hardware.
 
 ### Reusing IP synthesis
 
@@ -93,6 +99,9 @@ compatible entries across project regeneration and instruments. The first build
 can take longer, and synthesis boundaries can change resource use and timing;
 keep timing enforcement enabled when evaluating this mode. Switching between
 `FPGA_SYNTH_MODE=global` and `ip` regenerates the project automatically.
+Changing `MODE`, the Vivado release or installation path, or the FPGA part also
+refreshes the affected cached outputs. Enabling `ENFORCE_TIMING=1` checks a
+bitstream previously built without timing enforcement before reusing it.
 `make clean_fpga` retains the shared cache; remove its version directory to test
 a cold cache. See AMD's [synthesis mode documentation](https://docs.amd.com/r/en-US/ug912-vivado-properties/SYNTH_CHECKPOINT_MODE).
 
@@ -118,6 +127,11 @@ implementation and timing checks while reusing synthesis. Core testbench edits
 do not rebuild synthesis packages; packaged documentation remains tracked.
 Custom instruments retain the conservative dependency on all `fpga/lib/*.tcl`
 files unless they set `FPGA_LIB_TCL` themselves.
+
+Driver order determines RPC IDs. Changing the ordered driver list regenerates
+interfaces and metadata together. Python generator edits and complete server
+compiler flags are tracked as build inputs. Web builds use the current compiler
+sources and refresh the Docker builder when its inputs change.
 
 When adding a shared Tcl source, add its transitive dependencies to the selected
 group, or use `TCL_EXTRA_FILES` for instrument-specific dependencies outside the

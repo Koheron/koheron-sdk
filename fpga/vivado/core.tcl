@@ -4,6 +4,8 @@
 set core_path   [lindex $argv 0]
 set part        [lindex $argv 1]
 set output_path [lindex $argv 2]
+set force_rebuild [lindex $argv 3]
+if {$force_rebuild ni {"" 0 1}} {error "force_rebuild must be 0 or 1"}
 
 # Names/paths
 set core_name    [lindex [split $core_path /] end]
@@ -48,7 +50,9 @@ proc latest_mtime {files} {
 }
 
 # Early exit if up-to-date (fast path)
-if {[file exists $comp_xml]} {
+# Make already checked sources and tool settings. Direct Tcl callers retain
+# the timestamp fast path, unless they also explicitly request a rebuild.
+if {$force_rebuild ne "1" && [file exists $comp_xml]} {
   set in_mtime  [latest_mtime $inputs]
   set out_mtime [file mtime $comp_xml]
   if {$in_mtime != 0 && $in_mtime <= $out_mtime} {

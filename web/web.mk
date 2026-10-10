@@ -1,16 +1,7 @@
-WEB_DOCKER_IMAGE ?= koheron-web:node24
-CURRENT_DIR := $(shell pwd -P)
-WEB_DOCKER_RUN := docker run --rm -t \
-                  -u $$(id -u):$$(id -g) \
-                  -v $(CURRENT_DIR):$(CURRENT_DIR) \
-                  -w $(CURRENT_DIR) \
-                  $(WEB_DOCKER_IMAGE)
-
 # Typescript compiler
 ###############################################################################
 
 include $(WEB_PATH)/compiler-inputs.mk
-WEB_COMPILE ?= $(WEB_DOCKER_RUN) node /opt/app/build.cjs
 
 ###############################################################################
 # Build webpage

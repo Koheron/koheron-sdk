@@ -486,7 +486,8 @@ FLASH_DEVICES         ?=
 FLASH_DEVICE          ?=
 
 .PHONY: flash
-flash: $(RELEASE_ZIP) $(PYTHON_REQUIREMENTS_STAMP)
+flash: $(PYTHON_REQUIREMENTS_STAMP) $(if $(filter image,$(MAKECMDGOALS)),$(RELEASE_ZIP))
+	@test -s "$(RELEASE_ZIP)" || { echo "No release image: $(RELEASE_ZIP). Run make CFG=$(CFG) image first." >&2; exit 1; }
 	FLASH_ALLOWED_VENDORS="$(FLASH_ALLOWED_VENDORS)" \
 	FLASH_ALLOWED_MODELS="$(FLASH_ALLOWED_MODELS)" \
 	FLASH_DEVICES="$(FLASH_DEVICES)" \
