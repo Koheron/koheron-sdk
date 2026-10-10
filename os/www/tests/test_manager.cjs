@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const {JSDOM} = require('jsdom');
 const ts = require('../../../web/transpile.cjs');
 const sources = ['web/instrument/poller.ts', 'os/www/instruments.ts',
+    'os/www/runtime.ts',
     'os/www/instruments_widget.ts', 'os/www/koheron_server_log.ts',
     'os/www/koheron_system.ts', 'os/www/system_info_widget.ts', 'os/www/instrument_summary.ts'];
 const code = ts.transpileModule(sources.map(path => fs.readFileSync(path, 'utf8')).join('\n'),
@@ -137,10 +138,12 @@ test('system metadata is text and has a working retry', async t => {
     assert.equal(doc.querySelector('#release-table img'), null);
 });
 
-test('summary accepts literal percent in instrument name', t => {
-    const {w, requests, doc} = fixture(t, 'instrument_summary.html', '?name=fft%25test');
+test('summary accepts literal percent in instrument name', async t => {
+    const {w, requests, doc, flush} = fixture(t, 'instrument_summary.html', '?name=fft%25test');
     w.eval('new InstrumentSummaryWidget(document)');
     assert.equal(doc.querySelector('#instrument-name').textContent, 'fft%test');
     assert.match(requests[1].url, /fft%25test$/);
+    requests[2].reply(200, {ready: true, warnings: [], archive: {}});
+    await flush();
 });
 

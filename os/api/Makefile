@@ -14,7 +14,13 @@ BINARIES := $(addprefix $(BUILD_DIR)/,koheron-api koheron-install koheron-server
 .PHONY: all clean
 all: $(BINARIES)
 
-$(BUILD_DIR)/koheron-api: $(BUILD_DIR)/api_main.o $(BUILD_DIR)/journal.o $(COMMON) $(ARCHIVE)
+$(BUILD_DIR)/koheron-api: $(BUILD_DIR)/api_main.o $(BUILD_DIR)/journal.o $(BUILD_DIR)/health.o $(BUILD_DIR)/events.o $(BUILD_DIR)/sha1.o $(COMMON) $(ARCHIVE)
+
+SDK_ROOT := $(abspath $(SOURCE_DIR)/../../..)
+CPPFLAGS += -I$(SDK_ROOT)
+$(BUILD_DIR)/sha1.o: $(SDK_ROOT)/server/network/sha1.cpp $(SDK_ROOT)/server/network/sha1.hpp
+	@mkdir -p $(@D)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/koheron-install: $(BUILD_DIR)/install_main.o $(COMMON) $(ARCHIVE)
 

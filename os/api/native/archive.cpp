@@ -6,6 +6,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/statvfs.h>
+#include <sys/utsname.h>
+#include <algorithm>
 
 namespace koheron::management {
 Archive::Archive(const fs::path& path) {
@@ -83,6 +86,119 @@ void Archive::validate() {
             if (total > 256 * 1024 * 1024) throw InvalidArchive("Extracted archive exceeds 256 MiB limit");
         });
     }
+}
+
+Json ArchiveInfo::json() const {
+    auto value = object(); add(value, "extracted_bytes", integer(extracted_bytes)); add(value, "entries", integer(entries));
+    add(value, "reference_bitstream", boolean(bit)); add(value, "fpga_binary", boolean(binary)); add(value, "overlay", boolean(overlay));
+    return value;
+}
+ArchiveInfo Archive::inspect(bool verify_crc) {
+    ArchiveInfo info;
+    const auto count = zip_get_num_entries(archive_.get(), 0);
+    if (count < 0 || count > 10000) throw InvalidArchive("Invalid archive entry count");
+    info.entries = count;
+    std::set<fs::path> names;
+    for (zip_int64_t index = 0; index < count; ++index) {
+        zip_stat_t stat{};
+        if (zip_stat_index(archive_.get(), index, 0, &stat) < 0 || !(stat.valid & ZIP_STAT_SIZE)) throw InvalidArchive("Missing archive member size");
+        const std::string name(stat.name);
+        const fs::path path(name); auto canonical = path.lexically_normal();
+        if (path.empty() || path.is_absolute() || name.contains('\\') || name.contains('\n') || name.contains('\r') ||
+            canonical == "." || canonical.filename() == ".instrument-name") throw InvalidArchive("Unsafe archive member: " + name);
+        for (const auto& component : path) if (component == "..") throw InvalidArchive("Unsafe archive member: " + name);
+        if (canonical.filename().empty()) canonical = canonical.parent_path();
+        if (!names.insert(canonical).second) throw InvalidArchive("Duplicate archive member: " + name);
+        zip_uint8_t os = 0; zip_uint32_t attributes = 0;
+        if (zip_file_get_external_attributes(archive_.get(), index, 0, &os, &attributes) < 0) throw InvalidArchive("Invalid archive member mode");
+        const unsigned mode = os == ZIP_OPSYS_UNIX ? attributes >> 16 : 0, type = mode & S_IFMT;
+        if (type != 0 && type != S_IFREG && type != S_IFDIR) throw InvalidArchive("Unsafe archive member type: " + name);
+        if (stat.size > 256 * 1024 * 1024 - info.extracted_bytes) throw InvalidArchive("Extracted archive exceeds 256 MiB limit");
+        info.extracted_bytes += stat.size;
+        const bool regular = !name.ends_with('/') && type != S_IFDIR && stat.size != 0;
+        info.bit |= regular && path.parent_path().empty() && name.ends_with(".bit");
+        info.binary |= regular && path.parent_path().empty() && name.ends_with(".bit.bin");
+        info.overlay |= regular && name == "pl.dtbo";
+        info.executable |= regular && name == "serverd" && (mode & 0111);
+        if (verify_crc || name == "serverd") {
+            std::uint64_t actual = 0;
+            read_member(archive_.get(), index, [&](std::span<const char> bytes) {
+                if (bytes.size() > stat.size - actual) throw InvalidArchive("Archive member size mismatch");
+                actual += bytes.size();
+                if (name == "serverd" && info.executable_header.size() < 64)
+                    info.executable_header.append(bytes.data(), std::min(bytes.size(), 64 - info.executable_header.size()));
+            });
+            if (actual != stat.size) throw InvalidArchive("Archive member size mismatch");
+        }
+    }
+    return info;
+}
+
+Json Preflight::json() const {
+    auto value = object(), notes = array();
+    for (const auto& warning : warnings) append(notes, text(warning));
+    add(value, "ready", boolean(ready())); add(value, "code", text(code)); add(value, "message", text(message));
+    add(value, "version", text(version)); add(value, "archive", info.json()); add(value, "warnings", std::move(notes));
+    add(value, "available_bytes", integer(available_bytes)); add(value, "required_bytes", integer(required_bytes));
+    add(value, "metadata", metadata ? parse(encode(metadata)) : Json{});
+    return value;
+}
+Preflight preflight(const fs::path& filename, const Settings& settings) {
+    Preflight result;
+    const auto fail = [&](std::string code, std::string message) { result.code = std::move(code); result.message = std::move(message); };
+    try {
+        if (!fs::is_regular_file(fs::symlink_status(filename))) throw InvalidArchive("Instrument archive is not a regular file");
+        Archive archive(filename); result.info = archive.inspect();
+        const auto version = archive.member("version", 4096);
+        if (!result.info.executable) throw InvalidArchive("Instrument serverd is not executable");
+        if (!version || trim(*version).empty() || utf8(*version) != *version) throw InvalidArchive("Instrument version is missing or invalid");
+        result.version = trim(*version);
+        const auto loader = resolve_loader("auto");
+        if ((loader == FpgaLoader::overlay && !(result.info.overlay && result.info.binary)) ||
+            (loader == FpgaLoader::xdevcfg && !result.info.bit) ||
+            (loader == FpgaLoader::any && !(result.info.bit || (result.info.overlay && result.info.binary))))
+            throw InvalidArchive("Instrument archive has no FPGA payload for the selected loader");
+        utsname machine{}; if (::uname(&machine) < 0) system_error("machine architecture");
+        const std::string_view hardware(machine.machine);
+        const std::string architecture = hardware == "aarch64" ? "arm64" : hardware.starts_with("arm") ? "armhf" : hardware == "x86_64" ? "amd64" : std::string(hardware);
+        const auto& header = result.info.executable_header;
+        if (header.size() >= 20 && header.substr(0, 4) == std::string("\177ELF", 4)) {
+            const unsigned elf_machine = static_cast<unsigned char>(header[18]) | (static_cast<unsigned char>(header[19]) << 8);
+            const unsigned expected = architecture == "armhf" ? 40 : architecture == "arm64" ? 183 : architecture == "amd64" ? 62 : 0;
+            const unsigned elf_class = architecture == "armhf" ? 1 : 2;
+            if (expected && (elf_machine != expected || header[5] != 1 || static_cast<unsigned char>(header[4]) != elf_class))
+                fail("architecture_mismatch", "Instrument executable does not match this board's CPU architecture");
+        } else result.warnings.push_back("Executable architecture could not be verified");
+        const auto metadata = archive.member("instrument.json", 16384);
+        if (metadata) {
+            result.metadata = parse(*metadata);
+            json_object *format = nullptr, *minimum = nullptr;
+            if (!result.metadata || !json_object_is_type(result.metadata.get(), json_type_object) ||
+                !json_object_object_get_ex(result.metadata.get(), "format", &format) || !json_object_is_type(format, json_type_int) || json_object_get_int(format) != 1 ||
+                !json_object_object_get_ex(result.metadata.get(), "min_runtime_api", &minimum) || !json_object_is_type(minimum, json_type_int) ||
+                field(result.metadata.get(), "board").empty() || field(result.metadata.get(), "architecture").empty() || field(result.metadata.get(), "sdk_version").empty())
+                throw InvalidArchive("Invalid instrument compatibility metadata");
+            const auto board = kv_file(settings.manifest);
+            if (field(result.metadata.get(), "architecture") != architecture)
+                fail("architecture_mismatch", "Instrument package targets a different CPU architecture");
+            else if (board && !field(board.get(), "board").empty() && field(board.get(), "board") != field(result.metadata.get(), "board"))
+                fail("board_mismatch", "Instrument package targets a different board");
+            else if (json_object_get_int(minimum) > 1 || json_object_get_int(minimum) < 1 || !field(result.metadata.get(), "sdk_version").starts_with("1."))
+                fail("runtime_mismatch", "Instrument package requires an incompatible runtime");
+            if (!board || field(board.get(), "board").empty()) result.warnings.push_back("Board identity is unavailable; board compatibility is unverified");
+            if (header.size() < 20 || header.substr(0, 4) != std::string("\177ELF", 4))
+                throw InvalidArchive("Instrument with compatibility metadata must contain an ELF executable");
+        } else result.warnings.push_back("Older package: board compatibility is unverified");
+        auto parent = fs::absolute(settings.live).parent_path();
+        while (!parent.empty() && !fs::exists(parent)) parent = parent.parent_path();
+        struct statvfs space{};
+        if (parent.empty() || ::statvfs(parent.c_str(), &space) < 0) system_error("staging free space");
+        result.available_bytes = static_cast<std::uint64_t>(space.f_bavail) * space.f_frsize;
+        result.required_bytes = result.info.extracted_bytes + result.info.entries * std::max<std::uint64_t>(4096, space.f_frsize) + 4 * 1024 * 1024;
+        if (result.ready() && result.available_bytes < result.required_bytes) fail("insufficient_space", "Not enough free space to stage this instrument while keeping the current installation");
+    } catch (const InvalidArchive& error) { fail("invalid_archive", error.what()); }
+    catch (const std::exception& error) { fail("preflight_failed", error.what()); }
+    return result;
 }
 
 void Archive::extract(const fs::path& destination, bool omit_reference_bitstreams) {
@@ -186,29 +302,45 @@ void extract_default(const Settings& settings, std::string_view requested_loader
     fs::remove_all(transaction);
 }
 
-void install(const fs::path& filename, const Settings& settings) {
+void install(const fs::path& filename, const Settings& settings, Progress progress) {
+    const auto report = [&](std::string_view phase) { if (progress) progress(phase); };
+    report("validating");
+    const auto check = preflight(filename, settings);
+    if (!check.ready()) throw DeploymentError(check.code, check.message);
     const auto transaction = temporary_directory(settings.live.parent_path(), ".instrument-");
     const auto staged = transaction / "next", backup = transaction / "previous";
     try {
         fs::create_directory(staged);
+        report("extracting");
         stage_archive(filename, staged);
         const bool was_active = unit_is_active(settings);
-        service_action(settings, "stop", settings.unit);
+        report("stopping");
+        try { service_action(settings, "stop", settings.unit); }
+        catch (const std::exception& error) { throw DeploymentError("stop_failed", error.what()); }
         bool activated = false;
         try {
             if (fs::exists(settings.live)) fs::rename(settings.live, backup);
             fs::rename(staged, settings.live);
             activated = true;
+            report("starting");
             service_action(settings, "start", settings.unit);
         } catch (...) {
             const auto activation_error = std::current_exception();
-            if (activated) {
-                service_action(settings, "stop", settings.unit);
-                fs::remove_all(settings.live);
+            report("rolling_back");
+            try {
+                if (activated) {
+                    service_action(settings, "stop", settings.unit);
+                    fs::remove_all(settings.live);
+                }
+                if (fs::exists(backup)) fs::rename(backup, settings.live);
+                if (was_active) service_action(settings, "start", settings.unit);
+            } catch (const std::exception& error) {
+                DeploymentError failure("rollback_failed", error.what()); failure.rollback = "failed"; throw failure;
             }
-            if (fs::exists(backup)) fs::rename(backup, settings.live);
-            if (was_active) service_action(settings, "start", settings.unit);
-            std::rethrow_exception(activation_error);
+            std::string reason;
+            try { std::rethrow_exception(activation_error); } catch (const std::exception& error) { reason = error.what(); }
+            DeploymentError failure(activated ? "start_failed" : "activation_failed", reason);
+            failure.rollback = "restored"; throw failure;
         }
         fs::remove_all(backup);
         try { service_action(settings, "start", settings.led_unit); }

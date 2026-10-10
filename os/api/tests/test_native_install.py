@@ -3,11 +3,19 @@ import shutil
 import stat
 import unittest
 import zipfile
+import subprocess
 
-from native_fixture import NativeFixture, archive
+from native_fixture import BIN_DIR, NativeFixture, archive
 
 
 class NativeInstallTest(NativeFixture):
+    def test_relative_live_directory_remains_supported(self):
+        result = subprocess.run([str(BIN_DIR / 'koheron-install'), str(self.package), 'live',
+            '--systemctl', str(self.systemctl)], cwd=self.root, env=self.environment,
+            capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.live / '.instrument-name').read_text().strip(), 'new')
+
     def test_invalid_version_encoding_does_not_stop(self):
         self.package.write_bytes(archive(extra={'version': b'\xff'}))
         self.assertNotEqual(self.install().returncode, 0)

@@ -6,6 +6,26 @@
 #include <dlfcn.h>
 #include <string_view>
 #include <unistd.h>
+#include <sys/statvfs.h>
+#include <sys/stat.h>
+
+extern "C" int fsync(int fd) {
+    if (const char* fault = std::getenv("NATIVE_IO_FAULT"); fault && std::strcmp(fault, "sync-directory") == 0) {
+        struct stat value{};
+        if (fstat(fd, &value) == 0 && S_ISDIR(value.st_mode)) { errno = EIO; return -1; }
+    }
+    static const auto real = reinterpret_cast<int (*)(int)>(dlsym(RTLD_NEXT, "fsync"));
+    return real(fd);
+}
+
+extern "C" int statvfs(const char* path, struct statvfs* value) noexcept {
+    static const auto real = reinterpret_cast<int (*)(const char*, struct statvfs*)>(dlsym(RTLD_NEXT, "statvfs"));
+    const int result = real(path, value);
+    if (result == 0) {
+        if (const char* fault = std::getenv("NATIVE_IO_FAULT"); fault && std::strcmp(fault, "capacity") == 0) value->f_bavail = 1;
+    }
+    return result;
+}
 
 extern "C" int rename(const char* from, const char* to) {
     const char* fault = std::getenv("NATIVE_IO_FAULT");

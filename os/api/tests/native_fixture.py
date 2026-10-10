@@ -35,7 +35,10 @@ elif action == 'is-active':
 elif action == 'stop':
     result = int(state.get('fail_stop', False))
     if not result: state['active'] = False
-elif action == 'start':
+elif action in ('start', 'restart'):
+    if (root / 'hold-start').exists():
+        (root / 'start-entered').touch()
+        while (root / 'hold-start').exists(): time.sleep(.005)
     name = (root / 'live/.instrument-name').read_text().strip()
     result = int(state.get('fail_' + name, False))
     if not result: state['active'] = True
@@ -105,7 +108,8 @@ class NativeFixture(unittest.TestCase):
         self.addCleanup(self.output.close)
         self.process = subprocess.Popen([str(BIN_DIR / 'koheron-api'), '--port', str(self.port),
             '--instruments', str(self.store), '--live', str(self.live), '--systemctl', str(self.systemctl),
-            '--manifest', str(self.root / 'manifest'), '--release', str(self.root / 'release')],
+            '--manifest', str(self.root / 'manifest'), '--release', str(self.root / 'release'),
+            *getattr(self, 'api_options', [])],
             env=self.environment, stdout=self.output, stderr=subprocess.STDOUT)
         self.addCleanup(self.stop_api)
         deadline = time.monotonic() + 5

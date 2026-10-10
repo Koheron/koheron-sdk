@@ -106,6 +106,63 @@ Instrument installation stages and validates files before stopping the service,
 waits for systemd readiness and restores the previous installation on failure.
 Uploads are capped at 20 MiB; extraction is capped at 256 MiB and 10,000 entries.
 
+The management API also exposes deployment checks, service controls, board
+health and diagnostic export. The existing host SDK routes retain their response
+formats. New mutations require POST; their failures return JSON with `code`,
+`error` and `rollback` (`not_needed`, `restored` or `failed`). An operation in
+progress rejects another new mutation with HTTP 409 instead of queuing it.
+
+| Method | Route | Result |
+| --- | --- | --- |
+| GET | `/api/instruments/preflight/NAME` | Compatibility, archive contents/size, staging capacity, warnings and `ready`. |
+| POST | `/api/instruments/activate/NAME` | Validate, stage and activate; return the final operation result. |
+| POST | `/api/instruments/control/start` | Start the loaded installation without re-extracting its ZIP. |
+| POST | `/api/instruments/control/stop` | Stop it and retain its files and identity. |
+| POST | `/api/instruments/control/restart` | Restart the loaded installation without re-extraction. |
+| POST | `/api/instruments/default/NAME` | Validate and persist the boot preference without changing the running instrument. |
+| GET | `/api/system/status` | Instrument inventory, loaded identity, current/last operation and sampled health. |
+| GET | `/api/system/diagnostics` | Download metadata, status and bounded journal excerpts as JSON. |
+| WebSocket | `/api/events` | The same status snapshots, on operation changes and every two seconds. |
+
+Service controls use systemd D-Bus jobs and wait for completion, including
+`Type=notify` readiness. Activation reports validation, extraction, stopping,
+starting and rollback. The loaded identity remains available when the service
+is stopped. Legacy archives remain usable, with a warning that board compatibility
+cannot be verified. New builds include `instrument.json` with format version 1,
+board, architecture, SDK version and minimum management API version. ELF machine
+and class checks also reject a mismatched executable independently of metadata.
+Checks run before stopping an instrument; they do not prove that an FPGA design
+or driver will work on hardware.
+
+Preflight budgets the new extraction, file allocation overhead and a 4 MiB
+reserve while the previous files remain allocated. External processes can still
+consume space after the check; extraction failures leave the running instrument
+intact. Uploads have a shared two-writer limit and free-space reservations.
+nginx streams request bodies directly to the native writer. File contents and
+containing directories are synced for archive and boot preference commits. If
+directory syncing fails after a rename, the API reports failure and keeps its
+inventory consistent with the visible files; callers should read status before
+retrying.
+
+Health reads Linux uptime, load averages, `MemAvailable`, filesystem capacity
+and systemd service properties. Samples are shared for two seconds. Timing
+values use microseconds: API initialization covers inventory/listener setup,
+while service timestamps refer to the current invocation on the monotonic boot
+clock. Server startup is readiness minus execution start; boot extraction is
+the extraction service's execution duration. Restarting the API or instrument
+updates its invocation timing; these values are not a fresh cold-boot benchmark.
+Unavailable values stay unavailable rather than becoming zero readings.
+Diagnostic exports limit journal messages to 4 KiB each and 512 KiB of encoded
+journal context. Oversized inventories or build metadata are omitted explicitly;
+the complete download is bounded to 1 MiB.
+
+The WebSocket is read-only and accepts at most eight clients, leaving HTTP
+capacity for commands. It checks browser origin, handles ping/close frames and
+disconnects slow clients with bounded buffering. The management page shares one
+connection for instrument state, activation progress and health. It reconnects,
+falls back to HTTP status reads, and suspends the connection while hidden. Logs
+continue using their existing journal cursors and pause/follow controls.
+
 Boot extraction uses `koheron-install --extract-default`. It reads the selected
 archive from `/usr/local/instruments/default`, validates and stages it before
 replacing `/tmp/live-instrument`, and does not control services. systemd starts
@@ -155,6 +212,11 @@ live in `os/www/` and share the instrument control styles in
 `web/instrument/instrument.css`. Their assets ship with the OS image. The single-page manager
 shows installed instruments, logs and system details together. It supports
 upload/run/remove feedback, live status updates and log pause, follow and download.
+The live instrument strip adds Start/Stop/Restart. Each instrument's More menu
+offers compatibility checks, boot selection and removal; the details page also
+shows preflight results. Health and diagnostic download use the existing sidebar,
+with build metadata collapsed underneath. Activation progress and rollback
+outcomes share one status line above the instrument list.
 
 Build them with `make CFG=examples/alpha250/fft/config.mk www`. The output is
 `tmp/www/`. Run the host regression suite after installing the dependencies

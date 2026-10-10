@@ -16,6 +16,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+import sys
 
 ROOT = Path('/tmp/native-management')
 API = 'koheron-native-test'
@@ -101,6 +102,9 @@ def main():
         (ROOT / 'nginx-tmp').mkdir(exist_ok=True)
         (ROOT / 'nginx-private.conf').write_text(global_config)
         server = (ROOT / 'nginx-server.conf').read_text().replace('listen                      80;', 'listen 127.0.0.1:18087;')
+        if '--preview' in sys.argv:
+            server = server.replace('listen 127.0.0.1:18087;', 'listen 18087;')
+            server = server.replace('/usr/local/www', str(ROOT / 'www'))
         server = server.replace('/run/koheron-api/app.sock', str(ROOT / 'http.sock'))
         (ROOT / 'server.conf').write_text(server)
         arguments = ['nginx', '-p', str(ROOT), '-c', str(ROOT / 'nginx-private.conf')]
@@ -157,11 +161,73 @@ def main():
         assert request('/api/instruments/delete/old')[1] == 'Default instrument cannot be removed'
         assert request('/api/instruments/delete/broken')[0] == 200
         passed('default protection and archive deletion')
-        subprocess.run([str(ROOT / 'koheron-server-init'), '/run/koheron-server.sock'],
-            env={**os.environ, 'LD_LIBRARY_PATH': str(ROOT / 'lib')}, check=True, timeout=5)
-        passed('native LED RPC against the production FFT server')
+        if '--management-controls' in sys.argv:
+            from test_native_management import WebSocket
+            assert request('/api/instruments/preflight/new')[1]['ready']
+            passed('native preflight verifies archive and staging capacity')
+            files_before = {file.name: hashlib.sha256(file.read_bytes()).hexdigest() for file in live.iterdir() if file.is_file()}
+            assert request('/api/instruments/control/start', b'')[0] == 200
+            first_pid = ctl('show', '-p', 'MainPID', '--value', INSTRUMENT).stdout
+            assert request('/api/instruments/control/restart', b'')[0] == 200
+            assert ctl('show', '-p', 'MainPID', '--value', INSTRUMENT).stdout != first_pid
+            assert request('/api/instruments/control/stop', b'')[0] == 200
+            assert request('/api/system/status')[1]['current_instrument']['name'] == 'new'
+            assert request('/api/instruments/control/start', b'')[0] == 200
+            assert files_before == {file.name: hashlib.sha256(file.read_bytes()).hexdigest() for file in live.iterdir() if file.is_file()}
+            passed('D-Bus start/stop/restart preserve loaded files')
+            assert request('/api/instruments/default/new', b'')[0] == 200
+            ctl('restart', API + '.service')
+            assert next(item for item in request('/api/instruments/details')[1]['instruments'] if item['name'] == 'new')['is_default']
+            assert request('/api/instruments/default/old', b'')[0] == 200
+            passed('atomic boot selection persists across API restart')
+            health = request('/api/system/status')[1]['health']
+            assert health['memory']['available_bytes'] > 0 and health['uptime_seconds'] > 0
+            assert health['instrument_service']['state'] == 'active'
+            assert health['timing']['api_ready_monotonic_us'] > 0
+            passed('real board RAM, storage, uptime and systemd readiness')
+            stream = WebSocket(18087)
+            try:
+                assert b'101 Switching Protocols' in stream.headers
+                assert json.loads(stream.frame()[1])['instruments']['live_instrument']['name'] == 'new'
+                stream.send(9, b'nginx'); assert stream.frame() == (10, b'nginx')
+                assert request('/api/instruments/control/stop', b'')[0] == 200
+                deadline = time.monotonic() + 5
+                while True:
+                    value = json.loads(stream.frame()[1])
+                    if value['operation']['phase'] == 'succeeded' and value['instruments']['live_instrument'] is None: break
+                    assert time.monotonic() < deadline
+                assert request('/api/instruments/control/start', b'')[0] == 200
+            finally: stream.close()
+            passed('WebSocket status updates and ping through real nginx Unix-socket proxy')
+            metadata = {'format': 1, 'board': 'alpha250', 'architecture': 'armhf', 'sdk_version': '1.0', 'min_runtime_api': 1}
+            incompatible = package('wrong-board', extra={'serverd': Path('/bin/sleep').read_bytes(), 'instrument.json': json.dumps(metadata).encode()})
+            assert upload('wrong-board', incompatible)[0] == 200
+            active_pid = ctl('show', '-p', 'MainPID', '--value', INSTRUMENT).stdout
+            status, error = request('/api/instruments/activate/wrong-board', b'')
+            assert status == 422 and error['code'] == 'board_mismatch'
+            assert ctl('show', '-p', 'MainPID', '--value', INSTRUMENT).stdout == active_pid
+            passed('board compatibility rejection leaves private instrument running')
+            assert upload('broken', package('broken', fail=True))[0] == 200
+            status, error = request('/api/instruments/activate/broken', b'')
+            assert status == 500 and error['rollback'] == 'restored' and error['code'] == 'start_failed'
+            passed('structured readiness failure and successful rollback')
+            status, diagnostics = request('/api/system/diagnostics')
+            assert status == 200 and diagnostics['logs'] and diagnostics['health']['memory']
+            assert len(json.dumps(diagnostics)) < 1024 * 1024
+            passed('bounded diagnostic export includes real journal and health')
+        else:
+            subprocess.run([str(ROOT / 'koheron-server-init'), '/run/koheron-server.sock'],
+                env={**os.environ, 'LD_LIBRARY_PATH': str(ROOT / 'lib')}, check=True, timeout=5)
+            passed('native LED RPC against the production FFT server')
         data = {'checks': checks, 'activation_ms': activation_ms, 'journal_sample': logs,
-            'production_pids_before': before, 'production_api_hash': digest}
+            'production_pids_before': before, 'production_api_hash': digest,
+            'api_sha256': hashlib.sha256((ROOT / 'koheron-api').read_bytes()).hexdigest(),
+            'ui_sha256': hashlib.sha256((ROOT / 'www/instruments.js').read_bytes()).hexdigest() if (ROOT / 'www/instruments.js').exists() else None}
+        if '--preview' in sys.argv:
+            print('PREVIEW_READY', flush=True)
+            deadline = time.monotonic() + 180
+            while not (ROOT / 'preview-done').exists() and time.monotonic() < deadline:
+                time.sleep(.2)
     finally:
         if nginx:
             nginx.send_signal(signal.SIGQUIT); nginx.wait(timeout=5); log.close()

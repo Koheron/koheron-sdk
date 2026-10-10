@@ -59,6 +59,19 @@
 .system-workspace .command-input-type { color: #24749b; }
 .system-workspace .command-output-type { color: #28753b; }
 .system-workspace .summary-heading { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin: 16px 0; overflow-wrap: anywhere; }
+.system-workspace .lifecycle-controls { margin-left: 0; }
+.system-workspace .operation-status { padding: 8px 10px; border-left: 2px solid var(--accent-dark); background: #f6f8f9; }
+.system-workspace .operation-status[data-state="error"] { border-color: #a53e25; }
+.system-workspace .preflight-panel { margin-top: 14px; padding: 12px; border: 1px solid var(--border-light); }
+.system-workspace .instrument-options summary { font-size: 11px; font-weight: 400; padding: 3px 5px; }
+.system-workspace .instrument-menu { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.system-workspace .instrument-options { min-width: 48px; }
+.system-workspace .build-details { margin-top: 18px; }
+.system-workspace #health-table th { width: 48%; }
+.system-workspace #health-table td { text-align: right; }
+.system-workspace #health-table[data-stale="true"] td { color: var(--muted); }
+.system-workspace #diagnostics-download { font-size: 11px; }
+.system-workspace .system-sidebar .section-heading { align-items: baseline; }
 @media (max-width: 900px) {
   .system-workspace .system-grid { grid-template-columns: minmax(0, 1fr); }
   .system-workspace .system-sidebar { border-left: 0; border-top: 1px solid var(--border-light); padding: 16px 0 0; }

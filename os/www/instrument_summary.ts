@@ -6,7 +6,7 @@ class InstrumentSummaryWidget {
     private commandsContainer: HTMLElement | null;
     private commandsStatus: HTMLElement | null;
 
-    constructor(document: Document) {
+    constructor(private document: Document) {
         this.instrumentsDriver = new Instruments();
         this.instrumentName = this.getInstrumentName();
         this.nameElement = document.getElementById('instrument-name');
@@ -25,6 +25,15 @@ class InstrumentSummaryWidget {
 
         this.loadInstrumentDetails();
         this.loadCommands();
+        document.getElementById('instrument-check-refresh').addEventListener('click', () => this.loadPreflight());
+        void this.loadPreflight();
+    }
+
+    private async loadPreflight(): Promise<void> {
+        const container = this.document.getElementById('instrument-check');
+        container.textContent = 'Checking instrument…';
+        try { new PreflightView(this.document, container).render(await this.instrumentsDriver.preflight(this.instrumentName)); }
+        catch (error) { container.textContent = String(error).replace(/^Error: /, ''); }
     }
 
     private getInstrumentName(): string | null {

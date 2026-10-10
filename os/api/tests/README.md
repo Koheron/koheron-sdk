@@ -1,5 +1,28 @@
 # Native management runtime tests
 
+[Management validation](native-management-validation.json) records source and
+binary hashes for the API/UI extension: 100 native tests, 19 browser regressions,
+ARMhf/ARM64 builds and 92 sanitizer tests. The new cases cover compatibility,
+staging capacity, lifecycle controls, boot selection, durability failures and
+the bounded WebSocket protocol/connection lifecycle.
+
+[Red Pitaya results](native-management-red-pitaya.json) and
+[console output](native-management-red-pitaya.txt) record 19 checks through
+private systemd notify services and a separate nginx listener on the physical
+board. `red_pitaya_integration.py --management-controls` selects these cases;
+`--preview` temporarily serves staged management assets for browser inspection.
+The harness runs on the existing laboratory image with Python available; it is
+not part of the standard board runtime. It leaves the production FFT server,
+nginx and API unchanged, removes its units and performs no FPGA/acquisition,
+SD flashing, reboot or extended stress test.
+
+[Browser results](../../www/tests/native-management-browser.json) record real
+Chromium Stop/Start, preflight and viewport checks against that private board
+listener, with no page errors or horizontal overflow at 390 pixels. Reviewed
+screenshots: [desktop](../../www/tests/native-management-desktop.png),
+[preflight](../../www/tests/native-management-preflight.png),
+[mobile](../../www/tests/native-management-mobile.png).
+
 Build and run the black-box suite with the same Ubuntu 26.04/GCC 15 toolchain
 used for board binaries:
 

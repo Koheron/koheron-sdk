@@ -11,7 +11,7 @@ API_FILES := \
   $(TMP_API_PATH)/koheron-api \
   $(TMP_API_PATH)/koheron-install \
   $(TMP_API_PATH)/koheron-server-init
-API_SOURCES := $(wildcard $(OS_PATH)/api/native/*.cpp $(OS_PATH)/api/native/*.hpp) $(OS_PATH)/api/Makefile
+API_SOURCES := $(wildcard $(OS_PATH)/api/native/*.cpp $(OS_PATH)/api/native/*.hpp) $(OS_PATH)/api/Makefile $(SERVER_PATH)/network/sha1.cpp $(SERVER_PATH)/network/sha1.hpp
 
 .PHONY: api
 api: $(API_FILES)
@@ -87,6 +87,7 @@ clean_www:
 WWW_TS_FILES := $(WEB_PATH)/koheron.ts
 WWW_TS_FILES += $(WEB_PATH)/instrument/poller.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments.ts
+WWW_TS_FILES += $(WWW_PATH)/runtime.ts
 WWW_TS_FILES += $(WWW_PATH)/instruments_widget.ts
 WWW_TS_FILES += $(WWW_PATH)/instrument_summary.ts
 WWW_TS_FILES += $(WWW_PATH)/koheron_server_log.ts

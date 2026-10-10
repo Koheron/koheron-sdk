@@ -19,7 +19,9 @@
   <main class="system-main">
     <section class="live-strip" aria-label="Running instrument">
       <span id="live-label" class="muted">Instrument</span><strong id="live-name">Connecting…</strong><span id="live-version" class="muted"></span><a id="open-instrument" href="/" hidden>Open instrument ↗</a>
+      <div class="toolbar lifecycle-controls"><button id="instrument-start" type="button" hidden>Start</button><button id="instrument-stop" type="button" hidden>Stop</button><button id="instrument-restart" type="button" hidden>Restart</button></div>
     </section>
+    <p id="runtime-operation" class="status-line operation-status" role="status" aria-live="polite" hidden></p>
     <div class="system-grid">
       <div class="system-primary">
         <section aria-labelledby="instruments-heading">
@@ -29,6 +31,10 @@
           <p id="upload-status" class="status-line" role="status" hidden></p>
           <div class="table-scroll"><table id="instruments-table"><caption class="sr-only">Installed instruments and available actions</caption><thead><tr><th scope="col">Instrument</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col" class="actions-heading">Actions</th></tr></thead><tbody></tbody></table></div>
           <p class="table-note">Default instruments start automatically when the board boots.</p>
+          <section id="preflight-panel" class="preflight-panel" aria-labelledby="preflight-heading" hidden>
+            <div class="section-heading"><h2 id="preflight-heading">Instrument check · <span id="preflight-name"></span></h2><button id="preflight-close" type="button">Close</button></div>
+            <div id="preflight-content" role="status"></div>
+          </section>
         </section>
         <section class="log-section" aria-labelledby="log-heading">
           <div class="section-heading"><h2 id="log-heading">Instrument log</h2><div class="toolbar"><span id="log-status" class="connection-status" role="status">Connecting…</span><button id="log-pause" type="button" aria-pressed="false">Pause</button><button id="log-download" type="button">Download</button></div></div>
@@ -37,17 +43,22 @@
         </section>
       </div>
       <aside class="system-sidebar" aria-labelledby="system-heading">
-        <h2 id="system-heading">System information</h2>
+        <div class="section-heading"><h2 id="system-heading">Board health</h2><a id="diagnostics-download" href="/api/system/diagnostics" download="koheron-diagnostics.json">Download diagnostics</a></div>
+        <p id="health-status" class="status-line" role="status">Connecting…</p>
+        <table id="health-table"><caption class="sr-only">Live board health</caption></table>
+        <details class="build-details"><summary>Build information</summary>
         <p id="system-info-status" class="status-line" role="status">Loading…</p><button id="system-info-retry" type="button" hidden>Retry</button>
         <table id="release-table"><caption class="sr-only">Board and operating system details</caption></table>
+        </details>
       </aside>
     </div>
   </main>
   <script src="/koheron/instruments.js"></script>
   <script>
-    new InstrumentsWidget(document);
+    const runtime = new RuntimeStream(document);
+    new InstrumentsWidget(document, runtime);
     new KoheronLogWidget(document);
-    new SystemInfoWidget(document);
+    new SystemInfoWidget(document, runtime);
   </script>
 </body>
 </html>
