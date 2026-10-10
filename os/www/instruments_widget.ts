@@ -177,10 +177,7 @@ class InstrumentsWidget {
         this.document.getElementById('instrument-count').textContent = `(${status.instruments.length})`;
         const body = this.table.tBodies[0];
         body.textContent = '';
-        const instruments = status.instruments.slice().sort((a: any, b: any) => {
-            const rank = (item: any) => live && item.name === live.name ? 0 : item.is_default ? 1 : 2;
-            return rank(a) - rank(b) || a.name.localeCompare(b.name);
-        });
+        const instruments = status.instruments.slice().sort((a: any, b: any) => a.name.localeCompare(b.name));
         for (const instrument of instruments) {
             const running = !!live && live.name === instrument.name;
             const row = body.insertRow();

@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/koheron/instrument.css">
   <link rel="stylesheet" href="/koheron/system.css">
 </head>
-<body class="instrument-workspace system-workspace">
+<body class="instrument-workspace system-workspace system-index">
   <header class="app-header">
     <a class="brand" href="/koheron/" aria-label="Koheron system"><img src="/koheron/koheron_logo.svg" alt="Koheron"></a>
     <h1>System</h1><span id="board-name" class="board-tag"></span>
@@ -18,18 +18,20 @@
   </header>
   <main class="system-main">
     <section class="live-strip" aria-label="Running instrument">
-      <span id="live-label" class="muted">Instrument</span><strong id="live-name">Connecting…</strong><span id="live-version" class="muted"></span><a id="open-instrument" href="/" hidden>Open instrument ↗</a>
-      <div class="toolbar lifecycle-controls"><button id="instrument-start" type="button" hidden>Start</button><button id="instrument-stop" type="button" hidden>Stop</button><button id="instrument-restart" type="button" hidden>Restart</button></div>
+      <div class="live-identity"><span id="live-label" class="muted">Instrument</span><strong id="live-name">Connecting…</strong><span id="live-version" class="muted"></span></div>
+      <div class="live-actions"><a id="open-instrument" href="/" hidden>Open instrument ↗</a><div class="toolbar lifecycle-controls"><button id="instrument-start" type="button" hidden>Start</button><button id="instrument-stop" type="button" hidden>Stop</button><button id="instrument-restart" type="button" hidden>Restart</button></div></div>
     </section>
-    <p id="runtime-operation" class="status-line operation-status" role="status" aria-live="polite" hidden></p>
+    <div class="runtime-feedback">
+      <p id="runtime-operation" class="status-line operation-status" role="status" aria-live="polite" hidden></p>
+      <p id="instruments-status" class="status-line" role="status" hidden></p>
+      <p id="upload-status" class="status-line" role="status" hidden></p>
+    </div>
     <div class="system-grid">
       <div class="system-primary">
         <section aria-labelledby="instruments-heading">
           <div class="section-heading"><h2 id="instruments-heading">Installed instruments <span id="instrument-count" class="muted"></span></h2><div class="toolbar"><button id="refresh-instruments" type="button">Refresh</button><button id="upload-btn" type="button">Add instrument</button></div></div>
           <input type="file" id="upload-input" accept=".zip" hidden>
-          <p id="instruments-status" class="status-line" role="status" hidden></p>
-          <p id="upload-status" class="status-line" role="status" hidden></p>
-          <div class="table-scroll"><table id="instruments-table"><caption class="sr-only">Installed instruments and available actions</caption><thead><tr><th scope="col">Instrument</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col" class="actions-heading">Actions</th></tr></thead><tbody></tbody></table></div>
+          <div class="table-scroll instrument-list"><table id="instruments-table"><caption class="sr-only">Installed instruments and available actions</caption><colgroup><col class="instrument-name-column"><col class="instrument-version-column"><col class="instrument-status-column"><col></colgroup><thead><tr><th scope="col">Instrument</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col" class="actions-heading">Actions</th></tr></thead><tbody><tr><td colspan="4" class="muted">Connecting to the board…</td></tr></tbody></table></div>
           <p class="table-note">Default instruments start automatically when the board boots.</p>
           <section id="preflight-panel" class="preflight-panel" aria-labelledby="preflight-heading" hidden>
             <div class="section-heading"><h2 id="preflight-heading">Instrument check · <span id="preflight-name"></span></h2><button id="preflight-close" type="button">Close</button></div>
@@ -51,7 +53,19 @@
       <aside class="system-sidebar" aria-labelledby="system-heading">
         <div class="section-heading"><h2 id="system-heading">Board health</h2><a id="diagnostics-download" href="/api/system/diagnostics" download="koheron-diagnostics.json">Download diagnostics</a></div>
         <p id="health-status" class="status-line" role="status">Connecting…</p>
-        <table id="health-table"><caption class="sr-only">Live board health</caption></table>
+        <table id="health-table"><caption class="sr-only">Live board health</caption><tbody>
+          <tr><th scope="row">Uptime</th><td>—</td></tr>
+          <tr><th scope="row">Load · 1/5/15m</th><td>—</td></tr>
+          <tr><th scope="row">RAM available</th><td>—</td></tr>
+          <tr><th scope="row">RAM total</th><td>—</td></tr>
+          <tr><th scope="row">Instrument storage</th><td>—</td></tr>
+          <tr><th scope="row">Staging storage</th><td>—</td></tr>
+          <tr><th scope="row">Instrument service</th><td>—</td></tr>
+          <tr><th scope="row">Service result</th><td>—</td></tr>
+          <tr><th scope="row">API initialization</th><td>—</td></tr>
+          <tr><th scope="row">Server startup</th><td>—</td></tr>
+          <tr><th scope="row">Boot extraction</th><td>—</td></tr>
+        </tbody></table>
         <details class="build-details"><summary>Build information</summary>
         <p id="system-info-status" class="status-line" role="status">Loading…</p><button id="system-info-retry" type="button" hidden>Retry</button>
         <table id="release-table"><caption class="sr-only">Board and operating system details</caption></table>

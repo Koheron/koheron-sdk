@@ -1,7 +1,10 @@
 /* Compact OS pages using the same controls as the instrument interfaces. */
+html { scrollbar-gutter: stable; }
 .system-workspace { --control-height: 26px; --control-padding: 2px 8px; font-size: 12px; }
 .system-workspace .app-header { min-height: 40px; }
-.system-workspace .connection-status { width: auto; }
+.system-workspace .board-tag { min-width: 12ch; }
+.system-workspace #log-status { width: 160px; }
+.system-workspace #log-pause, .system-workspace #refresh-instruments { min-width: 62px; }
 .system-workspace nav a[aria-current="page"] { color: var(--accent-dark); }
 .system-workspace .system-main { max-width: 1440px; margin: 0 auto; padding: 16px; }
 .system-workspace section { margin: 0; }
@@ -11,6 +14,17 @@
 .system-workspace #live-name { font-size: 15px; overflow-wrap: anywhere; }
 .system-workspace #live-version { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .system-workspace #open-instrument { margin-left: auto; color: var(--accent-dark); }
+/* Reserve controls and feedback before the first runtime snapshot. */
+.system-index .live-strip { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; margin-bottom: 8px; }
+.system-index .live-identity { display: grid; grid-template-columns: 64px minmax(0, 24ch) 8ch; align-items: center; gap: 6px 10px; min-width: 0; }
+.system-index .live-actions { display: flex; align-items: center; gap: 10px; }
+.system-index #open-instrument { display: inline-flex; align-items: center; }
+.system-index #open-instrument[hidden] { display: inline-flex !important; visibility: hidden; }
+.system-index .live-actions .lifecycle-controls { display: grid; grid-template-columns: 52px 64px; min-height: var(--control-height); }
+.system-index #instrument-start, .system-index #instrument-stop { grid-area: 1 / 1; }
+.system-index #instrument-restart { grid-area: 1 / 2; }
+.system-index .runtime-feedback { min-height: calc(1.4em + 16px); margin-bottom: 16px; }
+.system-index .runtime-feedback .status-line { margin: 0; padding: 8px 10px; }
 .system-workspace .system-grid { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 24px; }
 .system-workspace .system-primary { min-width: 0; }
 .system-workspace .system-sidebar { min-width: 0; padding-left: 18px; border-left: 1px solid var(--border-light); }
@@ -29,6 +43,13 @@
 .system-workspace td:first-child a:hover { color: var(--accent-dark); text-decoration: underline; }
 .system-workspace #instruments-table td:first-child { width: 44%; }
 .system-workspace #instruments-table td:nth-child(2) { width: 16%; color: var(--muted); overflow-wrap: anywhere; }
+/* A bounded list keeps the log in place while inventory loads or changes. */
+.system-index .instrument-list { height: 170px; overflow: auto; scrollbar-gutter: stable; }
+.system-index #instruments-table { table-layout: fixed; }
+.system-index .instrument-name-column { width: 44%; }
+.system-index .instrument-version-column { width: 16%; }
+.system-index .instrument-status-column { width: 18%; }
+.system-index #instruments-table thead th { position: sticky; top: 0; background: white; z-index: 1; }
 .system-workspace .actions-heading { text-align: right; }
 .system-workspace .row-actions { display: flex; justify-content: flex-end; gap: 6px; align-items: center; }
 .system-workspace .row-actions > :first-child { min-width: 44px; text-align: center; }
@@ -53,6 +74,8 @@
 .system-workspace .log-line[hidden] { display: none; }
 .system-workspace .log-truncated { color: #f1c279; }
 .system-workspace .log-empty { color: #91a7b6; }
+.system-index #log-notice { min-height: 1.4em; margin: 0 0 8px; }
+.system-index #log-notice[hidden] { display: block !important; visibility: hidden; }
 .system-workspace #koheron-log { margin: 0 0 8px; height: 300px; overflow: auto; padding: 10px 12px; border: 1px solid #263640; border-radius: 2px; background: #14212a; color: #e0e7ec; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .system-workspace .log-time { color: #91a7b6; }
 .system-workspace .log-line[data-level="warning"] { color: #f1c279; }
@@ -79,7 +102,8 @@
 .system-workspace .instrument-options { min-width: 48px; }
 .system-workspace .build-details { margin-top: 18px; }
 .system-workspace #health-table th { width: 48%; }
-.system-workspace #health-table td { text-align: right; }
+.system-workspace #health-table { table-layout: fixed; }
+.system-workspace #health-table td { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .system-workspace #health-table[data-stale="true"] td { color: var(--muted); }
 .system-workspace #diagnostics-download { font-size: 11px; }
 .system-workspace .system-sidebar .section-heading { align-items: baseline; }
@@ -87,11 +111,23 @@
   .system-workspace .system-grid { grid-template-columns: minmax(0, 1fr); }
   .system-workspace .system-sidebar { border-left: 0; border-top: 1px solid var(--border-light); padding: 16px 0 0; }
 }
+@media (max-width: 600px) {
+  .system-index .live-strip { grid-template-columns: minmax(0, 1fr); }
+  .system-index .live-actions { justify-content: space-between; }
+  .system-index .live-identity { min-height: 42px; align-content: center; }
+  .system-index #live-name { display: flex; align-items: center; min-height: 2.8em; }
+  .system-index .runtime-feedback { min-height: calc(2.8em + 16px); }
+}
 @media (max-width: 540px) {
   .system-workspace .app-header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
   .system-workspace nav { width: 100%; margin: 0; padding-top: 4px; }
   .system-workspace .system-main { padding: 12px; }
   .system-workspace #open-instrument { margin-left: 0; }
+  .system-index .instrument-list { height: 210px; }
+  .system-index .instrument-name-column { width: 36%; }
+  .system-index .instrument-version-column { width: 16%; }
+  .system-index .instrument-status-column { width: 24%; }
+  .system-index #log-notice { min-height: 2.8em; }
   .system-workspace th, .system-workspace td { padding: 8px 4px; }
   .system-workspace .row-actions { flex-direction: column; align-items: flex-end; }
   .system-workspace #instruments-table td:first-child { width: auto; }
