@@ -1,5 +1,33 @@
 # Native management runtime tests
 
+[Full Red Pitaya repeat validation](native-management-red-pitaya-retest-validation.json)
+tests the polished application at `dc70fcc3`: 27 native integration checks and
+16 Chromium checks, including UI boot selection, activation, ZIP upload/removal,
+compatibility rejection, failed-start rollback and diagnostics. The [raw board
+record](native-management-red-pitaya-retest.json), [browser record](../../www/tests/native-management-red-pitaya-retest-browser.json)
+and [browser output](../../www/tests/native-management-red-pitaya-retest-browser.txt)
+preserve the results. The ARMhf API/UI build targets and doctor pass; unchanged
+artifacts match the polish snapshot. A [read-only production FFT probe](native-management-red-pitaya-retest-fft.json)
+matches before the UI run and after cleanup: FFT 0.3.0, server 1.0, 2048 points,
+1023 averages and Hann window. Production PIDs/API hash remain unchanged,
+and private units/staging are removed. No FPGA programming, image deployment,
+reboot or extended stress run is involved. Reviewed screenshots:
+[desktop](../../www/tests/native-management-red-pitaya-retest-desktop.png),
+[mobile](../../www/tests/native-management-red-pitaya-retest-mobile.png).
+
+The extended browser checks use the full `red_pitaya_integration.py
+--management-controls --hardening --preview` fixtures. Add `scope` and
+`wide-spectrum-analysis` with the harness's `package()`/`upload()` helpers, then
+set `MANAGEMENT_ACTION_TESTS=1` and `MANAGEMENT_UPLOAD_FIXTURE=/path/to/ui-upload.zip`
+when invoking `management_polish_browser.cjs`. Generate that dummy ZIP with
+`package('ui-upload')`; it is uploaded and removed only through the private API.
+For the separate production probe, run on the host:
+
+```sh
+PYTHONPATH=python .venv/bin/python os/api/tests/red_pitaya_readonly_probe.py \
+  --host BOARD --output /path/to/fft-probe.json
+```
+
 [UI polish validation](../../www/tests/native-management-polish-validation.json)
 records 36 browser regressions, the TypeScript/web build, and a targeted Chromium
 run against private services on the physical Red Pitaya. It covers readable

@@ -76,6 +76,59 @@ const puppeteer = require(process.env.PUPPETEER_MODULE || 'puppeteer-core');
         }
         passed('320/390/768/1360px layouts and mobile touch targets');
 
+        if (process.env.MANAGEMENT_ACTION_TESTS === '1') {
+            const choose = async (name, text) => {
+                const selector = `tr[data-name="${name}"]`;
+                await page.click(selector + ' summary');
+                const buttons = await page.$$(selector + ' .instrument-menu button');
+                for (const button of buttons) {
+                    if (await button.evaluate(node => node.textContent) === text) { await button.click(); return; }
+                }
+                throw new Error('Missing action: ' + text + ' ' + name);
+            };
+            await choose('scope', 'Start at boot');
+            await page.waitForFunction(() => Array.from(document.querySelectorAll('tr[data-name="scope"] .badge')).some(node => node.textContent === 'Default'));
+            assert.equal(await page.$eval('tr[data-name="scope"]', row => Array.from(row.querySelectorAll('button')).some(button => button.textContent === 'Remove')), false);
+            passed('UI boot-default selection updates the badge and protects removal');
+            await page.click('tr[data-name="scope"] .row-actions > button');
+            await page.waitForFunction(() => document.querySelector('#live-name').textContent === 'scope' &&
+                document.querySelector('#runtime-operation').textContent === 'scope is running.');
+            passed('UI Run activates the selected private instrument');
+
+            const input = await page.$('#upload-input');
+            assert.ok(process.env.MANAGEMENT_UPLOAD_FIXTURE, 'Set MANAGEMENT_UPLOAD_FIXTURE to a dummy instrument ZIP');
+            await input.uploadFile(process.env.MANAGEMENT_UPLOAD_FIXTURE);
+            await page.waitForSelector('tr[data-name="ui-upload"]');
+            await page.waitForFunction(() => document.querySelector('#upload-status').textContent.includes('uploaded'));
+            passed('UI ZIP upload installs a new archive without activating it');
+            let confirmed = false;
+            page.once('dialog', dialog => {
+                confirmed = dialog.type() === 'confirm' && dialog.message().includes('ui-upload');
+                void dialog.accept();
+            });
+            await choose('ui-upload', 'Remove');
+            await page.waitForFunction(() => !document.querySelector('tr[data-name="ui-upload"]'));
+            assert.ok(confirmed);
+            passed('UI removal confirms and removes the uploaded private archive');
+
+            for (const [name, rollback] of [['wrong-board', false], ['broken', true]]) {
+                await page.click(`tr[data-name="${name}"] .row-actions > button`);
+                await page.waitForFunction(() => document.querySelector('#runtime-operation').dataset.state === 'error' &&
+                    !document.querySelector('#upload-btn').disabled);
+                assert.equal(await page.$eval('#live-name', node => node.textContent), 'scope');
+                if (rollback) assert.match(await page.$eval('#runtime-operation', node => node.textContent), /Previous instrument restored/);
+                passed(rollback ? 'UI failed-start rollback restores the private running instrument' : 'UI board mismatch leaves the private running instrument intact');
+            }
+            const diagnostics = await page.evaluate(async () => {
+                const link = document.querySelector('#diagnostics-download');
+                const response = await fetch(link.href), body = await response.text();
+                return {status: response.status, download: link.download, bytes: new TextEncoder().encode(body).length, value: JSON.parse(body)};
+            });
+            assert.equal(diagnostics.status, 200); assert.equal(diagnostics.download, 'koheron-diagnostics.json');
+            assert.ok(diagnostics.bytes < 1024 * 1024 && diagnostics.value.logs && diagnostics.value.health.memory);
+            passed('UI diagnostics link returns bounded real journal and board health');
+        }
+
         failStatus = true;
         await page.evaluate(() => runtime.socket.close());
         await page.waitForFunction(() => document.querySelector('#board-connection').textContent === 'Disconnected');

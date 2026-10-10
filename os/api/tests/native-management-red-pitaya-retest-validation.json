@@ -1,0 +1,83 @@
+{
+  "source_commit": "dc70fcc34299e62606ed60860e1367b08fef2aca",
+  "recorded_utc": "2026-10-10T10:36:44.155880+00:00",
+  "board": {
+    "host": "192.168.1.85",
+    "architecture": "armv7l",
+    "os": "Ubuntu 26.04.1 LTS",
+    "kernel": "6.18.0-xilinx"
+  },
+  "source_sha256": {
+    "os/api/native/api_main.cpp": "86fcdf48f0c1b0ac1f5fd2dd6b0f2d0e6d9e1b35b72ece35aa970c0a1b6d40a1",
+    "os/api/native/archive.cpp": "8416c404fa37620cd4f8f3cfe8995e730015b4f8701eaf1d558eb3365bf76f67",
+    "os/api/native/archive.hpp": "2720c06dece5157cbdfdb3113e82d14bec989579cdee5b37fcd92bd8f6fe63ff",
+    "os/api/native/common.cpp": "c2101363df396ccb0b7e283ecbc387ccfdb4c12d99cc78ad96922626768a8ef4",
+    "os/api/native/common.hpp": "062de6046052ade0ebe906fc547cf8bdac981a6949118b2b18b04aa6ac05203c",
+    "os/api/native/events.cpp": "d9125d9a0ca61d4488618522c3f131bfc63f2749328cc26930e604fabbc109e3",
+    "os/api/native/events.hpp": "1bcac566ff09fbb55758be673a544f38ab5c90687965152f9c495eeff3fe54a8",
+    "os/api/native/health.cpp": "78b13812fa51db7cf9fc887a0ebda1bae2a2b952a5ac07d674619b82923de841",
+    "os/api/native/health.hpp": "8b555af03f670b15d2ab02c2fb25a7cabfa707a50c9ec7439850f909729995e5",
+    "os/api/native/install_main.cpp": "f2407b659b3dd26f6c0a88a7a43abbd199ac644ffea84664a8a0adeb21d0632d",
+    "os/api/native/journal.cpp": "55db470cee6b58af7c78be4a85d24f13a6b128d23085f6111269b2978fc8d6b8",
+    "os/api/native/journal.hpp": "d95df0c4aba92c94da7791bdc54b81f03fd875fb2fbcb3be3e94ca7454c55221",
+    "os/api/native/led_main.cpp": "19b881f4e6ed12c5ab2031c06bbd44af4e1626e7d1a40354f2463c24c68ccf0e",
+    "os/api/tests/red_pitaya_integration.py": "e3161e6a4a39df975727205a2271032e8d6588782d7f7102d4eeb4fa5aabf50b",
+    "os/api/tests/red_pitaya_readonly_probe.py": "82ec05126cbcd44ac2a16d70c21320ed872beae7711b3ae442a95b256cb73cf9",
+    "os/api/tests/test_native_management.py": "a7e16b6a699e7586e2b62ff0ae9f3fb8134925b02b5d6431ab189982579722eb",
+    "os/www/index.html": "6c4f10d29de44731a2df8c93683ea9cc370b5fde0fd41b830f077ce7fc298f3e",
+    "os/www/instrument_summary.html": "031097f6eba97b224b3ca061c1d998e98342c06dcbb175ca8405d86e9e84d155",
+    "os/www/instrument_summary.ts": "0c969646af12284778021ad1bca1a123607e6c3b6e53d4334d648897cbcc4135",
+    "os/www/instruments.ts": "cacfbebd5251f4508a68281f4e27a1b392af909130d22d3ba5b26fd48e810621",
+    "os/www/instruments_widget.ts": "ebe78d793d9e7cb2a938bbe8e840edb9e5cf1688f5eb5b1e2d6bcd46bac5da30",
+    "os/www/koheron_server_log.ts": "c6fde2cbe67a92c66781ca42f4586a906f009db86a2aef9e279717d383349935",
+    "os/www/koheron_system.ts": "55e2d4c8d71e889eab6d290bb2ddd3a4c52f2ad89416f7cd3fa94daec1487cd7",
+    "os/www/logs_rate.ts": "66c870c7e69142c234cdd345439a369255395dd0b02faae227dd9ce14ba22a62",
+    "os/www/runtime.ts": "7988539ed4d1a26c47e83fbb7e791e35e0f17097517224e8c6e0617814664861",
+    "os/www/system.css": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a",
+    "os/www/system_info_widget.ts": "751d6d7de81de1ad54e00b5f333eb6bcc9b107904521b3cc379fea2095d27ac6",
+    "os/www/tests/management_polish_browser.cjs": "a128c6e0e67a6c2be22e7c00718f56439aaf8339763266504566094078919378"
+  },
+  "artifacts_sha256": {
+    "tmp/api/armhf/koheron-api": "8a920dedeb4e2251a7208e758d0da0deeb675a9ad7e065587783fa056f9f07e8",
+    "tmp/api/armhf/koheron-install": "5bce5eb5e6f63bd30374bac64422540d56151d46fdd1dccc63457d20016ef343",
+    "tmp/api/armhf/koheron-server-init": "b15e7bd40b9f1047e6c595e223aa84b3c4fc587c7add068ab21a4f4a2b629b5d",
+    "tmp/www/instruments.js": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5",
+    "tmp/www/system.css": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a",
+    "tmp/www/instrument_summary.html": "031097f6eba97b224b3ca061c1d998e98342c06dcbb175ca8405d86e9e84d155"
+  },
+  "build_checks": {
+    "armhf_api_target": "passed; existing GCC 15/C++23 artifacts up to date",
+    "web_target": "passed; existing polished assets up to date",
+    "doctor": "passed"
+  },
+  "hardware_checks": {
+    "native_integration": 27,
+    "browser": 16,
+    "native_record": "native-management-red-pitaya-retest.json",
+    "browser_record": "../../www/tests/native-management-red-pitaya-retest-browser.json",
+    "production_fft_probe": "native-management-red-pitaya-retest-fft.json",
+    "production_pids_and_api_unchanged": true,
+    "production_fft_probe_unchanged": true,
+    "private_units_removed": true,
+    "private_staging_removed": true,
+    "scope": "Existing V1 laboratory image; current native API/installer and UI tested via private notify services and nginx, plus read-only production FFT RPCs. No FPGA programming, image deployment, reboot or extended stress run."
+  },
+  "simulated_browser_failures": [
+    "WebSocket close and aborted status read",
+    "aborted command-description request"
+  ],
+  "browser_viewport_widths": [
+    320,
+    390,
+    768,
+    1360
+  ],
+  "browser_page_errors": [],
+  "browser_page_horizontal_overflow": false,
+  "native_console_log": null,
+  "native_console_log_note": "Cleanup raced with the stdout download; the complete structured integration result was retrieved and is preserved.",
+  "screenshots": [
+    "../../www/tests/native-management-red-pitaya-retest-desktop.png",
+    "../../www/tests/native-management-red-pitaya-retest-mobile.png"
+  ]
+}

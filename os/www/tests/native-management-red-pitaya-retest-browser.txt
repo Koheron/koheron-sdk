@@ -1,0 +1,16 @@
+PASS: real board Stop/Start with readable completed feedback
+PASS: WebSocket heartbeat remains connected without HTTP fallback
+PASS: one action menu at a time; outside click and Escape restore focus
+PASS: real preflight and keyboard focus round trip
+PASS: 320/390/768/1360px layouts and mobile touch targets
+PASS: UI boot-default selection updates the badge and protects removal
+PASS: UI Run activates the selected private instrument
+PASS: UI ZIP upload installs a new archive without activating it
+PASS: UI removal confirms and removes the uploaded private archive
+PASS: UI board mismatch leaves the private running instrument intact
+PASS: UI failed-start rollback restores the private running instrument
+PASS: UI diagnostics link returns bounded real journal and board health
+PASS: simulated stream loss and failed status read retain a working manual Retry
+PASS: simulated command request failure retries against the real API; compatibility check repeats
+PASS: missing instrument name has a clear return path without loading placeholders
+PASS: no Chromium page errors

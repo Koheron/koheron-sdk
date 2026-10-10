@@ -1,0 +1,46 @@
+{
+  "before_ui": {
+    "recorded_utc": "2026-10-10T10:30:17.576294+00:00",
+    "host": "192.168.1.85",
+    "live_instrument": {
+      "is_default": true,
+      "name": "fft",
+      "version": "0.3.0"
+    },
+    "server_version": "1.0",
+    "fft_size": 2048,
+    "number_averages": 1023,
+    "window_index": 1,
+    "drivers": [
+      "Common",
+      "FFT",
+      "KServer",
+      "PhaseModulator",
+      "RedPitayaAdcCalibration",
+      "Xadc"
+    ],
+    "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+  },
+  "after_cleanup": {
+    "recorded_utc": "2026-10-10T10:35:33.956780+00:00",
+    "host": "192.168.1.85",
+    "live_instrument": {
+      "is_default": true,
+      "name": "fft",
+      "version": "0.3.0"
+    },
+    "server_version": "1.0",
+    "fft_size": 2048,
+    "number_averages": 1023,
+    "window_index": 1,
+    "drivers": [
+      "Common",
+      "FFT",
+      "KServer",
+      "PhaseModulator",
+      "RedPitayaAdcCalibration",
+      "Xadc"
+    ],
+    "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+  }
+}
