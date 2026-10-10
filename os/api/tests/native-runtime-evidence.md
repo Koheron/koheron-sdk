@@ -1,5 +1,8 @@
 # Native runtime evidence — Red Pitaya
 
+This records the migration merged in PR #832. Its hashes and measurements refer
+to that revision; subsequent runtime changes have separate validation.
+
 Tested on 2026-10-10 using GCC 15.2.0 and C++23. The reference Python API is V1
 commit `902bd235c7582d31f0778b8b29b54e3e1864cd26`, including its direct systemd
 status queries. The native implementation replaces the HTTP API, installer and

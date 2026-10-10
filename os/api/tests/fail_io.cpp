@@ -10,8 +10,8 @@
 extern "C" int rename(const char* from, const char* to) {
     const char* fault = std::getenv("NATIVE_IO_FAULT");
     const std::string_view path(from);
-    if (fault && ((std::strcmp(fault, "swap") == 0 && path.ends_with("/next")) ||
-                  (std::strcmp(fault, "restore") == 0 && path.ends_with("/previous")))) {
+    if (fault && (((std::strcmp(fault, "swap") == 0 || std::strcmp(fault, "swap-restore") == 0) && path.ends_with("/next")) ||
+                  ((std::strcmp(fault, "restore") == 0 || std::strcmp(fault, "swap-restore") == 0) && path.ends_with("/previous")))) {
         errno = EIO; return -1;
     }
     static const auto real = reinterpret_cast<int (*)(const char*, const char*)>(dlsym(RTLD_NEXT, "rename"));
