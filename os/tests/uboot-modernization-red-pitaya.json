@@ -1,0 +1,224 @@
+{
+  "recorded_utc": "2026-10-10T20:02:31.533819+00:00",
+  "base_commit": "3a2dc62de0d68ac00d26a2a7d9b67e81ab3bef98",
+  "branch": "codex/modernize-uboot",
+  "source_patch_sha256": "f3898011618dace54d1367672f067ea4db486b39d7103106196a5090d84ddc73",
+  "source_archive": {
+    "tag": "xilinx-v2026.1",
+    "uboot_version": "2026.01",
+    "url": "https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v2026.1.tar.gz",
+    "sha256": "a48b6b05ae9f317c91bf185f78e7a22cbdcf19e8675a947b5552a127b0e05e83"
+  },
+  "host_validation": {
+    "container": "cross-armhf:26.04",
+    "compiler": "GCC 15",
+    "board_builds": [
+      {
+        "board": "red-pitaya",
+        "configuration": "examples/red-pitaya/fft/config.mk",
+        "overrides": [],
+        "result": "passed",
+        "elf_bytes": 1007128,
+        "elf_sha256": "d07b4898d262f1bf0e55304351587db747fd723ff9712f69d7fc1febcb21447e"
+      },
+      {
+        "board": "alpha250",
+        "configuration": "examples/alpha250/fft/config.mk",
+        "overrides": [],
+        "result": "passed",
+        "elf_bytes": 1009536,
+        "elf_sha256": "9f5538c6cb9bfac3917b1292f8821ade1504e73b4b1eaa1cc6ebcae94d599581"
+      },
+      {
+        "board": "alpha250-1g",
+        "configuration": "examples/alpha250/fft/config.mk",
+        "overrides": [
+          "BOARD_PATH=boards/alpha250-1g"
+        ],
+        "result": "passed",
+        "elf_bytes": 1006472,
+        "elf_sha256": "6e946b96f713a336318d8d9042968bfea322e90c482f4acbba9369e724d4f079"
+      },
+      {
+        "board": "kria-kr260",
+        "configuration": "examples/kria-kr260/test/config.mk",
+        "overrides": [],
+        "result": "passed",
+        "elf_bytes": 1595704,
+        "elf_sha256": "c718ed5ee8bd95be54777d21eda9bbe1f33e51941a3bf6d32d3938fbf4f2b1f2"
+      },
+      {
+        "board": "zedboard",
+        "configuration": "examples/zedboard/led-blinker/config.mk",
+        "overrides": [],
+        "result": "passed",
+        "elf_bytes": 1151408,
+        "elf_sha256": "8123c71da9c63b7e51d0189d64515f9bfd5a72da055b9053466e9878e4a38aa9"
+      }
+    ],
+    "additional_build": {
+      "board": "red-pitaya",
+      "UBOOT_VERSION": "2025.1",
+      "result": "passed",
+      "hardware_tested": false
+    },
+    "os_tests": {
+      "count": 94,
+      "skipped": 2,
+      "result": "passed"
+    },
+    "scope": "U-Boot builds and BOOT.BIN packaging; no full OS image rebuild"
+  },
+  "red_pitaya": {
+    "hardware_revision": "1.1.2",
+    "method": "Installed U-Boot loads the candidate ELF from ext4 at 0x10000000, then bootelf -p executes its 0x04000000 entry. Candidate RAM boot was interrupted for network checks, then chainloaded again without interrupt for timing and Linux boot.",
+    "boot_files_changed": false,
+    "installed_boot_bin_sha256_before_and_after": "0a020d9fb9cdd2126cfdf343bcbaa865e0bed6dfc7bbf70fae26872ea68692d6",
+    "sd_boot_mount": "read-only",
+    "cold_boot_with_candidate_boot_bin_verified": false,
+    "serial_autoboot_interrupt": "passed with one-second candidate countdown",
+    "eeprom": {
+      "mac_matches_existing_linux_interface": true,
+      "hardware_revision_and_serial_present": true
+    },
+    "network": {
+      "phy": "XWAY, id 0xd565a401",
+      "powered_down_bmcr_before_fix": "0x1a40",
+      "bmcr_after_fix": "0x1040",
+      "timing_register": "0x4d00",
+      "dhcp": "passed without manual PHY writes",
+      "router_ping": "passed",
+      "timeout_after_fix": false
+    },
+    "linux": {
+      "version": "6.18.0-xilinx",
+      "boot_id": "ace4c73d-3415-43fe-8ccf-2f65768235b1",
+      "management_api": "reachable",
+      "instrument": {
+        "name": "fft",
+        "version": "0.3.0",
+        "is_default": true
+      },
+      "service_state": "active",
+      "service_restarts": 0,
+      "failed_services": 0
+    },
+    "fft": {
+      "size": 2048,
+      "number_averages": 1023,
+      "sample_rate_hz": 125000000.0,
+      "window_at_boot": 1,
+      "window_restored": 2,
+      "psd_samples": 1024,
+      "all_finite": true,
+      "minimum": 3.0427709792587565e-17,
+      "maximum": 8.885112090517566e-11,
+      "dac_outputs_muted": true,
+      "phase_modulation_disabled": true,
+      "temporary_candidate_file_removed": true
+    }
+  },
+  "sizes": {
+    "loadable_payload": {
+      "baseline": {
+        "bytes": 1056248,
+        "sha256": "f67e8be7557248fcb9ba92040e0c9a9f191ecb4b238955c33b77395a498389e5"
+      },
+      "candidate": {
+        "bytes": 941168,
+        "sha256": "7efc257719c8dd4b6520d9d607f78ac38e2d77a34471c309b08d0a1e03707e8f"
+      },
+      "saved_bytes": 115080,
+      "saved_percent": 10.895
+    },
+    "elf_file": {
+      "baseline": {
+        "bytes": 1122208,
+        "sha256": "fbe7a18b2c92ef8d616e2c487a0287ab1be1fc873f09895041c56b949e9e030d"
+      },
+      "candidate": {
+        "bytes": 1007128,
+        "sha256": "d07b4898d262f1bf0e55304351587db747fd723ff9712f69d7fc1febcb21447e"
+      },
+      "saved_bytes": 115080,
+      "saved_percent": 10.255
+    },
+    "boot_bin": {
+      "baseline": {
+        "bytes": 2359096,
+        "sha256": "0a020d9fb9cdd2126cfdf343bcbaa865e0bed6dfc7bbf70fae26872ea68692d6"
+      },
+      "candidate": {
+        "bytes": 2244016,
+        "sha256": "c8f64b7bb29c98f85c010f5a7e6268ad6c071bf8370a720f51c403a86c5d1610"
+      },
+      "saved_bytes": 115080,
+      "saved_percent": 4.878
+    }
+  },
+  "bootloader_timing": {
+    "method": "Host monotonic serial receive timestamps at 115200 baud, from complete U-Boot banner marker to complete Starting kernel marker. One uninterrupted observation per loader.",
+    "baseline_seconds": 4.050141,
+    "candidate_seconds": 3.061831,
+    "saved_seconds": 0.988311,
+    "baseline_markers": [
+      {
+        "marker": "U-Boot 2025.01",
+        "utc": "2026-10-10T19:50:30.839052+00:00",
+        "elapsed_s": 227.0183634730056
+      },
+      {
+        "marker": "Starting kernel ...",
+        "utc": "2026-10-10T19:50:34.889195+00:00",
+        "elapsed_s": 231.06850477401167
+      }
+    ],
+    "candidate_markers": [
+      {
+        "marker": "U-Boot 2026.01",
+        "utc": "2026-10-10T20:01:32.365032+00:00",
+        "elapsed_s": 888.5443485620199
+      },
+      {
+        "marker": "Starting kernel ...",
+        "utc": "2026-10-10T20:01:35.426864+00:00",
+        "elapsed_s": 891.60617929406
+      }
+    ],
+    "scope": "Excludes ROM/FSBL, ELF loading and interactive network checks. Candidate ran from RAM; this is not a cold-boot or full application-ready benchmark."
+  },
+  "packaging": {
+    "tool": "Vivado 2025.1 bootgen",
+    "same_fsbl_and_fpga_bitstream": true,
+    "repacked_baseline_matches_installed_boot_bin": true,
+    "candidate_boot_bin_generated": true,
+    "candidate_boot_bin_installed": false,
+    "fsbl_sha256": "0228c41cad3cc0a58a80ce8352225926dead0c12049c7e1bebb4a5c020ad5459",
+    "bitstream_sha256": "46e31d7f5a6c174badc31f3face4dad6945d3262b34cb8a9957fe414ca3cefda"
+  },
+  "raw_evidence": {
+    "directory": "tmp/uboot-modernization-20261010",
+    "serial_raw_sha256": "a989384b59d54d947ac6db35b5b3d3cac1aaab7c498dafeb52782ab3d646b560",
+    "files": [
+      "source.patch",
+      "serial.raw",
+      "serial-events.jsonl",
+      "boot-markers.json",
+      "os-tests.log",
+      "build-red-pitaya.log",
+      "build-alpha250.log",
+      "build-alpha250-1g.log",
+      "build-kria-kr260.log",
+      "build-zedboard.log",
+      "build-2025-red-pitaya.log",
+      "candidate-before.json",
+      "candidate-after.json",
+      "rpc-after.json",
+      "acquisition-after.json",
+      "board-before.txt",
+      "board-after.txt",
+      "old-bootgen.log",
+      "candidate-bootgen.log"
+    ]
+  }
+}

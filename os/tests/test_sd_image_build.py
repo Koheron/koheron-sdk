@@ -277,6 +277,19 @@ source "$@"
         resize = next(i for i, c in enumerate(commands) if c[0] == 'sfdisk')
         self.assertTrue(any(c[0] == 'parted' and 'print' in c for c in commands[resize:truncate]))
         self.assertTrue((self.project / 'test.zip').exists())
+        boot_mount = next(c[-1] for c in commands
+                          if c[0] == 'mount' and '/dev/mockloopp1' in c)
+        boot_config = (Path(boot_mount) / 'extlinux/extlinux.conf').read_text()
+        self.assertIn('DEFAULT Linux\n', boot_config)
+        self.assertIn('LABEL Linux\n', boot_config)
+        self.assertIn('KERNEL /kernel.itb\n', boot_config)
+        self.assertIn('root=PARTUUID=test-partuuid ', boot_config)
+        self.assertNotIn('${', boot_config)
+        # MENU also enables prompting in U-Boot, even without a TIMEOUT.
+        directives = [line.strip().upper() for line in boot_config.splitlines()
+                      if line.strip() and not line.lstrip().startswith('#')]
+        self.assertIn('PROMPT 0', directives)
+        self.assertFalse(any(line.startswith('MENU ') for line in directives))
         detach = commands.index(['losetup', '-d', '/dev/mockloop'])
         zerofree = commands.index(['zerofree', '/dev/mockloopp2'])
         clear_tail = next(i for i, c in enumerate(commands)

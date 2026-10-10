@@ -84,6 +84,7 @@ help:
 	@echo ' - server       : Build the server'
 	@echo ' - web          : Build the web interface'
 	@echo ' - os           : Build the operating system'
+	@echo ' - uboot        : Build the board bootloader independently of FPGA and Linux'
 	@echo ' - image        : Build the full image'
 	@echo '                  Set PASSWORD in the environment to customize the image root password'
 	@echo ' - block_design : Build the Vivado block design interactively'
