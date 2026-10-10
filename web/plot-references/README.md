@@ -11,6 +11,13 @@ validate their own file format before appending, and omit rendering caches from
 saved files. The panel receives metadata and recapture callbacks. Dispose the
 panel with the workspace so a pending file read cannot update a closed view.
 
+Collection edits retain keyboard focus in the same row or the nearest remaining
+row. Removing the last capture or clearing the collection focuses Undo; Undo
+returns to the restored reference name. A file read that finishes during a name
+edit preserves the draft and selection without committing them.
+PNA/DPLL move focus from Recapture to the same row's name when acquisition
+becomes unavailable.
+
 FFT regression coverage lives in `web/fft/tests/test_references.cjs`; PNA/DPLL
 coverage in `web/phase-noise/tests/test_references.cjs` exercises all four page
 layouts, signed data, independent frequency grids and exports.
