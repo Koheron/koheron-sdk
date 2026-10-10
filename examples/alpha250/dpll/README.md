@@ -381,6 +381,39 @@ sample-gap reporting under backpressure and recovery after an epoch reset.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).
 
+### Residual normalization build (2026-10-10)
+
+The extractor now registers the normalized residual coordinate on the existing
+final CORDIC edge. This replaces three reciprocal ROM reads and a late scale
+mux with one read, preserving the 15-clock extraction latency and output bits.
+Both DPLL channels use the change; the standard PNA vendor CORDIC is unaffected.
+
+```sh
+make -j4 CFG=examples/alpha250/dpll/config.mk \
+  TMP=tmp/rtl-residual-normalized VIVADO_VERSION=2026.1 MODE=development \
+  N_CPUS=4 ENFORCE_TIMING=1 fpga
+```
+
+This fresh full build produces `dpll.bit`. At the unchanged 250 MHz clock,
+setup slack improves from **-0.077903 ns** to **+0.014889 ns**; hold slack is
+**+0.041407 ns**, with zero total negative slack/pulse-width violation and all
+**12 bus-skew checks** passing. No constraints, implementation directives or
+pipeline depths were changed. Setup margin remains small and must be checked
+again after further edits. Synthesis removes **422 LUTs and eight registers**;
+the final routed design uses 21,922 LUTs, 30,987 registers, 101 DSPs and 36 BRAM
+tiles.
+
+The full `check_table_design.tcl` passes, including both extractors' two-DSP
+structures/register settings, controller paths and gain-programming constraints.
+Paths through the extractors have +0.187/+0.021 ns setup slack. Standalone
+arithmetic, before/after bit equivalence and production mixer/extractor latency
+simulations pass; details are in the
+[phase-extraction notes](tests/phase_extraction/README.md#registered-residual-normalization-2026-10-10).
+
+**Hardware tests:** none for this revision. Existing board constraints still
+leave 14 inputs and 41 outputs without I/O delays; the passing build qualifies
+the currently constrained paths.
+
 ### Combined PR 780/782 build (2026-10-07)
 
 The complete ALPHA250 instrument builds at 250 MHz with Vivado 2025.1.

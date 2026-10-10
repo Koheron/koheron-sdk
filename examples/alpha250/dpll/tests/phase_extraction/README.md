@@ -14,7 +14,8 @@ two sign/headroom bits, so the circular phase has 22 meaningful bits.
 
 Three preparation clocks fold the quadrant and normalize into 27-bit coordinates
 without discarding Cartesian input bits. Eight CORDIC clocks use a 32-bit angle
-accumulator. Four residual-correction clocks then complete the angle: a
+accumulator. The final rotation registers x as a 20-bit mantissa and two-bit
+scale on its existing output edge. Four residual-correction clocks then complete the angle: a
 256-entry distributed ROM supplies a reciprocal and interpolation slope; one
 DSP interpolates the reciprocal; a second DSP multiplies the remaining y and
 adds the base angle. The small-angle approximation atan(y/x) ≈ y/x contributes
@@ -46,6 +47,47 @@ preserving existing gain settings and DAC conventions. Controllers connect to
 `phase_feedback`/`freq_feedback`; the `phase`, `freq` and `m_axis_tdata` views
 retain existing monitoring and direct phase-DAC units. Monitoring sources are
 unchanged.
+
+## Registered residual normalization, 2026-10-10
+
+Previously the residual stage read three overlapping reciprocal ROM addresses
+and selected a word by x's leading bit before the interpolation DSP. This was
+the failing path in the complete DPLL on Vivado 2026.1: setup -0.077903 ns,
+with a ROM address bit driving 258 loads.
+
+Normalization now precedes the existing final-rotation register. The residual
+stage reads one ROM using the registered mantissa, removing two parallel reads
+and the late scale mux. The reciprocal table, interpolation, rounding, reset
+semantics, throughput and **15-clock extraction latency** are unchanged.
+
+Matched isolated detector builds use Vivado 2026.1, xc7z020clg400-2, the same
+4 ns clock plus 0.100 ns uncertainty and the unchanged benchmark script:
+
+| Routed detector, including wrapper | Before | Registered normalization |
+| --- | ---: | ---: |
+| Setup slack (ns) | +0.105 | +0.240 |
+| Hold slack (ns) | +0.043 | +0.053 |
+| LUTs | 1,324 | 1,111 |
+| Flip-flops | 1,124 | 1,120 |
+| DSPs / BRAM tiles | 2 / 0 | 2 / 0 |
+
+The new worst path is an earlier CORDIC rotation. A separate before/after
+simulation matches phase and valid on every clock, including resets and invalid
+cycles, over the 202,033-vector corpus. All 192,485 valid outputs retain the
+same peak/RMS error: 1.115254/0.405108 µrad, or 0.404902/0.087680 µrad before
+rounding. The permanent regression checks the registered normalization against
+the original raw coordinate on every edge and covers all three scales.
+
+The full ALPHA250 DPLL also passes the normal strict `make fpga` build with
+Vivado 2026.1: setup **+0.014889 ns**, hold **+0.041407 ns**, zero total
+negative slack/pulse-width violation and all 12 bus-skew checks passing.
+The unchanged `check_table_design.tcl` passes for both extractors and all
+controller paths, including the explicit DSP register configurations. Paths
+through the two extractors have +0.187/+0.021 ns setup slack. Synthesis uses
+422 fewer LUTs and eight fewer registers than the previous full design;
+DSP and BRAM usage are unchanged. See the [instrument README](../../README.md)
+for the command and qualification limits. No hardware deployment or measurement
+was performed for this change.
 
 ## Combined instrument output register, 2026-10-07
 
@@ -148,7 +190,8 @@ DPLL_PHASE_ROUTE=1 bash examples/alpha250/dpll/tests/phase_extraction/run.sh
 pair in [-32,32], signed 24-bit extrema, power-of-two boundaries, sixteen
 amplitude sweeps, random full-range IQ, lower-eight-bit angle differences,
 valid bubbles and resets. The selected test checks exact 15-clock latency,
-reset flushing, circular error below 1.5 µrad, pre-rounding error below 0.6 µrad
+reset flushing, circular error below 1.5 µrad, pre-rounding error below 0.6 µrad,
+registered normalization value/capture edge with all three scales covered,
 and agreement within two phase counts with the full-CORDIC fallback. The script
 also checks fallback pipeline variants and the two-clock 24-bit boxcar against
 independent signed-average references.
