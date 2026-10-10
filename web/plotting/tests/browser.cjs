@@ -42,7 +42,7 @@ const {launch, load, root} = require('../benchmark/harness.cjs');
                     };
                 });
             }
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 6; i++) {
                 const original = await pages.original.page.evaluate(i => capture(i), i);
                 const owned = await pages.owned.page.evaluate(i => capture(i), i);
                 assert.deepEqual(owned.offset, original.offset, 'same plot layout');
@@ -51,7 +51,7 @@ const {launch, load, root} = require('../benchmark/harness.cjs');
                 const segments = result => new Set(result.paths.flatMap(p => p.segments.map(s =>
                     JSON.stringify([p.color, p.width, ...s.map(x => Math.round(x * 1e6) / 1e6)]))));
                 assert.deepEqual(segments(owned), segments(original), 'same clipped segments, including peaks, troughs and gap neighbours');
-                if (i !== 2 && i !== 3) assert.ok(Math.max(...owned.paths.map(p => p.segments.length)) <= 32, 'bounded noise path complexity');
+                if ([0,1,4].includes(i)) assert.ok(Math.max(...owned.paths.map(p => p.segments.length)) <= 32, 'bounded noise path complexity');
                 const before = Buffer.from(original.image, 'base64'), after = Buffer.from(owned.image, 'base64');
                 assert.equal(after.length, before.length);
                 let different = 0;
@@ -100,6 +100,43 @@ const {launch, load, root} = require('../benchmark/harness.cjs');
             assert.deepEqual(normalize(records[1]), normalize(records[0]), 'extreme log X / narrow Y clipping retains geometry');
             for (const r of records) for (const p of r.paths) for (const [x0,y0,x1,y1] of p.segments) {
                 assert.ok(x0 >= -1e-5 && x1 <= r.width + 1e-5 && y0 >= -1e-5 && y0 <= r.height + 1e-5 && y1 >= -1e-5 && y1 <= r.height + 1e-5);
+            }
+            // Every pair of interior, boundary, side and corner points in both
+            // directions; gaps, re-entry and direct normalized-buffer edits.
+            // Compare to the original clipper, including nonlinear transforms
+            // and the ordinary step/fill/shadow paths.
+            for (const mode of ['plain', 'batch', 'steps', 'fill', 'shadow', 'log']) {
+                const clipped = [];
+                for (const variant of ['original', 'owned']) clipped.push(await pages[variant].page.evaluate(mode => {
+                    basics.plot.shutdown();
+                    const el = $('<div style="width:400px;height:200px">').appendTo('body');
+                    const positions = [-2, 1, 5.5, 10, 12].flatMap(x => [-2, 1, 5.5, 10, 12].map(y => [x,y]));
+                    const data = [];
+                    for (const a of positions) for (const b of positions) data.push(a, b, null);
+                    data.push(...positions, [5,5], [5,5], [10,10], [12,12], [2,2], [3,NaN], [4,4], [6,6]);
+                    for (const extreme of [-Number.MAX_VALUE, -1e100, Number.MIN_VALUE, 1e100, Number.MAX_VALUE]) {
+                        data.push(null, [extreme,5], [5,extreme], [5,5], [extreme,extreme]);
+                    }
+                    const axis = {min:1, max:10};
+                    if (mode === 'log') {axis.transform = Math.log10; axis.inverseTransform = v => 10 ** v;}
+                    const plot = $.plot(el, [{data, color:'#019cd5'}], {grid:{show:false}, xaxis:axis, yaxis:axis,
+                        series:{reuseDatapoints:true, shadowSize:mode === 'shadow' ? 4 : 0,
+                            lines:{show:true, lineWidth:1, batchSize:mode === 'batch' ? 32 : 0,
+                                steps:mode === 'steps', fill:mode === 'fill'}}});
+                    const capture = () => {
+                        recording.length = 0; plot.draw();
+                        return recording.flatMap(p => p.segments.map(s => [p.color,p.width,...s.map(v => Math.round(v * 1e6) / 1e6)]));
+                    };
+                    const before = capture();
+                    const dp = plot.getData()[0].datapoints;
+                    dp.points[0] = 5; dp.points[1] = 5;
+                    dp.points[dp.pointsize] = 20; dp.points[dp.pointsize + 1] = -10;
+                    const after = capture();
+                    plot.shutdown(); el.remove(); return {before,after};
+                },mode));
+                for (const step of ['before','after']) assert.deepEqual(
+                    new Set(clipped[1][step].map(JSON.stringify)), new Set(clipped[0][step].map(JSON.stringify)),
+                    `all clipping regions: ${mode}, ${step}, DPR ${scale}`);
             }
             for (const {page, errors} of Object.values(pages)) { assert.deepEqual(errors, []); await page.close(); }
         }
@@ -251,6 +288,6 @@ const {launch, load, root} = require('../benchmark/harness.cjs');
         assert.equal(await page.evaluate(() => basics.plot.getCanvas().width), frozenWidth, 'shutdown cancels fallback timers');
         assert.deepEqual(errors, []);
         await page.close();
-        console.log('Browser rendering, trusted interactions, DPR, resize, normalization and plugin compatibility: PASS');
+        console.log('Browser rendering/clipping, trusted interactions, DPR, resize, normalization and plugin compatibility: PASS');
     } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

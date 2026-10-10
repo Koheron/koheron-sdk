@@ -5,7 +5,8 @@ window.scenarios = [
     {name: 'pna-log-3', bins: 32769, traces: 3, log: true},
     {name: 'fft-deep-zoom', bins: 16385, traces: 4, deep: true},
     {name: 'scope-2', bins: 8192, traces: 2, scope: true},
-    {name: 'pna-log-y', bins: 32769, traces: 2, log: true, logY: true}
+    {name: 'pna-log-y', bins: 32769, traces: 2, log: true, logY: true},
+    {name: 'scope-y-zoom', bins: 8192, traces: 2, scope: true, narrowY: true}
 ];
 window.fixture = function(spec, frame = 0) {
     let seed = 123456789 + frame * 7919;
@@ -36,6 +37,7 @@ window.setup = function(index) {
         basics.enableBatchedLines();
     }
     if (spec.deep) basics.setVisibleRangeX(4000, 4100);
+    if (spec.narrowY) basics.range_y = {from: -.05, to: .05};
     window.extras = data.slice(2).map((trace, i) => ({label: i ? 'Max hold' : 'Average', data: trace, color: i ? '#bb8000' : '#006400'}));
     window.render = function(frame = 0) {
         // Cycle prepared frames: every live/average/max-hold bin changes, while
