@@ -11,7 +11,8 @@ module table_corrector #(
     parameter integer CARRY_BLOCK=0,
     parameter integer FREQ_WIDTH=17,
     parameter integer PHASE_WIDTH=32,
-    parameter integer PHASE_FRAC=0
+    parameter integer PHASE_FRAC=0,
+    parameter integer PI_REGISTER_ADDRESS=0
 )(
     input wire clk,
     input wire signed [FREQ_WIDTH-1:0] freq_in,
@@ -47,7 +48,11 @@ module table_corrector #(
     reg [63:0] acc3=0;
     table_gain #(.A_WIDTH(FREQ_WIDTH), .OUTPUT_LOW(PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
         gp(clk,freq_in,active_banks[0],we[0],table_command[7],table_command[6],table_command[5:2],table_data,p);
-    table_gain #(.A_WIDTH(PHASE_WIDTH), .OUTPUT_LOW(16+PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
+    // The phase DSP drives the PI lookup directly. Register its addresses to
+    // reduce that load; move one compressor level after the reduction register
+    // to make room for the RAM read. Other gains keep their original split.
+    table_gain #(.A_WIDTH(PHASE_WIDTH), .OUTPUT_LOW(16+PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES),
+        .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS+PI_REGISTER_ADDRESS), .CARRY_BLOCK(CARRY_BLOCK), .REGISTER_ADDRESS(PI_REGISTER_ADDRESS))
         gpi(clk,phase_in,active_banks[1],we[1],table_command[7],table_command[6],table_command[5:2],table_data,pi);
     table_gain #(.A_WIDTH(48), .OUTPUT_LOW(48), .OUTPUT_WIDTH(32), .PIPE_STAGES(I2_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
         gi2(clk,acc1,active_banks[2],we[2],table_command[7],table_command[6],table_command[5:2],table_data,i2);

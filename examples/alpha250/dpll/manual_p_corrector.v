@@ -13,7 +13,8 @@ module manual_p_corrector #(
     parameter integer SELECTOR_CARRY_BLOCK=CARRY_BLOCK,
     parameter integer FREQ_WIDTH=17,
     parameter integer PHASE_WIDTH=32,
-    parameter integer PHASE_FRAC=0
+    parameter integer PHASE_FRAC=0,
+    parameter integer PI_REGISTER_ADDRESS=0
 )(
     input wire clk, resetn,
     input wire signed [FREQ_WIDTH-1:0] freq_in,
@@ -65,7 +66,7 @@ module manual_p_corrector #(
     table_corrector #(.FUSED(FUSED),.GAIN_STAGES(GAIN_STAGES),
         .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES),.I2_GAIN_STAGES(I2_GAIN_STAGES),.FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),
         .CARRY_BLOCK(CARRY_BLOCK),.FREQ_WIDTH(FREQ_WIDTH),
-        .PHASE_WIDTH(PHASE_WIDTH),.PHASE_FRAC(PHASE_FRAC)) accurate_controller(
+        .PHASE_WIDTH(PHASE_WIDTH),.PHASE_FRAC(PHASE_FRAC),.PI_REGISTER_ADDRESS(PI_REGISTER_ADDRESS)) accurate_controller(
         .clk(clk),.freq_in(freq_in),.phase_in(phase_in),.enabled(enabled),
         .active_banks(active_banks),.table_command(table_command),.table_data(table_data),
         .fast_corr(),.slow_corr(slow_corr),.correction(accurate),.p_correction(),.integral_correction(integral),

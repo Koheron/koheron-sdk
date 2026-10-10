@@ -21,7 +21,7 @@ foreach channel {0 1} {
             error "Incorrect shared phase history: loop $channel $name"
         }
     }
-    foreach {name expected} {FUSED 1 GAIN_STAGES 4 FAST_GAIN_STAGES 3 TAIL_GAIN_STAGES 4 I2_GAIN_STAGES 4 FINAL_CSA_LEVELS 2 CARRY_BLOCK 0 FAST_P_DSP 1 PIPELINED_REFERENCE 1 PRECOMBINE_I 1 SELECTOR_CARRY_BLOCK 0 PHASE_FRAC 8 FREQ_WIDTH 25 PHASE_WIDTH 40} {
+    foreach {name expected} {FUSED 1 GAIN_STAGES 4 FAST_GAIN_STAGES 3 TAIL_GAIN_STAGES 4 I2_GAIN_STAGES 4 FINAL_CSA_LEVELS 2 PI_REGISTER_ADDRESS 1 CARRY_BLOCK 0 FAST_P_DSP 1 PIPELINED_REFERENCE 1 PRECOMBINE_I 1 SELECTOR_CARRY_BLOCK 0 PHASE_FRAC 8 FREQ_WIDTH 25 PHASE_WIDTH 40} {
         if {[get_property CONFIG.$name [get_bd_cells corrector$channel]] != $expected} {
             error "Incorrect controller parameter: loop $channel $name"
         }
@@ -93,6 +93,15 @@ foreach channel {0 1} {
         if {[llength [filter $cells {REF_NAME == DSP48E1}]] != 0} {
             error "Expected table arithmetic in $prefix"
         }
+        set addresses [filter $cells {REF_NAME == FDRE && NAME =~ *address_stage.address_q_reg*}]
+        set lookups [filter $cells {REF_NAME == FDRE && NAME =~ *lookup_stage.value_reg*}]
+        if {$gain eq "gpi"} {
+            if {[llength $addresses]<40 || [llength $lookups]} {
+                error "PI must register the table addresses instead of lookup values"
+            }
+        } elseif {[llength $addresses] || ![llength $lookups]} {
+            error "Other gains must retain the original lookup registers"
+        }
         set pins [get_pins -hier -filter "NAME =~ $prefix/*"]
         set path [get_timing_paths -through $pins -max_paths 1 -no_report_unconstrained]
         if {[llength $path] != 1 || [get_property SLACK $path] < 0} {
@@ -134,6 +143,10 @@ foreach source $programming_sources {
 }
 set memories [get_cells -hier -filter {IS_PRIMITIVE && (REF_NAME =~ RAMD* || REF_NAME =~ RAMS*) && (NAME =~ *tables.chunk*.products_reg* || NAME =~ *dsp_p.coefficients_reg*)}]
 set write_pins [get_pins -leaf -of_objects $memories -filter {REF_PIN_NAME =~ WADR* || REF_PIN_NAME =~ ADR* || REF_PIN_NAME == I || REF_PIN_NAME == WE}]
+set memory_write_pins $write_pins
+set write_registers [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *tables.write_stage.* && (NAME =~ *data_q_reg* || NAME =~ *address_q_reg* || NAME =~ *bank_q_reg* || NAME =~ *signed_q_reg*)}]
+if {[llength $write_registers]<64} {error "Missing retimed gain write registers"}
+set write_pins [concat $write_pins [get_pins -of_objects $write_registers -filter {REF_PIN_NAME == D}]]
 set bank_sources [filter $programmer {REF_NAME == FDRE && NAME =~ *active_banks_reg*}]
 if {[llength $held_sources]<64 || ![llength $write_pins]} {error "Missing held programming paths"}
 foreach {kind sources targets expected} [list held $held_sources $write_pins 12.0 strobe $strobe_sources $write_pins 4.0 bank $bank_sources {} 4.0] {
@@ -150,6 +163,15 @@ foreach {kind sources targets expected} [list held $held_sources $write_pins 12.
     }
     puts $result "programming=$kind requirement=[get_property REQUIREMENT $path] ns setup=[get_property SLACK $path] ns"
 }
+# The added write-port registers terminate the held-field exception. Their
+# next edge must still deliver every field/strobe to RAM within one ADC clock.
+set internal_writes [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *tables.write_stage.*}]
+set path [get_timing_paths -from $internal_writes -to $memory_write_pins -max_paths 1 -no_report_unconstrained]
+if {[llength $path]!=1 || abs([get_property REQUIREMENT $path]-4.0)>0.001 || [get_property SLACK $path]<0} {
+    error "Retimed gain writes must reach RAM in one 4 ns clock"
+}
+puts $result "programming=retimed requirement=[get_property REQUIREMENT $path] ns setup=[get_property SLACK $path] ns"
+report_timing -from $internal_writes -to $memory_write_pins -max_paths 4 -file $out/programming-retimed.rpt
 close $result
 puts "Full table-gain instrument checks passed"
 close_project

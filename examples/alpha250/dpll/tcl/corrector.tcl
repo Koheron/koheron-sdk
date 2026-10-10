@@ -12,6 +12,7 @@ proc create {module_name} {
         TAIL_GAIN_STAGES 4
         I2_GAIN_STAGES 4
         FINAL_CSA_LEVELS 2
+        PI_REGISTER_ADDRESS 1
         CARRY_BLOCK 0
         FAST_P_DSP 1
         PIPELINED_REFERENCE 1

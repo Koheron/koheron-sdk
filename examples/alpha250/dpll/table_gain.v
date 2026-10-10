@@ -19,7 +19,10 @@ module table_gain #(
     parameter integer FINAL_CSA_LEVELS=0,
     // Zero uses a ripple carry chain. Positive values bound each carry-select
     // block's width, calculating its carry-zero and carry-one sums in parallel.
-    parameter integer CARRY_BLOCK=0
+    parameter integer CARRY_BLOCK=0,
+    // Move the lookup register to both RAM ports without adding a sample clock.
+    // Requires a split reduction pipeline with at least four stages.
+    parameter integer REGISTER_ADDRESS=0
 )(
     input wire CLK,
     input wire signed [A_WIDTH-1:0] A,
@@ -85,6 +88,41 @@ module table_gain #(
     localparam SPLIT=(FINAL_CSA_LEVELS>LEVELS) ? 0 : LEVELS-FINAL_CSA_LEVELS;
     wire [WIDTH-1:0] tree [0:(LEVELS+1)*TERMS-1];
     wire [WIDTH-1:0] stage [0:(LEVELS+1)*TERMS-1];
+    // Retiming both RAM ports preserves the read-before-write value of each
+    // sample. The input now drives one address register per chunk instead of
+    // every bit of its lookup word. The existing reduction register captures
+    // the RAM output on the following edge, with no extra sample clock.
+    localparam ADDRESS_PIPELINE=(REGISTER_ADDRESS && PIPE_STAGES>=4 && FINAL_CSA_LEVELS>0);
+    if(REGISTER_ADDRESS && !ADDRESS_PIPELINE)
+        initial $error("Registered table addresses require a split four/five-stage pipeline");
+    wire table_write_enable,table_write_bank,table_write_signed;
+    wire [CHUNK_BITS-1:0] table_write_address;
+    wire [63:0] table_write_data;
+    if(ADDRESS_PIPELINE) begin : write_stage
+        reg enable_q=0,bank_q=0,signed_q=0;
+        reg [CHUNK_BITS-1:0] address_q=0;
+        reg [63:0] data_q=0;
+        always @(posedge CLK) begin
+            enable_q<=WRITE_ENABLE;
+            if(WRITE_ENABLE) begin
+                bank_q<=WRITE_BANK;
+                signed_q<=WRITE_SIGNED;
+                address_q<=WRITE_ADDRESS;
+                data_q<=WRITE_DATA;
+            end
+        end
+        assign table_write_enable=enable_q;
+        assign table_write_bank=bank_q;
+        assign table_write_signed=signed_q;
+        assign table_write_address=address_q;
+        assign table_write_data=data_q;
+    end else begin : direct_write
+        assign table_write_enable=WRITE_ENABLE;
+        assign table_write_bank=WRITE_BANK;
+        assign table_write_signed=WRITE_SIGNED;
+        assign table_write_address=WRITE_ADDRESS;
+        assign table_write_data=WRITE_DATA;
+    end
     genvar i,l,g,r;
     for(l=0;l<=LEVELS;l=l+1) begin : stage_boundary
         for(i=0;i<term_count(l);i=i+1) begin : term
@@ -102,11 +140,19 @@ module table_gain #(
         integer j;
         initial for(j=0;j<ENTRIES;j=j+1) products[j]=0;
         always @(posedge CLK)
-            if(WRITE_ENABLE && WRITE_SIGNED==(i==TERMS-1))
-                products[{WRITE_BANK,WRITE_ADDRESS}]<=WRITE_DATA;
-        wire signed [TABLE_WIDTH-1:0] lookup=products[{ACTIVE_BANK,a_ext[CHUNK_BITS*i +: CHUNK_BITS]}];
+            if(table_write_enable && table_write_signed==(i==TERMS-1))
+                products[{table_write_bank,table_write_address}]<=table_write_data;
+        wire [CHUNK_BITS:0] read_address;
+        if(ADDRESS_PIPELINE) begin : address_stage
+            reg [CHUNK_BITS:0] address_q=0;
+            always @(posedge CLK) address_q<={ACTIVE_BANK,a_ext[CHUNK_BITS*i +: CHUNK_BITS]};
+            assign read_address=address_q;
+        end else begin : direct_address
+            assign read_address={ACTIVE_BANK,a_ext[CHUNK_BITS*i +: CHUNK_BITS]};
+        end
+        wire signed [TABLE_WIDTH-1:0] lookup=products[read_address];
         wire signed [TABLE_WIDTH-1:0] partial;
-        if(PIPE_STAGES>=3) begin : lookup_stage
+        if(PIPE_STAGES>=3 && !ADDRESS_PIPELINE) begin : lookup_stage
             reg signed [TABLE_WIDTH-1:0] value=0;
             always @(posedge CLK) value<=lookup;
             assign partial=value;
