@@ -23,7 +23,9 @@ of acquisition-control updates; ALPHA15 uses it in its local board controls.
 `fft.css` owns the grid, responsive layout and 26-pixel control sizing.
 [Precision channels](../precision-channels/README.md) own precision-editor styles.
 
-Spectrum view has an optional **Persistence** toggle. Recent displayed live
+The collapsible **Preferences** widget in the right sidebar contains the optional
+**Persistence** toggle, decay, intensity and Clear trails controls. It starts
+collapsed, and its heading shows when persistence is on. Recent displayed live
 traces fade with a 0.25–5 s decay time; intensity sets the strength of newly
 added trails (5–50%). References, average/max hold, grid and cursors stay sharp.
 Pause and hidden tabs freeze the trails. Clear trails removes only persistence;

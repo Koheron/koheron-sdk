@@ -87,6 +87,7 @@ const {previewHTML} = require('../benchmark/persistence-preview.cjs');
         const errors=[]; page.on('pageerror',e=>errors.push(e.message));
         await page.setContent(previewHTML());
         await page.waitForFunction(()=>window.spectrum?.plot_data.length && basics.persistenceLayer);
+        await page.locator('#plot-preferences > summary').click();
         await page.locator('#pause-display').click();
         assert.equal(await page.locator('#pause-display').textContent(),'Resume');
         await page.locator('#persistence-enabled').uncheck();
@@ -101,6 +102,10 @@ const {previewHTML} = require('../benchmark/persistence-preview.cjs');
         await page.waitForFunction(()=>spectrum.history.samples>20);
         await page.locator('#pause-display').click();
         await page.screenshot({path:'tmp/plotting/screenshots/persistence-preview.png'});
+        await page.evaluate(()=>{window.trailsBeforeCollapse=basics.persistenceLayer;});
+        await page.locator('#plot-preferences > summary').click();
+        assert.equal(await page.evaluate(()=>basics.persistenceLayer===trailsBeforeCollapse &&
+            document.getElementById('persistence-enabled').checked),true,'collapsing Preferences retains the active trails');
         const exports = await page.evaluate(async () => {
             const source=JSON.stringify(spectrum.plot_data);
             ExportFile.prototype.download=function(blob){window.exportedBlob=blob;};
@@ -120,6 +125,7 @@ const {previewHTML} = require('../benchmark/persistence-preview.cjs');
         });
         assert.ok(exports.png && exports.csv && exports.source,'actual PNG preserves trails at DPR 2 and CSV retains raw samples');
         assert.equal(exports.label,'Persistence · 2 s decay · 30% intensity');
+        await page.locator('#plot-preferences > summary').click();
         const box=await page.locator('#plot-placeholder .flot-overlay').boundingBox();
         await page.mouse.move(box.x+box.width*.25,box.y+box.height*.35);
         await page.mouse.down();
@@ -137,7 +143,7 @@ const {previewHTML} = require('../benchmark/persistence-preview.cjs');
         await page.waitForFunction(()=>basics.persistenceLayer?.width===basics.plot.getCanvas().width &&
             basics.plot.getCanvas().clientWidth===document.getElementById('plot-placeholder').clientWidth);
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'controls fit a narrow viewport');
-        await page.screenshot({path:'tmp/plotting/screenshots/persistence-mobile.png'});
+        await page.screenshot({path:'tmp/plotting/screenshots/persistence-mobile.png',fullPage:true});
         await page.evaluate(()=>spectrum.dispose());
         assert.equal(await page.locator('#persistence-enabled').isDisabled(),true);
         assert.equal(await page.evaluate(()=>!basics.persistenceLayer),true);

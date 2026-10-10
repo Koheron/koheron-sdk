@@ -20,7 +20,8 @@ function previewHTML() {
     content.querySelector('h1').textContent='FFT · simulated spectrum';
     content.getElementById('board-label').textContent='Offline preview';
     content.getElementById('instrument-controls').remove();
-    content.querySelector('aside').innerHTML='<div id="plot-references"></div>';
+    content.querySelector('.fft-generator').remove();
+    content.querySelector('.board-details').remove();
     const css = ['web/instrument/instrument.css','web/fft/fft.css','web/plot-references/plot-references.css']
         .filter(file => fs.existsSync(path.join(root,file))).map(read).join('\n');
     const js = [read('web/plotting/benchmark/baseline/jquery.min.js'),

@@ -140,10 +140,12 @@ class Plot {
         const decay = this.document.getElementById('persistence-decay') as HTMLSelectElement;
         const intensity = this.document.getElementById('persistence-intensity') as HTMLInputElement;
         const output = this.document.getElementById('persistence-intensity-value');
+        const summary = this.document.getElementById('persistence-summary');
         const update = () => {
             if (!this.running) { return; }
             this.persistenceEnabled = toggle.checked;
             controls.hidden = !toggle.checked;
+            if (summary) { summary.hidden = !toggle.checked; }
             output.textContent = intensity.value + '%';
             this.plotBasics.setPersistence(toggle.checked, Number(decay.value), Number(intensity.value) / 100);
             this.redraw();
