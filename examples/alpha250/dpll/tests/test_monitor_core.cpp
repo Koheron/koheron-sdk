@@ -71,6 +71,7 @@ int main() {
         monitor.set_fft_navg(4);
         capture(); capture();
         assert(std::get<0>(monitor.get_average_status()) > 1);
+        const auto current_sequence = std::get<0>(monitor.get_spectrum_snapshot());
         // A loop edit during an outstanding capture must discard it and clear
         // the old averaging epoch; settings writes never wait for that capture.
         ++MonitorBoard::revision;
@@ -79,6 +80,10 @@ int main() {
         assert(state() == 0);
         assert(!std::get<3>(monitor.get_phase_snapshot()));
         assert(std::get<1>(monitor.get_spectrum_snapshot()) == 0);
+        const auto compact = monitor.get_spectrum_snapshot_since(
+            uint32_t(current_sequence >> 32), uint32_t(current_sequence));
+        assert(std::get<0>(compact) == current_sequence);
+        assert(std::get<1>(compact) == 0 && std::get<16>(compact).empty());
         assert(std::get<0>(monitor.get_average_status()) == 0);
         assert(monitor.get_phase().back().eval() == 0.f);
         const auto stale_noise = monitor.get_phase_noise();

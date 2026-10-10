@@ -58,11 +58,11 @@ test('conditional reads reuse density but keep current metadata and recover afte
   Object.defineProperty(w.performance, 'now', {value: () => now});
   const commands = [];
   const start = 0x100000005;
-  const response = (sequence, state, values) => ({
-    metadata: [sequence, state, 8, 1e6, 2, 100, 3, 7, 0, 10e6, 10e6, 20e6, 20e6, 0, 0, 2],
+  const response = (sequence, state, values, count = 7) => ({
+    metadata: [sequence, state, 8, 1e6, 2, 100, 3, count, 0, 10e6, 10e6, 20e6, 20e6, 0, 0, 2],
     values: new w.Float32Array(values)
   });
-  const responses = [response(start, 1, [0, 0, 2, 4, 8]), response(start, 0, []),
+  const responses = [response(start, 1, [0, 0, 2, 4, 8]), response(start, 1, [], 8),
     response(start + 1, 1, []), response(start + 1, 1, [0, 0, 3, 5, 9])];
   const client = {async readTupleWithFloat32Vector(command) {
     commands.push(command);
@@ -77,7 +77,7 @@ test('conditional reads reuse density but keep current metadata and recover afte
   assert.equal(first.transferredDensityBytes, 20);
   assert.equal(first.metadata.data_size, 5);
   const cached = await reader.read();
-  assert.equal(cached.metadata.state, 0, 'state changes remain visible without a new density');
+  assert.equal(cached.metadata.avgxy_count, 8, 'metadata changes remain visible without a new density');
   assert.equal(cached.metadata.data_size, 5);
   assert.strictEqual(cached.values, first.values);
   assert.equal(cached.transferredDensityBytes, 0);
@@ -91,6 +91,36 @@ test('conditional reads reuse density but keep current metadata and recover afte
   const restarted = await reader.read();
   assert.equal(commands[4].cmd.id, 7, 'periodic full reads recover a reused sequence after board restart');
   assert.equal(restarted.values[2], 4);
+});
+
+test('a passive monitor state change refreshes density even without a new sequence', async t => {
+  const w = fixture(t);
+  Object.defineProperty(w.performance, 'now', {value: () => 0});
+  const commands = [];
+  const response = (state, values) => ({
+    metadata: [7, state, 8, 1e6, 0, 20, 1, 1, 1, 10e6, 10e6, 0, 0, 0, 0, 0],
+    values: new w.Float32Array(values)
+  });
+  const replies = [response(1, [0, 0, 2]), response(0, []), response(0, [0, 0, 0]),
+    response(0, []), response(1, []), response(1, [0, 0, 3])];
+  const client = {async readTupleWithFloat32Vector(command) {
+    commands.push(command.cmd.id);
+    return replies.shift();
+  }};
+  const reader = new w.PnaSpectrumReader(client, 5, {
+    get_spectrum_snapshot: {id: 7, args: []},
+    get_spectrum_snapshot_since: {id: 8, args: [{type: 'uint32_t'}, {type: 'uint32_t'}]}
+  });
+  assert.equal((await reader.read()).values[2], 2);
+  const stale = await reader.read();
+  assert.equal(stale.metadata.state, 0);
+  assert.equal(stale.values[2], 0);
+  assert.equal(stale.transferredDensityBytes, 12);
+  assert.strictEqual((await reader.read()).values, stale.values);
+  const restored = await reader.read();
+  assert.equal(restored.metadata.state, 1);
+  assert.equal(restored.values[2], 3);
+  assert.deepEqual(commands, [7, 8, 7, 8, 8, 7]);
 });
 
 test('an older V1 instrument without the conditional RPC keeps full snapshot reads', async t => {

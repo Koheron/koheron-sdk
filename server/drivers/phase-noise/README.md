@@ -104,7 +104,9 @@ network order. This RPC returns the same current metadata and an empty density
 vector when the sequence matches; a changed sequence returns the full vector.
 The browser first makes a full read, then uses compact reads and refreshes the
 full vector every five seconds to recover if an instrument restarts with the
-same counter. The original RPC remains available to existing clients. The FPS
+same counter. It also refreshes on a state transition with an unchanged counter,
+which lets passive monitors clear stale density after an external loop edit.
+The original RPC remains available to existing clients. The FPS
 tooltip separates observed publications, poll replies, plot redraws and density
 bytes transferred. The publication rate remains 30 Hz by default; the
 `SpectrumPublication` constructor accepts a different rate for a controlled
