@@ -87,7 +87,10 @@ feedback phase history and controller states are independent of monitor epochs,
 channel selection, decimation, precision and backpressure.
 The continuous 64-bit monitor history uses two 32-bit words and is delayed by
 one further clock (4 ns). Feedback phase reconstruction uses the frequency bus
-directly and retains the delays below.
+directly and retains the delays below. Canonical unwrapping registers the raw
+modular difference and the positive-pi boundary flag together, then corrects the
+sign after that same register edge. This shortens the subtraction path while
+preserving signed pi ties and sample timing.
 
 The accurate phase remains in Q8 legacy phase units through unwrapping and into
 both initial gain tables: frequency is signed 25-bit and feedback phase is
@@ -327,9 +330,12 @@ Gain requests are validated and decoded at 143 MHz, using PR 780's registered
 CDC handshakes and reset draining. RAM writes and atomic bank/coefficient commits
 remain at 250 MHz. Address and payload precede the registered write strobe,
 with a setup wait giving three clocks (12 ns) before RAM capture. Acknowledgement follows the write
-or commit. The acceptance decision and one-hot gain destination are registered
-before driving table controls; that extra programming clock does not affect
-feedback latency. Reset preserves committed gains while cancelling pending transfers.
+or commit. Acceptance and the complete one-hot commit enable are decoded on the
+existing acceptance register edge. The following edge atomically applies each
+bank and coefficient with only reset gating its enable, avoiding a shared
+state/rejection decode on the wide coefficient hold path. Programming and
+feedback latency are unchanged. Reset preserves committed gains while cancelling
+pending transfers, including a commit cancelled on its apply edge.
 Only these held RAM programming inputs use three-clock timing constraints; the
 write strobe, bank commits, lookup addresses and feedback remain at 250 MHz.
 
@@ -340,7 +346,13 @@ writes and held commands with changing data:
 ```sh
 export DPLL_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh
 bash examples/alpha250/dpll/tests/run-table-system.sh
+bash examples/alpha250/dpll/tests/run-gain-programmer.sh
 ```
+
+The programmer reset test sweeps 65 write reset positions and 65 commit reset
+positions for each of the eight destinations, plus a directed reset on each
+destination's commit edge. It checks preservation of committed
+gains, cancellation of in-flight transfers, rejected writes/commits and recovery.
 
 ## Full FPGA build
 

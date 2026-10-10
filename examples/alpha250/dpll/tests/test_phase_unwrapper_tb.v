@@ -61,7 +61,9 @@ module unwrap_check #(parameter W=24)(input clk, output reg done=0);
     initial begin
         // Exhaust the small-width signed input-pair space, including all
         // borrow/upper-table addresses; larger widths also stress long carries.
-        if(W==8) begin
+        // W=10 separately exhausts its canonical eight-bit angle, including
+        // every positive/negative pi tie and sign-extension combination.
+        if(W==8 || W==10) begin
             enable=1; reset=0;
             for(a=-128;a<128;a=a+1) begin
                 for(b=-128;b<128;b=b+1) begin
@@ -99,10 +101,12 @@ endmodule
 module test_phase_unwrapper_tb;
     reg clk=0;
     always #2 clk=~clk;
-    wire [2:0] done;
+    wire [4:0] done;
     unwrap_check #(.W(8)) a(clk,done[0]);
     unwrap_check #(.W(16)) b(clk,done[1]);
     unwrap_check #(.W(24)) c(clk,done[2]);
+    unwrap_check #(.W(4)) d(clk,done[3]);
+    unwrap_check #(.W(10)) e(clk,done[4]);
     initial begin wait(&done); $finish; end
     initial begin #1000000; $fatal(1,"Watchdog"); end
 endmodule
