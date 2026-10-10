@@ -11,7 +11,7 @@ function fixture(t) {
   t.after(() => dom.window.close());
   const w = dom.window;
   for (const [file, names] of [
-    ['web/koheron.ts', ['Client']], ['web/phase-noise/spectrum.ts', ['readPnaSpectrum']],
+    ['web/koheron.ts', ['Client']], ['web/phase-noise/spectrum.ts', ['readPnaSpectrum', 'PnaSpectrumReader']],
     ['web/plot-references/references.ts', ['PlotReferences']], ['web/plot-references/panel.ts', ['PlotReferencePanel']],
     ['web/phase-noise/references.ts', ['PnaReferences']], ['web/phase-noise/plot.ts', ['PnaPlot']],
     ['web/phase-noise/analyzer/plot.ts', ['Plot']]
@@ -38,6 +38,103 @@ test('browser decodes the production C++ spectrum frame including signed bins', 
   assert.equal(frame.metadata.fdds2, 20e6 + .25);
   assert.equal(frame.metadata.avgxy_count, 7);
   assert.deepEqual(Array.from(frame.values), [0, 0, -2, 4, 8]);
+});
+
+test('browser decodes the compact C++ reply with current metadata and no density', async t => {
+  const w = fixture(t);
+  const wire = fs.readFileSync(path.join(root, 'tmp/tests/phase-noise/spectrum-frame.bin.cached'));
+  const bytes = new w.Uint8Array(wire);
+  const client = Object.create(w.Client.prototype);
+  client._readBaseAsync = async () => new w.DataView(bytes.buffer, 8);
+  const frame = await w.readPnaSpectrum(client, {});
+  assert.equal(frame.metadata.sequence, 1);
+  assert.equal(frame.metadata.state, 1);
+  assert.equal(frame.values.length, 0);
+});
+
+test('conditional reads reuse density but keep current metadata and recover after a bad reply', async t => {
+  const w = fixture(t);
+  let now = 0;
+  Object.defineProperty(w.performance, 'now', {value: () => now});
+  const commands = [];
+  const start = 0x100000005;
+  const response = (sequence, state, values, count = 7) => ({
+    metadata: [sequence, state, 8, 1e6, 2, 100, 3, count, 0, 10e6, 10e6, 20e6, 20e6, 0, 0, 2],
+    values: new w.Float32Array(values)
+  });
+  const responses = [response(start, 1, [0, 0, 2, 4, 8]), response(start, 1, [], 8),
+    response(start + 1, 1, []), response(start + 1, 1, [0, 0, 3, 5, 9])];
+  const client = {async readTupleWithFloat32Vector(command) {
+    commands.push(command);
+    return responses.shift();
+  }};
+  const cmds = {
+    get_spectrum_snapshot: {id: 7, args: []},
+    get_spectrum_snapshot_since: {id: 8, args: [{type: 'uint32_t'}, {type: 'uint32_t'}]}
+  };
+  const reader = new w.PnaSpectrumReader(client, 5, cmds);
+  const first = await reader.read();
+  assert.equal(first.transferredDensityBytes, 20);
+  assert.equal(first.metadata.data_size, 5);
+  const cached = await reader.read();
+  assert.equal(cached.metadata.avgxy_count, 8, 'metadata changes remain visible without a new density');
+  assert.equal(cached.metadata.data_size, 5);
+  assert.strictEqual(cached.values, first.values);
+  assert.equal(cached.transferredDensityBytes, 0);
+  assert.deepEqual(Array.from(commands[1].data.slice(8)), [0, 0, 0, 1, 0, 0, 0, 5]);
+  await assert.rejects(reader.read(), /Changed spectrum has no density/);
+  const refreshed = await reader.read();
+  assert.deepEqual(Array.from(refreshed.values), [0, 0, 3, 5, 9]);
+  assert.equal(commands[3].cmd.id, 7, 'a failed conditional read forces a full refresh');
+  now = 6000;
+  responses.push(response(start + 1, 1, [0, 0, 4, 6, 10]));
+  const restarted = await reader.read();
+  assert.equal(commands[4].cmd.id, 7, 'periodic full reads recover a reused sequence after board restart');
+  assert.equal(restarted.values[2], 4);
+});
+
+test('a passive monitor state change refreshes density even without a new sequence', async t => {
+  const w = fixture(t);
+  Object.defineProperty(w.performance, 'now', {value: () => 0});
+  const commands = [];
+  const response = (state, values) => ({
+    metadata: [7, state, 8, 1e6, 0, 20, 1, 1, 1, 10e6, 10e6, 0, 0, 0, 0, 0],
+    values: new w.Float32Array(values)
+  });
+  const replies = [response(1, [0, 0, 2]), response(0, []), response(0, [0, 0, 0]),
+    response(0, []), response(1, []), response(1, [0, 0, 3])];
+  const client = {async readTupleWithFloat32Vector(command) {
+    commands.push(command.cmd.id);
+    return replies.shift();
+  }};
+  const reader = new w.PnaSpectrumReader(client, 5, {
+    get_spectrum_snapshot: {id: 7, args: []},
+    get_spectrum_snapshot_since: {id: 8, args: [{type: 'uint32_t'}, {type: 'uint32_t'}]}
+  });
+  assert.equal((await reader.read()).values[2], 2);
+  const stale = await reader.read();
+  assert.equal(stale.metadata.state, 0);
+  assert.equal(stale.values[2], 0);
+  assert.equal(stale.transferredDensityBytes, 12);
+  assert.strictEqual((await reader.read()).values, stale.values);
+  const restored = await reader.read();
+  assert.equal(restored.metadata.state, 1);
+  assert.equal(restored.values[2], 3);
+  assert.deepEqual(commands, [7, 8, 7, 8, 8, 7]);
+});
+
+test('an older V1 instrument without the conditional RPC keeps full snapshot reads', async t => {
+  const w = fixture(t);
+  const commands = [];
+  const client = {async readTupleWithFloat32Vector(command) {
+    commands.push(command.cmd.id);
+    return {metadata: [commands.length, 1, 0, 1e6, 0, 20, 1, 1, 1,
+      10e6, 10e6, 0, 0, 0, 0, 0], values: new w.Float32Array([0, 0, commands.length])};
+  }};
+  const reader = new w.PnaSpectrumReader(client, 5, {get_spectrum_snapshot: {id: 7, args: []}});
+  assert.equal((await reader.read()).values[2], 1);
+  assert.equal((await reader.read()).values[2], 2);
+  assert.deepEqual(commands, [7, 7]);
 });
 
 test('malformed spectrum framing and inexact sequence numbers are rejected', async t => {

@@ -220,6 +220,16 @@ $(PCH_GCH): $(PCH_DST) $(PCH_FLAGS_STAMP) $(SERVER_COMPILER_STAMP)
 SERVER_CCXXFLAGS += -Winvalid-pch -include $(PCH_DST)
 $(OBJ): $(PCH_GCH)
 
+# A compiler define can change generated driver behavior without changing any
+# source file. Recompile objects when the effective flags change.
+SERVER_FLAGS_STAMP := $(TMP_SERVER_PATH)/.compile-flags
+$(SERVER_FLAGS_STAMP): FORCE
+	@mkdir -p $(dir $@)
+	@printf '%s\n' '$(SERVER_CCXXFLAGS)' > $@.tmp
+	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
+	@rm -f $@.tmp
+$(OBJ): $(SERVER_FLAGS_STAMP)
+
 # -----------------------------------------------------------------------------
 # Compile objects
 # -----------------------------------------------------------------------------

@@ -237,6 +237,7 @@ test('web driver strips the vector byte-length prefix and preserves DC through N
     const {window: w} = fixture(t);
     for (const [file, exports] of [
         ['../../../../web/koheron.ts', ['Client']],
+        ['../../../../web/phase-noise/spectrum.ts', ['PnaSpectrumReader']],
         ['../../../../web/phase-noise/analyzer/phase-noise-analyzer.ts', ['PhaseNoiseAnalyzer']]
     ]) {
         w.eval(ts.transpileModule(fs.readFileSync(path.join(__dirname, file), 'utf8'),
@@ -451,6 +452,22 @@ test('FPS spans settling replies, counts only new valid spectra and falls to zer
     plot.markUnavailable('Disconnected');
     assert.equal(rate.textContent, '— FPS');
     assert.doesNotMatch(rate.title, /read .* ms/);
+});
+
+test('rate tooltip separates publications, replies, redraws and density traffic', t => {
+    const {plot, window: w} = fixture(t);
+    let now = 1000;
+    Object.defineProperty(w.performance, 'now', {value: () => now});
+    plot.rateStarted = 0;
+    plot.recordFrame(2, 1, 3, 0, true, true, 5, 1024);
+    const rate = w.document.getElementById('refresh-rate');
+    assert.match(rate.title, /publications 1\/s; polling 1\/s .*plot redraws 1\/s; density transfer 1 KiB\/s/);
+    now = 2000;
+    plot.recordFrame(2, 1, 3, 0, true, true, 8, 0);
+    assert.match(rate.title, /publications 3\/s; polling 1\/s .*plot redraws 1\/s; density transfer 0 KiB\/s/);
+    now = 3000;
+    plot.recordFrame(1, 0, 0, 0, false, false, 8, 0);
+    assert.match(rate.title, /publications 0\/s; polling 1\/s .*plot redraws 0\/s; density transfer 0 KiB\/s/);
 });
 
 test('polling respects the target, permits only one in-flight read, and pauses while hidden', async t => {

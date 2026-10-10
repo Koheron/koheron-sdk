@@ -75,7 +75,8 @@ instruments show an unavailable value rather than stale coverage.
 
 ## Atomic spectrum snapshot
 
-All three designs expose `get_spectrum_snapshot()`. The result is a tuple:
+ALPHA250, ALPHA250-4, Red Pitaya and the ALPHA250 DPLL monitor expose
+`get_spectrum_snapshot()`. The result is a tuple:
 
 ```
 (sequence, state, precision, fs, channel, cic_rate, fft_navg,
@@ -97,6 +98,23 @@ A single regular RPC header precedes the tuple. The browser validates framing,
 uses captured settings for axes/references/exports and counts new sequence
 numbers for FPS. Older instruments fall back to the existing spectrum RPC;
 only that fallback has separately polled settings.
+
+Newer V1 instruments also expose `get_spectrum_snapshot_since(sequence_hi,
+sequence_lo)`. The two uint32 arguments encode the last publication counter in
+network order. This RPC returns the same current metadata and an empty density
+vector when the sequence matches; a changed sequence returns the full vector.
+The browser first makes a full read, then uses compact reads and refreshes the
+full vector every five seconds to recover if an instrument restarts with the
+same counter. It also refreshes on a state transition with an unchanged counter,
+which lets passive monitors clear stale density after an external loop edit.
+The original RPC remains available to existing clients. The FPS
+tooltip separates observed publications, poll replies, plot redraws and density
+bytes transferred. The publication rate remains 30 Hz by default; the
+`SpectrumPublication` constructor accepts a different rate for a controlled
+board comparison. For a 60 Hz instrument server build, run
+`make CFG=... PNA_PUBLICATION_HZ=60 server`; build the 30 Hz baseline without
+that setting. The build has not been qualified on
+hardware at 60 Hz.
 
 `SpectrumPublication` owns its data and metadata under one short lock. Writers
 hold the analyzer processing lock before publishing; readers acquire only the

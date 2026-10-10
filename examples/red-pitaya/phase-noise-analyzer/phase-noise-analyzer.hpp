@@ -30,6 +30,9 @@ class PhaseNoiseAnalyzer {
     auto get_average_status() const { return core.get_average_status(); }
 
     auto get_spectrum_snapshot() const { return core.get_spectrum_snapshot(); }
+    auto get_spectrum_snapshot_since(uint32_t sequence_hi, uint32_t sequence_lo) const {
+        return core.get_spectrum_snapshot_since(sequence_hi, sequence_lo);
+    }
     auto get_dma_status() { return core.get_dma_status(); }
     auto get_stream_status() { return core.get_stream_status(); }
     auto get_stream_coverage() const { return core.get_stream_coverage(); }

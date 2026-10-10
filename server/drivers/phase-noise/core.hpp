@@ -114,6 +114,21 @@ class Core
             return snapshot;
         }
     }
+    auto get_spectrum_snapshot_since(uint32_t sequence_hi, uint32_t sequence_lo) const {
+        const uint64_t last_sequence = (uint64_t(sequence_hi) << 32) | sequence_lo;
+        if constexpr (!passive_monitor) return publication.snapshot_since(last_sequence);
+        else {
+            std::shared_lock lk(data_mtx);
+            auto snapshot = publication.snapshot_since(last_sequence);
+            if (!monitor_results_current()) {
+                std::get<1>(snapshot) = uint32_t(Settling);
+                std::get<7>(snapshot) = 0;
+                auto& density = std::get<16>(snapshot);
+                std::fill(density.begin(), density.end(), PhaseNoiseDensity{});
+            }
+            return snapshot;
+        }
+    }
     auto get_stream_status() {
         std::shared_lock lk(data_mtx);
         return std::tuple{spectrum.segment_count(), dma.overruns(), fft_size, fft_size / 2, 3u};

@@ -195,6 +195,8 @@ test('Y requires its own two LOs, XY requires all four, and hidden pages stop po
 test('settings read the explicit CIC rate at either sample clock and retain legacy decoding', async t => {
   const dom=new JSDOM('',{runScripts:'outside-only'}); t.after(()=>dom.window.close());
   const w=dom.window; w.Command=(_id,cmd)=>cmd;
+  w.eval(ts.transpileModule(fs.readFileSync(path.join(root,'web/phase-noise/spectrum.ts'),'utf8'),
+    {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText+'\nwindow.PnaSpectrumReader=PnaSpectrumReader;');
   w.eval(ts.transpileModule(fs.readFileSync(path.join(project,'web/phase-noise-analyzer.ts'),'utf8'),
     {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText+'\nwindow.Analyzer=PhaseNoiseAnalyzer;');
   for (const [rate,supported] of [[250e6,true],[200e6,true],[200e6,false]]) {

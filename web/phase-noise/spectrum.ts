@@ -4,6 +4,7 @@ interface PnaSpectrumFrame<P> {
   precision: number;
   parameters: P;
   values: Float32Array;
+  transferredDensityBytes?: number;
 }
 
 interface PnaSpectrumMetadata {
@@ -22,4 +23,44 @@ async function readPnaSpectrum(client: Client, cmd: CmdMessage): Promise<{metada
     data_size: reply.values.length, fs, channel, cic_rate, fft_navg, avgxy_count, average_target,
     fdds0, fdds1, fdds2, fdds3, analyzer_mode: mode === 0 ? 'rf' : 'laser',
     interferometer_delay, clkIndex: String(clock)}};
+}
+
+// Each browser connection owns its last full vector. A periodic full read also
+// bounds stale data if a board restarts and reuses the same publication number.
+class PnaSpectrumReader {
+  private cached: {sequence: number; state: number; values: Float32Array};
+  private lastFullAt = -Infinity;
+
+  constructor(private client: Client, private id: number, private commands: Commands) {}
+
+  async read(): Promise<{metadata: PnaSpectrumMetadata; values: Float32Array; transferredDensityBytes: number}> {
+    const since = this.commands['get_spectrum_snapshot_since'];
+    const conditional = !!since && !!this.cached && performance.now() - this.lastFullAt < 5000;
+    const sequence = this.cached?.sequence ?? 0;
+    const fullCommand = () => Command(this.id, this.commands['get_spectrum_snapshot']);
+    const command = conditional
+      ? Command(this.id, since, Math.floor(sequence / 0x100000000), sequence >>> 0)
+      : fullCommand();
+    try {
+      let reply = await readPnaSpectrum(this.client, command);
+      if (conditional && !reply.values.length) {
+        if (reply.metadata.sequence !== sequence) { throw new Error('Changed spectrum has no density'); }
+        // Passive monitors can invalidate or restore a capture without a new
+        // publication. Refresh once on that transition so cached density has
+        // the same validity as the current metadata.
+        if (reply.metadata.state === this.cached.state) {
+          return {metadata: {...reply.metadata, data_size: this.cached.values.length},
+            values: this.cached.values, transferredDensityBytes: 0};
+        }
+        reply = await readPnaSpectrum(this.client, fullCommand());
+      }
+      if (!reply.values.length) { throw new Error('Empty spectrum density'); }
+      this.cached = {sequence: reply.metadata.sequence, state: reply.metadata.state, values: reply.values};
+      this.lastFullAt = performance.now();
+      return {...reply, transferredDensityBytes: reply.values.byteLength};
+    } catch (error) {
+      this.cached = undefined;
+      throw error;
+    }
+  }
 }

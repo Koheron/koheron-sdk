@@ -49,7 +49,7 @@ for (const [name, file, format] of [
     test(`${name} measurements retain the server tuple precision and averaging argument`, async t => {
         const dom = new JSDOM('', {runScripts:'outside-only'}), w = dom.window;
         t.after(() => w.close());
-        w.eval(ts.transpileModule(['web/koheron.ts', 'web/phase-noise/measurements.ts', file]
+        w.eval(ts.transpileModule(['web/koheron.ts', 'web/phase-noise/spectrum.ts', 'web/phase-noise/measurements.ts', file]
             .map(pathname => fs.readFileSync(path.join(root, pathname), 'utf8')).join('\n'),
             {compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText
             + '\nwindow.Client=Client; window.Analyzer=PhaseNoiseAnalyzer;');

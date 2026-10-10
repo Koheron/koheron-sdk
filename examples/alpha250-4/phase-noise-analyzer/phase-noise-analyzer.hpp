@@ -174,6 +174,9 @@ class PhaseNoiseAnalyzer
     }
 
     auto get_spectrum_snapshot() const { return publication.snapshot(); }
+    auto get_spectrum_snapshot_since(uint32_t sequence_hi, uint32_t sequence_lo) const {
+        return publication.snapshot_since((uint64_t(sequence_hi) << 32) | sequence_lo);
+    }
     auto get_stream_status() const {
         std::shared_lock lk(data_mtx);
         return std::tuple{processed_segments, dma.overruns(), spectrum_samples,

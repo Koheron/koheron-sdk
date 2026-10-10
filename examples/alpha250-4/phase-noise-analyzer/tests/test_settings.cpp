@@ -43,6 +43,9 @@ int main(int argc, char**) {
     const auto average=std::tuple{std::get<7>(snapshot), std::get<8>(snapshot)};
     assert(std::get<0>(average)>0 && std::get<1>(average)==25);
     const auto sequence=std::get<0>(snapshot);
+    const auto cached=analyzer.get_spectrum_snapshot_since(uint32_t(sequence >> 32), uint32_t(sequence));
+    assert(std::get<0>(cached)==sequence);
+    assert(std::get<16>(cached).empty());
     analyzer.set_cic_rate(68);
     analyzer.set_channel(0);
     analyzer.set_fft_navg(25);
