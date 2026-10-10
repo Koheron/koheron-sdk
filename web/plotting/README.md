@@ -54,7 +54,9 @@ instrument colors; translucent lines should use the standard path.
 and a fused normalization/bounds pass. Raw sample arrays are never copied or
 mutated. These internal buffers are mutable across `setData`; retain `data`,
 not `datapoints.points`, for captures/exports. Data-processing hooks bypass the
-fast path. Reductions reuse one output array per trace, preserve extrema and
+fast path. Finite numeric samples use direct bounds/buffer updates; coercion,
+gaps and Infinity/MAX_VALUE sentinels retain the compatibility path.
+Reductions reuse one output array per trace, preserve extrema and
 gaps, retain boundary neighbors and restore every bin under deep zoom.
 Captured reference reductions are recomputed because array identity does not
 prove the caller hasn't changed its values. Cursor interpolation searches the
@@ -101,5 +103,6 @@ Performance conditions, metrics, profiling and baseline rules are in
 [benchmark/RESULTS.md](benchmark/RESULTS.md),
 [benchmark/CONTINUED_RESULTS.md](benchmark/CONTINUED_RESULTS.md), the
 range-update comparison in [benchmark/RANGE_RESULTS.md](benchmark/RANGE_RESULTS.md)
-and the latest extrema-loop comparison in
-[benchmark/EXTREMA_RESULTS.md](benchmark/EXTREMA_RESULTS.md).
+the extrema-loop comparison in [benchmark/EXTREMA_RESULTS.md](benchmark/EXTREMA_RESULTS.md)
+and the latest paired normalization comparison in
+[benchmark/NORMALIZATION_RESULTS.md](benchmark/NORMALIZATION_RESULTS.md).

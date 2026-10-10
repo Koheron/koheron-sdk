@@ -13,6 +13,12 @@ spectra include adjacent narrow peaks/troughs. Both variants run with identical
 30 frames. Three rounds alternate variant order. Do not run other builds or
 browser suites alongside a performance comparison.
 
+Linux reports also record `cpuAffinity`, the benchmark process's allowed CPU
+list. For example, prefix the benchmark command with `taskset -c 0-3` to
+constrain both variants to the same cores. Select a CPU list appropriate for
+the host; compare variants within that run instead of comparing absolute times
+across hosts or affinity settings.
+
 JSON in `tmp/plotting/benchmark.json` records redraw CPU time, actual rAF
 intervals, synthetic hover handler/next-frame latency, and trusted mouse
 handler/event-timestamp-to-next-rAF latency injected during live drawing, and
@@ -39,6 +45,22 @@ npm run snapshot --prefix web/plotting
 # Edit sources, then compare in alternating rounds:
 npm run benchmark --prefix web/plotting -- --variants=previous,owned --frames=180 --rounds=3 --profile
 ```
+
+When CPU-frequency variation makes separate runs inconclusive, compare redraw
+CPU within each animation frame:
+
+```sh
+taskset -c 0-3 npm run benchmark:paired --prefix web/plotting -- --variants=previous,owned --frames=180 --rounds=3
+```
+
+This loads two isolated same-origin frames on one renderer thread. Each plot
+remains 1000 × 500 CSS pixels at DPR 1; the parent viewport is 2400 × 800 so
+both are visible. Drawing order alternates each frame and frame positions swap
+each round. The report includes per-variant median/mean/p95 CPU, paired deltas
+(in `deltaOrder` order) and combined frame intervals. It uses no heap sampling,
+hover injection or zoom/reset phase. Both plots draw in one rAF, so absolute
+timings and cadence are not comparable to the single-plot benchmark. Use the
+standard runner for allocation and interaction measurements.
 
 The `previous` snapshot lives in `tmp/plotting/comparison/`; taking another
 snapshot replaces it. Its timestamp and asset/widget hashes are included in
