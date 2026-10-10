@@ -1,6 +1,10 @@
 /* Compact controls and readouts follow the KoheronControl plot workspace. */
 /* The shared instrument stylesheet owns controls, colors and header styles. */
 .fft-workspace {
+    --accent: #667e89;
+    --accent-dark: #465a64;
+    --accent-light: #eef1f3;
+    --plot-persistence-color: #607f8e;
     --control-height: 26px;
     --control-padding: 2px 8px;
     --instrument-font: 'DDS PM Lato', Arial, sans-serif;
@@ -12,7 +16,7 @@
 }
 .fft-workspace #main { margin: 0; padding: 6px 12px; width: 100%; max-width: none; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fft-workspace .muted, .fft-workspace .readout-label { color: var(--muted); }
-.fft-workspace .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding-bottom: 6px; border-bottom: 0; }
+.fft-workspace .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; border-bottom: 0; }
 .fft-workspace .acquisition-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .fft-workspace .generator-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .fft-workspace label, .fft-workspace .control-label { white-space: nowrap; }
@@ -20,7 +24,7 @@
 .fft-workspace select { width: 148px; }
 .fft-workspace input[type="checkbox"] { accent-color: var(--accent); }
 .fft-workspace .spectrum-panel { margin: 0; min-width: 0; flex: 1; display: flex; flex-direction: column; min-height: 300px; }
-.fft-workspace .spectrum-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 0; }
+.fft-workspace .spectrum-toolbar { display: flex; flex: 1; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 0; }
 .fft-workspace .display-controls, .fft-workspace .plot-actions { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
 .fft-workspace .toolbar-actions { display: flex; align-items: center; gap: 0; }
 .fft-workspace .toolbar-actions button + button { border-left: 0; border-radius: 0 2px 2px 0; }
@@ -67,9 +71,10 @@
     .fft-workspace .spectrum-readouts { gap: 3px 14px; }
 }
 
-.fft-workspace .history-toolbar, .fft-workspace #trace-controls, .fft-workspace #history-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
-.fft-workspace .history-toolbar { flex: none; padding: 6px 0 3px; }
-.fft-workspace #clear-history { margin-left: auto; }
+.fft-workspace .trace-options, .fft-workspace .preference-options { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.fft-workspace #history-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 8px; }
+.fft-workspace #history-level-unit { grid-column: 1 / -1; }
+.fft-workspace #clear-history { justify-self: start; }
 .fft-workspace #spectrum-view { width: 124px; }
 .fft-workspace #history-controls label { display: inline-flex; align-items: center; gap: 5px; }
 .fft-workspace #history-duration { width: 62px; }
@@ -87,7 +92,7 @@
 .fft-workspace .dds-pm-widget select { width: auto; }
 
 /* Workspace sidebar, history panels and acquisition metadata. */
-.fft-workspace .measurement-toolbar { border-bottom: 1px solid var(--border-light); padding-bottom: 6px; }
+.fft-workspace .measurement-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; border-bottom: 1px solid var(--border-light); padding-bottom: 6px; }
 .fft-workspace :is(.plot-placeholder, #history-view, #history-canvas) { height: 100%; min-height: 250px; }
 .fft-workspace #history-view { position: absolute; inset: 0; }
 .fft-workspace .fft-sidebar { min-width: 0; }
@@ -134,4 +139,29 @@
     .fft-workspace nav { flex-basis: 100%; justify-content: flex-end; }
     .fft-workspace .spectrum-canvas { height: 46dvh; }
     .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.fft-workspace .trace-options { gap: 4px; }
+.fft-workspace .trace-toggle { display: inline-flex; align-items: center; gap: 5px; min-height: var(--control-height); padding: 2px 8px; border: 1px solid var(--border-light); border-radius: 3px; background: #fafafa; cursor: pointer; }
+.fft-workspace .trace-toggle:has(input:checked) { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-light); }
+.fft-workspace .trace-toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fft-workspace .trace-toggle input:focus-visible { outline: none; }
+.fft-workspace .trace-toggle:has(input:disabled) { opacity: .45; cursor: default; }
+.fft-workspace .fft-preferences { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
+.fft-workspace .preferences-state { margin-left: auto; padding: 1px 5px; border-radius: 2px; background: var(--accent-light); color: var(--accent-dark); font-size: 10px; }
+.fft-workspace .preferences-body { display: grid; gap: 8px; padding: 6px 0; }
+.fft-workspace .preference-help { margin: 0; color: var(--muted); font-size: 11px; }
+.fft-workspace #persistence-controls { display: grid; gap: 8px; }
+.fft-workspace #persistence-controls label { display: flex; align-items: center; gap: 8px; }
+.fft-workspace #persistence-controls label > span { flex: 0 0 56px; }
+.fft-workspace #clear-persistence { justify-self: start; }
+.fft-workspace #persistence-decay { width: 64px; background: white; }
+.fft-workspace #persistence-intensity { appearance: none; -webkit-appearance: none; min-width: 64px; width: 100%; height: var(--control-height); margin: 0 3px; padding: 0; background: transparent; cursor: pointer; }
+.fft-workspace #persistence-intensity::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #dde2e5; }
+.fft-workspace #persistence-intensity::-moz-range-track { height: 4px; border-radius: 2px; background: #dde2e5; }
+.fft-workspace #persistence-intensity::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border: 2px solid white; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.fft-workspace #persistence-intensity::-moz-range-thumb { width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.fft-workspace #persistence-intensity-value { min-width: 4ch; color: var(--accent-dark); font-weight: 600; font-variant-numeric: tabular-nums; }
+@container fft (max-width: 600px) {
+    .fft-workspace .trace-toggle { padding: 2px 6px; font-size: 11px; }
 }

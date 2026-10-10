@@ -1,6 +1,8 @@
 # FFT spectrum interface
 
-Acquisition settings and plot actions stay above the spectrum. The shared PNA
+Acquisition, view, units and plot actions share a compact toolbar above the
+spectrum. Open **Preferences** on the right for peak markers, Exclude DC,
+average/max hold, history settings and persistence. The shared PNA
 DAC signal generator, captured-reference details, and expandable board monitoring
 and precision I/O sit in a right-hand sidebar, following the PNA workspace.
 Below 1100 px they stack beneath the plot. The plot fills the available height;
@@ -27,6 +29,15 @@ DAC frequencies. Enable an output through `PhaseModulator` when scripting.
 - **Average · 1 s** overlays a green exponential average of linear PSD with a
   one-second time constant. **Max hold** overlays the highest received power
   in each bin in amber. Both include received frames skipped by browser paint.
+- Open **Preferences** in the right sidebar to enable **Persistence**, which
+  leaves fading trails of recent displayed live spectra. Set
+  **Decay** from 0.25 to 5 seconds and **Intensity** from 5 to 50%; the newest
+  curve stays bright and references, average and max hold stay sharp. Pause
+  freezes the trails. **Clear trails** removes them without clearing received
+  history or captures. Zoom, units, canvas resizing and acquisition changes
+  clear trails to keep their coordinates valid. PNG includes persistence;
+  CSV continues to export the raw current spectrum and selected overlays.
+  Collapsing Preferences keeps persistence running; its heading shows when on.
 - **Spectrogram** shows frequency against age, with the newest row at the top.
   The waterfall scrolls continuously with each received frame, including
   fractional time-row movement; pause freezes that position. Each 50 ms row holds the strongest received power in each bin. Missing time

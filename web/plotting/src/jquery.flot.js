@@ -634,6 +634,17 @@ Licensed under the MIT license.
         plot.draw = draw;
         plot.getPlaceholder = function() { return placeholder; };
         plot.getCanvas = function() { return surface.element; };
+        // Render a normalized series into an off-screen layer without hooks,
+        // grid or overlays. The caller supplies the canvas coordinate scale.
+        plot.drawSeriesToCanvas = function(series, context) {
+            var original = ctx;
+            try {
+                ctx = context;
+                drawSeries(series);
+            } finally {
+                ctx = original;
+            }
+        };
         plot.getPlotOffset = function() { return plotOffset; };
         plot.width = function () { return plotWidth; };
         plot.height = function () { return plotHeight; };

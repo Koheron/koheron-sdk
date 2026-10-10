@@ -82,6 +82,19 @@ skip projection work and retain any buffer from an earlier dense view.
 The PNA reducer stores extrema indices instead of floating-point values in its
 flush closure, and reads plot width once for all traces in a redraw.
 
+Optional FFT persistence keeps two RGBA canvases at the plot's backing
+resolution: a live-trace raster and a visible history layer behind the main
+canvas. Only the live series enters the history; grid, references and overlays
+are drawn normally above it. The renderer's `drawSeriesToCanvas` renders the
+existing normalized series into a supplied context without hooks. Elapsed-time
+exponential decay uses CSS layer opacity and periodically commits larger alpha
+reductions, avoiding stuck 8-bit pixels. Frame tokens prevent UI redraws from
+restamping a received spectrum. Pause/visibility freezes elapsed decay; range,
+unit, size and acquisition changes reset trails. Disabling releases both
+buffers. A 1000 × 500 plot needs 4,000,000 extra pixel bytes at DPR 1 and four
+times that at DPR 2, excluding browser overhead. PNG composites the history and
+base canvas only at export. No frame/sample history is added to the renderer.
+
 Range-only redraws use the owned `plot.updateRanges` path to retain canvases,
 text caches, normalized XY buffers and event bindings. It updates axis bounds,
 rebuilds ticks/layout/legend, clears transient overlays and redraws once. The
@@ -122,3 +135,5 @@ the projection buffer comparison in
 [benchmark/PROJECTION_BUFFER_RESULTS.md](benchmark/PROJECTION_BUFFER_RESULTS.md)
 and the empty-hook allocation comparison in
 [benchmark/HOOK_RESULTS.md](benchmark/HOOK_RESULTS.md).
+The optional FFT persistence cost is recorded in
+[benchmark/PERSISTENCE_RESULTS.md](benchmark/PERSISTENCE_RESULTS.md).

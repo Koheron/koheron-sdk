@@ -134,7 +134,7 @@ test('Alpha15 mounts shared UX with four inputs, voltage units, ranges and read-
     assert.equal(h.d.querySelectorAll('.precision-dac-input').length, 4);
     assert.equal(h.state.writes.length, 0);
     assert.deepEqual(Array.from(h.d.querySelectorAll('.precision-dac-input'), input => input.value), ['100', '200', '300', '400']);
-    assert.equal(h.d.querySelectorAll('input[type="range"]').length, 0);
+    assert.equal(h.d.querySelectorAll('#board-controls input[type="range"]').length, 0, 'precision DAC fields use numeric editors');
     assert.equal(h.d.getElementById('connection-status').textContent, 'Live spectrum');
     assert.equal(h.drawn.label, 'Voltage noise (dBV/√Hz)');
 });

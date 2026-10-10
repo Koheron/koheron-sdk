@@ -23,6 +23,27 @@ of acquisition-control updates; ALPHA15 uses it in its local board controls.
 `fft.css` owns the grid, responsive layout and 26-pixel control sizing.
 [Precision channels](../precision-channels/README.md) own precision-editor styles.
 
+The compact toolbar above the plot holds acquisition, view, units and plot actions.
+It wraps on smaller screens. The collapsible **Preferences** widget in the right
+sidebar holds peak markers, Exclude DC, average/max hold and Clear history, plus
+duration and level settings for history views. It also contains the optional
+**Persistence** toggle, decay, intensity and Clear trails controls. It starts
+collapsed, and its heading shows when persistence is on. Recent displayed live
+traces fade with a 0.25–5 s decay time; intensity sets the strength of newly
+added trails (5–50%). The live trace keeps its original blue; only the fading
+trails use a muted blue-gray. References, average/max hold, grid and cursors stay sharp.
+Pause and hidden tabs freeze the trails. Clear trails removes only persistence;
+Clear history, acquisition changes, units, zoom and resize clear it too.
+Persistence follows displayed frames, so spectra skipped by painting are not
+included. PNG includes the trails and settings; CSV retains full raw samples.
+
+Try the real controls with simulated spectra and no hardware:
+
+```sh
+npm run preview:persistence --prefix web/plotting
+# Open tmp/plotting/persistence-preview.html in a browser.
+```
+
 CSV/PNG filenames identify the instrument, board, history view when selected,
 and UTC export time. PNG annotations wrap long names and acquisition labels at
 the displayed plot width while preserving the backing canvas's full resolution.

@@ -18,13 +18,18 @@ async function load(browser, variant, scale = 1) {
 }
 // Pages and same-origin frames use the same assets and seeded workload.
 async function install(target, variant) {
-    if (!['original', 'previous', 'owned'].includes(variant)) throw new Error(`Unknown variant: ${variant}`);
+    if (!['original', 'previous', 'owned', 'persistence'].includes(variant)) throw new Error(`Unknown variant: ${variant}`);
     await target.addScriptTag({path: process.env.PLOT_JQUERY || path.join(__dirname, 'baseline/jquery.min.js')});
     const dir = variant === 'original' ? path.join(__dirname, 'baseline') : path.join(root, `tmp/plotting/${variant === 'previous' ? 'comparison' : 'owned'}`);
     for (const name of scripts) await target.addScriptTag({path: path.join(dir, name)});
-    const basicsPath = variant === 'owned' ? path.join(root, 'web/plot-basics/plot-basics.ts') : path.join(dir, 'plot-basics.ts');
+    const basicsPath = variant === 'owned' || variant === 'persistence' ? path.join(root, 'web/plot-basics/plot-basics.ts') : path.join(dir, 'plot-basics.ts');
     await target.addScriptTag({content: ts.transpileModule(fs.readFileSync(basicsPath, 'utf8'),
         {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText});
     await target.addScriptTag({path: path.join(__dirname, 'workload.js')});
+    if (variant === 'persistence') await target.evaluate(() => {
+        document.body.style.setProperty('--plot-persistence-color','#607f8e');
+        const setup = window.setup;
+        window.setup = index => { setup(index); basics.setPersistence(true,1,.15); render(); };
+    });
 }
 module.exports = {launch, load, install, root, scripts, ts};

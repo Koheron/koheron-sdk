@@ -13,7 +13,7 @@ declare namespace jquery.flot {
         yaxes?: axisOptions[];
         grid?: gridOptions;
         interaction?: interaction;
-        hooks?: hooks;
+        hooks?: Partial<hooks>;
         selection?: selectionOptions;
         canvas?: boolean;
     }
@@ -235,6 +235,7 @@ declare namespace jquery.flot {
         getYAxes(): axis[];
         getPlaceholder(): JQuery;
         getCanvas(): HTMLCanvasElement;
+        drawSeriesToCanvas?(series: dataSeries, context: CanvasRenderingContext2D): void;
         getPlotOffset(): canvasPoint;
         getOptions(): plotOptions;
     }

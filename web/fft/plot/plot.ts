@@ -26,6 +26,7 @@ class Plot {
         }
     };
     private visibilityHandler = () => {
+        if (this.persistenceEnabled) { this.plotBasics.setPersistencePaused(this.paused || this.document.hidden); }
         window.clearTimeout(this.timer);
         window.cancelAnimationFrame(this.animation);
         window.clearTimeout(this.drawTimer);
@@ -38,6 +39,8 @@ class Plot {
     private samplingFrequency = 0;
     private peak: number[] = [];
     private psd: Float32Array;
+    private persistenceEnabled = false;
+    private persistenceFrame = 0;
     public references: FFTReferences;
     public get visibleReferences(): FFTReference[] { return this.references.items.filter(item => item.visible); }
     public history = new SpectrumHistory();
@@ -45,6 +48,13 @@ class Plot {
     public average_data: number[][];
     public maximum_data: number[][];
     public get view(): string { return this.views ? this.views.mode : 'spectrum'; }
+    public get persistenceLabel(): string {
+        if (!this.persistenceEnabled || this.view !== 'spectrum') { return ''; }
+        const decay = this.document.getElementById('persistence-decay') as HTMLSelectElement;
+        const intensity = this.document.getElementById('persistence-intensity') as HTMLInputElement;
+        return 'Persistence · ' + decay.value + ' s decay · ' + intensity.value + '% intensity';
+    }
+    getExportCanvas(): HTMLCanvasElement { return this.plotBasics.getExportCanvas?.(); }
     public n_pts: number;
     public plot_data: number[][] = [];
     public yLabel = 'PSD (dBm/Hz)';
@@ -60,6 +70,7 @@ class Plot {
         this.plotBasics.enableSpectrumReduction();
         this.plotBasics.enableBatchedLines();
         this.plotBasics.setLinY();
+        this.initPersistence();
         for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('.unit-input'))) {
             input.addEventListener('change', () => {
                 this.plotBasics.setLinY();
@@ -81,6 +92,7 @@ class Plot {
         }
         document.getElementById('clear-history').addEventListener('click', () => {
             this.history.reset(); this.average_data = this.maximum_data = undefined;
+            if (this.persistenceEnabled) { this.plotBasics.clearPersistence(); }
             this.plotBasics.setLinY(); this.redraw();
         });
         document.getElementById('exclude-dc').addEventListener('change', () => this.redraw());
@@ -121,8 +133,35 @@ class Plot {
         node.textContent = node.title = text;
     }
 
+    private initPersistence(): void {
+        const toggle = this.document.getElementById('persistence-enabled') as HTMLInputElement;
+        if (toggle?.tagName !== 'INPUT') { return; }
+        const controls = this.document.getElementById('persistence-controls');
+        const decay = this.document.getElementById('persistence-decay') as HTMLSelectElement;
+        const intensity = this.document.getElementById('persistence-intensity') as HTMLInputElement;
+        const output = this.document.getElementById('persistence-intensity-value');
+        const summary = this.document.getElementById('persistence-summary');
+        const update = () => {
+            if (!this.running) { return; }
+            this.persistenceEnabled = toggle.checked;
+            controls.hidden = !toggle.checked;
+            if (summary) { summary.hidden = !toggle.checked; }
+            output.textContent = intensity.value + '%';
+            this.plotBasics.setPersistence(toggle.checked, Number(decay.value), Number(intensity.value) / 100);
+            this.redraw();
+        };
+        toggle.disabled = false;
+        toggle.addEventListener('change', update);
+        decay.addEventListener('change', update);
+        intensity.addEventListener('input', update);
+        this.document.getElementById('clear-persistence').addEventListener('click', () => {
+            this.plotBasics.clearPersistence(); this.redraw();
+        });
+    }
+
     setPaused(paused: boolean): void {
         this.paused = paused;
+        if (this.persistenceEnabled) { this.plotBasics.setPersistencePaused(paused || this.document.hidden); }
         if (paused) {
             window.clearTimeout(this.timer);
             window.cancelAnimationFrame(this.animation);
@@ -169,6 +208,7 @@ class Plot {
             this.pending = undefined;
             try {
                 const started = performance.now();
+                this.persistenceFrame++;
                 this.displaySpectrum();
                 this.paintFailed = false;
                 this.renderMs += performance.now() - started;
@@ -251,13 +291,17 @@ class Plot {
         }
         const status = {...frameStatus, dds_freq: frameStatus.dds_freq.slice()};
         const historyStarted = performance.now();
-        if (this.history) { this.history.add(psd, status, time); }
+        if (this.history) {
+            const epoch = this.history.epoch;
+            this.history.add(psd, status, time);
+            if (this.persistenceEnabled && this.history.epoch !== epoch) { this.plotBasics.clearPersistence(); }
+        }
         this.historyMs += performance.now() - historyStarted;
         this.acquiredFrames++;
         if (!this.paintFailed && !this.spectrumChanged(psd) && this.sameFrameStatus(status) && this.view === 'spectrum' &&
             !(this.document.getElementById('average-trace') as HTMLInputElement).checked &&
             !(this.document.getElementById('max-hold-trace') as HTMLInputElement).checked &&
-            !this.plotBasics.needsRedraw()) {
+            !this.persistenceEnabled && !this.plotBasics.needsRedraw()) {
             // The newest reply matches the displayed frame. Discard an older
             // waiting frame too, while retaining every receipt in history.
             this.pending = undefined;
@@ -349,6 +393,9 @@ class Plot {
     }
 
     private redraw(): void {
+        if (this.persistenceEnabled) {
+            this.plotBasics.setPersistencePaused(this.paused || this.document.hidden || this.view !== 'spectrum');
+        }
         const ready = this.plot_data.length > 0;
         const capture = this.document.getElementById('capture-reference') as HTMLButtonElement;
         capture.disabled = !ready || this.view !== 'spectrum' || this.references.items.length >= FFTReferences.limit;
@@ -381,7 +428,7 @@ class Plot {
         if (this.average_data) { traces.push({label: 'Average', color: '#389168', data: this.average_data}); }
         if (this.maximum_data) { traces.push({label: 'Max hold', color: '#ba861a', data: this.maximum_data}); }
         for (const reference of this.visibleReferences) { traces.push({label: PlotReferences.traceLabel(reference.name), color: reference.color, data: reference.data}); }
-        this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, undefined, true, traces);
+        this.plotBasics.redraw(this.plot_data, this.plot_data.length, this.peak.slice(), this.yLabel, () => {}, undefined, true, traces, undefined, this.persistenceFrame);
     }
 
     convertValue(value: number, unit: string, status: IFFTStatus = this.frameStatus || this.fft.status, index = 0, fftSize = this.fft.fft_size): number {
@@ -410,6 +457,15 @@ class Plot {
 
     dispose(): void {
         this.running = false;
+        if (this.persistenceEnabled) { this.plotBasics.setPersistence(false); }
+        this.persistenceEnabled = false;
+        const persistence = this.document.getElementById('persistence-enabled') as HTMLInputElement;
+        if (persistence?.tagName === 'INPUT') {
+            persistence.disabled = true;
+            this.document.getElementById('persistence-controls').querySelectorAll('input, select, button').forEach(control => {
+                (control as HTMLInputElement | HTMLSelectElement | HTMLButtonElement).disabled = true;
+            });
+        }
         if (this.stream) { this.stream.dispose(); }
         if (this.views) { this.views.dispose(); }
         $('#plot-placeholder').off('.fft');

@@ -9,12 +9,13 @@ class ExportFile {
 
     private exportPlot(): void {
         const historyView = this.spectrum.view && this.spectrum.view !== 'spectrum';
-        const canvas = historyView ? this.document.getElementById('history-canvas') as HTMLCanvasElement : this.document.querySelector<HTMLCanvasElement>('#plot-placeholder canvas.flot-base');
+        const source = historyView ? this.document.getElementById('history-canvas') as HTMLCanvasElement : this.document.querySelector<HTMLCanvasElement>('#plot-placeholder canvas.flot-base');
+        const canvas = !historyView && this.spectrum.getExportCanvas?.() || source;
         const status = historyView ? this.spectrum.history.status : this.spectrum.frameStatus;
         if (!canvas || !status) { return; }
         // Flot's backing canvas can be larger than its CSS size on HiDPI screens.
         // Draw annotations in CSS pixels while retaining every plot image pixel.
-        const width = canvas.clientWidth || canvas.width;
+        const width = source.clientWidth || source.width;
         const scale = canvas.width / width;
         const height = canvas.height / scale;
         const references = historyView ? [] : this.spectrum.visibleReferences;
@@ -40,6 +41,7 @@ class ExportFile {
         };
         addLabel(this.boardName + ' ' + this.instrumentName + ' · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, '#333', '12px sans-serif');
         addLabel((references.length ? 'Live · ' : '') + this.frameLabel(status));
+        if (!historyView && this.spectrum.persistenceLabel) { addLabel(this.spectrum.persistenceLabel); }
         references.forEach(reference => addLabel(reference.name + ' · ' + this.frameLabel(reference.status), reference.color));
         const headerHeight = 20 + 16 * labels.length;
         image.width = canvas.width;

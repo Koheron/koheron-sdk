@@ -80,6 +80,20 @@ use the standard runner for whole-instrument allocations and the paired runner
 for instrument redraw CPU. Sampling can miss small allocations, so zero sampled
 bytes is not proof of zero allocations.
 
+To measure the optional persistence cost against the same owned renderer:
+
+```sh
+taskset -c 0-3 npm run benchmark:paired --prefix web/plotting -- --variants=owned,persistence --scenarios=fft-linear-4,fft-deep-zoom,fft-log-4 --frames=180 --rounds=3
+```
+
+`persistence` loads the current owned stack with a 1 s decay and 15% intensity.
+`--scenarios` optionally selects seeded views. The report records the two extra
+canvases' RGBA pixel capacity; it excludes browser/GPU overhead. CSS composition
+may add display work outside the timed redraw callback, so these CPU figures
+are not a complete presentation cost. Persistence is off by default.
+`npm run preview:persistence --prefix web/plotting` writes a standalone offline
+HTML preview using the actual FFT controls and simulated spectra.
+
 The `previous` snapshot lives in `tmp/plotting/comparison/`; taking another
 snapshot replaces it. Its timestamp and asset/widget hashes are included in
 the report, alongside current source hashes. The frozen `original` remains
@@ -91,7 +105,9 @@ The browser suite compares clipped segments and rendered pixels at DPR 1/2,
 checks trusted interactions and resizing, plugin fallbacks and original
 normalization. The hook suite compares all ten hook stages to original Flot,
 including exact payload identities, arity, receiver and listeners added/removed
-during dispatch. Clipping checks cover every pair of interior, boundary, side
+during dispatch. Persistence checks cover fading at DPR 1/2, small-alpha
+rounding, pause/resume, frame tokens, resets, buffer release, actual FFT controls
+and CSV/PNG exports. Clipping checks cover every pair of interior, boundary, side
 and corner points, gaps/re-entry and direct normalized-buffer edits, including
 log transforms, batched lines, steps, fills and shadows. Repeated range checks
 compare axes, ticks, bounds, legends, samples and rendered pixels against the
