@@ -375,6 +375,9 @@ class PlotBasics {
         const reuse = PlotBasics.prepareColumnCache(cache, first, last, from, to, width, logarithmic, false);
         let count = 0;
         let column = -Infinity, min = -1, max = -1, previous = -1;
+        // Keep numeric extrema outside the flush closure so the hot loop
+        // does not repeatedly dereference previous source rows or box values.
+        let minY = 0, maxY = 0;
         const push = (index: number) => {
             if (index >= 0 && index !== previous) { out[count++] = data[index]; previous = index; }
         };
@@ -385,19 +388,19 @@ class PlotBasics {
         };
         push(first);
         for (let i = first; i <= last; i++) {
-            const x = data[i][0], slot = i - first;
+            const x = data[i][0], y = data[i][1], slot = i - first;
             let nextColumn: number;
             if (cache && reuse && cache.x[slot] === x) nextColumn = cache.columns[slot];
             else {
                 nextColumn = Math.floor((transform(x) - lower) * width / span);
                 if (cache) { cache.x[slot] = x; cache.columns[slot] = nextColumn; }
             }
-            if (nextColumn !== column || !Number.isFinite(data[i][1])) {
+            if (nextColumn !== column || !Number.isFinite(y)) {
                 flush(); column = nextColumn;
             }
-            if (!Number.isFinite(data[i][1])) { push(i); continue; }
-            if (min < 0 || data[i][1] < data[min][1]) { min = i; }
-            if (max < 0 || data[i][1] > data[max][1]) { max = i; }
+            if (!Number.isFinite(y)) { push(i); continue; }
+            if (min < 0 || y < minY) { min = i; minY = y; }
+            if (max < 0 || y > maxY) { max = i; maxY = y; }
         }
         flush(); push(last);
         out.length = count;
@@ -521,6 +524,7 @@ class PlotBasics {
     
         let currCol = -2;
         let minI = -1, maxI = -1;
+        let minY = 0, maxY = 0;
         const flush = () => {
             // Extrema must retain their original frequency order.
             if (minI >= 0 && maxI >= 0) {
@@ -552,8 +556,8 @@ class PlotBasics {
                     out[count++] = plot_data[i];
                 continue;
             }
-            if (minI < 0 || y < plot_data[minI][1]) minI = i;
-            if (maxI < 0 || y > plot_data[maxI][1]) maxI = i;
+            if (minI < 0 || y < minY) { minI = i; minY = y; }
+            if (maxI < 0 || y > maxY) { maxI = i; maxY = y; }
         }
         flush();
         if (last > i1) { out[count++] = plot_data[last]; }
