@@ -23,7 +23,10 @@ of acquisition-control updates; ALPHA15 uses it in its local board controls.
 `fft.css` owns the grid, responsive layout and 26-pixel control sizing.
 [Precision channels](../precision-channels/README.md) own precision-editor styles.
 
-The collapsible **Preferences** widget in the right sidebar contains the optional
+The compact toolbar above the plot holds acquisition, view, units and plot actions.
+It wraps on smaller screens. The collapsible **Preferences** widget in the right
+sidebar holds peak markers, Exclude DC, average/max hold and Clear history, plus
+duration and level settings for history views. It also contains the optional
 **Persistence** toggle, decay, intensity and Clear trails controls. It starts
 collapsed, and its heading shows when persistence is on. Recent displayed live
 traces fade with a 0.25–5 s decay time; intensity sets the strength of newly

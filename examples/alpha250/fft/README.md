@@ -1,6 +1,8 @@
 # FFT spectrum interface
 
-Acquisition settings and plot actions stay above the spectrum. The shared PNA
+Acquisition, view, units and plot actions share a compact toolbar above the
+spectrum. Open **Preferences** on the right for peak markers, Exclude DC,
+average/max hold, history settings and persistence. The shared PNA
 DAC signal generator, captured-reference details, and expandable board monitoring
 and precision I/O sit in a right-hand sidebar, following the PNA workspace.
 Below 1100 px they stack beneath the plot. The plot fills the available height;

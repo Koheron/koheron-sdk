@@ -16,7 +16,7 @@
 }
 .fft-workspace #main { margin: 0; padding: 6px 12px; width: 100%; max-width: none; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fft-workspace .muted, .fft-workspace .readout-label { color: var(--muted); }
-.fft-workspace .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding-bottom: 6px; border-bottom: 0; }
+.fft-workspace .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; border-bottom: 0; }
 .fft-workspace .acquisition-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .fft-workspace .generator-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .fft-workspace label, .fft-workspace .control-label { white-space: nowrap; }
@@ -24,7 +24,7 @@
 .fft-workspace select { width: 148px; }
 .fft-workspace input[type="checkbox"] { accent-color: var(--accent); }
 .fft-workspace .spectrum-panel { margin: 0; min-width: 0; flex: 1; display: flex; flex-direction: column; min-height: 300px; }
-.fft-workspace .spectrum-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 0; }
+.fft-workspace .spectrum-toolbar { display: flex; flex: 1; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 0; }
 .fft-workspace .display-controls, .fft-workspace .plot-actions { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
 .fft-workspace .toolbar-actions { display: flex; align-items: center; gap: 0; }
 .fft-workspace .toolbar-actions button + button { border-left: 0; border-radius: 0 2px 2px 0; }
@@ -71,10 +71,10 @@
     .fft-workspace .spectrum-readouts { gap: 3px 14px; }
 }
 
-.fft-workspace .history-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 8px; flex: none; padding: 6px 0 3px; }
-.fft-workspace #trace-controls { grid-column: 1; grid-row: 1; }
-.fft-workspace .trace-options, .fft-workspace #history-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; grid-column: 1; grid-row: 1; }
-.fft-workspace #clear-history { grid-column: 2; grid-row: 1; }
+.fft-workspace .trace-options, .fft-workspace .preference-options { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.fft-workspace #history-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 8px; }
+.fft-workspace #history-level-unit { grid-column: 1 / -1; }
+.fft-workspace #clear-history { justify-self: start; }
 .fft-workspace #spectrum-view { width: 124px; }
 .fft-workspace #history-controls label { display: inline-flex; align-items: center; gap: 5px; }
 .fft-workspace #history-duration { width: 62px; }
@@ -92,7 +92,7 @@
 .fft-workspace .dds-pm-widget select { width: auto; }
 
 /* Workspace sidebar, history panels and acquisition metadata. */
-.fft-workspace .measurement-toolbar { border-bottom: 1px solid var(--border-light); padding-bottom: 6px; }
+.fft-workspace .measurement-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; border-bottom: 1px solid var(--border-light); padding-bottom: 6px; }
 .fft-workspace :is(.plot-placeholder, #history-view, #history-canvas) { height: 100%; min-height: 250px; }
 .fft-workspace #history-view { position: absolute; inset: 0; }
 .fft-workspace .fft-sidebar { min-width: 0; }

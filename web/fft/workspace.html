@@ -16,21 +16,11 @@
     <div class="acquisition-controls"><div id="input-channel"></div><div id="fft-window"></div><div id="input-range" hidden></div><span id="board-acquisition-note" class="board-tag" hidden></span><div id="sampling-frequency" hidden></div><div id="reference-clock" hidden></div></div>
   </fieldset>
     <div class="spectrum-toolbar">
-      <div class="display-controls"><label class="view-selector"><span class="sr-only">View</span><select id="spectrum-view" aria-label="View" disabled><option value="spectrum">Spectrum</option><option value="spectrogram">Spectrogram</option><option value="density">Density</option></select></label><div id="yunit"></div><div id="peak-detection"></div><label class="peak-toggle"><input id="exclude-dc" type="checkbox">Exclude DC</label></div>
+      <div class="display-controls"><label class="view-selector"><span class="sr-only">View</span><select id="spectrum-view" aria-label="View" disabled><option value="spectrum">Spectrum</option><option value="spectrogram">Spectrogram</option><option value="density">Density</option></select></label><div id="yunit"></div></div>
       <div class="plot-actions"><div class="toolbar-actions"><button id="pause-display" type="button" disabled aria-pressed="false">Pause</button><button id="reset-view" type="button" disabled>Reset</button></div><div id="reference-actions" class="toolbar-actions"><button id="capture-reference" type="button" disabled title="Capture the displayed spectrum as a reference">Capture ref</button></div><div id="export-file"></div></div>
     </div>
   </div>
   <section class="spectrum-panel" aria-label="Spectrum">
-    <div class="history-toolbar">
-      <div id="trace-controls">
-        <div class="trace-options" role="group" aria-label="Spectrum traces">
-          <label class="trace-toggle" title="One-second exponential average of linear power"><input id="average-trace" type="checkbox">Average · 1 s</label>
-          <label class="trace-toggle" title="Maximum received power in each bin since history was cleared"><input id="max-hold-trace" type="checkbox">Max hold</label>
-        </div>
-      </div>
-      <div id="history-controls" hidden><label>History <select id="history-duration" aria-label="History duration"><option value="5">5 s</option><option value="15" selected>15 s</option><option value="30">30 s</option></select></label><label class="peak-toggle"><input id="auto-level" type="checkbox" checked>Auto level</label><label>Low <input id="color-low" aria-label="Low level" type="number" step="any" required disabled></label><label>High <input id="color-high" aria-label="High level" type="number" step="any" required disabled></label><span id="history-level-unit" class="muted"></span></div>
-      <button id="clear-history" type="button" title="Clear average, max hold and received spectrum history">Clear history</button>
-    </div>
     <div class="spectrum-canvas"><div id="plot-placeholder" class="plot-placeholder" aria-label="Live frequency spectrum"></div><div id="plot-basics"></div><div id="history-view" hidden><canvas id="history-canvas" aria-label="Received spectrum history"></canvas><canvas id="history-overlay" aria-hidden="true"></canvas></div></div>
     <div class="spectrum-readouts">
       <div><span class="readout-label" title="Strongest live spectrum bin in the visible frequency range">Peak in view</span><strong id="peak-frequency">—</strong></div>
@@ -45,6 +35,15 @@
     <details id="plot-preferences" class="fft-preferences">
       <summary>Preferences <span id="persistence-summary" class="preferences-state" hidden>Persistence on</span></summary>
       <div class="preferences-body">
+        <div class="preference-options"><div id="peak-detection"></div><label class="peak-toggle"><input id="exclude-dc" type="checkbox">Exclude DC</label></div>
+        <div id="trace-controls">
+          <div class="trace-options" role="group" aria-label="Spectrum traces">
+            <label class="trace-toggle" title="One-second exponential average of linear power"><input id="average-trace" type="checkbox">Average · 1 s</label>
+            <label class="trace-toggle" title="Maximum received power in each bin since history was cleared"><input id="max-hold-trace" type="checkbox">Max hold</label>
+          </div>
+        </div>
+        <div id="history-controls" role="group" aria-label="History settings" hidden><label>History <select id="history-duration" aria-label="History duration"><option value="5">5 s</option><option value="15" selected>15 s</option><option value="30">30 s</option></select></label><label class="peak-toggle"><input id="auto-level" type="checkbox" checked>Auto level</label><label>Low <input id="color-low" aria-label="Low level" type="number" step="any" required disabled></label><label>High <input id="color-high" aria-label="High level" type="number" step="any" required disabled></label><span id="history-level-unit" class="muted"></span></div>
+        <button id="clear-history" type="button" title="Clear average, max hold and received spectrum history">Clear history</button>
         <label class="peak-toggle" title="Keep fading trails of recent displayed spectra"><input id="persistence-enabled" type="checkbox" aria-controls="persistence-controls" aria-describedby="persistence-help" disabled>Persistence</label>
         <p id="persistence-help" class="preference-help">Keep fading trails in Spectrum view. The latest trace stays sharp.</p>
         <div id="persistence-controls" role="group" aria-label="Persistence settings" hidden>
