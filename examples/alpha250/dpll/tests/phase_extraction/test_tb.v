@@ -11,6 +11,10 @@ module phase_extraction_test;
     reg [18:0] valid_pipe=0;
     integer history[0:3];
     integer k,dx,dy,ev,vv,rr,file,status,checked=0,cycles=0,difference;
+    integer coordinate_shift;
+    reg [19:0] expected_mantissa;
+    reg [1:0] expected_scale;
+    reg [2:0] scales_seen=0;
     real error,peak=0,squared=0,raw,raw_error,raw_peak=0,raw_squared=0;
     reg [2047:0] vector_path;
     always @(posedge clk) begin
@@ -21,6 +25,15 @@ module phase_extraction_test;
         history[0]=fast;
         cycles=cycles+1;
         #0.1;
+        // Compare the early normalization against the original registered
+        // coordinate, including every fraction bit and the capture edge.
+        coordinate_shift=dut.x[8]>=33554432 ? 6 : dut.x[8]>=16777216 ? 5 : 4;
+        expected_mantissa=dut.x[8] >> coordinate_shift;
+        expected_scale=coordinate_shift-4;
+        if (dut.residual_completion.mantissa!==expected_mantissa ||
+            dut.residual_completion.scale!==expected_scale)
+            $fatal(1,"Final-rotation normalization changed value/latency at cycle %0d",cycles);
+        if (dut.valids[8] && !dut.zeros[8]) scales_seen[expected_scale]=1;
         if(vf !== valid_pipe[14] || vr !== valid_pipe[18]) $fatal(1,"Latency/reset mismatch at cycle %0d",cycles);
         if(vf) begin
             if ((^fast) === 1'bx) $fatal(1,"Unknown phase output");
@@ -72,6 +85,7 @@ module phase_extraction_test;
         valid=0; resetn=1;
         repeat(21) @(negedge clk);
         if(checked<100000) $fatal(1,"Too few checked samples");
+        if(scales_seen!==3'b111) $fatal(1,"Missing residual normalization scale coverage");
         $display("Phase extraction checks passed: %0d samples; selected latency=15 clocks / 60 ns; peak=%f urad RMS=%f urad",checked,peak,$sqrt(squared/checked));
         $display("Before output rounding: peak=%f urad RMS=%f urad",raw_peak,$sqrt(raw_squared/checked));
         $finish;

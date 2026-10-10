@@ -219,6 +219,7 @@ module phase_extractor #(
     endfunction
 
     wire signed [W-1:0] x [0:N];
+    wire signed [W-1:0] final_x;
     wire signed [W-1:0] y [0:N];
     wire signed [A-1:0] z [0:N];
     reg signed [W-1:0] norm_x = 0, norm_y = 0;
@@ -252,6 +253,7 @@ module phase_extractor #(
             // truncation, is checked independently against atan2.
             assign next_x = x[k];
         end
+        if (k==N-1) assign final_x=next_x;
         wire signed [Y_WIDTH-1:0] next_y;
         wire signed [A-1:0] next_z;
         if (k >= 9 && k >= PAIR_START && ROTATIONS_PER_CLOCK == 2 && (k-PAIR_START)%2 == 1) begin : speculative
@@ -345,9 +347,20 @@ module phase_extractor #(
         end
     end endgenerate
     generate if (RESIDUAL_CORRECTION) begin : residual_completion
+        // Normalize on the existing final-rotation edge. The following ROM
+        // stage then reads one address, without three parallel reads and a
+        // scale mux before its DSP input registers. No extra clock is added;
+        // y[N], z[N], zero and valid are registered on this same edge.
+        reg [19:0] mantissa=0;
+        reg [1:0] scale=0;
+        always @(posedge clk) begin
+            mantissa<=final_x[25] ? final_x[25:6] :
+                      final_x[24] ? final_x[24:5] : final_x[23:4];
+            scale<=final_x[25] ? 2'd2 : final_x[24] ? 2'd1 : 2'd0;
+        end
         phase_residual completion (
             .clk(clk), .resetn(resetn), .valid_in(valids[GROUPS]),
-            .zero_in(zeros[GROUPS]), .x_in(x[N]), .y_in(y[N][20:0]),
+            .zero_in(zeros[GROUPS]), .mantissa(mantissa), .scale(scale), .y_in(y[N][20:0]),
             .angle_in(z[N]), .valid_out(valid_out), .phase_out(phase_out)
         );
     end endgenerate

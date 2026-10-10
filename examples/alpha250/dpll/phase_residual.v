@@ -1,7 +1,8 @@
 `timescale 1 ns / 1 ps
 
 // Four-clock small-angle completion after eight vectoring rotations.
-// x is positive, with leading bit 23..25; |y/x| is approximately <= 2^-7.
+// Positive x arrives normalized to a 20-bit mantissa and a scale (0..2),
+// corresponding to an original leading bit 23..25. |y/x| is approximately <= 2^-7.
 // atan(y/x) is replaced by y/x, with <= 0.160 urad approximation error at
 // that bound. An interpolated reciprocal includes the scaled-radian factor.
 module phase_residual (
@@ -9,15 +10,13 @@ module phase_residual (
     input wire resetn,
     input wire valid_in,
     input wire zero_in,
-    input wire signed [26:0] x_in,
+    input wire [19:0] mantissa,
+    input wire [1:0] scale,
     input wire signed [20:0] y_in,
     input wire signed [31:0] angle_in,
     output wire valid_out,
     output wire signed [23:0] phase_out
 );
-    wire [1:0] scale = x_in[25] ? 2'd2 : x_in[24] ? 2'd1 : 2'd0;
-    wire [19:0] mantissa = x_in[25] ? x_in[25:6] :
-                           x_in[24] ? x_in[24:5] : x_in[23:4];
     // Each word packs round(2^18/(pi*m)) and its decrement over the next
     // 1/256 interval. The remaining 11 mantissa bits interpolate within it.
     (* rom_style = "distributed" *) reg [25:0] reciprocal_rom [0:255];
@@ -279,13 +278,9 @@ module phase_residual (
         reciprocal_rom[254] = 26'h1473a52;
         reciprocal_rom[255] = 26'h1469651;
     end
-    // Read all three leading-bit cases in parallel. Select the ROM word
-    // afterward so scale decoding does not drive every ROM address consumer.
-    (* KEEP = "TRUE" *) wire [25:0] lookup_large=reciprocal_rom[x_in[24:17]];
-    (* KEEP = "TRUE" *) wire [25:0] lookup_middle=reciprocal_rom[x_in[23:16]];
-    (* KEEP = "TRUE" *) wire [25:0] lookup_small=reciprocal_rom[x_in[22:15]];
-    wire [25:0] lookup=x_in[25] ? lookup_large :
-                       x_in[24] ? lookup_middle : lookup_small;
+    // The preceding rotation has already registered the normalized address.
+    // A single ROM read feeds the DSP directly, without a late scale mux.
+    wire [25:0] lookup=reciprocal_rom[mantissa[18:11]];
     reg signed [20:0] y1 = 0;
     reg signed [31:0] angle1 = 0;
     reg signed [47:0] angle2 = 0;
