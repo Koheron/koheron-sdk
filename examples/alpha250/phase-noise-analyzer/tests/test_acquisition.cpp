@@ -127,6 +127,10 @@ int main() {
     assert(std::get<3>(spectrum_frame) == 6250000.0);
     assert(std::get<9>(spectrum_frame) == std::get<5>(parameters));
     assert(std::get<16>(spectrum_frame) == pn);
+    const auto sequence = std::get<0>(spectrum_frame);
+    const auto cached_frame = analyzer.get_spectrum_snapshot_since(uint32_t(sequence >> 32), uint32_t(sequence));
+    assert(std::get<0>(cached_frame) == sequence);
+    assert(std::get<16>(cached_frame).empty());
     // Reapplying unchanged controls must not restart DMA or empty averages.
     // In particular, a repeated setting at slow decimation would otherwise
     // discard many seconds of a valid spectrum window.

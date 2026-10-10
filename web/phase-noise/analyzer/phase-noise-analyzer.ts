@@ -43,12 +43,14 @@ class PhaseNoiseAnalyzer {
   private driver: Driver;
   private id: number;
   private cmds: Commands;
+  private spectrumReader: PnaSpectrumReader;
   public parameters: IParameters;
 
   constructor(private client: Client, driverName = 'PhaseNoiseAnalyzer') {
     this.driver = this.client.getDriver(driverName);
     this.id = this.driver.id;
     this.cmds = this.driver.getCmds();
+    this.spectrumReader = new PnaSpectrumReader(this.client, this.id, this.cmds);
   }
 
   supportsSampleRate(): boolean {
@@ -123,11 +125,11 @@ class PhaseNoiseAnalyzer {
       return {sequence: undefined, state: undefined, precision: undefined,
         parameters: {...this.parameters}, values: await this.getPhaseNoise()};
     }
-    const reply = await readPnaSpectrum(this.client, Command(this.id, this.cmds['get_spectrum_snapshot']));
+    const reply = await this.spectrumReader.read();
     const m = reply.metadata;
     const parameters: IParameters = {...this.parameters, ...m};
     return {sequence: m.sequence, state: m.state, precision: m.precision,
-      parameters, values: reply.values};
+      parameters, values: reply.values, transferredDensityBytes: reply.transferredDensityBytes};
   }
 
   setCicRate(cic_rate: number): void {

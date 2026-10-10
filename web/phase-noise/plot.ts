@@ -222,6 +222,10 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
   private rateStarted = performance.now();
   private displayedFrames = 0;
   private receivedFrames = 0;
+  private publicationAdvances = 0;
+  private lastObservedSequence: number;
+  private paintedFrames = 0;
+  private densityBytes = 0;
   private readMs = 0;
   private processMs = 0;
   private drawMs = 0;
@@ -449,9 +453,10 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
       }
 
       const readStarted = performance.now();
-      const snapshot = this.driver.getSpectrumSnapshot
+      const snapshot: PnaSpectrumFrame<P> = this.driver.getSpectrumSnapshot
         ? await this.driver.getSpectrumSnapshot()
-        : {sequence: undefined, state: undefined, parameters: {...this.driver.parameters}, values: await this.driver.getPhaseNoise()};
+        : {sequence: undefined, state: undefined, precision: undefined,
+          parameters: {...this.driver.parameters}, values: await this.driver.getPhaseNoise()};
       const frameParameters = snapshot.parameters;
       const phaseNoise = snapshot.values;
       const received = performance.now();
@@ -471,13 +476,15 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
         // The server returns its last published PSD between acquisitions.
         // A zoom/resize still needs a redraw, but keeps the capture timestamp.
         const drawStarted = performance.now();
+        const needsRedraw = this.plotBasics.needsRedraw();
         const complete = () => {
           this._busy = false;
           if (this.disposed) { return; }
-          this.recordFrame(received - readStarted, 0, performance.now() - drawStarted, frameDelay, false);
+          this.recordFrame(received - readStarted, 0, performance.now() - drawStarted,
+            frameDelay, false, needsRedraw, snapshot.sequence, snapshot.transferredDensityBytes ?? phaseNoise.byteLength);
           this.schedule(Math.max(0, this._lastTick + frameBudgetMs - performance.now()));
         };
-        if (this.plotBasics.needsRedraw()) { this.redraw(complete); }
+        if (needsRedraw) { this.redraw(complete); }
         else { complete(); }
         return;
       }
@@ -524,7 +531,7 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
           if (this.disposed) { return; }
           const drawn = performance.now();
           this.recordFrame(received - readStarted, drawStarted - received, drawn - drawStarted,
-            frameDelay, ready && changed);
+            frameDelay, ready && changed, true, snapshot.sequence, snapshot.transferredDensityBytes ?? phaseNoise.byteLength);
           this.schedule(Math.max(0, this._lastTick + frameBudgetMs - drawn));
         });
     } catch (err) {
@@ -561,6 +568,10 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
     this.rateStarted = performance.now();
     this.displayedFrames = 0;
     this.receivedFrames = 0;
+    this.publicationAdvances = 0;
+    this.lastObservedSequence = undefined;
+    this.paintedFrames = 0;
+    this.densityBytes = 0;
     this.lastStarted = -Infinity;
     this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
     const rate = this.document.getElementById('refresh-rate');
@@ -570,10 +581,21 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
     }
   }
 
-  private recordFrame(readMs = 0, processMs = 0, drawMs = 0, schedulerMs = 0, changed = true): void {
+  private recordFrame(readMs = 0, processMs = 0, drawMs = 0, schedulerMs = 0, changed = true,
+      painted = true, sequence?: number, densityBytes = 0): void {
     if (this.document.hidden) { return; }
     if (changed) { this.displayedFrames++; }
     this.receivedFrames++;
+    if (sequence === undefined) {
+      if (changed) { this.publicationAdvances = (this.publicationAdvances ?? 0) + 1; }
+    } else {
+      const delta = this.lastObservedSequence === undefined || sequence <= this.lastObservedSequence
+        ? Number(changed) : sequence - this.lastObservedSequence;
+      this.publicationAdvances = (this.publicationAdvances ?? 0) + delta;
+      this.lastObservedSequence = sequence;
+    }
+    if (painted) { this.paintedFrames = (this.paintedFrames ?? 0) + 1; }
+    this.densityBytes = (this.densityBytes ?? 0) + densityBytes;
     this.readMs += readMs;
     this.processMs += processMs;
     this.drawMs += drawMs;
@@ -584,13 +606,19 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
     if (rate) {
       rate.textContent = (this.displayedFrames * 1000 / elapsed).toFixed(0) + ' FPS';
       const mean = (time: number) => (time / this.receivedFrames).toFixed(1);
-      rate.title = `New spectra displayed per second; polling ${(this.receivedFrames * 1000 / elapsed).toFixed(0)}/s (target ${this._targetHz}/s)`
+      rate.title = `New spectra displayed per second; publications ${(this.publicationAdvances * 1000 / elapsed).toFixed(0)}/s`
+        + `; polling ${(this.receivedFrames * 1000 / elapsed).toFixed(0)}/s (target ${this._targetHz}/s)`
+        + `; plot redraws ${(this.paintedFrames * 1000 / elapsed).toFixed(0)}/s`
+        + `; density transfer ${(this.densityBytes * 1000 / elapsed / 1024).toFixed(0)} KiB/s`
         + `; read ${mean(this.readMs)} ms; process ${mean(this.processMs)} ms`
         + `; draw ${mean(this.drawMs)} ms; scheduling delay ${mean(this.schedulerMs)} ms`;
     }
     this.rateStarted = performance.now();
     this.displayedFrames = 0;
     this.receivedFrames = 0;
+    this.publicationAdvances = 0;
+    this.paintedFrames = 0;
+    this.densityBytes = 0;
     this.readMs = this.processMs = this.drawMs = this.schedulerMs = 0;
   }
 

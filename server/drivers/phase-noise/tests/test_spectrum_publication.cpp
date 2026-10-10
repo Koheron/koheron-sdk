@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cassert>
 #include <fstream>
+#include <string>
 #include <thread>
 
 int main(int argc, char** argv) {
@@ -20,6 +21,16 @@ int main(int argc, char** argv) {
     auto snapshot = publication.snapshot();
     assert(std::get<0>(snapshot) == 1);
     assert(std::get<16>(snapshot) == publication.spectrum());
+    const auto cached = publication.snapshot_since(1);
+    assert(std::get<0>(cached) == 1);
+    assert(std::get<1>(cached) == 1);
+    assert(std::get<16>(cached).empty());
+    assert(std::get<16>(publication.snapshot_since(0)) == publication.spectrum());
+    phase_noise::SpectrumPublication<float> faster(5, 60.0);
+    faster.publish(metadata, {0.f, 0.f, -2.f, 4.f, 8.f});
+    assert(!faster.ready());
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    assert(faster.ready());
     assert((publication.average_status() == std::tuple{7u, 0u}));
     if (argc > 1) {
         std::pmr::vector<unsigned char> bytes;
@@ -28,8 +39,15 @@ int main(int argc, char** argv) {
         builder.write_header(5, 7);
         builder.push(snapshot);
         assert(bytes.size() == 8 + 92 + 4 + 5 * sizeof(float));
+        std::pmr::vector<unsigned char> compact;
+        builder.reset_into(compact);
+        builder.write_header(5, 8);
+        builder.push(cached);
+        assert(compact.size() == 8 + 92 + 4);
         std::ofstream(argv[1], std::ios::binary).write(
             reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        std::ofstream(std::string(argv[1]) + ".cached", std::ios::binary).write(
+            reinterpret_cast<const char*>(compact.data()), compact.size());
     }
     std::atomic<bool> finished{false};
     std::thread writer([&] {
