@@ -103,6 +103,9 @@ class PlotBasics {
     setPlot(x_min: number, x_max: number, y_min: number, y_max: number) {
         this.reset_range = false;
         this.rebuildPlot = true;
+        const placeholder = this.plot_placeholder[0];
+        const traceColor = placeholder?.ownerDocument.defaultView?.getComputedStyle(placeholder)
+            .getPropertyValue('--plot-trace-color').trim() || '#019cd5';
 
         this.options = {
             canvas: true,
@@ -135,7 +138,7 @@ class PlotBasics {
             selection: {
                 mode: "xy"
             },
-            colors: ["#019cd5", "#006400"],
+            colors: [traceColor, "#006400"],
             legend: {
                 show: true,
                 noColumns: 0,

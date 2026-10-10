@@ -1,6 +1,10 @@
 /* Compact controls and readouts follow the KoheronControl plot workspace. */
 /* The shared instrument stylesheet owns controls, colors and header styles. */
 .fft-workspace {
+    --accent: #667e89;
+    --accent-dark: #465a64;
+    --accent-light: #eef1f3;
+    --plot-trace-color: #607f8e;
     --control-height: 26px;
     --control-padding: 2px 8px;
     --instrument-font: 'DDS PM Lato', Arial, sans-serif;
@@ -153,8 +157,8 @@
 .fft-workspace #clear-persistence { justify-self: start; }
 .fft-workspace #persistence-decay { width: 64px; background: white; }
 .fft-workspace #persistence-intensity { appearance: none; -webkit-appearance: none; min-width: 64px; width: 100%; height: var(--control-height); margin: 0 3px; padding: 0; background: transparent; cursor: pointer; }
-.fft-workspace #persistence-intensity::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #d6e1e6; }
-.fft-workspace #persistence-intensity::-moz-range-track { height: 4px; border-radius: 2px; background: #d6e1e6; }
+.fft-workspace #persistence-intensity::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #dde2e5; }
+.fft-workspace #persistence-intensity::-moz-range-track { height: 4px; border-radius: 2px; background: #dde2e5; }
 .fft-workspace #persistence-intensity::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border: 2px solid white; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .fft-workspace #persistence-intensity::-moz-range-thumb { width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .fft-workspace #persistence-intensity-value { min-width: 4ch; color: var(--accent-dark); font-weight: 600; font-variant-numeric: tabular-nums; }
