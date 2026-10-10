@@ -15,6 +15,11 @@ directory swaps and recovery. Service control uses a private executable fixture.
 Filesystem failures are injected with a host-only shared library. Activation
 tests pass real systemd-style descriptors and verify readiness and socket reuse.
 LED tests exchange fragmented binary RPC messages with a real Unix peer.
+Boot extraction tests exercise `koheron-install --extract-default` without
+service control, including both loader formats, CRC checks of omitted reference
+bitstreams, default-name/path validation, replacement and file-swap recovery.
+[Native boot validation](native-boot-validation.json) records the focused checks,
+cross-build hashes and extraction from the assembled ARM image in QEMU.
 
 The Docker test job also checks first-boot growth on a disposable disk image,
 rootfs settings and enablement in a private chroot. No real disks are used.

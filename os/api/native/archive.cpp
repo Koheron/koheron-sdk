@@ -37,7 +37,7 @@ void read_member(zip_t* archive, zip_uint64_t index, Consumer consume) {
     }
 }
 
-bool payload_exists(const fs::path& destination) {
+bool payload_exists(const fs::path& destination, FpgaLoader loader) {
     bool bitstream = false, overlay = false, binary = false;
     for (const auto& entry : fs::directory_iterator(destination)) {
         if (!entry.is_regular_file() || entry.file_size() == 0) continue;
@@ -46,7 +46,19 @@ bool payload_exists(const fs::path& destination) {
         overlay |= name == "pl.dtbo";
         binary |= name.ends_with(".bit.bin");
     }
+    if (loader == FpgaLoader::overlay) return overlay && binary;
+    if (loader == FpgaLoader::xdevcfg) return bitstream;
     return bitstream || (overlay && binary);
+}
+
+FpgaLoader resolve_loader(std::string_view loader) {
+    if (loader == "overlay") return FpgaLoader::overlay;
+    if (loader == "xdevcfg") return FpgaLoader::xdevcfg;
+    if (loader != "auto") throw std::runtime_error("Unknown FPGA loader: " + std::string(loader));
+    // Match the server's preference when both loading mechanisms exist.
+    if (fs::exists("/dev/xdevcfg")) return FpgaLoader::xdevcfg;
+    if (fs::exists("/sys/class/fpga_manager/fpga0/flags")) return FpgaLoader::overlay;
+    return FpgaLoader::any; // Offline staging without board devices.
 }
 }
 
@@ -73,7 +85,7 @@ void Archive::validate() {
     }
 }
 
-void Archive::extract(const fs::path& destination) {
+void Archive::extract(const fs::path& destination, bool omit_reference_bitstreams) {
     std::set<fs::path> names;
     std::uint64_t total = 0;
     const auto count = zip_get_num_entries(archive_.get(), 0);
@@ -105,27 +117,73 @@ void Archive::extract(const fs::path& destination) {
             fs::create_directories(target);
             continue;
         }
-        fs::create_directories(target.parent_path());
-        Fd output(::open(target.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0644 | (mode & 0111)));
-        if (output.get() < 0) system_error("extract " + name);
+        Fd output;
+        if (!(omit_reference_bitstreams && name.ends_with(".bit"))) {
+            fs::create_directories(target.parent_path());
+            output = Fd(::open(target.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0644 | (mode & 0111)));
+            if (output.get() < 0) system_error("extract " + name);
+        }
         read_member(archive_.get(), id, [&](std::span<const char> bytes) {
             total += bytes.size();
             if (total > 256 * 1024 * 1024) throw InvalidArchive("Extracted archive exceeds 256 MiB limit");
-            write_all(output.get(), bytes);
+            // Omitted reference bitstreams still count toward the size bound
+            // and are read completely to check their CRC.
+            if (output.get() >= 0) write_all(output.get(), bytes);
         });
     }
 }
 
-void stage_archive(const fs::path& filename, const fs::path& destination) {
+void stage_archive(const fs::path& filename, const fs::path& destination, FpgaLoader loader) {
     Archive archive(filename);
-    archive.extract(destination);
+    archive.extract(destination, loader == FpgaLoader::overlay);
     const auto version = read_file(destination / "version");
     if (!fs::is_regular_file(destination / "serverd") || ::access((destination / "serverd").c_str(), X_OK) != 0)
         throw InvalidArchive("Instrument serverd is not executable");
     if (!version || trim(*version).empty()) throw InvalidArchive("Instrument version is empty");
     if (utf8(*version) != *version) throw InvalidArchive("Instrument version is not valid UTF-8");
-    if (!payload_exists(destination)) throw InvalidArchive("Instrument archive has no FPGA payload");
+    if (!payload_exists(destination, loader)) throw InvalidArchive("Instrument archive has no FPGA payload for the selected loader");
     write_file(destination / ".instrument-name", filename.stem().string() + "\n");
+}
+
+void extract_default(const Settings& settings, std::string_view requested_loader) {
+    const auto loader = resolve_loader(requested_loader);
+    const auto preference = read_file(settings.instruments / "default", 4096);
+    if (!preference) throw InvalidArchive("Default instrument file is missing");
+    const auto name = trim(*preference);
+    if (name.size() <= 4 || !name.ends_with(".zip") || safe_filename(name) != name)
+        throw InvalidArchive("Invalid default instrument filename");
+    const auto filename = settings.instruments / name;
+    if (!fs::is_regular_file(fs::symlink_status(filename)))
+        throw InvalidArchive("Default instrument archive is missing or not a regular file");
+    auto live = fs::absolute(settings.live).lexically_normal();
+    if (live != live.root_path() && live.filename().empty()) live = live.parent_path();
+    if (live.filename().empty() || live == live.root_path())
+        throw std::runtime_error("Invalid live instrument directory");
+    const auto status = fs::symlink_status(live);
+    if (fs::exists(status) && !fs::is_directory(status))
+        throw std::runtime_error("Live instrument path is not a directory");
+    const auto relative_archive = fs::weakly_canonical(filename).lexically_relative(fs::weakly_canonical(live));
+    if (!relative_archive.empty() && *relative_archive.begin() != "..")
+        throw std::runtime_error("Live instrument directory contains the source archive");
+    fs::create_directories(live.parent_path());
+    const auto transaction = temporary_directory(live.parent_path(), ".instrument-");
+    const auto staged = transaction / "next", backup = transaction / "previous";
+    try {
+        fs::create_directory(staged);
+        stage_archive(filename, staged, loader);
+        if (fs::exists(live)) fs::rename(live, backup);
+        try { fs::rename(staged, live); }
+        catch (...) {
+            if (fs::exists(backup)) fs::rename(backup, live);
+            throw;
+        }
+        fs::remove_all(backup);
+    } catch (...) {
+        if (fs::exists(backup)) std::cerr << "Recovery failed; previous files retained at " << backup << '\n';
+        else fs::remove_all(transaction);
+        throw;
+    }
+    fs::remove_all(transaction);
 }
 
 void install(const fs::path& filename, const Settings& settings) {

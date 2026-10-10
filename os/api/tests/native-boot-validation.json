@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-10",
+  "base_commit": "befb82a699e96948fe93e6a07a75e720293caea0",
+  "native_source_sha256": "7b3e2390700d67e1933c42ca5eb16989815b65ab5f51fb3e43ef97803eecb003",
+  "compiler": "GCC 15.2.0 / C++23",
+  "builder_image_id": "sha256:c90842ea998da8e40ef697c8d1986e73a73d5c469ffa0e525f839275098f0025",
+  "cross_builds": [
+    "armhf",
+    "arm64"
+  ],
+  "arm64_qemu_version_check": true,
+  "native_tests": 78,
+  "native_boot_tests": 14,
+  "filesystem_fault_tests": 6,
+  "grow_rootfs_tests": 10,
+  "rootfs_settings_tests": 5,
+  "rootfs_overlay_tests": 2,
+  "systemd_ordering_tests": 3,
+  "os_regression": "89 tests run; two root-only skips passed separately in Docker. Four subcases of the pre-existing compiler-selection test expected a removed fallback image and failed; that expectation is corrected, and both compiler-selection tests pass on a targeted rerun. The rest of the OS suite is unchanged.",
+  "armhf_binary_sha256": {
+    "koheron-install": "105a37f8976d0647eb816861701a9078ea2502a980ab850545826ebf8dd52866",
+    "koheron-server-init": "4aa1d28d671627abbb56eb21b2029c90a374457c5b819c20672708e66e0bf433",
+    "koheron-api": "4ca712aaa908a970ad0e002eaa85cad0e9e92373a91c6af6ffe6ec89b6690082"
+  },
+  "image": {
+    "path": "tmp/examples/red-pitaya/fft/red-pitaya-fft.img",
+    "bytes": 288358400,
+    "sha256": "f90fe6cd5611917e233cac5a49a5022ea8e3c00b79af8d0259472da1afff937a",
+    "zip_bytes": 64736070,
+    "zip_sha256": "3becead144f36e8773b7f4b43a033bad98044b0610291831c4863c5b839de18e",
+    "native_boot_extraction_in_python_and_unzip_free_arm_chroot": true,
+    "cached_fft_version": "0.2.2",
+    "reference_bitstream_omitted": true,
+    "runtime_payload_present": true,
+    "serverd_executable": true,
+    "temporary_files_removed": true,
+    "native_service_enabled": true,
+    "old_shell_helper_absent": true,
+    "installed_packages": 178,
+    "cached_hardware_and_instrument_artifacts": true,
+    "physical_boot_tested": false
+  },
+  "hardware_tests": "None for this extension; no board services, FPGA or SD card changed.",
+  "image_comparison": {
+    "prior_image_sha256": "7984c53096f67f96a9f98c43c4623378553bc10044c44a5d0b7ac8c87fa266f4",
+    "prior_image_bytes": 289406976,
+    "prior_rootfs_allocated_bytes": 198660096,
+    "rootfs_allocated_bytes": 198361088,
+    "removed_packages": {
+      "unzip:armhf": {
+        "version": "6.0-29ubuntu1",
+        "installed_size_kib": 369
+      }
+    },
+    "added_packages": [],
+    "all_178_retained_package_versions_and_installed_sizes_identical": true
+  }
+}

@@ -1,4 +1,4 @@
-"""Compiler choices remain independent of Vivado and support the old builder."""
+"""Compiler choices are independent of Vivado; builder overrides are explicit."""
 from pathlib import Path
 import subprocess
 import unittest
@@ -19,7 +19,7 @@ compiler-selection-test:
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result.stdout.splitlines()
 
-    def test_default_and_legacy_compilers_for_each_architecture(self):
+    def test_default_and_overridden_compilers_for_each_architecture(self):
         for board, prefix in [('alpha250/fft', 'arm-linux-gnueabihf'),
                               ('kria-kr260/test', 'aarch64-linux-gnu')]:
             for vivado in ['2025.1', '2026.1']:
@@ -27,8 +27,8 @@ compiler-selection-test:
                     self.assertEqual(self.settings(board, f'VIVADO_VERSION={vivado}'),
                         ['15', 'cross-armhf:26.04', f'{prefix}-gcc-15',
                          f'{prefix}-gcc-15', 'gcc-15', f'{prefix}-gcc-15'])
-                    self.assertEqual(self.settings(board, 'GCC_VERSION=13'),
-                        ['13', 'cross-armhf:24.04', f'{prefix}-gcc-13',
+                    self.assertEqual(self.settings(board, 'GCC_VERSION=13', f'VIVADO_VERSION={vivado}'),
+                        ['13', 'cross-armhf:26.04', f'{prefix}-gcc-13',
                          f'{prefix}-gcc-13', 'gcc-13', f'{prefix}-gcc-13'])
 
     def test_kernel_and_boot_compilers_can_be_selected_separately(self):

@@ -106,7 +106,30 @@ Instrument installation stages and validates files before stopping the service,
 waits for systemd readiness and restores the previous installation on failure.
 Uploads are capped at 20 MiB; extraction is capped at 256 MiB and 10,000 entries.
 
-The standard image has no Python interpreter, Flask, uWSGI or cloud-guest-utils.
+Boot extraction uses `koheron-install --extract-default`. It reads the selected
+archive from `/usr/local/instruments/default`, validates and stages it before
+replacing `/tmp/live-instrument`, and does not control services. systemd starts
+the server after extraction succeeds. The existing
+`unzip-default-instrument.service` name is retained for compatibility.
+
+Loader detection follows the server: `/dev/xdevcfg` takes precedence over FPGA
+Manager. FPGA Manager extraction omits reference `.bit` files while retaining
+`.bit.bin` and `pl.dtbo`; xdevcfg retains `.bit`. Omitted files still undergo CRC
+and size validation. Without board devices, offline `auto` extraction retains
+both payload formats. For explicit offline staging:
+
+```sh
+koheron-install --extract-default --instruments /path/to/instruments \
+  --live /path/to/staging/live --loader overlay
+```
+
+This mode only extracts files; use normal installation or the API to switch a
+running instrument. Invalid input leaves the previous extraction intact, and a
+failed file swap restores it. If restoration fails, the installer reports and
+retains the backup path.
+
+The standard image has no Python interpreter, Flask, uWSGI, cloud-guest-utils
+or unzip.
 First-boot partition growth uses `sfdisk`, followed by `partx` and `resize2fs`.
 Host Python clients and build/test tools are unchanged.
 

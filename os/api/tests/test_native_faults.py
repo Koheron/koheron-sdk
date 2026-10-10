@@ -37,3 +37,28 @@ class NativeFaultTest(NativeFixture):
         self.assertEqual((backup[0] / 'serverd').read_bytes(), b'old executable')
         self.assertIn(str(backup[0]), result.stderr)
         self.assertFalse(self.load_state()['active'])
+
+    def boot(self, fault):
+        self.environment.update(LD_PRELOAD=str(self.library), NATIVE_IO_FAULT=fault)
+        (self.store / 'default').write_text('new.zip\n')
+        result = subprocess.run([str(BIN_DIR / 'koheron-install'), '--extract-default',
+            '--instruments', str(self.store), '--live', str(self.live), '--loader', 'overlay'],
+            env=self.environment, capture_output=True, text=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.operations(), [])
+        return result
+
+    def test_boot_disk_full_preserves_previous_extraction(self):
+        self.boot('extract'); self.assert_old()
+        self.assertEqual(list(self.root.glob('.instrument-*')), [])
+
+    def test_boot_swap_failure_restores_previous_extraction(self):
+        self.boot('swap'); self.assert_old()
+        self.assertEqual(list(self.root.glob('.instrument-*')), [])
+
+    def test_boot_restore_failure_retains_backup_and_reports_path(self):
+        result = self.boot('swap-restore')
+        backup = list(self.root.glob('.instrument-*/previous'))
+        self.assertEqual(len(backup), 1)
+        self.assertEqual((backup[0] / 'serverd').read_bytes(), b'old executable')
+        self.assertIn(str(backup[0]), result.stderr)

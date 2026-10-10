@@ -368,10 +368,6 @@ $(OVERLAY_DIR)/etc/motd: $(OS_PATH)/config/etc/motd
 $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once: $(OS_PATH)/scripts/grow-rootfs-once
 	install -D -m0755 $< $@
 
-# Instruments
-$(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh: $(OS_PATH)/scripts/unzip_default_instrument.sh
-	install -D -m0755 $< $@
-
 # --- copy all (or selected) instruments into overlay; create a stamp ---
 COPY_INSTRUMENTS ?=
 COPY_INSTR_FILES := $(addprefix $(TMP)/$(BOARD)/instruments/,$(addsuffix .zip,$(COPY_INSTRUMENTS)))
@@ -426,7 +422,6 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-api.socket \
   $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once \
   $(OVERLAY_DIR)/etc/systemd/system/grow-rootfs-once.service \
-  $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh \
   $(OVERLAY_DIR)/usr/local/instruments/$(NAME).zip \
   $(OVERLAY_DIR)/usr/local/instruments/default \
   $(OVERLAY_DIR)/etc/nginx/nginx.conf \
@@ -444,7 +439,8 @@ $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
 	# Remove obsolete SDK files when reusing an overlay from the Python runtime.
 	rm -rf $(OVERLAY_DIR)/etc/uwsgi
 	rm -f $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
-	  $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py
+	  $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py \
+	  $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh
 	tar -C $(OVERLAY_DIR) \
 	    --owner=0 --group=0 --numeric-owner \
 	    --mtime='UTC 1970-01-01' \

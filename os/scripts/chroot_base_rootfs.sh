@@ -96,16 +96,17 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
   systemd systemd-sysv systemd-timesyncd systemd-resolved \
   openssh-server usbutils psmisc lsof parted curl less nano iw \
-  fdisk e2fsprogs bash-completion unzip udev net-tools netbase \
+  fdisk e2fsprogs bash-completion udev net-tools netbase \
   lsb-base sudo rsync kmod nginx \
   libmicrohttpd12t64 libzip5 libjson-c5 libunistring5 libstdc++6 \
   iproute2
 
-# Also clean an Ubuntu Base archive or cache that already contains Python.
+# Also clean an Ubuntu Base archive or cache with obsolete runtime packages.
 # cloud-guest-utils depended on Python; first-boot growth now uses sfdisk.
+# Native extraction replaces unzip at boot.
 mapfile -t obsolete_packages < <(
   dpkg-query -W -f='${binary:Package}\t${db:Status-Abbrev}\n' \
-    'python*' 'libpython*' 'uwsgi*' cloud-guest-utils 2>/dev/null |
+    'python*' 'libpython*' 'uwsgi*' cloud-guest-utils unzip 2>/dev/null |
     awk '$2 ~ /^ii/ { print $1 }'
 )
 if [ "${#obsolete_packages[@]}" -gt 0 ]; then
