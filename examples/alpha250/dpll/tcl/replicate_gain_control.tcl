@@ -8,11 +8,11 @@ if {[llength $data_sources] < 48} {error "Expected the 48 used gain table payloa
 set bank_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/active_banks_reg*}]
 if {[llength $bank_sources] < 8} {error "Expected eight applied gain banks"}
 set sources [concat $sources $data_sources $bank_sources]
-set acceptance_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/* && (NAME =~ *destinations_reg* || NAME =~ *rejected_reg* || NAME =~ *commit_requested_reg* || NAME =~ *loop_requested_reg*)}]
-set acceptance_destinations [filter $acceptance_sources {NAME =~ *destinations_reg*}]
+set acceptance_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/* && (NAME =~ *commit_enable_reg* || NAME =~ *rejected_reg* || NAME =~ *commit_requested_reg* || NAME =~ *loop_requested_reg*)}]
+set acceptance_destinations [filter $acceptance_sources {NAME =~ *commit_enable_reg*}]
 set acceptance_flags [filter $acceptance_sources {NAME =~ *rejected_reg* || NAME =~ *commit_requested_reg*}]
 # Loop selection can be folded into the registered one-hot controls.
-if {[llength $acceptance_destinations] < 8 || [llength $acceptance_flags] < 2} {error "Expected registered gain acceptance and one-hot destinations"}
+if {[llength $acceptance_destinations] < 8 || [llength $acceptance_flags] < 2} {error "Expected registered gain acceptance and one-hot commit enables"}
 set sources [concat $sources $acceptance_sources]
 set nets [get_nets -of_objects [get_pins -of_objects $sources -filter {REF_PIN_NAME == Q}]]
 set_property FORCE_MAX_FANOUT 16 $nets
@@ -21,7 +21,7 @@ phys_opt_design -force_replication_on_nets $nets
 # Replicated registers retain the same three-clock programming protocol.
 source [file normalize [file join [file dirname [info script]] gain_programming_timing.tcl]]
 
-# The acceptance-state decode also controls the applied bank registers.
+# The state decode controls the programming handshake and write sequence.
 set state_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *gain_programmer/inst/*fast_state_reg*}]
 if {![llength $state_sources]} {error "Missing gain programming state registers"}
 set state_nets [get_nets -of_objects [get_pins -of_objects $state_sources -filter {REF_PIN_NAME == Q}]]
@@ -31,11 +31,14 @@ phys_opt_design -force_replication_on_nets $state_nets
 # Phase and state registers also address wide distributed tables. Their small
 # logical fanout can span both clock columns; create local launch copies rather
 # than adding another sample of delay to the control loop.
-set frequency_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *phase_unwrapper/inst/*unwrapped_diff_reg*}]
-# Canonical phase differences sign-extend 22 independent bits to the 25-bit
-# interface. Synthesis can merge the three duplicated sign registers.
+set frequency_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *phase_unwrapper/inst/*difference_q_reg*}]
+# Canonical differences register 22 raw bits plus the positive-pi tie flag.
+# The sign correction follows those registers on the same sample cycle.
 if {[llength $frequency_sources] < 44} {error "Expected both canonical frequency launch buses"}
-set loop_sources [get_cells -hier -filter {REF_NAME == FDRE && (NAME =~ *phase_unwrapper/inst/*unwrapped_diff_reg* || NAME =~ *consumers/inst/feedback_phase_reg* || NAME =~ *reference_pipeline.fast_i_phase_reg* || NAME =~ *accurate_controller/fused.acc2_reg* || NAME =~ *accurate_controller/acc1_reg* || NAME =~ *selector/active_fast_reg* || NAME =~ *detector/phase_reg*)}]
+set tie_sources [get_cells -hier -filter {REF_NAME == FDRE && NAME =~ *phase_unwrapper/inst/*positive_pi_tie_q_reg*}]
+if {[llength $tie_sources] < 2} {error "Expected both canonical positive-pi tie registers"}
+set loop_sources [get_cells -hier -filter {REF_NAME == FDRE && (NAME =~ *consumers/inst/feedback_phase_reg* || NAME =~ *reference_pipeline.fast_i_phase_reg* || NAME =~ *accurate_controller/fused.acc2_reg* || NAME =~ *accurate_controller/acc1_reg* || NAME =~ *selector/active_fast_reg* || NAME =~ *detector/phase_reg*)}]
+set loop_sources [concat $loop_sources $frequency_sources $tie_sources]
 set loop_nets [get_nets -of_objects [get_pins -of_objects $loop_sources -filter {REF_PIN_NAME == Q}]]
 set_property FORCE_MAX_FANOUT 8 $loop_nets
 phys_opt_design -force_replication_on_nets $loop_nets
