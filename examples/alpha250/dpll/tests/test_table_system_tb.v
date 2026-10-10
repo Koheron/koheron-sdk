@@ -67,7 +67,7 @@ module test_table_system_tb;
     generate for(channel=0;channel<2;channel=channel+1) begin : loop_dut
         wire [2:0] enabled=control[513+32*channel +: 3];
         wire [15:0] fast,slow;
-        table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),
+        table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.PI_REGISTER_ADDRESS(1),.CARRY_BLOCK(0),
                              .FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8))
             dut(clk,freq[channel],phase[channel],enabled,banks[4*channel +: 4],
                 channel ? command1 : command0,data,fast,slow,,,);

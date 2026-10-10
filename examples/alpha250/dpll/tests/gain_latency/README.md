@@ -374,3 +374,59 @@ vivado -mode batch -nolog -nojournal -notrace \
 The combined table-gain design was installed and loopback-tested on 2026-10-07.
 No analog latency, closed-loop lock or stability measurement has been made.
 The historical measurements above used their stated extractor revisions.
+
+
+### PI address retiming (2026-10-10)
+
+The accurate PI gain can use `PI_REGISTER_ADDRESS=1` in the controller
+(`REGISTER_ADDRESS=1` in `table_gain`). The production DPLL enables it in both
+loops. Its first stage captures each nibble address and the write port, instead
+of the wide lookup results. Moving one compression level after the reduction
+register makes room for the RAM read. P, I², I³ and Fast I retain their previous
+pipelines. Delaying both RAM ports preserves read-before-write semantics,
+including active-bank writes. The PI write completes on the existing programmer
+acknowledgement edge; the final write-register-to-RAM paths remain single-cycle.
+Gain latency remains four clocks, with identical outputs on every sample.
+
+Qualified with a fresh Vivado 2026.1 full-instrument build:
+
+```sh
+make -j4 CFG=examples/alpha250/dpll/config.mk \
+  TMP=tmp/rtl-table-pi-address VIVADO_VERSION=2026.1 MODE=development \
+  N_CPUS=4 ENFORCE_TIMING=1 fpga
+```
+
+Compared with commit `c1336dd1` (PR #838), feedback phase bit 14 drives 6 loads
+instead of 53 in each loop. Its worst downstream setup slack is +0.231 ns in
+loop 0 and +0.543 ns in loop 1; the baseline loop-1 path to the PI lookup had
++0.014 ns. The worst paths now end at the PI RAM write address and final adder.
+Overall timing headroom remains narrow; this is a feedback-load reduction,
+not a demonstrated build-time improvement.
+
+| Full routed instrument | PR #838 baseline | PI address retiming |
+| --- | ---: | ---: |
+| Setup slack | +0.014472 ns | +0.012632 ns |
+| Hold slack | +0.023602 ns | +0.018438 ns |
+| LUTs | 21,904 | 22,097 |
+| Registers | 30,957 | 30,391 |
+| DSPs | 101 | 101 |
+| Block RAM tiles | 36 | 36 |
+
+All setup, hold, pulse-width and 12 bus-skew checks pass. The full-design check
+verifies both controllers and the unchanged 4 ns internal write paths. DAC
+setup/hold checks pass at phases 0 and 56. The existing 14 input and 41 output
+ports without delay constraints remain outside complete external-I/O timing
+qualification.
+
+Simulation validation:
+
+- `gain_latency/run-memory.sh`: eight configurations, two through five clocks,
+  arbitrary table words, rapid bank switches and over 10,000 writes per case;
+  compared with an independent memory model and the original pipeline.
+- `tests/run-table-system.sh`: 200,452 cycles, 4,352 acknowledged transactions,
+  4,096 table writes and 128 atomic commits across both controllers.
+- `tests/run-p-path.sh`: accurate-state preservation, Fast P/Fast I latency,
+  handoffs, AXI control, phase history and full P front-end checks.
+
+This revision has not been programmed onto hardware or measured in a closed
+loop. The previous hardware results above refer to their stated revisions.

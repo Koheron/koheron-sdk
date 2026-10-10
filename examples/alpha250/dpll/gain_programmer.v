@@ -170,11 +170,11 @@ module gain_programmer (
                     fast_state<=F_WRITE;
                 end
                 F_WRITE: begin
-                    // RAM consumes the prior cycle's strobe on this edge.
+                    // Table write ports consume the prior cycle's strobe.
                     fast_state<=F_APPLIED;
                 end
                 F_APPLIED: begin
-                    // Writes have reached RAM before acknowledgement. Commits
+                    // Direct and retimed RAM writes finish by this edge. Commits
                     // apply bank and coefficient atomically in F_ACCEPT.
                     ack<=pending_ack;
                     response_ack<=1;

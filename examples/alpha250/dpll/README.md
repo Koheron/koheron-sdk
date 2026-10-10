@@ -293,7 +293,15 @@ final sum. It takes three clocks, receiving the combinational projection one
 clock before the I/status phase register, so total P latency is retained. The
 existing double-bank programming protocol is retained. It captures the gain
 from the unsigned address-one entry. The wider I gain and accurate controller
-gains use four-clock table reductions. Native carry chains compute the carry
+gains use four-clock table reductions. For the accurate PI gain, the
+first clock captures the lookup address and write port instead of each wide
+lookup result. The next clock captures the initial RAM/adder reduction. Three
+final compression levels follow that register; the other gains retain two. This
+balances the added RAM read against the following stage's discarded-bit carry
+computation. Delaying
+both RAM ports preserves each sample's read-before-write value, including
+same-address collisions, with unchanged gain latency. This reduces the lookup
+load directly driven by the feedback DSPs. Native carry chains compute the carry
 from all discarded lower bits at the third register boundary; the last stage
 adds only the retained output bits. The I² final sum is 32 bits. Feedback phase
 and the accurate first and second integrators use DSP accumulators with their
@@ -329,8 +337,11 @@ Server restarts read the active banks and coefficients from hardware.
 Gain requests are validated and decoded at 143 MHz, using PR 780's registered
 CDC handshakes and reset draining. RAM writes and atomic bank/coefficient commits
 remain at 250 MHz. Address and payload precede the registered write strobe,
-with a setup wait giving three clocks (12 ns) before RAM capture. Acknowledgement follows the write
-or commit. Acceptance and the complete one-hot commit enable are decoded on the
+with a setup wait giving three clocks (12 ns) before the write port captures
+them. Retimed table RAMs apply that write one clock later, on the acknowledgement
+edge; direct/DSP tables apply it at capture. Internal write-port-to-RAM paths
+retain the normal 4 ns requirement. Acknowledgement follows completion of the
+write or commit. Acceptance and the complete one-hot commit enable are decoded on the
 existing acceptance register edge. The following edge atomically applies each
 bank and coefficient with only reset gating its enable, avoiding a shared
 state/rejection decode on the wide coefficient hold path. Programming and
@@ -347,12 +358,17 @@ writes and held commands with changing data:
 export DPLL_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh
 bash examples/alpha250/dpll/tests/run-table-system.sh
 bash examples/alpha250/dpll/tests/run-gain-programmer.sh
+bash examples/alpha250/dpll/tests/gain_latency/run-memory.sh
 ```
 
 The programmer reset test sweeps 65 write reset positions and 65 commit reset
 positions for each of the eight destinations, plus a directed reset on each
 destination's commit edge. It checks preservation of committed
 gains, cancellation of in-flight transfers, rejected writes/commits and recovery.
+The table-memory test uses arbitrary table words, bank switches every clock and
+same-address read/write collisions against an independent table model and the
+original lookup-register pipeline, checking exact two- through five-clock
+sample latency.
 
 ## Full FPGA build
 
