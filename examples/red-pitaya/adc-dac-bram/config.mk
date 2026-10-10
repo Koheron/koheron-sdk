@@ -3,6 +3,8 @@ VERSION := 0.0.0
 
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
 
+FPGA_LIB_TCL = $(FPGA_TCL_BRAM) $(FPGA_TCL_REDP)
+
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/red-pitaya/config/ports.xdc

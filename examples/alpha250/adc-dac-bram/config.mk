@@ -3,6 +3,8 @@ VERSION := 0.2.1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
 
+FPGA_LIB_TCL = $(FPGA_TCL_BRAM)
+
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/alpha250/config/ports.xdc

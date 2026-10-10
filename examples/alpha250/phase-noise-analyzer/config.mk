@@ -4,6 +4,10 @@ ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
 
+FPGA_LIB_TCL = $(FPGA_TCL_PNA_SINGLE_STREAM)
+FPGA_IMPL_TCL = $(FPGA_TCL_PNA_ROUTE)
+TCL_EXTRA_FILES += $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
+
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/alpha250/config/ports.xdc
@@ -19,7 +23,6 @@ CORES += $(SDK_PATH)/fpga/cores/phase_stochastic_round_v1_0
 CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
 CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
-TCL_FILES = $(BD_TCL) $(PROJECT_PATH)/post_route.tcl $(wildcard $(PROJECT_PATH)/tcl/*.tcl) $(wildcard $(BOARD_PATH)/*.tcl) $(BOARD_PATH)/config/board_preset.tcl $(wildcard $(FPGA_PATH)/lib/*.tcl) $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
 include $(BOARD_PATH)/drivers/drivers.mk
 DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp

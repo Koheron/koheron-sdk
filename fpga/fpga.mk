@@ -4,6 +4,24 @@ TMP_FPGA_PATH := $(TMP_PROJECT_PATH)/fpga
 $(TMP_FPGA_PATH):
 	@mkdir -p $@
 
+# Global synthesis is the default; per-IP synthesis trades a slower cold build
+# for reusable output products when iterating on a design or another instrument.
+FPGA_SYNTH_MODE ?= global
+ifneq ($(FPGA_SYNTH_MODE),global)
+ifneq ($(FPGA_SYNTH_MODE),ip)
+$(error FPGA_SYNTH_MODE must be global or ip)
+endif
+endif
+FPGA_IP_CACHE := $(abspath $(TMP)/ip-cache/$(VIVADO_VERSION))
+export FPGA_SYNTH_MODE FPGA_IP_CACHE
+
+# Only the current mode marker survives, so switching back also regenerates
+# the project instead of accidentally reusing a bitstream from the other mode.
+FPGA_SYNTH_STAMP := $(TMP_FPGA_PATH)/.synth-$(FPGA_SYNTH_MODE)
+$(FPGA_SYNTH_STAMP): | $(TMP_FPGA_PATH)/
+	rm -f $(TMP_FPGA_PATH)/.synth-global $(TMP_FPGA_PATH)/.synth-ip
+	touch $@
+
 VIVADO_LOG_FILTER := $(FPGA_PATH)/vivado/vivado-log-filter.awk
 VIVADO_FILTER := awk -f $(VIVADO_LOG_FILTER)
 
@@ -20,9 +38,10 @@ export ENFORCE_TIMING
 TMP_CORES_PATH := $(TMP_PROJECT_PATH)/cores
 $(TMP_CORES_PATH)/: ; @mkdir -p $@
 
+# Testbenches are excluded from the packaged synthesis core in core.tcl.
 define make_core_target
 $(TMP_CORES_PATH)/$(notdir $1)/component.xml: \
-    $(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl $1/*.xci $1/*.xdc $1/*.tcl $1/*.mem $1/*.md) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl | $(TMP_CORES_PATH)/
+    $(filter-out %_tb.v %_tb.sv %_tb.vh %_tb.vhd %_tb.vhdl,$(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl $1/*.xci $1/*.xdc $1/*.tcl $1/*.mem $1/*.md)) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl | $(TMP_CORES_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH)
 	$(call ok,$$@)
 endef
@@ -58,7 +77,7 @@ export XDC
 export VENV
 export BD_TCL
 
-$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(MEMORY_TCL) $(TCL_FILES) $(wildcard $(PROJECT_PATH)/*.v $(PROJECT_PATH)/*.sv $(PROJECT_PATH)/*.vhd) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(FPGA_SYNTH_STAMP) $(MEMORY_TCL) $(filter-out $(FPGA_IMPL_TCL),$(TCL_FILES)) $(wildcard $(PROJECT_PATH)/*.v $(PROJECT_PATH)/*.sv $(PROJECT_PATH)/*.vhd) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/lib/dependencies.mk $(FPGA_PATH)/vivado/block_design.tcl $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl 2>&1 | $(VIVADO_FILTER)
 	touch $@
 	$(call ok,$@)
@@ -74,8 +93,8 @@ $(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(FPGA_PATH)/vi
 fpga: $(BITSTREAM)
 
 # An FPGA build reports timing and enforces it when requested by the example.
-$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl $(FPGA_PATH)/vivado/timing_check.tcl | $(TMP_FPGA_PATH)/
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) 2>&1 | $(VIVADO_FILTER)
+$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl $(FPGA_PATH)/vivado/timing_check.tcl $(FPGA_IMPL_TCL) | $(TMP_FPGA_PATH)/
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) $(if $(filter $(abspath $(FPGA_IMPL_TCL)),$(abspath $?)),1,0) 2>&1 | $(VIVADO_FILTER)
 	$(call ok,$@)
 
 .PHONY: timing
