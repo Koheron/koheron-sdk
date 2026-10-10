@@ -6,7 +6,8 @@ window.scenarios = [
     {name: 'fft-deep-zoom', bins: 16385, traces: 4, deep: true},
     {name: 'scope-2', bins: 8192, traces: 2, scope: true},
     {name: 'pna-log-y', bins: 32769, traces: 2, log: true, logY: true},
-    {name: 'scope-y-zoom', bins: 8192, traces: 2, scope: true, narrowY: true}
+    {name: 'scope-y-zoom', bins: 8192, traces: 2, scope: true, narrowY: true},
+    {name: 'fft-log-4', bins: 16385, traces: 4, log: true, spectrum: true}
 ];
 window.fixture = function(spec, frame = 0) {
     let seed = 123456789 + frame * 7919;
@@ -33,7 +34,7 @@ window.setup = function(index) {
     if (spec.log) basics.setLogX(true);
     if (spec.logY) basics.setLogY();
     if (!spec.scope) {
-        if (spec.log) basics.enableDecimation(); else basics.enableSpectrumReduction();
+        if (spec.log && !spec.spectrum) basics.enableDecimation(); else basics.enableSpectrumReduction();
         basics.enableBatchedLines();
     }
     if (spec.deep) basics.setVisibleRangeX(4000, 4100);
