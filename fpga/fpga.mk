@@ -1,3 +1,4 @@
+include $(dir $(lastword $(MAKEFILE_LIST)))../make/dependencies.mk
 FPGA_PATH := $(FPGA_PATH)
 TMP_FPGA_PATH := $(TMP_PROJECT_PATH)/fpga
 
@@ -15,12 +16,14 @@ endif
 FPGA_IP_CACHE := $(abspath $(TMP)/ip-cache/$(VIVADO_VERSION))
 export FPGA_SYNTH_MODE FPGA_IP_CACHE
 
-# Only the current mode marker survives, so switching back also regenerates
-# the project instead of accidentally reusing a bitstream from the other mode.
-FPGA_SYNTH_STAMP := $(TMP_FPGA_PATH)/.synth-$(FPGA_SYNTH_MODE)
-$(FPGA_SYNTH_STAMP): | $(TMP_FPGA_PATH)/
-	rm -f $(TMP_FPGA_PATH)/.synth-global $(TMP_FPGA_PATH)/.synth-ip
-	touch $@
+# One settings snapshot also detects switching back to an earlier selection.
+FPGA_PROJECT_STAMP := $(TMP_FPGA_PATH)/.project-settings
+$(eval $(call build_settings_stamp,$(FPGA_PROJECT_STAMP),\
+    $$(call build_shell_quote,MODE=$$(MODE)) \
+    $$(call build_shell_quote,SYNTH=$$(FPGA_SYNTH_MODE)) \
+    $$(call build_shell_quote,BOARD=$$(BOARD_PATH)) \
+    $$(call build_shell_quote,BD=$$(BD_TCL)) \
+    $$(call build_shell_quote,XDC=$$(XDC))))
 
 VIVADO_LOG_FILTER := $(FPGA_PATH)/vivado/vivado-log-filter.awk
 VIVADO_FILTER := awk -f $(VIVADO_LOG_FILTER)
@@ -31,18 +34,31 @@ VIVADO_BATCH := $(VIVADO) -mode batch
 # Examples may set ENFORCE_TIMING := 1 in config.mk to fail FPGA builds on
 # routed timing violations. By default, builds only report and warn.
 ENFORCE_TIMING ?= 0
+ifneq ($(ENFORCE_TIMING),0)
+ifneq ($(ENFORCE_TIMING),1)
+$(error ENFORCE_TIMING must be 0 or 1)
+endif
+endif
 export ENFORCE_TIMING
+FPGA_TIMING_STAMP := $(TMP_FPGA_PATH)/.timing-settings
+$(eval $(call build_settings_stamp,$(FPGA_TIMING_STAMP),$$(call build_shell_quote,ENFORCE_TIMING=$$(ENFORCE_TIMING))))
 
 # Cores
 ###############################################################################
 TMP_CORES_PATH := $(TMP_PROJECT_PATH)/cores
 $(TMP_CORES_PATH)/: ; @mkdir -p $@
 
+FPGA_TOOL_STAMP := $(TMP_CORES_PATH)/.vivado-settings
+$(eval $(call build_settings_stamp,$(FPGA_TOOL_STAMP),\
+    $$(call build_shell_quote,VERSION=$$(VIVADO_VERSION)) \
+    $$(call build_shell_quote,PATH=$$(VIVADO_PATH)) \
+    $$(call build_shell_quote,PART=$$(PART))))
+
 # Testbenches are excluded from the packaged synthesis core in core.tcl.
 define make_core_target
 $(TMP_CORES_PATH)/$(notdir $1)/component.xml: \
-    $(filter-out %_tb.v %_tb.sv %_tb.vh %_tb.vhd %_tb.vhdl,$(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl $1/*.xci $1/*.xdc $1/*.tcl $1/*.mem $1/*.md)) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl | $(TMP_CORES_PATH)/
-	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH)
+    $(filter-out %_tb.v %_tb.sv %_tb.vh %_tb.vhd %_tb.vhdl,$(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl $1/*.xci $1/*.xdc $1/*.tcl $1/*.mem $1/*.md)) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl $(FPGA_TOOL_STAMP) | $(TMP_CORES_PATH)/
+	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH) 1
 	$(call ok,$$@)
 endef
 $(foreach core,$(CORES),$(eval $(call make_core_target,$(core))))
@@ -58,7 +74,7 @@ cores: $(CORES_COMPONENT_XML)
 
 MEMORY_TCL := $(TMP_FPGA_PATH)/memory.tcl
 
-$(MEMORY_TCL): $(MEMORY_YML) $(FPGA_PATH)/memory.tcl | $(PYTHON_REQUIREMENTS_STAMP)
+$(MEMORY_TCL): $(MEMORY_YML) $(FPGA_PATH)/memory.tcl $(MAKE_PY_SOURCES) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(MAKE_PY) --memory_tcl $@ $(MEMORY_YML)
 	$(call ok,$@)
 
@@ -77,7 +93,7 @@ export XDC
 export VENV
 export BD_TCL
 
-$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(FPGA_SYNTH_STAMP) $(MEMORY_TCL) $(filter-out $(FPGA_IMPL_TCL),$(TCL_FILES)) $(wildcard $(PROJECT_PATH)/*.v $(PROJECT_PATH)/*.sv $(PROJECT_PATH)/*.vhd) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/lib/dependencies.mk $(FPGA_PATH)/vivado/block_design.tcl $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(MEMORY_TCL) $(filter-out $(FPGA_IMPL_TCL),$(TCL_FILES)) $(wildcard $(PROJECT_PATH)/*.v $(PROJECT_PATH)/*.sv $(PROJECT_PATH)/*.vhd) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/lib/dependencies.mk $(FPGA_PATH)/vivado/block_design.tcl $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl 2>&1 | $(VIVADO_FILTER)
 	touch $@
 	$(call ok,$@)
@@ -93,7 +109,7 @@ $(TMP_FPGA_PATH)/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(FPGA_PATH)/vi
 fpga: $(BITSTREAM)
 
 # An FPGA build reports timing and enforces it when requested by the example.
-$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_PATH)/vivado/bitstream.tcl $(FPGA_PATH)/vivado/timing_check.tcl $(FPGA_IMPL_TCL) | $(TMP_FPGA_PATH)/
+$(BITSTREAM): $(TMP_FPGA_PATH)/$(NAME).xsa $(FPGA_TIMING_STAMP) $(FPGA_PATH)/vivado/bitstream.tcl $(FPGA_PATH)/vivado/timing_check.tcl $(FPGA_IMPL_TCL) | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/bitstream.tcl -tclargs $(TMP_FPGA_PATH)/$(NAME).xpr $@ $(ZYNQ_TYPE) $(N_CPUS) $(if $(filter $(abspath $(FPGA_IMPL_TCL)),$(abspath $?)),1,0) 2>&1 | $(VIVADO_FILTER)
 	$(call ok,$@)
 

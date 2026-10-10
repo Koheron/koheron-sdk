@@ -1,3 +1,4 @@
+include $(dir $(lastword $(MAKEFILE_LIST)))../make/dependencies.mk
 TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server
 
 # ensure tmp dir exists early
@@ -74,16 +75,9 @@ list_drivers:
 	@echo "-------------------"
 	@echo $(DRIVERS_OBJ)
 
-# A stamp that only changes when the *set* of drivers changes
+# Driver order determines RPC IDs, so preserve it in the selection stamp.
 DRIVERS_LIST_FILE := $(TMP_SERVER_PATH)/drivers.list
-
-# Update the list only if content actually changed (keeps timestamp stable)
-$(DRIVERS_LIST_FILE): FORCE | $(TMP_SERVER_PATH)/
-	@{ \
-	  printf "%s\n" $(DRIVERS_HPP) | sed 's|^\./||' | LC_ALL=C sort; \
-	} > $@.tmp
-	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
-	@rm -f $@.tmp
+$(eval $(call build_settings_stamp,$(DRIVERS_LIST_FILE),$$(foreach H,$$(DRIVERS_HPP),$$(call build_shell_quote,$$(patsubst ./%,%,$$(H))))))
 
 # -----------------------------------------------------------------------------
 # Generated interface sources/objects
@@ -93,7 +87,7 @@ INTERFACE_DRIVERS_HPP := $(addprefix $(TMP_SERVER_PATH)/interface_,$(notdir $(DR
 
 define RENDER_IFACE_RULES
 $(TMP_SERVER_PATH)/interface_$(notdir $(1)): \
-    $(1) $(SERVER_PATH)/templates/interface_driver.hpp $(MEMORY_YML) | $(TMP_SERVER_PATH)/ $(PYTHON_REQUIREMENTS_STAMP)
+    $(1) $(SERVER_PATH)/templates/interface_driver.hpp $(MEMORY_YML) $(DRIVERS_LIST_FILE) $(MAKE_PY_SOURCES) | $(TMP_SERVER_PATH)/ $(PYTHON_REQUIREMENTS_STAMP)
 	$$(call echo-cmd,tpl)
 	$$(Q)$$(MAKE_PY) --render_interface $$@ $(MEMORY_YML) $(1)
 endef
@@ -107,7 +101,7 @@ $(TMP_SERVER_PATH)/interface_drivers.hpp: $(INTERFACE_DRIVERS_HPP)
 # Memory header from YAML
 # -----------------------------------------------------------------------------
 
-$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp | $(PYTHON_REQUIREMENTS_STAMP)
+$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp $(MAKE_PY_SOURCES) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $@)
 	@$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
@@ -126,7 +120,7 @@ META_TEMPLATES := $(addprefix $(TMP_SERVER_PATH)/, \
 
 # Render rule that depends on the list *only*
 define _render_template_rule_list
-$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_LIST_FILE) $(MEMORY_YML) | $(PYTHON_REQUIREMENTS_STAMP)
+$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_LIST_FILE) $(MEMORY_YML) $(MAKE_PY_SOURCES) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $$@)
 	$$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
@@ -134,7 +128,7 @@ endef
 
 # Render rule that depends on the full set of driver headers
 define _render_template_rule_full
-$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP) $(MEMORY_YML) | $(PYTHON_REQUIREMENTS_STAMP)
+$1: $(SERVER_PATH)/templates/$(notdir $1) $(DRIVERS_HPP) $(DRIVERS_LIST_FILE) $(MEMORY_YML) $(MAKE_PY_SOURCES) | $(PYTHON_REQUIREMENTS_STAMP)
 	$(Q)mkdir -p $(dir $$@)
 	$$(call echo-cmd,tpl)
 	$(Q)$(MAKE_PY) --render_template $$@ $(MEMORY_YML) $$<
@@ -207,11 +201,7 @@ $(PCH_DST): $(PCH_SRC)
 
 PCH_FLAGS_STAMP := $(TMP_PROJECT_PATH)/pch/pch.flags
 
-$(PCH_FLAGS_STAMP): FORCE
-	@mkdir -p $(dir $@)
-	@printf '%s\n' '$(PCH_CXX)' '$(PCH_CXXFLAGS)' > $@.tmp
-	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
-	@rm -f $@.tmp
+$(eval $(call build_settings_stamp,$(PCH_FLAGS_STAMP),$$(call build_shell_quote,$$(PCH_CXX)) $$(call build_shell_quote,$$(PCH_CXXFLAGS))))
 
 $(PCH_GCH): $(PCH_DST) $(PCH_FLAGS_STAMP) $(SERVER_COMPILER_STAMP)
 	$(PCH_CXX) -x c++-header $(PCH_CXXFLAGS) -o $@ $<
@@ -220,15 +210,13 @@ $(PCH_GCH): $(PCH_DST) $(PCH_FLAGS_STAMP) $(SERVER_COMPILER_STAMP)
 SERVER_CCXXFLAGS += -Winvalid-pch -include $(PCH_DST)
 $(OBJ): $(PCH_GCH)
 
-# A compiler define can change generated driver behavior without changing any
-# source file. Recompile objects when the effective flags change.
-SERVER_FLAGS_STAMP := $(TMP_SERVER_PATH)/.compile-flags
-$(SERVER_FLAGS_STAMP): FORCE
-	@mkdir -p $(dir $@)
-	@printf '%s\n' '$(SERVER_CCXXFLAGS)' > $@.tmp
-	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
-	@rm -f $@.tmp
+# The PCH deliberately excludes defines; objects must track the complete flags.
+SERVER_FLAGS_STAMP := $(TMP_SERVER_PATH)/.compile-settings
+$(eval $(call build_settings_stamp,$(SERVER_FLAGS_STAMP),$$(call build_shell_quote,$$(SERVER_CCXX)) $$(call build_shell_quote,$$(SERVER_CCXXFLAGS))))
 $(OBJ): $(SERVER_FLAGS_STAMP)
+
+SERVER_LINK_STAMP := $(TMP_SERVER_PATH)/.link-settings
+$(eval $(call build_settings_stamp,$(SERVER_LINK_STAMP),$$(call build_shell_quote,$$(cmd_link))))
 
 # -----------------------------------------------------------------------------
 # Compile objects
@@ -295,7 +283,7 @@ cmd_cfg = \
   done; \
   :
 
-$(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) | $(KOHERON_SERVER_PATH)
+$(SERVER): $(OBJ) $(SERVER_TEMPLATE_LIST) $(GEN_HEADERS) $(SERVER_FLAGS_STAMP) $(SERVER_LINK_STAMP) | $(KOHERON_SERVER_PATH)
 	@$(call start,$@)
 	@$(call echo-cmd,link)
 	$(Q)$(call cmd,cmd_link)
@@ -335,7 +323,10 @@ JSON_CXX      := g++-$(GCC_VERSION)
 JSON_CXXFLAGS := -std=c++23 -O2 -DKOHERON_SERVER_BUILD $(SERVER_INCLUDE_DIRS)
 JSON_CXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 
-$(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(GEN_HEADERS) $(SERVER_COMPILER_STAMP) $(SERVER_PATH)/server.mk
+JSON_FLAGS_STAMP := $(TMP_SERVER_PATH)/.json-settings
+$(eval $(call build_settings_stamp,$(JSON_FLAGS_STAMP),$$(call build_shell_quote,$$(DOCKER) $$(JSON_CXX)) $$(call build_shell_quote,$$(JSON_CXXFLAGS))))
+
+$(DRIVERS_JSON_DUMP_EXE): $(DRIVERS_JSON_DUMP_CPP) $(GEN_HEADERS) $(SERVER_COMPILER_STAMP) $(JSON_FLAGS_STAMP) $(SERVER_PATH)/server.mk
 	$(DOCKER) $(JSON_CXX) $(JSON_CXXFLAGS) $< -o $@
 
 $(DRIVERS_JSON_OUT): $(DRIVERS_JSON_DUMP_EXE)

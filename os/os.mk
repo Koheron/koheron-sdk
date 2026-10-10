@@ -1,8 +1,10 @@
 ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 
 TMP_OS_BOARD_PATH ?= $(TMP_PROJECT_PATH)/os
+LINUX_SELECTION_STAMP := $(TMP_OS_PATH)/.linux-selection
 
 include $(dir $(lastword $(MAKEFILE_LIST)))compiler-settings.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../make/dependencies.mk
 # U-Boot can be upgraded independently of the FSBL and FPGA toolchain.
 UBOOT_VERSION ?= 2026.1
 UBOOT_TAG := xilinx-uboot-v$(UBOOT_VERSION)
@@ -206,7 +208,7 @@ $(TMP_OS_PATH)/devicetree/system-top.dts: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTRE
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/devicetree $< $(BOOT_MEDIUM)
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN)  $(TMP_OS_PATH)/devicetree/system-top.dts
+$(TMP_OS_PATH)/devicetree.dtb: $(DTC_BIN) $(TMP_OS_PATH)/devicetree/system-top.dts $(LINUX_SELECTION_STAMP)
 	$(DOCKER) $(OS_HOSTCC) -I $(TMP_OS_PATH)/devicetree/ -I $(TMP_OS_PATH)/devicetree/include/ -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp -o \
 		$(TMP_OS_PATH)/devicetree/system-top.dts.tmp $(TMP_OS_PATH)/devicetree/system-top.dts
 	$(DOCKER) $(DTC_BIN) -I dts -O dtb -o $@ \
@@ -226,7 +228,7 @@ $(TMP_OS_PATH)/pl-overlay/pl.dtsi: $(TMP_OS_PATH)/hard/$(NAME).xsa $(DTREE_PATH)
 	$(HSI) $(FPGA_PATH)/hsi/devicetree.tcl $(NAME) $(PROC) $(DTREE_PATH) $(VIVADO_VERSION) $(TMP_OS_PATH)/hard $(TMP_OS_PATH)/pl-overlay $< $(BOOT_MEDIUM)
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/pl-overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi | $(TMP_OS_PATH)/pl-overlay/ $(PYTHON_REQUIREMENTS_STAMP)
+$(TMP_OS_PATH)/pl-overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi $(MAKE_PY_SOURCES) | $(TMP_OS_PATH)/pl-overlay/ $(PYTHON_REQUIREMENTS_STAMP)
 	$(MAKE_PY) --memory_dtsi $@ $<
 	$(call ok,$@)
 
@@ -245,7 +247,7 @@ $(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi: $(TMP_OS_PATH)/pl-overlay/pl.dtsi FOR
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp
 
-$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) \
+$(TMP_OS_PATH)/pl.dtbo: $(DTC_BIN) $(LINUX_SELECTION_STAMP) \
   $(OS_PATH)/os.mk \
   $(TMP_OS_PATH)/pl-overlay/pl-koheron.dtsi \
   $(TMP_OS_PATH)/pl-overlay/memory.dtsi \
@@ -267,7 +269,15 @@ $(TMP_PROJECT_PATH)/pl.dtbo: $(TMP_OS_PATH)/pl.dtbo
 
 BOARD_DTSO ?= $(OS_PATH)/board.dtso
 
-$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) | $(TMP_OS_PATH)/board-overlay/
+# Outputs below are shared by all cached kernel releases for this instrument.
+$(eval $(call build_settings_stamp,$(LINUX_SELECTION_STAMP),\
+    $$(call build_shell_quote,TAG=$$(LINUX_TAG)) \
+    $$(call build_shell_quote,PATH=$$(LINUX_PATH)) \
+    $$(call build_shell_quote,ARCH=$$(ARCH)) \
+    $$(call build_shell_quote,KERNEL=$$(KERNEL_BIN)) \
+    $$(call build_shell_quote,OVERLAY=$$(BOARD_DTSO))))
+
+$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) $(LINUX_SELECTION_STAMP) | $(TMP_OS_PATH)/board-overlay/
 	cp $< $@
 	$(call ok,$@)
 
@@ -280,7 +290,7 @@ $(BOARD_DTSO): | $(LINUX_PATH)/.unpacked
 $(TMP_OS_PATH)/board-overlay/board.dtso: $(LINUX_PATH)/.unpacked
 endif
 
-$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP)
+$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP) $(LINUX_SELECTION_STAMP)
 	# Preprocess so #include <dt-bindings/...> works
 	$(DOCKER) $(OS_HOSTCC) -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
 	  -I $(LINUX_PATH)/include \
@@ -296,7 +306,7 @@ $(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso
 # uImage / Image
 ###############################################################################
 
-$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) | $(TMP_OS_PATH)/
+$(TMP_OS_PATH)/$(KERNEL_BIN): $(LINUX_BUILD_STAMP) $(LINUX_SELECTION_STAMP) | $(TMP_OS_PATH)/
 	cp "$(LINUX_PATH)/arch/$(ARCH)/boot/$(KERNEL_BIN)" "$@"
 
 ###############################################################################

@@ -6,6 +6,7 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -14,6 +15,119 @@ WEB = Path(__file__).resolve().parents[1]
 
 
 class WebBuildTests(unittest.TestCase):
+    def test_default_compiler_refreshes_builder_and_uses_current_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            web = root / 'web'
+            for name in ('compiler-inputs.mk', 'package.json', 'package-lock.json',
+                         'Dockerfile.web', 'build.cjs', 'transpile.cjs', 'ensure_builder.sh',
+                         'plotting/package.json', 'plotting/package-lock.json',
+                         'ui-assets.mk', 'koheron.ts', 'instrument/poller.ts'):
+                destination = web / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(WEB / name, destination)
+            source = root / 'source.ts'
+            source.write_text('const value: number = 1;\n')
+            (root / 'downloads.mk').touch()
+            binary_dir = root / 'bin'
+            binary_dir.mkdir()
+            docker = binary_dir / 'docker'
+            docker.write_text(f'''#!{sys.executable}
+import hashlib, pathlib, sys
+root = pathlib.Path(__file__).parent.parent
+args = sys.argv[1:]
+image = root / 'image-id'
+if args[:2] == ['image', 'inspect']:
+    if not image.exists(): raise SystemExit(1)
+    print(image.read_text())
+elif args[0] == 'build':
+    if (root / 'fail-build').exists(): raise SystemExit(7)
+    context = pathlib.Path(args[-1])
+    data = b''.join(p.read_bytes() for p in sorted(context.rglob('*')) if p.is_file())
+    image.write_text(hashlib.sha256(data).hexdigest())
+    (root / 'image-build.cjs').write_bytes((context / 'build.cjs').read_bytes())
+    (root / 'image-transpile.cjs').write_bytes((context / 'transpile.cjs').read_bytes())
+    with (root / 'events').open('a') as stream: stream.write('build\\n')
+elif args[0] == 'run':
+    compiler = pathlib.Path(args[args.index('node') + 1])
+    assert str(compiler) == '/opt/app/build.cjs', compiler
+    code = (root / 'image-build.cjs').read_bytes()
+    if b'CHANGED_COMPILER_MUST_FAIL' in code: raise SystemExit(8)
+    output = pathlib.Path(args[args.index('--output') + 1])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(hashlib.sha256(code + (root / 'image-transpile.cjs').read_bytes()
+                                    + image.read_bytes()).hexdigest())
+    with (root / 'events').open('a') as stream: stream.write('compile\\n')
+else:
+    raise SystemExit('unexpected docker arguments: ' + repr(args))
+''')
+            docker.chmod(0o755)
+            (root / 'Makefile').write_text(f'''OS_PATH := {WEB.parent}/os
+SERVER_PATH := {WEB.parent}/server
+WEB_PATH := {web}
+TMP := {root}/out
+TMP_PROJECT_PATH := {root}/instrument
+WEB_FILES := {source}
+WEB_DOWNLOADS_MK := {root}/downloads.mk
+include $(OS_PATH)/rootfs.mk
+include {WEB}/web.mk
+%/:
+\tmkdir -p $@
+''')
+            outputs = [root / 'out/www/instruments.js', root / 'instrument/web/app.js']
+            env = {**os.environ, 'PATH': f'{binary_dir}:{os.environ["PATH"]}',
+                   'MAKEFLAGS': '', 'MFLAGS': ''}
+            def make(success=True, *settings):
+                result = subprocess.run(['make', '-j4', '--no-print-directory', *settings,
+                    *map(str, outputs)], cwd=root, env=env, text=True,
+                    capture_output=True, timeout=20)
+                self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
+            def events():
+                return (root / 'events').read_text().splitlines()
+            make()
+            self.assertEqual(events().count('build'), 1)
+            self.assertEqual(events().count('compile'), 2)
+            initial_events = events()
+            initial_times = [p.stat().st_mtime_ns for p in outputs]
+            make()
+            self.assertEqual(events(), initial_events)
+            self.assertEqual([p.stat().st_mtime_ns for p in outputs], initial_times)
+
+            original = (web / 'build.cjs').read_text()
+            (web / 'build.cjs').write_text("throw new Error('CHANGED_COMPILER_MUST_FAIL');\n")
+            make(False)
+            self.assertEqual([p.stat().st_mtime_ns for p in outputs], initial_times)
+            (web / 'build.cjs').write_text(original)
+            make()
+            previous = [p.read_text() for p in outputs]
+            for name in ('transpile.cjs', 'package-lock.json', 'plotting/package-lock.json'):
+                path = web / name
+                path.write_text(path.read_text() + '\n')
+                before = events().count('build')
+                make()
+                self.assertEqual(events().count('build'), before + 1)
+                self.assertNotEqual(previous, [p.read_text() for p in outputs])
+                previous = [p.read_text() for p in outputs]
+
+            stamp = root / 'out/web/.compiler-settings'
+            previous_stamp = stamp.read_text()
+            previous_times = [p.stat().st_mtime_ns for p in outputs]
+            (web / 'transpile.cjs').write_text('// Changed again\n')
+            (root / 'fail-build').touch()
+            make(False)
+            self.assertEqual(stamp.read_text(), previous_stamp)
+            self.assertEqual([p.stat().st_mtime_ns for p in outputs], previous_times)
+            self.assertEqual(list(stamp.parent.glob('.compiler-settings.tmp.*')), [])
+            (root / 'fail-build').unlink()
+            make()
+            make(True, 'WEB_DOCKER_IMAGE=other-compiler')
+            initial_events = events()
+            make(True, 'WEB_DOCKER_IMAGE=other-compiler')
+            self.assertEqual(events(), initial_events)
+            (root / 'image-id').unlink()
+            make(True, 'WEB_DOCKER_IMAGE=other-compiler')
+            self.assertEqual(events().count('build'), initial_events.count('build') + 1)
+
     def test_dashboard_rebuilds_after_compiler_changes_before_web_fragment(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

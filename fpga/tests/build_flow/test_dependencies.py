@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -48,6 +49,11 @@ class DependenciesTest(unittest.TestCase):
             result = subprocess.run(['tclsh'], input=script, capture_output=True, text=True)
             self.assertEqual(result.stderr, '')
             self.assertIn('test_v1_0 up-to-date', result.stdout)
+            # Make's settings dependency must bypass the Tcl timestamp cache.
+            forced = script.replace(f'{{{output}}}]', f'{{{output}}} 1]')
+            result = subprocess.run(['tclsh'], input=forced, capture_output=True, text=True)
+            self.assertNotIn('up-to-date', result.stdout)
+            self.assertIn('invalid command name "create_project"', result.stderr)
             # A changed packaged guide must still take the packaging path.
             os.utime(core / 'README.md', (timestamp + 10, timestamp + 10))
             result = subprocess.run(['tclsh'], input=script, capture_output=True, text=True)
@@ -118,6 +124,93 @@ $(TMP_FPGA_PATH)/$(NAME).xpr.stamp:
             self.assertEqual((root / 'events').read_text().splitlines(),
                              ['global', 'ip', 'global'])
 
+    def test_tool_mode_and_timing_changes_refresh_only_affected_stages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            core = root / 'test_v1_0'
+            core.mkdir()
+            (core / 'test.v').touch()
+            (core / 'core_config.tcl').touch()
+            tool = root / 'vivado.py'
+            tool.write_text('''import os, pathlib, sys
+args = sys.argv[1:]
+stage = pathlib.Path(args[args.index('-source') + 1]).stem
+values = args[args.index('-tclargs') + 1:] if '-tclargs' in args else []
+root = pathlib.Path(__file__).parent
+with (root / 'events').open('a') as stream:
+    stream.write(stage + '\\n')
+if stage == 'core':
+    assert values[-1] == '1', values
+    output = pathlib.Path(values[2], pathlib.Path(values[0]).name, 'component.xml')
+elif stage == 'project':
+    output = pathlib.Path(os.environ['TMP_FPGA_PATH'], 'test.xpr')
+else:
+    output = pathlib.Path(values[1])
+if stage == 'bitstream' and os.environ['ENFORCE_TIMING'] == '1' and (root / 'fail-timing').exists():
+    raise SystemExit(7)
+output.parent.mkdir(parents=True, exist_ok=True)
+output.write_text(stage)
+''')
+            harness = root / 'Makefile'
+            harness.write_text(f'''SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+FPGA_PATH := {SDK}/fpga
+TMP_PROJECT_PATH := {root}
+NAME := test
+PART ?= first
+MODE ?= development
+VIVADO_VERSION ?= 2025.1
+VIVADO_PATH ?= first-path
+ENFORCE_TIMING ?= 0
+BITSTREAM := {root}/test.bit
+CORES := {core}
+%/:
+\tmkdir -p $@
+include {SDK}/fpga/fpga.mk
+$(MEMORY_TCL):
+\t@mkdir -p $(@D)
+\t@touch $@
+''')
+            def build(*settings, success=True):
+                result = subprocess.run(['make', '-j4', '--no-print-directory',
+                    '-f', str(harness), f'VIVADO_BATCH={sys.executable} {tool}',
+                    *settings, 'fpga'], cwd=SDK,
+                    text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
+            def events():
+                return (root / 'events').read_text().splitlines()
+            build()
+            self.assertEqual(events(), ['core', 'project', 'hwdef', 'bitstream'])
+            stamps = [root / 'fpga/.project-settings', root / 'fpga/.timing-settings',
+                      root / 'cores/.vivado-settings', root / 'test.bit']
+            times = [p.stat().st_mtime_ns for p in stamps]
+            build()
+            self.assertEqual(len(events()), 4)
+            self.assertEqual(times, [p.stat().st_mtime_ns for p in stamps])
+            for settings in (['MODE=production'], [], ['FPGA_SYNTH_MODE=ip'], []):
+                before = len(events())
+                build(*settings)
+                self.assertEqual(events()[before:], ['project', 'hwdef', 'bitstream'])
+            for settings in (['VIVADO_VERSION=2026.1'], [], ['VIVADO_PATH=other-path'], [],
+                             ['PART=second'], []):
+                before = len(events())
+                build(*settings)
+                self.assertEqual(events()[before:], ['core', 'project', 'hwdef', 'bitstream'])
+            (root / 'fail-timing').touch()
+            bit_time = (root / 'test.bit').stat().st_mtime_ns
+            before = len(events())
+            build('ENFORCE_TIMING=1', success=False)
+            build('ENFORCE_TIMING=1', success=False)
+            self.assertEqual(events()[before:], ['bitstream', 'bitstream'])
+            self.assertEqual((root / 'test.bit').stat().st_mtime_ns, bit_time)
+            (root / 'fail-timing').unlink()
+            build('ENFORCE_TIMING=1')
+            before = len(events())
+            build('ENFORCE_TIMING=1')
+            self.assertEqual(len(events()), before)
+            build('ENFORCE_TIMING=invalid', success=False)
+
     def test_standard_rebuilds(self):
         for instrument, kind in STANDARD.items():
             with self.subTest(instrument=instrument), tempfile.TemporaryDirectory() as tmp:
@@ -125,17 +218,24 @@ $(TMP_FPGA_PATH)/$(NAME).xpr.stamp:
                 harness.write_text('''\
 .PHONY: inspect_outputs
 inspect_outputs:
-\t@printf '%s\\n' $(CORES_COMPONENT_XML) $(MEMORY_TCL) $(FPGA_SYNTH_STAMP) $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(TMP_FPGA_PATH)/$(NAME).xsa $(BITSTREAM) $(PYTHON_REQUIREMENTS_STAMP)
+\t@printf '%s\\n' $(CORES_COMPONENT_XML) $(MEMORY_TCL) $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(FPGA_TIMING_STAMP) $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(TMP_FPGA_PATH)/$(NAME).xsa $(BITSTREAM) $(PYTHON_REQUIREMENTS_STAMP)
+inspect_settings:
+\t@printf '%s\\n' $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(FPGA_TIMING_STAMP)
 ''')
                 cmd = ['make', '--no-print-directory', '-f', 'Makefile', '-f', str(harness),
                        f'CFG=examples/{instrument}/config.mk', f'TMP={tmp}/build',
                        f'PYTHON_REQUIREMENTS_STAMP={tmp}/requirements.stamp']
                 env = dict(os.environ, MAKEFLAGS='', MFLAGS='')
+                settings = []
                 def run(*args):
-                    result = subprocess.run([*cmd, *args], cwd=SDK, env=env,
+                    # Dry-run cannot observe cmp preserving a FORCE stamp's mtime.
+                    frozen = [arg for path in settings for arg in ('-o', path)] if '-n' in args else []
+                    result = subprocess.run([*cmd, *frozen, *args], cwd=SDK, env=env,
                                             capture_output=True, text=True)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     return result.stdout
+                settings = run('-s', 'inspect_settings').splitlines()
+                run('-s', *settings)
                 # Fake only generated outputs; use the real source dependency graph.
                 for line in run('-s', 'inspect_outputs').splitlines():
                     path = Path(line)
@@ -144,6 +244,8 @@ inspect_outputs:
                 self.assertIn("Nothing to be done", run('-n', 'fpga'))
                 board = instrument.split('/')[0]
                 cases = {
+                    'make.py': True,
+                    'server/__init__.py': True,
                     'fpga/lib/starting_point.tcl': True,
                     'fpga/lib/utilities.tcl': True,
                     'fpga/vivado/block_design.tcl': True,

@@ -32,7 +32,10 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
 OS_PATH := {SDK}/os
+TMP_PROJECT_PATH := {root}
+TMP_OS_PATH := {root}/os
 TMP_OS_BOARD_PATH := {root}/board
+KERNEL_BIN := zImage
 UBOOT_PATH = {root}/$(UBOOT_VERSION)
 GCC_ARCH := arm-linux-gnueabihf
 N_CPUS := 2
@@ -51,6 +54,7 @@ include {SDK}/os/os.mk
                     text=True, capture_output=True, timeout=10)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual((root / 'board/u-boot.elf').read_text(), f'{version} {config}\n')
+                self.assertFalse((root / 'os/.linux-selection').exists())
 
             build('2025.1')
             build('2026.1')
