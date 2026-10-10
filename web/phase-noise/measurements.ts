@@ -43,7 +43,7 @@ class PnaMeasurementReadout {
 
     clear(): void {
         for (const node of [this.power, this.phase, this.time, this.range]) {
-            if (node) { node.textContent = '—'; }
+            if (node) { node.textContent = '—'; node.removeAttribute('title'); }
         }
         this.range?.removeAttribute('title');
     }
@@ -52,6 +52,7 @@ class PnaMeasurementReadout {
         this.power.textContent = this.value(measurements.carrier_power, 'dBm');
         this.phase.innerHTML = this.value(measurements.phase_jitter * 1e3, 'mrad <sub>rms</sub>');
         this.time.innerHTML = this.value(measurements.time_jitter * 1e12, 'ps <sub>rms</sub>');
+        for (const node of [this.power, this.phase, this.time]) { node.title = node.textContent; }
         if (this.range) {
             const valid = Number.isFinite(measurements.freq_lo) && Number.isFinite(measurements.freq_hi);
             this.range.textContent = valid

@@ -116,6 +116,11 @@ class Plot {
         } else { this.updatePlot(); }
     }
 
+    private setReadout(id: string, text: string): void {
+        const node = this.document.getElementById(id);
+        node.textContent = node.title = text;
+    }
+
     setPaused(paused: boolean): void {
         this.paused = paused;
         if (paused) {
@@ -296,10 +301,10 @@ class Plot {
             row[0] = this.frequencyAt(i, this.frameStatus);
             row[1] = this.convertValue(this.psd[i], this.unit, this.frameStatus, i);
         }
-        this.document.getElementById('bin-spacing').textContent = this.frameStatus.spectrum?.binSpacings
+        this.setReadout('bin-spacing', this.frameStatus.spectrum?.binSpacings
             ? this.frameStatus.spectrum.binSpacings.map(step => Number((step < 1000 ? step : step / 1000).toPrecision(3)) + (step < 1000 ? ' Hz' : ' kHz')).join(' / ')
-            : (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz';
-        this.document.getElementById('fft-size').textContent = this.fft.fft_size.toLocaleString() + ' points';
+            : (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz');
+        this.setReadout('fft-size', this.fft.fft_size.toLocaleString() + ' points');
         for (const reference of this.references.items) {
             if (!reference.data || reference.unit !== this.unit) {
                 reference.data = Array.from(reference.psd, (value, index) => [
@@ -364,9 +369,9 @@ class Plot {
             if (row[0] < range.from || row[0] > range.to || (excludeDC && row[0] === 0)) { continue; }
             if (Number.isFinite(row[1]) && (!peak.length || row[1] > peak[1])) { peak = row.slice(); }
         }
-        this.document.getElementById('peak-frequency').textContent = peak.length ? (this.frequencyUnit === 'Hz' ? Number(peak[0].toPrecision(7)).toLocaleString() : peak[0].toFixed(6)) + ' ' + this.frequencyUnit : '—';
+        this.setReadout('peak-frequency', peak.length ? (this.frequencyUnit === 'Hz' ? Number(peak[0].toPrecision(7)).toLocaleString() : peak[0].toFixed(6)) + ' ' + this.frequencyUnit : '—');
         const unitLabel = this.unit === 'dBV' ? 'dBV' : this.unit === 'dbv-rtHz' ? 'dBV/√Hz' : this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
-        this.document.getElementById('peak-level').textContent = peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—';
+        this.setReadout('peak-level', peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—');
         this.peak = peak;
         if (this.view !== 'spectrum') { this.views.render(this.unit, this.yLabel, this.paused); return; }
         const traces: {label: string; color: string; data: number[][]}[] = [];
