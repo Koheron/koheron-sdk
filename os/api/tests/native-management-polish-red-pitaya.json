@@ -1,0 +1,23 @@
+{
+  "scope": "Targeted UI preview, not a repeat of the native integration suite",
+  "checks": [
+    "systemd notify readiness and nginx HTTP Unix-socket proxy",
+    "private UI fixtures staged without changing production instruments"
+  ],
+  "activation_ms": 219.30556900042575,
+  "production_pids_before": {
+    "koheron-server": "151",
+    "uwsgi": "394",
+    "nginx": "399"
+  },
+  "production_api_hash": "f369d1250fd9a68fab70b9298bf1f91a1b9843c152603be7817dfe2fd2eb94de",
+  "api_sha256": "8a920dedeb4e2251a7208e758d0da0deeb675a9ad7e065587783fa056f9f07e8",
+  "ui_sha256": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5",
+  "production_pids_after": {
+    "koheron-server": "151",
+    "uwsgi": "394",
+    "nginx": "399"
+  },
+  "production_api_unchanged": true,
+  "temporary_units_removed": true
+}

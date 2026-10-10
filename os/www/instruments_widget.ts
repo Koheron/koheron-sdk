@@ -13,6 +13,9 @@ class InstrumentsWidget {
     private snapshot: RuntimeStatus;
     private inspection = 0;
     private unavailable = false;
+    private pendingMessage = '';
+    private pendingRevision = -1;
+    private inspectionSource: HTMLElement;
 
     constructor(private document: Document, private runtime?: RuntimeStream) {
         this.table = document.getElementById('instruments-table') as HTMLTableElement;
@@ -23,13 +26,27 @@ class InstrumentsWidget {
         this.uploadInput.addEventListener('change', () => this.uploadInstrumentClick());
         document.getElementById('refresh-instruments').addEventListener('click', () => this.refresh());
         if (runtime) {
-            this.setConnection('Connecting to the board…', true);
+            this.setConnection('Connecting to the board…', true, true);
             runtime.subscribe(status => this.renderRuntime(status), error => this.setConnection(error, true));
             for (const action of ['start', 'stop', 'restart'] as const) {
                 document.getElementById('instrument-' + action).addEventListener('click', () =>
                     this.perform(`${action === 'stop' ? 'Stopping' : action === 'restart' ? 'Restarting' : 'Starting'} instrument…`, () => this.driver.control(action), true));
             }
-            document.getElementById('preflight-close').addEventListener('click', () => { ++this.inspection; document.getElementById('preflight-panel').hidden = true; });
+            document.getElementById('preflight-close').addEventListener('click', () => {
+                ++this.inspection; document.getElementById('preflight-panel').hidden = true;
+                if (this.inspectionSource?.isConnected) { this.inspectionSource.focus(); }
+            });
+            document.addEventListener('click', event => {
+                const selected = (event.target as Element).closest('.instrument-options');
+                this.table.querySelectorAll<HTMLDetailsElement>('.instrument-options[open]').forEach(menu => {
+                    if (menu !== selected) { menu.open = false; }
+                });
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key !== 'Escape') { return; }
+                const menu = this.table.querySelector<HTMLDetailsElement>('.instrument-options[open]');
+                if (menu) { menu.open = false; menu.querySelector('summary').focus(); event.preventDefault(); }
+            });
         } else {
             this.poller = new InstrumentPoller(document, () => this.read(), status => {
                 if (status) { this.render(status); }
@@ -54,22 +71,23 @@ class InstrumentsWidget {
             error => this.setConnection(String(error), true));
     }
 
-    private setConnection(text: string, failed = false): void {
+    private setConnection(text: string, failed = false, connecting = false): void {
         this.unavailable = failed;
         this.connection.textContent = text;
         this.connection.hidden = !failed;
         const indicator = this.document.getElementById('board-connection');
-        indicator.textContent = failed ? 'Disconnected' : 'Connected';
-        indicator.dataset.state = failed ? 'error' : 'live';
-        this.connection.dataset.state = failed ? 'error' : 'ready';
+        indicator.textContent = connecting ? 'Connecting…' : failed ? 'Disconnected' : 'Connected';
+        indicator.dataset.state = connecting ? 'connecting' : failed ? 'error' : 'live';
+        this.connection.dataset.state = connecting ? 'loading' : failed ? 'error' : 'ready';
+        this.document.getElementById('refresh-instruments').textContent = failed && !connecting ? 'Retry' : 'Refresh';
         if (failed) {
             this.document.getElementById('live-label').textContent = 'Instrument';
-            this.document.getElementById('live-name').textContent = 'Status unavailable';
+            this.document.getElementById('live-name').textContent = connecting ? 'Connecting…' : 'Status unavailable';
             this.document.getElementById('live-version').textContent = '';
             this.document.getElementById('open-instrument').hidden = true;
             this.signature = '';
             if (this.runtime) {
-                this.document.getElementById('runtime-operation').textContent = 'Status unavailable. Reconnecting…';
+                this.document.getElementById('runtime-operation').hidden = true;
                 this.setDisabled(true);
             }
         }
@@ -99,11 +117,15 @@ class InstrumentsWidget {
         const progress = this.document.getElementById('runtime-operation');
         const phases: Record<string, string> = {validating: 'Checking compatibility and free space…', extracting: 'Preparing instrument files…',
             stopping: 'Stopping instrument…', starting: 'Starting instrument…', restarting: 'Restarting instrument…', rolling_back: 'Restoring previous instrument…'};
-        progress.hidden = operation.phase === 'idle';
-        progress.dataset.state = operation.phase === 'failed' ? 'error' : operation.busy ? 'loading' : 'ready';
-        progress.textContent = operation.busy ? phases[operation.phase] || 'Changing instrument…' : operation.message;
-        if (!operation.busy && operation.rollback === 'restored') { progress.textContent += ' Previous instrument restored.'; }
-        if (!operation.busy && operation.rollback === 'failed') { progress.textContent += ' Restoration failed; see the instrument log.'; }
+        const pending = !!this.pendingMessage && operation.revision <= this.pendingRevision;
+        progress.hidden = !pending && operation.phase === 'idle';
+        progress.dataset.state = pending || operation.busy ? 'loading' : operation.phase === 'failed' ? 'error' : 'ready';
+        const outcomes: Record<string, string> = {start: 'Instrument started.', stop: 'Instrument stopped.', restart: 'Instrument restarted.',
+            activate: `${operation.instrument || current?.name || 'Instrument'} is running.`};
+        progress.textContent = pending ? this.pendingMessage : operation.busy ? phases[operation.phase] || 'Changing instrument…' :
+            operation.phase === 'succeeded' ? outcomes[operation.action] || operation.message : operation.message;
+        if (!pending && !operation.busy && operation.rollback === 'restored') { progress.textContent += ' Previous instrument restored.'; }
+        if (!pending && !operation.busy && operation.rollback === 'failed') { progress.textContent += ' Restoration failed; see the instrument log.'; }
         if (operation.revision !== this.lastOperation) {
             this.lastOperation = operation.revision;
             if (operation.busy) { ++this.inspection; this.document.getElementById('preflight-panel').hidden = true; }
@@ -113,6 +135,7 @@ class InstrumentsWidget {
 
     private async perform(message: string, action: () => Promise<any>, operation = false): Promise<void> {
         if (this.busy || this.unavailable) { return; }
+        if (operation) { this.pendingMessage = message; this.pendingRevision = this.snapshot?.operation.revision ?? -1; }
         this.begin(message);
         if (operation) {
             this.message.hidden = true;
@@ -125,12 +148,14 @@ class InstrumentsWidget {
         } catch (error) { this.finish(String(error).replace(/^Error: /, ''), true); }
     }
 
-    private async inspect(name: string): Promise<void> {
+    private async inspect(name: string, source: HTMLElement): Promise<void> {
         const inspection = ++this.inspection;
+        this.inspectionSource = source;
         const panel = this.document.getElementById('preflight-panel');
         panel.hidden = false;
         this.document.getElementById('preflight-name').textContent = name;
         const content = this.document.getElementById('preflight-content'); content.textContent = 'Checking instrument…';
+        this.document.getElementById('preflight-close').focus();
         try {
             const result = await this.driver.preflight(name);
             if (inspection === this.inspection) new PreflightView(this.document, content).render(result);
@@ -165,7 +190,9 @@ class InstrumentsWidget {
             name.href = '/koheron/instrument_summary.html?name=' + encodeURIComponent(instrument.name);
             name.textContent = instrument.name;
             row.insertCell().appendChild(name);
-            row.insertCell().textContent = instrument.version || '—';
+            const version = this.document.createElement('span'); version.className = 'instrument-version';
+            version.textContent = instrument.version || '—'; version.title = instrument.version || '';
+            row.insertCell().appendChild(version);
             const state = row.insertCell();
             if (running) { this.badge(state, 'Running', 'live'); }
             if (instrument.is_default) { this.badge(state, 'Default'); }
@@ -193,7 +220,7 @@ class InstrumentsWidget {
                 actions.appendChild(options);
                 const menu = this.document.createElement('div'); menu.className = 'instrument-menu'; options.appendChild(menu);
                 extraActions = menu;
-                this.button(menu, 'Check instrument', () => { options.open = false; void this.inspect(instrument.name); });
+                this.button(menu, 'Check instrument', () => { options.open = false; void this.inspect(instrument.name, summary); });
                 if (!instrument.is_default) {
                     this.button(menu, 'Start at boot', () => {
                         options.open = false; void this.perform(`Selecting ${instrument.name} for boot…`, () => this.driver.setDefault(instrument.name));
@@ -203,6 +230,7 @@ class InstrumentsWidget {
             if (!running && !instrument.is_default) {
                 this.button(extraActions, 'Remove', () => {
                     if (!window.confirm(`Remove “${instrument.name}” from this board?`)) { return; }
+                    extraActions.closest('details')?.removeAttribute('open');
                     this.begin(`Removing ${instrument.name}…`);
                     this.driver.deleteInstrument(instrument.name, (success, error) =>
                         this.finish(success ? `${instrument.name} removed.` : error, !success));
@@ -244,11 +272,13 @@ class InstrumentsWidget {
     }
 
     private setDisabled(disabled: boolean): void {
-        this.document.querySelectorAll<HTMLButtonElement>('#instruments-table button, #upload-btn, #refresh-instruments, #instrument-start, #instrument-stop, #instrument-restart')
+        this.document.querySelectorAll<HTMLButtonElement>('#instruments-table button, #upload-btn, #instrument-start, #instrument-stop, #instrument-restart')
             .forEach(button => button.disabled = disabled || (!!this.runtime && this.unavailable));
     }
 
     private finish(text: string, failed = false, showFeedback = true): void {
+        if (failed && this.pendingMessage) { this.document.getElementById('runtime-operation').hidden = true; }
+        this.pendingMessage = '';
         this.localBusy = false;
         this.busy = !!this.runtime && !!this.snapshot?.operation.busy;
         this.setDisabled(this.busy);

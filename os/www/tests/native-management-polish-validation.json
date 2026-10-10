@@ -1,0 +1,69 @@
+{
+  "source_base": "621563af7a602e7829de229176cb011ee41ca992",
+  "recorded_utc": "2026-10-10T10:23:40.478801+00:00",
+  "scope": "UI polish; native production sources and binary unchanged from the hardening record",
+  "source_sha256": {
+    "os/api/tests/red_pitaya_integration.py": "e3161e6a4a39df975727205a2271032e8d6588782d7f7102d4eeb4fa5aabf50b",
+    "os/api/tests/red_pitaya_ui_preview.py": "b928dda11f4370983b24ea794374660b2d864a7233ccc96c4cac2ba7d9589212",
+    "os/www/index.html": "6c4f10d29de44731a2df8c93683ea9cc370b5fde0fd41b830f077ce7fc298f3e",
+    "os/www/instrument_summary.html": "031097f6eba97b224b3ca061c1d998e98342c06dcbb175ca8405d86e9e84d155",
+    "os/www/instrument_summary.ts": "0c969646af12284778021ad1bca1a123607e6c3b6e53d4334d648897cbcc4135",
+    "os/www/instruments.ts": "cacfbebd5251f4508a68281f4e27a1b392af909130d22d3ba5b26fd48e810621",
+    "os/www/instruments_widget.ts": "ebe78d793d9e7cb2a938bbe8e840edb9e5cf1688f5eb5b1e2d6bcd46bac5da30",
+    "os/www/koheron_server_log.ts": "c6fde2cbe67a92c66781ca42f4586a906f009db86a2aef9e279717d383349935",
+    "os/www/koheron_system.ts": "55e2d4c8d71e889eab6d290bb2ddd3a4c52f2ad89416f7cd3fa94daec1487cd7",
+    "os/www/logs_rate.ts": "66c870c7e69142c234cdd345439a369255395dd0b02faae227dd9ce14ba22a62",
+    "os/www/runtime.ts": "7988539ed4d1a26c47e83fbb7e791e35e0f17097517224e8c6e0617814664861",
+    "os/www/system.css": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a",
+    "os/www/system_info_widget.ts": "751d6d7de81de1ad54e00b5f333eb6bcc9b107904521b3cc379fea2095d27ac6",
+    "os/www/tests/management_polish_browser.cjs": "28df97610280be4983f27b585d3debf8838a5f40e6c2090dd262a149fff58d8e",
+    "os/www/tests/test_manager.cjs": "0522442bab3b49d821407ab81ed5550385fd6ab4e4a7a2094d935146aef10bd7",
+    "os/www/tests/test_rates.cjs": "ec7408cb70e88c3ce3648929abe013e044700862e1f783ad155bb09a2309418f",
+    "os/www/tests/test_runtime.cjs": "83d66e26879d612cc233069d516238091bf051d17ade10f691c1ae86f315d69a",
+    "web/instrument/instrument.css": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761",
+    "web/instrument/poller.ts": "7266b39afd8d70c0d88bfc120e38fbc78eda56e5e056f03acffc3511ceb01124",
+    "web/transpile.cjs": "5964e68b1deaf38990ffcb16a43a9a750bd7318c4a5aeb6a90fdfdd55219ebb6"
+  },
+  "artifacts_sha256": {
+    "tmp/www/instruments.js": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5",
+    "tmp/www/system.css": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a",
+    "tmp/www/index.html": "6c4f10d29de44731a2df8c93683ea9cc370b5fde0fd41b830f077ce7fc298f3e",
+    "tmp/www/instrument_summary.html": "031097f6eba97b224b3ca061c1d998e98342c06dcbb175ca8405d86e9e84d155",
+    "tmp/api/armhf/koheron-api": "8a920dedeb4e2251a7208e758d0da0deeb675a9ad7e065587783fa056f9f07e8"
+  },
+  "build_checks": {
+    "ui_regressions": 36,
+    "typescript_build": "passed",
+    "red_pitaya_management_assets": "make CFG=examples/red-pitaya/fft/config.mk www passed"
+  },
+  "hardware": {
+    "board": "red-pitaya",
+    "address": "192.168.1.85",
+    "raw_record": "../../api/tests/native-management-polish-red-pitaya.json",
+    "production_unchanged": true,
+    "staging_removed": true,
+    "scope": "Private notify fixture instruments and separate nginx listener; Stop/Start, preflight, live health, WebSocket heartbeat and browser interactions. No FPGA programming, production restart, image flash, cold reboot or stress run."
+  },
+  "browser": {
+    "record": "native-management-polish-browser.json",
+    "checks": 9,
+    "viewport_widths": [
+      320,
+      390,
+      768,
+      1360
+    ],
+    "page_errors": [],
+    "page_horizontal_overflow": false,
+    "simulated_failures": [
+      "WebSocket close plus aborted HTTP status read",
+      "aborted command description request"
+    ],
+    "screenshots": [
+      "native-management-polish-desktop.png",
+      "native-management-polish-mobile.png",
+      "native-management-polish-mobile-menu.png",
+      "native-management-polish-details.png"
+    ]
+  }
+}

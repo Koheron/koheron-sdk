@@ -5,6 +5,8 @@ class InstrumentSummaryWidget {
     private versionElement: HTMLElement | null;
     private commandsContainer: HTMLElement | null;
     private commandsStatus: HTMLElement | null;
+    private checking = false;
+    private loadingCommands = false;
 
     constructor(private document: Document) {
         this.instrumentsDriver = new Instruments();
@@ -15,7 +17,10 @@ class InstrumentSummaryWidget {
         this.commandsStatus = document.getElementById('instrument-commands-status');
 
         if (!this.instrumentName) {
-            this.setStatus('Instrument name missing in URL.');
+            this.nameElement.textContent = 'No instrument selected';
+            this.setDetailsStatus('Choose an instrument from the installed instruments list.');
+            document.getElementById('instrument-check-heading').closest('section').hidden = true;
+            document.getElementById('commands-heading').closest('section').hidden = true;
             return;
         }
 
@@ -25,15 +30,21 @@ class InstrumentSummaryWidget {
 
         this.loadInstrumentDetails();
         this.loadCommands();
+        document.getElementById('instrument-commands-retry').addEventListener('click', () => this.loadCommands());
         document.getElementById('instrument-check-refresh').addEventListener('click', () => this.loadPreflight());
         void this.loadPreflight();
     }
 
     private async loadPreflight(): Promise<void> {
+        if (this.checking) { return; }
+        this.checking = true;
         const container = this.document.getElementById('instrument-check');
+        const button = this.document.getElementById('instrument-check-refresh') as HTMLButtonElement;
+        button.disabled = true; button.textContent = 'Checking…';
         container.textContent = 'Checking instrument…';
         try { new PreflightView(this.document, container).render(await this.instrumentsDriver.preflight(this.instrumentName)); }
         catch (error) { container.textContent = String(error).replace(/^Error: /, ''); }
+        finally { this.checking = false; button.disabled = false; button.textContent = 'Check again'; }
     }
 
     private getInstrumentName(): string | null {
@@ -46,13 +57,13 @@ class InstrumentSummaryWidget {
         this.instrumentsDriver.getInstrumentsStatus((status) => {
             const instruments = status['instruments'] as any[] | undefined;
             if (!Array.isArray(instruments)) {
-                this.setStatus('Cannot load instrument details.');
+                this.setDetailsStatus('Cannot load instrument details.');
                 return;
             }
 
             const instrument = instruments.find((inst) => inst['name'] === this.instrumentName);
             if (!instrument) {
-                this.setStatus('Instrument not found.');
+                this.setDetailsStatus('This instrument is no longer installed. Return to the installed instruments list.');
                 return;
             }
 
@@ -60,16 +71,19 @@ class InstrumentSummaryWidget {
                 const version = instrument['version'] || 'Unknown';
                 this.versionElement.textContent = version;
             }
-        }, error => this.setStatus(error));
+        }, error => this.setDetailsStatus(error));
     }
 
     private loadCommands(): void {
-        if (!this.instrumentName) {
+        if (!this.instrumentName || this.loadingCommands) {
             return;
         }
-
+        this.loadingCommands = true;
+        this.setStatus('Loading commands…');
+        const finish = (message: string, failed = false) => { this.loadingCommands = false; this.setStatus(message, failed); };
         const xhr = new XMLHttpRequest();
         xhr.open('GET', '/api/instruments/commands/' + encodeURIComponent(this.instrumentName), true);
+        xhr.timeout = 8000;
         xhr.onload = () => {
             if (xhr.readyState !== 4) {
                 return;
@@ -78,19 +92,21 @@ class InstrumentSummaryWidget {
             if (xhr.status === 200) {
                 try {
                     const data = JSON.parse(xhr.responseText);
+                    if (!Array.isArray(data)) { throw new Error('Invalid commands'); }
                     this.renderCommands(data);
+                    this.loadingCommands = false;
                 } catch (err) {
-                    this.setStatus('Cannot parse commands definition.');
+                    this.commandsContainer.textContent = '';
+                    finish('Cannot read the command description. Try again.', true);
                 }
             } else if (xhr.status === 404) {
-                this.setStatus('No command description available.');
+                finish('No command description available.');
             } else {
-                this.setStatus('Cannot load commands (HTTP ' + xhr.status + ').');
+                finish('Cannot load commands (HTTP ' + xhr.status + ').', true);
             }
         };
-        xhr.onerror = () => {
-            this.setStatus('Failed to load commands.');
-        };
+        xhr.onerror = () => finish('Cannot reach the board. Retry when the connection is restored.', true);
+        xhr.ontimeout = () => finish('Loading commands timed out. Try again.', true);
         xhr.send(null);
     }
 
@@ -99,10 +115,8 @@ class InstrumentSummaryWidget {
             return;
         }
 
-        this.commandsContainer.innerHTML = '';
-        if (this.commandsStatus) {
-            this.commandsStatus.textContent = '';
-        }
+        this.commandsContainer.textContent = '';
+        this.setStatus('');
 
         if (!Array.isArray(data) || data.length === 0) {
             this.setStatus('No commands defined for this instrument.');
@@ -139,6 +153,7 @@ class InstrumentSummaryWidget {
             details.appendChild(list);
             this.commandsContainer.appendChild(details);
         }
+        if (!this.commandsContainer.childElementCount) { this.setStatus('No commands exposed by this instrument.'); }
     }
 
     private createCommandListItem(func: any): HTMLLIElement {
@@ -204,9 +219,17 @@ class InstrumentSummaryWidget {
         return cleaned.trim();
     }
 
-    private setStatus(message: string): void {
+    private setDetailsStatus(message: string): void {
+        const status = this.document.getElementById('instrument-details-status');
+        status.textContent = message; status.hidden = !message; status.dataset.state = 'error';
+    }
+
+    private setStatus(message: string, failed = false): void {
         if (this.commandsStatus) {
             this.commandsStatus.textContent = message;
+            this.commandsStatus.hidden = !message;
+            this.commandsStatus.dataset.state = failed ? 'error' : 'ready';
         }
+        this.document.getElementById('instrument-commands-retry').hidden = !failed;
     }
 }

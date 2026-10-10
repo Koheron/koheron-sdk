@@ -147,3 +147,50 @@ test('summary accepts literal percent in instrument name', async t => {
     await flush();
 });
 
+test('summary without a name offers a clear route back without perpetual loading', t => {
+    const {w, requests, doc} = fixture(t, 'instrument_summary.html');
+    w.eval('new InstrumentSummaryWidget(document)');
+    assert.equal(requests.length, 0);
+    assert.equal(doc.querySelector('#instrument-name').textContent, 'No instrument selected');
+    assert.match(doc.querySelector('#instrument-details-status').textContent, /Choose an instrument/);
+    assert.equal(doc.querySelector('#instrument-check-heading').closest('section').hidden, true);
+    assert.equal(doc.querySelector('#commands-heading').closest('section').hidden, true);
+});
+
+test('summary check prevents overlapping requests and re-enables retry after failure', async t => {
+    const {w, requests, doc, flush} = fixture(t, 'instrument_summary.html', '?name=fft');
+    w.eval('new InstrumentSummaryWidget(document)');
+    const button = doc.querySelector('#instrument-check-refresh');
+    assert.equal(button.disabled, true); button.click(); assert.equal(requests.length, 3);
+    requests[2].reply(500, {error: 'Cannot check the instrument'}); await flush();
+    assert.equal(button.disabled, false); assert.equal(button.textContent, 'Check again');
+    button.click(); assert.equal(requests.length, 4);
+    requests[3].reply(200, {ready: true}); await flush();
+    assert.match(doc.querySelector('#instrument-check').textContent, /Ready to run/);
+});
+
+test('commands timeout has a working retry and cannot erase an independent details error', t => {
+    const {w, requests, doc} = fixture(t, 'instrument_summary.html', '?name=fft');
+    w.eval('new InstrumentSummaryWidget(document)');
+    requests[0].reply(200, {instruments: []});
+    assert.equal(requests[1].timeout, 8000); requests[1].ontimeout();
+    const retry = doc.querySelector('#instrument-commands-retry'); assert.equal(retry.hidden, false);
+    retry.click(); assert.equal(requests.length, 4); assert.equal(retry.hidden, true);
+    requests[3].reply(200, [{class: 'Common', functions: [{name: '<img src=x>', args: [], ret_type: 'void'}]}]);
+    assert.equal(doc.querySelector('#instrument-commands-status').hidden, true);
+    assert.match(doc.querySelector('#instrument-details-status').textContent, /no longer installed/);
+    assert.match(doc.querySelector('#instrument-commands').textContent, /<img src=x>/);
+    assert.equal(doc.querySelector('#instrument-commands img'), null);
+});
+
+test('command description distinguishes unavailable metadata from malformed metadata', t => {
+    const {w, requests, doc} = fixture(t, 'instrument_summary.html', '?name=fft');
+    w.eval('new InstrumentSummaryWidget(document)');
+    requests[1].reply(200, {});
+    assert.equal(doc.querySelector('#instrument-commands-retry').hidden, false);
+    doc.querySelector('#instrument-commands-retry').click();
+    requests[3].reply(404, 'Missing');
+    assert.equal(doc.querySelector('#instrument-commands-retry').hidden, true);
+    assert.match(doc.querySelector('#instrument-commands-status').textContent, /No command description/);
+});
+

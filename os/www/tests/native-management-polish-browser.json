@@ -1,0 +1,51 @@
+{
+  "url": "http://192.168.1.85:18087/koheron/",
+  "checks": [
+    "real board Stop/Start with readable completed feedback",
+    "WebSocket heartbeat remains connected without HTTP fallback",
+    "one action menu at a time; outside click and Escape restore focus",
+    "real preflight and keyboard focus round trip",
+    "320/390/768/1360px layouts and mobile touch targets",
+    "simulated stream loss and failed status read retain a working manual Retry",
+    "simulated command request failure retries against the real API; compatibility check repeats",
+    "missing instrument name has a clear return path without loading placeholders",
+    "no Chromium page errors"
+  ],
+  "viewports": [
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "tableWidth": 296,
+      "tableContainerWidth": 296
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "tableWidth": 366,
+      "tableContainerWidth": 366
+    },
+    {
+      "width": 390,
+      "scrollWidth": 390,
+      "tableWidth": 366,
+      "tableContainerWidth": 366,
+      "menuOpen": true
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "tableWidth": 736,
+      "tableContainerWidth": 736
+    },
+    {
+      "width": 1360,
+      "scrollWidth": 1360,
+      "tableWidth": 1034,
+      "tableContainerWidth": 1034
+    }
+  ],
+  "statusReads": 4,
+  "errors": [],
+  "api_sha256": "8a920dedeb4e2251a7208e758d0da0deeb675a9ad7e065587783fa056f9f07e8",
+  "ui_sha256": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5"
+}

@@ -176,3 +176,80 @@ test('timed-out fallback recovers instead of holding the read lock', async t => 
     assert.equal(f.doc.querySelector('#upload-btn').disabled, false);
     assert.equal(f.doc.querySelector('#health-table').dataset.stale, 'false');
 });
+
+test('initial connection is neutral and manual retry remains available after a failure', async t => {
+    const f = fixture(t);
+    assert.equal(f.doc.querySelector('#board-connection').textContent, 'Connecting…');
+    assert.equal(f.doc.querySelector('#instruments-status').dataset.state, 'loading');
+    assert.equal(f.doc.querySelector('#refresh-instruments').disabled, false);
+    f.sockets[0].onclose(); f.requests.shift().onerror(); await f.flush();
+    assert.equal(f.doc.querySelector('#refresh-instruments').textContent, 'Retry');
+    assert.equal(f.doc.querySelector('#refresh-instruments').disabled, false);
+    f.doc.querySelector('#refresh-instruments').click();
+    f.requests.shift().reply(200, status()); await f.flush();
+    assert.equal(f.doc.querySelector('#refresh-instruments').textContent, 'Refresh');
+    assert.equal(f.doc.querySelector('#upload-btn').disabled, false);
+});
+
+test('pending lifecycle feedback survives an older idle or completed snapshot', async t => {
+    const f = fixture(t); f.sockets[0].reply(status());
+    f.doc.querySelector('#instrument-stop').click();
+    f.sockets[0].reply(status());
+    assert.equal(f.doc.querySelector('#runtime-operation').hidden, false);
+    assert.equal(f.doc.querySelector('#runtime-operation').textContent, 'Stopping instrument…');
+    f.sockets[0].reply(status({operation: {phase: 'succeeded', action: 'start', busy: false, revision: 0}}));
+    assert.equal(f.doc.querySelector('#runtime-operation').textContent, 'Stopping instrument…');
+    f.requests.shift().reply(200, {message: 'Instrument stop completed'}); await f.flush();
+    f.sockets[0].reply(status({operation: {phase: 'succeeded', action: 'stop', busy: false, revision: 2}}));
+    assert.equal(f.doc.querySelector('#runtime-operation').textContent, 'Instrument stopped.');
+    assert.equal(f.doc.querySelector('#upload-status').hidden, true);
+});
+
+test('action menus close on outside clicks and Escape returns keyboard focus', t => {
+    const f = fixture(t); f.sockets[0].reply(status());
+    const menus = f.doc.querySelectorAll('.instrument-options');
+    menus[0].querySelector('summary').click(); assert.equal(menus[0].open, true);
+    menus[1].querySelector('summary').click();
+    assert.equal(menus[0].open, false); assert.equal(menus[1].open, true);
+    menus[1].querySelector('button').focus();
+    f.doc.dispatchEvent(new f.w.KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    assert.equal(menus[1].open, false);
+    assert.equal(f.doc.activeElement, menus[1].querySelector('summary'));
+    menus[1].querySelector('summary').click(); f.doc.querySelector('#instruments-heading').click();
+    assert.equal(menus[1].open, false);
+});
+
+test('instrument check moves focus into its panel and restores the originating action', async t => {
+    const f = fixture(t); f.sockets[0].reply(status());
+    const menu = f.doc.querySelector('tr[data-name="scope"] .instrument-options');
+    menu.querySelector('summary').click(); menu.querySelector('button').click();
+    assert.equal(menu.open, false);
+    assert.equal(f.doc.activeElement, f.doc.querySelector('#preflight-close'));
+    f.doc.querySelector('#preflight-close').click();
+    assert.equal(f.doc.activeElement, menu.querySelector('summary'));
+    f.requests.shift().reply(200, {ready: true}); await f.flush();
+    assert.equal(f.doc.querySelector('#preflight-panel').hidden, true);
+    assert.equal(f.doc.querySelector('#preflight-content').textContent, 'Checking instrument…');
+});
+
+test('health displays short uptime and startup durations without rounding them to zero', t => {
+    const f = fixture(t); f.sockets[0].reply(status({health: {uptime_seconds: 37,
+        timing: {api_initialization_us: 12, extraction: {ExecMainStartTimestampMonotonic: 100, ExecMainExitTimestampMonotonic: 2100}},
+        instrument_service: {ExecMainStartTimestampMonotonic: 100, ActiveEnterTimestampMonotonic: 75100}}}));
+    const values = Object.fromEntries(Array.from(f.doc.querySelectorAll('#health-table tr'), row => [row.cells[0].textContent, row.cells[1].textContent]));
+    assert.equal(values.Uptime, '37 s');
+    assert.equal(values['API initialization'], '<0.1 ms');
+    assert.equal(values['Server startup'], '75.0 ms');
+    assert.equal(values['Boot extraction'], '2.0 ms');
+});
+
+test('small extracted sizes stay visible and full versions remain in accessible text', t => {
+    const f = fixture(t); f.sockets[0].reply(status({instruments: {instruments: [
+        {name: 'scope', version: '1.0.0-development+red-pitaya', is_default: false}], live_instrument: null}}));
+    const version = f.doc.querySelector('.instrument-version');
+    assert.equal(version.textContent, '1.0.0-development+red-pitaya');
+    assert.equal(version.title, version.textContent);
+    assert.equal(f.w.PreflightView.bytes(120), '120 B');
+    assert.equal(f.w.PreflightView.bytes(0), '0 B');
+    assert.equal(f.w.PreflightView.bytes(-1), 'Unavailable');
+});

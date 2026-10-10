@@ -14,11 +14,15 @@ class SystemInfoWidget {
         const table = this.document.getElementById('health-table') as HTMLTableElement;
         const status = this.document.getElementById('health-status'); status.hidden = true; status.dataset.state = 'ready';
         table.dataset.stale = 'false';
-        const uptime = Number.isFinite(health.uptime_seconds) ? `${Math.floor(health.uptime_seconds / 3600)}h ${Math.floor(health.uptime_seconds / 60) % 60}m` : 'Unavailable';
+        const uptimeSeconds = health.uptime_seconds;
+        const uptime = Number.isFinite(uptimeSeconds) && uptimeSeconds >= 0 ?
+            uptimeSeconds < 60 ? `${Math.floor(uptimeSeconds)} s` : uptimeSeconds < 3600 ? `${Math.floor(uptimeSeconds / 60)} min` :
+            `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor(uptimeSeconds / 60) % 60}m` : 'Unavailable';
         const memory = health.memory || {}, disks = health.storage || {}, service = health.instrument_service || {};
         const extraction = health.timing?.extraction || {};
         const elapsed = extraction.ExecMainExitTimestampMonotonic - extraction.ExecMainStartTimestampMonotonic;
-        const seconds = (value: number) => value > 0 ? `${(value / 1000000).toFixed(2)} s` : 'Unavailable';
+        const seconds = (value: number) => Number.isFinite(value) && value > 0 ?
+            value < 100 ? '<0.1 ms' : value < 1000000 ? `${(value / 1000).toFixed(1)} ms` : `${(value / 1000000).toFixed(2)} s` : 'Unavailable';
         const fields: Array<[string, string]> = [
             ['Uptime', uptime], ['Load · 1/5/15m', Array.isArray(health.load_average) && health.load_average.length ? health.load_average.map((n: number) => n.toFixed(2)).join(' · ') : 'Unavailable'],
             ['RAM available', PreflightView.bytes(memory.available_bytes)], ['RAM total', PreflightView.bytes(memory.total_bytes)],

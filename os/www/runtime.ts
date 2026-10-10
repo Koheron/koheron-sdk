@@ -153,7 +153,8 @@ class PreflightView {
         }
     }
     static bytes(value: number): string {
-        if (!Number.isFinite(value)) { return 'Unavailable'; }
+        if (!Number.isFinite(value) || value < 0) { return 'Unavailable'; }
+        if (value < 1024) { return `${Math.round(value)} B`; }
         return value < 1024 * 1024 ? `${(value / 1024).toFixed(0)} KiB` : `${(value / 1024 / 1024).toFixed(1)} MiB`;
     }
 }

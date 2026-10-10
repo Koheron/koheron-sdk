@@ -1,16 +1,49 @@
 # Native management runtime tests
 
+[UI polish validation](../../www/tests/native-management-polish-validation.json)
+records 36 browser regressions, the TypeScript/web build, and a targeted Chromium
+run against private services on the physical Red Pitaya. It covers readable
+lifecycle feedback, manual connection retry, action-menu dismissal, keyboard
+focus, command-load retry, and 320/390/768/1360px layouts. Startup durations now
+retain millisecond precision; small packages retain byte precision. The native
+binaries are unchanged from the hardening snapshot below.
+[Board cleanup](native-management-polish-red-pitaya.json) and
+[console output](native-management-polish-red-pitaya.txt) record production PID
+and API preservation. The [browser record](../../www/tests/native-management-polish-browser.json)
+separates real API interactions from request failures simulated in Chromium.
+Reviewed screenshots: [desktop](../../www/tests/native-management-polish-desktop.png),
+[mobile](../../www/tests/native-management-polish-mobile.png),
+[mobile actions](../../www/tests/native-management-polish-mobile-menu.png),
+[details](../../www/tests/native-management-polish-details.png).
+
+For a short UI preview, stage `red_pitaya_ui_preview.py` alongside
+`red_pitaya_integration.py`, the private binaries, configs, libraries and `www/`.
+Run it with `--preview`; it serves four dummy instruments for up to three
+minutes, then removes its services. Touch `/tmp/native-management/preview-done`
+to finish early. Run the host browser checks with Puppeteer Core and Chromium:
+
+```sh
+MANAGEMENT_URL=http://BOARD:18087/koheron/ \
+CHROMIUM_PATH=/path/to/chromium \
+node os/www/tests/management_polish_browser.cjs
+```
+
+`PUPPETEER_MODULE` can select an installed module outside the default Node search
+path; `BROWSER_OUTPUT` selects the screenshot/record directory. Copy the board's
+`integration.json` and `preview.txt` before removing its staging directory.
+This preview does not run the native integration or stress suites.
+
 [Hardening validation](native-management-hardening-validation.json) records the
-current follow-up checks and artifact hashes: 109 native tests, 101 sanitizer
+preceding follow-up checks and artifact hashes: 109 native tests, 101 sanitizer
 tests, 26 browser regressions, and ARMhf/ARM64 builds. The suite covers foreign
 browser requests, navigation/HEAD side effects, reflected HTML, strict metadata,
 idle WebSocket expiration, late HTTP results, cancellation, fallback recovery,
 and validation before replacing the boot-default archive.
-The [current board record](native-management-hardening-red-pitaya.json) and
+The [hardening board record](native-management-hardening-red-pitaya.json) and
 [console output](native-management-hardening-red-pitaya.txt) cover 27 private
 fixture checks, including the browser boundary, proxy port preservation,
 heartbeat expiration, default replacement, and the POST activation log bookmark.
-[Current Chromium results](../../www/tests/native-management-hardening-browser.json)
+[Hardening Chromium results](../../www/tests/native-management-hardening-browser.json)
 record desktop/mobile controls and a stable heartbeat without HTTP fallback.
 The earlier extension measurements below refer to the original implementation
 snapshot; their hashes are preserved.
