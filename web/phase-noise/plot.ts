@@ -360,9 +360,9 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
       ready ? 'Live noise spectrum' : 'Noise spectrum; no live data');
   }
 
-  public markUnavailable(reason: string): void {
+  public markUnavailable(reason: string, resetRate = true): void {
     this.setCaptureReady(false);
-    this.resetRate();
+    if (resetRate) { this.resetRate(); }
     this.document.getElementById('plot-placeholder')?.setAttribute('aria-label',
       `${reason}; spectrum is not live`);
     const plot = this.document.getElementById('plot-placeholder');
@@ -469,7 +469,7 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
         const complete = () => {
           this._busy = false;
           if (this.disposed) { return; }
-          if (ready) { this.recordFrame(received - readStarted, 0, performance.now() - drawStarted, frameDelay, false); }
+          this.recordFrame(received - readStarted, 0, performance.now() - drawStarted, frameDelay, false);
           this.schedule(Math.max(0, this._lastTick + frameBudgetMs - performance.now()));
         };
         if (this.plotBasics.needsRedraw()) { this.redraw(complete); }
@@ -500,9 +500,10 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
       } else {
         const live = snapshot.state === 1;
         const allZero = phaseNoise.subarray(2).every(v => v === 0);
+        // Connected replies contribute polling timings even while acquisition settles.
         this.markUnavailable(!live ? 'Acquisition settling' : allZero
           ? 'No noise resolved at this precision. Increase phase precision to resolve smaller changes.'
-          : 'No valid noise spectrum available');
+          : 'No valid noise spectrum available', false);
       }
       this.updateReferenceDisplay();
 
@@ -517,8 +518,8 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
           this._busy = false;
           if (this.disposed) { return; }
           const drawn = performance.now();
-          if (ready) { this.recordFrame(received - readStarted, drawStarted - received, drawn - drawStarted,
-            frameDelay, changed); }
+          this.recordFrame(received - readStarted, drawStarted - received, drawn - drawStarted,
+            frameDelay, ready && changed);
           this.schedule(Math.max(0, this._lastTick + frameBudgetMs - drawn));
         });
     } catch (err) {

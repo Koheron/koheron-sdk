@@ -149,6 +149,8 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya']) {
         h.window.console.error = () => {};
         h.window.document.body.insertAdjacentHTML('beforeend', '<span id="precision-status">Live</span><span class="tracking-state">Locked</span>');
         h.window.document.querySelector('#decade-values-table').innerHTML = '<tbody><tr><td>1 kHz</td><td>-120 dBc/Hz</td></tr></tbody>';
+        const readouts = h.window.document.querySelectorAll('.carrier-power-span, .phase-jitter-span, .time-jitter-span, #jitter-range, .tracking-state');
+        for (const node of readouts) { node.title = 'Previous live reading'; }
         h.client.fail(new Error('WebSocket closed'));
         assert.equal(h.window.document.getElementById('connection-status').textContent, 'Disconnected');
         assert.match(h.window.document.getElementById('connection-error-message').textContent, /Connection lost.*stale/);
@@ -157,6 +159,7 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya']) {
         assert.equal(h.window.document.querySelector('#decade-values-table tbody td:last-child').textContent, '—');
         assert.equal(h.window.document.getElementById('average-status').textContent, '—/');
         assert.equal(h.window.document.querySelector('.phase-jitter-span').textContent, '—');
+        for (const node of readouts) { assert.equal(node.hasAttribute('title'), false); }
         assert.equal(h.window.document.getElementById('instrument-controls').disabled, true);
         if (h.target) { assert.equal(h.target.querySelector('fieldset').disabled, true); }
         assert.equal(h.port.calls.length, 0);

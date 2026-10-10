@@ -59,8 +59,8 @@ class PlotReferencePanel<T extends PlotReference> {
             };
             name.addEventListener('change', rename);
             name.addEventListener('keydown', event => {
-                if (event.key === 'Enter') { event.preventDefault(); rename(); name.blur(); }
-                if (event.key === 'Escape') { event.preventDefault(); name.value = item.name; name.blur(); }
+                if (event.key === 'Enter') { event.preventDefault(); rename(); }
+                if (event.key === 'Escape') { event.preventDefault(); name.value = item.name; }
             });
             const actions = d.createElement('div'); actions.className = 'reference-row-actions';
             const replace = d.createElement('button'); replace.type = 'button'; replace.className = 'replace-reference';

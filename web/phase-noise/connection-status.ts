@@ -17,7 +17,7 @@ function showPnaConnectionError(document: Document): void {
         average.setAttribute('aria-label', 'Average progress unavailable: disconnected');
     }
     document.querySelectorAll('.carrier-power-span, .phase-jitter-span, .time-jitter-span, #jitter-range, .tracking-state, .tracking-effective-bandwidth, .tracking-correction-0, .tracking-correction-1, .tracking-correction-x, .tracking-correction-y, #decade-values-table tbody td:last-child')
-        .forEach(node => { node.textContent = '—'; });
+        .forEach(node => { node.textContent = '—'; node.removeAttribute('title'); });
     for (const [id, text, title] of [
         ['performance-status', 'Queue —', 'Processing status unavailable while disconnected'],
         ['coverage-status', 'Coverage —', 'Coverage unavailable while disconnected'],

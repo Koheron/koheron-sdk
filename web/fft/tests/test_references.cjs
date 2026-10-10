@@ -128,10 +128,13 @@ test('reference names commit with Enter and cancel with Escape without changing 
     const panel = new w.FFTReferencePanel(d, refs, () => {}, () => {});
     refs.capture(new Float32Array(4).fill(1e-12), status(), 8);
     const item = refs.items[0], data = item.psd, input = d.querySelector('.reference-row input[type=text]');
+    input.focus();
     input.value = 'Before filter'; input.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Enter'}));
     assert.equal(item.name, 'Before filter');
+    assert.strictEqual(d.activeElement, input, 'Enter keeps keyboard focus in the name editor');
     input.value = 'Discard this edit'; input.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Escape'}));
     assert.equal(item.name, 'Before filter'); assert.equal(input.value, 'Before filter'); assert.strictEqual(item.psd, data);
+    assert.strictEqual(d.activeElement, input, 'Escape keeps keyboard focus in the name editor');
     d.querySelector('.reference-row button[aria-label^=Remove]').click();
     assert.equal(refs.items.length, 0); assert.equal(d.getElementById('reference-undo').hidden, false);
     d.getElementById('undo-reference').click(); assert.strictEqual(refs.items[0], item);
