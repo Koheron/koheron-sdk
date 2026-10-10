@@ -25,6 +25,8 @@ Examples:
   $0 --all
   $0 --list
   $0               # interactive mode
+
+Set N_CPUS to a positive integer to bound make jobs and tool threads.
 USAGE
 }
 
@@ -112,11 +114,17 @@ build_board() {
   local board="$1"
   local prompt_flash=${2:-true}
   load_board_config "${board}"
+  local build_jobs=${N_CPUS:-$(nproc 2>/dev/null || printf '1')}
+  if [[ ! $build_jobs =~ ^[1-9][0-9]*$ ]]; then
+    printf 'N_CPUS must be a positive integer, got: %s\n' "$build_jobs" >&2
+    exit 1
+  fi
 
   SECONDS=0
   trap 'failure "Build failed after ${SECONDS}s."' ERR
 
   log "Preparing build for ${BOARD_NAME}."
+  printf '  • Parallel jobs:      %s\n' "$build_jobs"
   if ((${#INSTRUMENT_CONFIGS[@]} > 0)); then
     printf '  • Instrument configs: %s\n' "${INSTRUMENT_CONFIGS[*]}"
   else
@@ -131,15 +139,15 @@ build_board() {
 
   for cfg in "${INSTRUMENT_CONFIGS[@]}"; do
     log "Building instrument for CFG=${cfg}"
-    run_make_command make -j CFG="${cfg}"
+    run_make_command make -j"${build_jobs}" N_CPUS="${build_jobs}" CFG="${cfg}"
   done
 
   if ((${#COPY_INSTRUMENTS[@]} > 0)); then
     log "Building SD card image with instruments: ${COPY_INSTRUMENTS[*]}"
-    run_make_command make -j CFG="${IMAGE_CONFIG}" COPY_INSTRUMENTS="${COPY_INSTRUMENTS[*]}" image
+    run_make_command make -j"${build_jobs}" N_CPUS="${build_jobs}" CFG="${IMAGE_CONFIG}" COPY_INSTRUMENTS="${COPY_INSTRUMENTS[*]}" image
   else
     log "Building SD card image"
-    run_make_command make -j CFG="${IMAGE_CONFIG}" image
+    run_make_command make -j"${build_jobs}" N_CPUS="${build_jobs}" CFG="${IMAGE_CONFIG}" image
   fi
 
   if [[ ${prompt_flash} == true ]]; then

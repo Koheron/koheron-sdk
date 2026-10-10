@@ -280,11 +280,33 @@ $(TMP_WEB_PATH)/:
             make('web')
             self.assertEqual((output / 'control.html').read_text(), 'shared')
             self.assertEqual((output / 'app.js').read_text(), 'shared')
-            make('-q', 'web')  # An unchanged build remains up to date.
+            def assert_cached(*settings):
+                mtimes = {p: p.stat().st_mtime_ns for p in output.iterdir()}
+                make(*settings, 'web')
+                self.assertEqual(mtimes, {p: p.stat().st_mtime_ns for p in output.iterdir()})
+            assert_cached()
             os.utime(output / 'app.js', (stamp - 10, stamp - 10))
             config.write_text(config.read_text() + '# configuration-only change\n')
             make('web')  # Configuration-only changes still refresh the generated script.
-            make('-q', 'web')
+            assert_cached()
+            # Dynamic source membership can change without any config edit.
+            selection = f'WEB_FILES={root}/shared/control.html {root}/legacy/driver.ts {root}/shared/driver.ts'
+            make(selection, 'web')
+            self.assertEqual((output / 'app.js').read_text(), 'legacyshared')
+            (root / 'legacy/driver.ts').unlink()
+            selection = f'WEB_FILES={root}/shared/control.html {root}/shared/driver.ts'
+            make(selection, 'web')
+            self.assertEqual((output / 'app.js').read_text(), 'shared')
+            assert_cached(selection)
+            # Replacing a flat asset by an older source with the same name must
+            # refresh that asset without recompiling unchanged TypeScript.
+            javascript_time = (output / 'app.js').stat().st_mtime_ns
+            os.utime(root / 'legacy/control.html', (100, 100))
+            selection = f'WEB_FILES={root}/legacy/control.html {root}/shared/driver.ts'
+            make(selection, 'web')
+            self.assertEqual((output / 'control.html').read_text(), 'legacy')
+            self.assertEqual((output / 'app.js').stat().st_mtime_ns, javascript_time)
+            assert_cached(selection)
 
 
 if __name__ == '__main__':

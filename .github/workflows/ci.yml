@@ -69,6 +69,14 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check PyYAML Jinja2 CppHeaderParser==2.7.4
       - name: Check driver selection and complete compiler flags
         run: python3 -m unittest discover -s server/tests -p test_build_make.py
+      - name: Check instrument packaging and archive publication
+        run: python3 -m unittest discover -s make/tests
+      - name: Check management compiler and linker settings
+        run: python3 -m unittest discover -s os/tests -p test_api_make.py
+      - name: Check unchanged image caching
+        run: python3 -m unittest discover -s os/tests -p test_image_metadata_make.py
+      - name: Check image build job limits
+        run: python3 -m unittest discover -s os/tests -p test_build_script.py
       - name: Check cached kernel selection
         run: python3 -m unittest discover -s os/tests -p test_linux_selection_make.py
       - name: Check cached bootloader selection
