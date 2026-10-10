@@ -5,6 +5,7 @@ interface KoheronLogEntry {
     ts: number | string | null; // microseconds since epoch
     prio?: number;             // systemd priority 0..7
     msg: string;
+    truncated?: boolean;
 }
 
 type KoheronLogCallback = (entries: KoheronLogEntry[], reset?: boolean) => void;
@@ -13,6 +14,7 @@ type KoheronLogCallback = (entries: KoheronLogEntry[], reset?: boolean) => void;
 // interrupting instrument controls. HTTP uses the same bounded cursor protocol.
 class KoheronLog {
     private cursor: string | null = null;
+    private invocation: string = null;
     private socket: WebSocket = null;
     private timer: number;
     private retryTimer: number;
@@ -41,6 +43,11 @@ class KoheronLog {
         this.running = true; this.connect();
     }
     stop(): void { this.running = false; this.disconnect(); }
+    setInvocation(value: string): void {
+        if (value === this.invocation) { return; }
+        this.invocation = value; this.cursor = null; this.disconnect();
+        if (this.running) { this.connect(); }
+    }
     refresh(): void { if (!this.connected) { void this.pull(); } }
     private disconnect(): void {
         ++this.generation; this.connected = false;
@@ -52,7 +59,10 @@ class KoheronLog {
         }
     }
     private url(path: string): string {
-        return this.endpoint + path + (this.cursor ? '?cursor=' + encodeURIComponent(this.cursor) : '');
+        const query = new URLSearchParams();
+        if (this.cursor) { query.set('cursor', this.cursor); }
+        if (this.invocation) { query.set('invocation', this.invocation); }
+        return this.endpoint + path + (query.size ? '?' + query.toString() : '');
     }
     private deliver(data: any, fallback: boolean): void {
         if (!data || data.type !== 'logs' || typeof data.reset !== 'boolean' ||
@@ -61,6 +71,7 @@ class KoheronLog {
             data.entries.some((entry: any) => !entry || typeof entry.msg !== 'string' || entry.msg.length > 12288 ||
                 (entry.ts !== null && !(typeof entry.ts === 'number' && Number.isSafeInteger(entry.ts) && entry.ts >= 0) &&
                     !(typeof entry.ts === 'string' && /^\d{1,17}$/.test(entry.ts))) ||
+                (entry.truncated != null && typeof entry.truncated !== 'boolean') ||
                 (entry.prio != null && (!Number.isInteger(entry.prio) || entry.prio < 0 || entry.prio > 7))) ||
             (data.entries.length > 0 && !data.cursor)) { throw new Error('Invalid log batch'); }
         // Heartbeats repeat the current cursor. Never render a batch twice.
@@ -131,75 +142,154 @@ class KoheronLog {
     }
 }
 
+interface LogGroup {
+    entry: KoheronLogEntry;
+    firstTimestamp: KoheronLogEntry['ts'];
+    count: number;
+    row: HTMLSpanElement;
+    time: HTMLSpanElement;
+    repeats: Text;
+}
+
+// Keep existing rows and message nodes intact so live updates preserve selection.
+class KoheronLogView {
+    private groups: LogGroup[] = [];
+    private query = '';
+    private priority = 7;
+    private empty: HTMLSpanElement;
+    private clock = new Intl.DateTimeFormat(undefined, {hour12: false, timeStyle: 'medium'});
+
+    constructor(private pre: HTMLPreElement, private follow: () => boolean,
+                private count?: HTMLElement) {
+        this.empty = pre.ownerDocument.createElement('span');
+        this.empty.className = 'log-empty'; pre.appendChild(this.empty); this.updateCount();
+    }
+    clear(): void {
+        this.groups.forEach(group => group.row.remove()); this.groups = []; this.updateCount();
+    }
+    private matches(entry: KoheronLogEntry): boolean {
+        return (entry.prio ?? 6) <= this.priority && entry.msg.toLowerCase().includes(this.query);
+    }
+    private updateCount(): void {
+        const visible = this.groups.filter(group => !group.row.hidden).length;
+        this.empty.hidden = visible > 0;
+        this.empty.textContent = this.groups.length ? 'No messages match these filters.' : 'No log messages yet.';
+        if (this.count) { this.count.textContent = `${visible} of ${this.groups.length} groups`; }
+    }
+    private anchor(): {row: HTMLSpanElement; top: number; scroll: number} {
+        const top = this.pre.getBoundingClientRect().top;
+        const row = this.groups.find(group => !group.row.hidden && group.row.getBoundingClientRect().bottom > top)?.row;
+        return {row, top: row?.getBoundingClientRect().top ?? 0, scroll: this.pre.scrollTop};
+    }
+    private restore(anchor: {row: HTMLSpanElement; top: number; scroll: number}): void {
+        if (this.follow()) { this.pre.scrollTop = this.pre.scrollHeight; }
+        else if (anchor.row?.isConnected && !anchor.row.hidden) {
+            this.pre.scrollTop += anchor.row.getBoundingClientRect().top - anchor.top;
+        } else { this.pre.scrollTop = anchor.scroll; }
+    }
+    filter(query: string, priority: number): void {
+        const anchor = this.anchor();
+        this.query = query.toLowerCase().trim(); this.priority = priority;
+        this.groups.forEach(group => { group.row.hidden = !this.matches(group.entry); });
+        this.updateCount(); this.restore(anchor);
+    }
+    append(entries: KoheronLogEntry[], reset = false): void {
+        const anchor = this.anchor(), doc = this.pre.ownerDocument, fragment = doc.createDocumentFragment();
+        if (reset) { this.clear(); }
+        for (const entry of entries) {
+            let group = this.groups[this.groups.length - 1];
+            // Different long messages may share their truncated prefix.
+            if (group && !entry.truncated && !group.entry.truncated && group.entry.msg === entry.msg &&
+                (group.entry.prio ?? 6) === (entry.prio ?? 6)) {
+                group.count++; group.entry = entry;
+            } else {
+                const row = doc.createElement('span'), time = doc.createElement('span'), message = doc.createElement('span');
+                row.className = 'log-line'; time.className = 'log-time'; message.className = 'log-message';
+                row.dataset.level = (entry.prio ?? 6) <= 3 ? 'error' : (entry.prio ?? 6) <= 4 ? 'warning' : 'info';
+                message.textContent = entry.msg;
+                const repeats = doc.createTextNode(''); row.append(time, message, repeats);
+                if (entry.truncated) {
+                    const marker = doc.createElement('span'); marker.className = 'log-truncated';
+                    marker.textContent = ' [truncated]'; marker.title = 'Message shortened to fit the 4 KiB source limit.'; row.appendChild(marker);
+                }
+                row.hidden = !this.matches(entry);
+                group = {entry, firstTimestamp: entry.ts, count: 1, row, time, repeats};
+                this.groups.push(group); fragment.appendChild(row);
+            }
+            const latest = group.entry.ts == null ? null : new Date(Number(group.entry.ts) / 1000);
+            const first = group.firstTimestamp == null ? null : new Date(Number(group.firstTimestamp) / 1000);
+            group.time.textContent = `[${latest ? this.clock.format(latest) : '—'}] `;
+            group.repeats.data = group.count > 1 ? `  (×${group.count})` : '';
+            group.row.title = `First: ${first?.toISOString() ?? '—'}\nLatest: ${latest?.toISOString() ?? '—'}\nOccurrences: ${group.count}`;
+        }
+        this.pre.insertBefore(fragment, this.empty);
+        while (this.groups.length > 1000) { this.groups.shift().row.remove(); }
+        this.updateCount(); this.restore(anchor);
+    }
+    text(): string {
+        return this.groups.filter(group => !group.row.hidden).map(group => group.row.textContent).join('\n');
+    }
+}
+
 class KoheronLogWidget {
-    constructor(document: Document) {
+    constructor(document: Document, runtime?: RuntimeStream) {
         const pre = document.getElementById('koheron-log') as HTMLPreElement;
         const follow = document.getElementById('log-follow') as HTMLInputElement;
         const pause = document.getElementById('log-pause') as HTMLButtonElement;
         const status = document.getElementById('log-status');
-        const format = this.makeCoalescingFormatter(pre, () => follow.checked);
-        const log = new KoheronLog('/api/logs/koheron', 1000, format, (failed, fallback) => {
+        const notice = document.getElementById('log-notice');
+        const search = document.getElementById('log-search') as HTMLInputElement;
+        const severity = document.getElementById('log-severity') as HTMLSelectElement;
+        const scope = document.getElementById('log-scope') as HTMLSelectElement;
+        const view = new KoheronLogView(pre, () => follow.checked, document.getElementById('log-count'));
+        const log = new KoheronLog('/api/logs/koheron', 1000, (entries, reset) => {
+            if (reset) {
+                notice.hidden = false; notice.textContent = 'Older log history is no longer available. Showing recent entries.';
+            }
+            view.append(entries, reset);
+        }, (failed, fallback) => {
             status.textContent = failed ? 'Disconnected · retrying…' : fallback ? 'Live · polling' : 'Live';
             status.dataset.state = failed ? 'error' : 'live';
         });
+        let invocation: string = null;
+        const changeScope = () => {
+            view.clear(); notice.hidden = true;
+            log.setInvocation(scope.value === 'current' ? invocation : null);
+            if (pause.getAttribute('aria-pressed') !== 'true') {
+                status.textContent = 'Connecting…'; status.dataset.state = 'connecting';
+            }
+        };
+        scope.addEventListener('change', changeScope);
+        runtime?.subscribe(value => {
+            const id = value.health?.instrument_service?.invocation;
+            const next = typeof id === 'string' && /^[0-9a-f]{32}$/.test(id) && !/^0+$/.test(id) ? id : null;
+            // A transient status error should not discard a known run ID.
+            if (!next && value.health?.instrument_service?.error) { return; }
+            scope.querySelector<HTMLOptionElement>('option[value="current"]').disabled = !next;
+            if (next === invocation) { return; }
+            invocation = next;
+            if (scope.value === 'current') {
+                if (!invocation) { scope.value = 'all'; }
+                changeScope();
+            }
+        });
+        const filter = () => view.filter(search.value, Number(severity.value));
+        search.addEventListener('input', filter); severity.addEventListener('change', filter);
         pause.addEventListener('click', () => {
             const paused = pause.getAttribute('aria-pressed') !== 'true';
-            pause.setAttribute('aria-pressed', String(paused));
-            pause.textContent = paused ? 'Resume' : 'Pause';
-            status.textContent = paused ? 'Paused' : 'Connecting…';
-            status.dataset.state = paused ? 'paused' : 'connecting';
+            pause.setAttribute('aria-pressed', String(paused)); pause.textContent = paused ? 'Resume' : 'Pause';
+            status.textContent = paused ? 'Paused' : 'Connecting…'; status.dataset.state = paused ? 'paused' : 'connecting';
             if (paused) { log.stop(); } else { log.start(); }
         });
         pre.addEventListener('scroll', () => {
-            follow.checked = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 24;
+            if (pre.scrollHeight - pre.scrollTop - pre.clientHeight >= 24) { follow.checked = false; }
         });
-        follow.addEventListener('change', () => {
-            if (follow.checked) { pre.scrollTop = pre.scrollHeight; }
-        });
+        follow.addEventListener('change', () => { if (follow.checked) { pre.scrollTop = pre.scrollHeight; } });
         document.getElementById('log-download').addEventListener('click', () => {
-            const url = URL.createObjectURL(new Blob([pre.textContent || ''], { type: 'text/plain' }));
-            const link = document.createElement('a');
-            link.href = url; link.download = 'koheron-instrument.log'; link.click();
+            const url = URL.createObjectURL(new Blob([view.text()], {type: 'text/plain'}));
+            const link = document.createElement('a'); link.href = url; link.download = 'koheron-instrument.log'; link.click();
             window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
         log.start();
-    }
-
-    makeCoalescingFormatter(pre: HTMLPreElement, follow: () => boolean = () => true) {
-        const lines: { message: string; timestamp: string; count: number; priority: number }[] = [];
-        const render = () => {
-            const scrollTop = pre.scrollTop;
-            const shouldFollow = follow();
-            const fragment = pre.ownerDocument.createDocumentFragment();
-            lines.forEach((line, index) => {
-                const row = pre.ownerDocument.createElement('span');
-                row.className = 'log-line';
-                row.dataset.level = line.priority <= 3 ? 'error' : line.priority <= 4 ? 'warning' : 'info';
-                const timestamp = pre.ownerDocument.createElement('span');
-                timestamp.className = 'log-time'; timestamp.textContent = `[${line.timestamp}] `;
-                row.appendChild(timestamp);
-                row.appendChild(pre.ownerDocument.createTextNode(line.message + (line.count > 1 ? `  (×${line.count})` : '')));
-                fragment.appendChild(row);
-                if (index < lines.length - 1) { fragment.appendChild(pre.ownerDocument.createTextNode('\n')); }
-            });
-            pre.textContent = '';
-            pre.appendChild(fragment);
-            pre.scrollTop = shouldFollow ? pre.scrollHeight : scrollTop;
-        };
-        return (entries: KoheronLogEntry[], reset = false) => {
-            if (reset) { lines.length = 0; }
-            for (const entry of entries) {
-                const last = lines[lines.length - 1];
-                const priority = typeof entry.prio === 'number' ? entry.prio : 6;
-                if (last && last.message === entry.msg && last.priority === priority) { last.count++; }
-                else {
-                    const date = entry.ts ? new Date(Number(entry.ts) / 1000) : null;
-                    lines.push({ message: entry.msg, priority,
-                        timestamp: date ? date.toLocaleTimeString([], { hour12: false }) : '—', count: 1 });
-                }
-            }
-            if (lines.length > 1000) { lines.splice(0, lines.length - 1000); }
-            render();
-        };
     }
 }

@@ -25,7 +25,7 @@ function fixture(t, page = 'index.html', query = '') {
             this.onload();
         }
     };
-    w.eval(code + "\nObject.assign(window, { Instruments, InstrumentsWidget, KoheronLogWidget, SystemInfoWidget, InstrumentSummaryWidget });");
+    w.eval(code + "\nObject.assign(window, { Instruments, InstrumentsWidget, KoheronLogWidget, KoheronLogView, SystemInfoWidget, InstrumentSummaryWidget });");
     return {w, requests, doc: w.document, flush: () => new Promise(resolve => setImmediate(resolve))};
 }
 const installed = {instruments: [
@@ -116,16 +116,17 @@ test('log pause survives in-flight fetch; resume and bounded grouping work', asy
     doc.querySelector('#log-pause').click();
     complete({ok: true, text: async () => JSON.stringify({type: 'logs', reset: false, cursor: '1', entries: [{ts: null, msg: 'late'}]})});
     await flush();
-    assert.equal(doc.querySelector('#koheron-log').textContent, '');
+    assert.equal(doc.querySelectorAll('#koheron-log .log-line').length, 0);
     assert.equal(doc.querySelector('#log-status').textContent, 'Paused');
     doc.querySelector('#log-pause').click();
     complete({ok: true, text: async () => JSON.stringify({type: 'logs', reset: false, cursor: '2', entries: [{ts: null, msg: 'ready'}]})});
     await flush(); assert.match(doc.querySelector('#koheron-log').textContent, /ready/);
-    w.eval(`const format = KoheronLogWidget.prototype.makeCoalescingFormatter(document.querySelector('#koheron-log'), () => false);
-        format(Array.from({length: 1200}, (_, i) => ({ts: null, msg: String(i)})));
-        format([{ts: null, msg: '1199'}]);`);
-    const lines = doc.querySelector('#koheron-log').textContent.split('\n');
-    assert.equal(lines.length, 1000); assert.match(lines[999], /×2/);
+    w.eval(`const pre = document.createElement('pre'); document.body.appendChild(pre);
+        pre.id = 'view-test'; const view = new KoheronLogView(pre, () => false);
+        view.append(Array.from({length: 1200}, (_, i) => ({ts: null, msg: String(i)})));
+        view.append([{ts: null, msg: '1199'}]);`);
+    const lines = doc.querySelectorAll('#view-test .log-line');
+    assert.equal(lines.length, 1000); assert.match(lines[999].textContent, /×2/);
 });
 
 test('system metadata is text and has a working retry', async t => {

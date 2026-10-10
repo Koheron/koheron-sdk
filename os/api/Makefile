@@ -11,8 +11,13 @@ COMMON := $(BUILD_DIR)/common.o
 ARCHIVE := $(BUILD_DIR)/archive.o
 BINARIES := $(addprefix $(BUILD_DIR)/,koheron-api koheron-install koheron-server-init)
 
-.PHONY: all clean
+.PHONY: all clean journal-probe
 all: $(BINARIES)
+
+# Host test helper only; it is not included in board binaries or the OS image.
+journal-probe: $(BUILD_DIR)/journal-probe
+$(BUILD_DIR)/journal-probe: $(SOURCE_DIR)/../tests/journal_probe.cpp $(BUILD_DIR)/journal.o $(COMMON)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ $(LDFLAGS) $(LDLIBS) -o $@
 
 $(BUILD_DIR)/koheron-api: $(BUILD_DIR)/api_main.o $(BUILD_DIR)/journal.o $(BUILD_DIR)/health.o $(BUILD_DIR)/events.o $(BUILD_DIR)/sha1.o $(COMMON) $(ARCHIVE)
 

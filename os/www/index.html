@@ -38,8 +38,14 @@
         </section>
         <section class="log-section" aria-labelledby="log-heading">
           <div class="section-heading"><h2 id="log-heading">Instrument log</h2><div class="toolbar"><span id="log-status" class="connection-status" role="status">Connecting…</span><button id="log-pause" type="button" aria-pressed="false">Pause</button><button id="log-download" type="button">Download</button></div></div>
+          <div class="log-filters">
+            <label class="log-search">Search <input id="log-search" type="search" placeholder="Search messages" maxlength="200"></label>
+            <label>Level <select id="log-severity"><option value="7">All levels</option><option value="4">Warnings and errors</option><option value="3">Errors</option></select></label>
+            <label>Run <select id="log-scope"><option value="all">All runs</option><option value="current" disabled>Current run</option></select></label>
+          </div>
+          <p id="log-notice" class="table-note" role="status" hidden></p>
           <pre id="koheron-log" tabindex="0" aria-label="Instrument log"></pre>
-          <div class="log-footer"><span class="muted">Latest 1,000 messages · repeated messages grouped</span><label><input id="log-follow" type="checkbox" checked> Follow latest</label></div>
+          <div class="log-footer"><span class="muted"><span id="log-count">0 of 0 groups</span> · latest 1,000 groups retained</span><label><input id="log-follow" type="checkbox" checked> Follow latest</label></div>
         </section>
       </div>
       <aside class="system-sidebar" aria-labelledby="system-heading">
@@ -57,7 +63,7 @@
   <script>
     const runtime = new RuntimeStream(document);
     new InstrumentsWidget(document, runtime);
-    new KoheronLogWidget(document);
+    new KoheronLogWidget(document, runtime);
     new SystemInfoWidget(document, runtime);
   </script>
 </body>

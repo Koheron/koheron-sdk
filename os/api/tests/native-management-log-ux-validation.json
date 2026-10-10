@@ -1,0 +1,153 @@
+{
+  "recorded_utc": "2026-10-10T14:13:11.991898+00:00",
+  "application_base_commit": "a02353f0a9cfbddf06ebadc3610d76956fdcaa25",
+  "change": "Incremental log rows, retained search and severity filters, service-invocation scope, visible truncation and lost-history notices, latest repeat timestamps.",
+  "build_checks": {
+    "toolchain": "C++23, GCC 15 in Ubuntu 26.04 Docker",
+    "native_tests": 123,
+    "journal_fixture_tests": 9,
+    "rootfs_tests": 17,
+    "browser_regressions": 57,
+    "sanitizer_tests": 33,
+    "sanitizer_test_scope": "24 management API tests and 9 real journal fixture tests",
+    "sanitizers": "ASan, UBSan and leak detection on the host",
+    "web_build_regressions": 3,
+    "armhf_api_and_web_build": "passed",
+    "typescript_build": "passed",
+    "journal_fixture_cases": [
+      "latest 200 history",
+      "430-entry backlog and cursor resume",
+      "exact and oversized 4 KiB messages with UTF-8 boundaries",
+      "Koheron severity prefixes and stronger native priorities",
+      "encoded JSON budget and retained overflow",
+      "strict invocation filtering without fallback",
+      "expired cursor reset",
+      "rotation with retained history",
+      "vacuum with lost history and continuation"
+    ],
+    "test_helper": "systemd-journal-remote imports private journal files; journal-probe is a host-only target and is not installed in the runtime image."
+  },
+  "hardware_checks": {
+    "host": "192.168.1.85",
+    "production_log_checks": 7,
+    "log_record": "native-management-log-ux-red-pitaya.json",
+    "chrome_record": "../../www/tests/native-management-log-ux-chrome.json",
+    "services": {
+      "koheron-server": {
+        "before_pid": 10199,
+        "after_pid": 10199,
+        "state": "active",
+        "restarts": 0,
+        "invocation": "91ee1a399518431790472d86d239f6f5"
+      },
+      "koheron-api": {
+        "before_pid": 15419,
+        "after_pid": 16001,
+        "state": "active",
+        "restarts": 0
+      },
+      "nginx": {
+        "before_pid": 399,
+        "after_pid": 399,
+        "state": "active",
+        "restarts": 0
+      }
+    },
+    "fft_before": {
+      "recorded_utc": "2026-10-10T14:00:45.888425+00:00",
+      "host": "192.168.1.85",
+      "live_instrument": {
+        "name": "fft",
+        "version": "0.3.0",
+        "is_default": true
+      },
+      "server_version": "1.0",
+      "fft_size": 2048,
+      "number_averages": 1023,
+      "window_index": 1,
+      "drivers": [
+        "Common",
+        "FFT",
+        "KServer",
+        "PhaseModulator",
+        "RedPitayaAdcCalibration",
+        "Xadc"
+      ],
+      "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+    },
+    "fft_after": {
+      "recorded_utc": "2026-10-10T14:11:10.517266+00:00",
+      "host": "192.168.1.85",
+      "live_instrument": {
+        "name": "fft",
+        "version": "0.3.0",
+        "is_default": true
+      },
+      "server_version": "1.0",
+      "fft_size": 2048,
+      "number_averages": 1023,
+      "window_index": 1,
+      "drivers": [
+        "Common",
+        "FFT",
+        "KServer",
+        "PhaseModulator",
+        "RedPitayaAdcCalibration",
+        "Xadc"
+      ],
+      "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+    },
+    "settings_identical": true,
+    "installed_payload_sha256": {
+      "api/koheron-api": "6c09c49f926dc1ff632e4068a55b30944ff9c941c7bf5acd6f908867f0832a9d",
+      "www/index.html": "f67d5561c3a84792df3a1ba928849c70dc7e98454deaec67dc8452869d7ef888",
+      "www/instrument.css": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761",
+      "www/instrument_summary.html": "3c3880ae0ae0de6d83cf183858250e10ea51c2e76f3b70a1ec663e36cd52793c",
+      "www/instruments.js": "6ea92862bd01d6952642439cb3d2be3770f8d573ad6bcd8fe5639e46a4f8fc0b",
+      "www/logs_rate.html": "7ea26e1888c83b599b2d81d9b5d5cf3737c2a9571331bdaa6eb2cb1225e91fff",
+      "www/main.css": "9c0cf2560880262c566b04b4453fc8d7de384dc37b2d5ef80d6f5943ac238c22",
+      "www/system.css": "64c5b1d0d8b9dfd0a0e378149559696bf2f988fa1698ccdd4025265c6e353a33"
+    },
+    "public_http_assets": {
+      "http://192.168.1.85/koheron/main.css?v=9c0cf2560880262c": {
+        "status": 200,
+        "sha256": "9c0cf2560880262c566b04b4453fc8d7de384dc37b2d5ef80d6f5943ac238c22",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/instrument.css?v=5e7f110b26d2e333": {
+        "status": 200,
+        "sha256": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/system.css?v=64c5b1d0d8b9dfd0": {
+        "status": 200,
+        "sha256": "64c5b1d0d8b9dfd0a0e378149559696bf2f988fa1698ccdd4025265c6e353a33",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/instruments.js?v=6ea92862bd01d695": {
+        "status": 200,
+        "sha256": "6ea92862bd01d6952642439cb3d2be3770f8d573ad6bcd8fe5639e46a4f8fc0b",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/": {
+        "status": 200,
+        "sha256": "f67d5561c3a84792df3a1ba928849c70dc7e98454deaec67dc8452869d7ef888",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/instrument_summary.html": {
+        "status": 200,
+        "sha256": "3c3880ae0ae0de6d83cf183858250e10ea51c2e76f3b70a1ec663e36cd52793c",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/logs_rate.html": {
+        "status": 200,
+        "sha256": "7ea26e1888c83b599b2d81d9b5d5cf3737c2a9571331bdaa6eb2cb1225e91fff",
+        "cache_control": "no-cache"
+      }
+    },
+    "backup": "/var/lib/koheron-management-log-ux-backup-20261010",
+    "temporary_staging_removed": true,
+    "scope": "In-place API/UI updates; management API restarted for initial deployment and severity correction. No instrument lifecycle operation, FPGA programming, nginx restart/reload, image flash, reboot or extended stress."
+  },
+  "limits": "Rotation, vacuum, oversized source messages and automatic following of a new service run are verified in isolated fixtures, not by disrupting production. Production probes use GET, read-only WebSockets and light TCP connect/close. Delivery samples are not before/after latency or boot-time benchmarks."
+}

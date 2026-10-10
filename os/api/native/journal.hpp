@@ -9,6 +9,7 @@ struct LogEntry {
     std::string message;
     std::optional<std::uint64_t> timestamp;
     int priority = 6;
+    bool truncated = false;
 };
 struct LogResult {
     std::vector<LogEntry> entries;
@@ -22,5 +23,7 @@ struct LogResult {
     const std::optional<std::string>& invocation = {});
 // Construct and use the journal reader on the event thread. Empty output means
 // no change; an empty log batch every two seconds keeps the browser watchdog alive.
-[[nodiscard]] std::function<std::string()> follow_logs(std::string unit, std::optional<std::string> cursor);
+[[nodiscard]] bool valid_invocation(std::string_view value);
+[[nodiscard]] std::function<std::string()> follow_logs(std::string unit, std::optional<std::string> cursor,
+    std::optional<std::string> invocation = {}, fs::path directory = {});
 } // namespace koheron::management

@@ -1,6 +1,43 @@
 # Native management runtime tests
 
-[WebSocket log validation](native-management-log-stream-validation.json) records
+[Log tools validation](native-management-log-ux-validation.json) records the latest
+API/UI refinement: incremental rows, text selection and scroll preservation,
+search/severity filters, Current run / All runs, visible truncation and lost-history
+notices, and the latest timestamp for repeated messages. Build checks pass
+separately: 123 native tests, 17 rootfs checks, 57 UI regressions, 33 focused
+ASan/UBSan/leak tests, three web-build regressions and the GCC 15/C++23 ARMhf
+API/web build.
+
+Nine journal tests use real private files imported with `systemd-journal-remote`.
+They cover rotation, vacuum, expired cursors, strict invocation matching, a
+430-entry backlog, exact/oversized 4 KiB messages and UTF-8 boundaries, severity
+labels and stronger journal priorities, and encoded-byte limits without dropping
+pending entries. The importer and `journal-probe` are host test tools only.
+The Docker suite below builds the helper automatically. UI tests preserve actual
+message-node identity and Range selection across updates, filter incoming rows,
+bound retention, preserve the scroll anchor and follow simulated service run IDs.
+
+[Seven production checks](native-management-log-ux-red-pitaya.json) pass through
+the Red Pitaya's normal nginx listener, including current-invocation filtering
+over WS and HTTP and an unknown invocation returning no unrelated history.
+The [actual Chrome record](../../www/tests/native-management-log-ux-chrome.json)
+shows search, severity and run filters, selected text surviving a live repeat,
+its latest timestamp changing, and Pause/Resume replaying one missed entry once.
+Koheron's plain-text severity labels are recognized because its stderr journal
+messages otherwise inherit info priority. Controls fit the 320px layout without
+horizontal overflow, and the versioned bundle has no observed console warnings
+or errors. Seven public assets match the final build and revalidate.
+
+The FFT remains PID 10199 with 2048 points, 1023 averages and Hann window;
+nginx remains PID 399. Only the management API restarted, ending at PID 16001.
+The previous API/UI are retained at
+`/var/lib/koheron-management-log-ux-backup-20261010`; temporary staging is removed.
+Journal vacuum/truncation and automatic run changes are tested in isolated host
+fixtures, without restarting the live instrument or injecting oversized messages.
+The production probe below now runs all seven checks. Earlier records retain
+their original hashes and measurements.
+
+[Earlier WebSocket log validation](native-management-log-stream-validation.json) records
 the dedicated instrument journal stream, bounded cursor replay, HTTP fallback
 and pause/resume. Build checks pass separately: 113 native tests, 17 rootfs
 tests, 46 browser regressions, 23 management tests with ASan/UBSan/leak detection,

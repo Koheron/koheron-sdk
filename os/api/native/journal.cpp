@@ -9,9 +9,11 @@
 namespace koheron::management {
 namespace {
 using Reader = std::unique_ptr<sd_journal, decltype(&sd_journal_close)>;
-Reader open(std::string_view unit, const std::optional<std::string>& invocation) {
+Reader open(std::string_view unit, const std::optional<std::string>& invocation, const fs::path& directory = {}) {
     sd_journal* pointer = nullptr;
-    if (sd_journal_open(&pointer, SD_JOURNAL_LOCAL_ONLY) < 0) return {nullptr, sd_journal_close};
+    const int opened = directory.empty() ? sd_journal_open(&pointer, SD_JOURNAL_LOCAL_ONLY) :
+        sd_journal_open_directory(&pointer, directory.c_str(), 0);
+    if (opened < 0) return {nullptr, sd_journal_close};
     Reader reader(pointer, sd_journal_close);
     sd_id128_t boot;
     if (sd_id128_get_boot(&boot) < 0) return {nullptr, sd_journal_close};
@@ -27,16 +29,25 @@ Reader open(std::string_view unit, const std::optional<std::string>& invocation)
     }
     return reader;
 }
-std::string value(sd_journal* reader, const char* name, std::size_t limit = 64 * 1024) {
+std::string value(sd_journal* reader, const char* name, std::size_t limit = 64 * 1024, bool* truncated = nullptr) {
     const void* data = nullptr;
     std::size_t size = 0;
     if (sd_journal_get_data(reader, name, &data, &size) < 0) return {};
     const std::string_view field(static_cast<const char*>(data), size);
     const auto equals = field.find('=');
-    return equals == field.npos ? "" : std::string(field.substr(equals + 1, limit));
+    if (equals == field.npos) return {};
+    const auto payload = field.substr(equals + 1);
+    const bool shortened = payload.size() > limit;
+    if (truncated) *truncated = shortened;
+    auto length = std::min(payload.size(), limit);
+    // Keep a complete UTF-8 prefix when the size limit falls within a character.
+    if (shortened) while (length && (static_cast<unsigned char>(payload[length]) & 0xc0) == 0x80) --length;
+    return std::string(payload.substr(0, length));
 }
 LogEntry entry(sd_journal* reader, std::size_t message_limit = 64 * 1024) {
     LogEntry result;
+    // One extra source byte distinguishes an exact-size message from truncation.
+    if (sd_journal_set_data_threshold(reader, message_limit + 9) < 0) throw std::runtime_error("Cannot set journal limit");
     std::uint64_t timestamp = 0;
     if (sd_journal_get_realtime_usec(reader, &timestamp) == 0) result.timestamp = timestamp;
     char* cursor = nullptr;
@@ -45,11 +56,15 @@ LogEntry entry(sd_journal* reader, std::size_t message_limit = 64 * 1024) {
         result.cursor = cursor;
     }
     result.invocation = value(reader, "_SYSTEMD_INVOCATION_ID");
-    result.message = value(reader, "MESSAGE", message_limit);
+    result.message = value(reader, "MESSAGE", message_limit, &result.truncated);
     const auto priority = value(reader, "PRIORITY");
     int parsed = 6;
     const auto [end, error] = std::from_chars(priority.data(), priority.data() + priority.size(), parsed);
     if (error == std::errc{} && end == priority.data() + priority.size() && parsed >= 0 && parsed <= 7) result.priority = parsed;
+    // The instrument's stderr logger labels severity but does not emit journal
+    // priority prefixes. Preserve stronger journal priorities when present.
+    for (const auto& [prefix, level] : {std::pair{"PANIC: ", 0}, {"CRITICAL: ", 2}, {"ERROR: ", 3}, {"WARNING: ", 4}})
+        if (result.message.starts_with(prefix)) { result.priority = std::min(result.priority, level); break; }
     return result;
 }
 Json log_json(const LogEntry& entry) {
@@ -57,12 +72,15 @@ Json log_json(const LogEntry& entry) {
     add(item, "ts", entry.timestamp ? integer(*entry.timestamp) : Json{});
     add(item, "msg", text(entry.message));
     add(item, "prio", integer(entry.priority));
+    add(item, "truncated", boolean(entry.truncated));
     return item;
 }
 
 class Follower {
     Reader reader_{nullptr, sd_journal_close};
     std::string unit_;
+    std::optional<std::string> invocation_;
+    fs::path directory_;
     std::optional<std::string> cursor_;
     std::optional<LogEntry> pending_;
     bool initialized_ = false, reset_ = false;
@@ -73,23 +91,28 @@ class Follower {
         if (advanced < 0) throw std::runtime_error("Cannot read journal");
         if (advanced > 0) pending_ = entry(reader_.get(), 4096);
     }
+    void seek() {
+        pending_.reset();
+        if (cursor_ && (sd_journal_seek_cursor(reader_.get(), cursor_->c_str()) < 0 ||
+            sd_journal_next(reader_.get()) <= 0 || sd_journal_test_cursor(reader_.get(), cursor_->c_str()) <= 0)) {
+            reset_ = true; cursor_.reset();
+        }
+        if (!cursor_) tail();
+    }
 public:
-    Follower(std::string unit, std::optional<std::string> cursor) : unit_(std::move(unit)), cursor_(std::move(cursor)) {}
+    Follower(std::string unit, std::optional<std::string> cursor, std::optional<std::string> invocation, fs::path directory) :
+        unit_(std::move(unit)), invocation_(std::move(invocation)), directory_(std::move(directory)), cursor_(std::move(cursor)) {}
     std::string next() {
         if (!initialized_) {
-            reader_ = open(unit_, {});
+            reader_ = open(unit_, invocation_, directory_);
             if (!reader_) throw std::runtime_error("Cannot open journal");
-            sd_journal_set_data_threshold(reader_.get(), 4096);
-            if (cursor_) {
-                if (sd_journal_seek_cursor(reader_.get(), cursor_->c_str()) < 0 ||
-                    sd_journal_next(reader_.get()) <= 0 || sd_journal_test_cursor(reader_.get(), cursor_->c_str()) <= 0) {
-                    reset_ = true; cursor_.reset(); tail();
-                }
-            } else tail();
+            seek();
             initialized_ = true;
         }
         // Zero timeout: process journal notifications without blocking other peers.
-        if (sd_journal_wait(reader_.get(), 0) < 0) throw std::runtime_error("Journal watch failed");
+        const int changed = sd_journal_wait(reader_.get(), 0);
+        if (changed < 0) throw std::runtime_error("Journal watch failed");
+        if (changed == SD_JOURNAL_INVALIDATE) seek();
         auto result = object(), values = array();
         std::size_t bytes = 0;
         for (unsigned count = 0; count < 200; ++count) {
@@ -161,8 +184,12 @@ std::optional<LogEntry> bookmark(std::string_view unit, const std::optional<std:
     if (invocation) return bookmark(unit);
     return {};
 }
-std::function<std::string()> follow_logs(std::string unit, std::optional<std::string> cursor) {
-    const auto follower = std::make_shared<Follower>(std::move(unit), std::move(cursor));
+bool valid_invocation(std::string_view value) {
+    return value.size() == 32 && std::ranges::all_of(value, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
+}
+std::function<std::string()> follow_logs(std::string unit, std::optional<std::string> cursor,
+    std::optional<std::string> invocation, fs::path directory) {
+    const auto follower = std::make_shared<Follower>(std::move(unit), std::move(cursor), std::move(invocation), std::move(directory));
     return [follower] { return follower->next(); };
 }
 } // namespace koheron::management

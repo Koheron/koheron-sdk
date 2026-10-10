@@ -13,7 +13,7 @@ namespace koheron::management {
 class EventHub {
 public:
     using Stream = std::function<std::string()>;
-    using StreamFactory = std::function<Stream(std::optional<std::string>)>;
+    using StreamFactory = std::function<Stream(std::optional<std::string>, std::optional<std::string>)>;
 private:
     struct Client {
         MHD_socket socket;
@@ -25,6 +25,7 @@ private:
         std::string ping;
         Stream stream;
         std::optional<std::string> cursor;
+        std::optional<std::string> invocation;
         std::chrono::steady_clock::time_point blocked_since{};
     };
     std::mutex mutex_;
@@ -41,7 +42,7 @@ public:
     void wake();
     void stop();
     void accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input,
-        std::optional<std::string> cursor = {});
+        std::optional<std::string> cursor = {}, std::optional<std::string> invocation = {});
     [[nodiscard]] MHD_Result upgrade(MHD_Connection* connection);
 };
 }

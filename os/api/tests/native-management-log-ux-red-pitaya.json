@@ -1,0 +1,25 @@
+{
+  "recorded_utc": "2026-10-10T14:06:17.462929+00:00",
+  "host": "192.168.1.85",
+  "checks": [
+    "port-80 WS initial history matches bounded HTTP, with priority",
+    "three real instrument TCP disconnects arrive as incremental WS log batches",
+    "current service invocation is exposed in health; filtered WS and HTTP history agree",
+    "an unknown invocation returns no entries and never falls back to other runs",
+    "reconnect replays only entries after the saved cursor",
+    "invalid or expired cursor resets to bounded recent history",
+    "nginx and native API reject foreign browser origins"
+  ],
+  "initial_entries": 112,
+  "replayed_entries": 1,
+  "reset_entries": 116,
+  "service_invocation": "91ee1a399518431790472d86d239f6f5",
+  "current_run_entries": 44,
+  "delivery_ms": [
+    29.46,
+    50.99,
+    51.3
+  ],
+  "measurement": "Three light TCP connect/close samples; client-close to receipt on the host, including network and journald delay; not a stress test or a boot benchmark.",
+  "scope": "Production GET and read-only WebSockets; four instrument TCP connect/close probes; no lifecycle, settings, upload, FPGA or reboot actions."
+}

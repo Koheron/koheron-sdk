@@ -290,6 +290,20 @@ Json service_status(const Settings& settings, std::string_view unit) {
         add(result, "state", text(property(bus.value.get(), path, manager, "ActiveState")));
         add(result, "substate", text(property(bus.value.get(), path, manager, "SubState")));
         add(result, "result", text(property(bus.value.get(), path, service, "Result")));
+        sd_bus_message* raw_invocation = nullptr;
+        if (sd_bus_get_property(bus.value.get(), "org.freedesktop.systemd1", path.c_str(), manager,
+            "InvocationID", nullptr, &raw_invocation, "ay") >= 0) {
+            std::unique_ptr<sd_bus_message, decltype(&sd_bus_message_unref)> invocation(raw_invocation, sd_bus_message_unref);
+            const void* bytes = nullptr; std::size_t size = 0;
+            if (sd_bus_message_read_array(invocation.get(), 'y', &bytes, &size) >= 0 && size == 16) {
+                constexpr std::string_view hex = "0123456789abcdef";
+                std::string id;
+                for (const auto byte : std::span(static_cast<const unsigned char*>(bytes), size)) {
+                    id += hex[byte >> 4]; id += hex[byte & 15];
+                }
+                add(result, "invocation", text(id));
+            }
+        }
         for (const auto* key : {"ActiveEnterTimestampMonotonic", "InactiveExitTimestampMonotonic"}) {
             std::uint64_t value = 0;
             if (sd_bus_get_property_trivial(bus.value.get(), "org.freedesktop.systemd1", path.c_str(), manager, key, nullptr, 't', &value) >= 0)

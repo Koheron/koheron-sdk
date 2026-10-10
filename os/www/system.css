@@ -45,6 +45,14 @@
 .system-workspace #release-table th { width: 82px; padding-right: 10px; }
 .system-workspace #release-table td { font-size: 11px; }
 .system-workspace .log-section { margin-top: 20px; }
+.system-workspace .log-filters { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; }
+.system-workspace .log-filters label { display: flex; align-items: center; gap: 6px; }
+.system-workspace .log-search { flex: 1 1 160px; min-width: 0; }
+.system-workspace .log-search input { width: 100%; min-width: 0; font: inherit; padding: 4px 6px; border: 1px solid var(--border-light); border-radius: 2px; }
+.system-workspace .log-line { display: block; }
+.system-workspace .log-line[hidden] { display: none; }
+.system-workspace .log-truncated { color: #f1c279; }
+.system-workspace .log-empty { color: #91a7b6; }
 .system-workspace #koheron-log { margin: 0 0 8px; height: 300px; overflow: auto; padding: 10px 12px; border: 1px solid #263640; border-radius: 2px; background: #14212a; color: #e0e7ec; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .system-workspace .log-time { color: #91a7b6; }
 .system-workspace .log-line[data-level="warning"] { color: #f1c279; }

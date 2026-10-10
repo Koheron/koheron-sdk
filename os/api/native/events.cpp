@@ -1,4 +1,5 @@
 #include "events.hpp"
+#include "journal.hpp"
 #include "server/network/sha1.hpp"
 #include <algorithm>
 #include <array>
@@ -79,14 +80,17 @@ void EventHub::stop() {
     { std::lock_guard lock(mutex_); stopped_ = true; changed_.notify_one(); }
     if (thread_.joinable()) thread_.join();
 }
-void EventHub::accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input, std::optional<std::string> cursor) {
+void EventHub::accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input,
+    std::optional<std::string> cursor, std::optional<std::string> invocation) {
     std::lock_guard lock(mutex_);
     if (stopped_ || clients_.size() >= 8 || input.size() > 512) { MHD_upgrade_action(handle, MHD_UPGRADE_ACTION_CLOSE); return; }
     clients_.push_back({socket, handle, std::string(input), {}, false, {},
-        std::chrono::steady_clock::now() + std::chrono::seconds(10), {}, {}, {}, std::move(cursor), {}}); dirty_ = true; changed_.notify_one();
+        std::chrono::steady_clock::now() + std::chrono::seconds(10), {}, {}, {}, std::move(cursor), std::move(invocation), {}}); dirty_ = true; changed_.notify_one();
 }
 MHD_Result EventHub::upgrade(MHD_Connection* connection) {
     if (streams_) {
+        const char* invocation = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "invocation");
+        if (invocation && !valid_invocation(invocation)) return reject(connection, 400);
         const char* cursor = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "cursor");
         if (cursor && (std::strlen(cursor) > 1024 || !std::ranges::all_of(std::string_view(cursor),
             [](unsigned char c) { return c >= 33 && c <= 126; }))) return reject(connection, 400);
@@ -107,8 +111,10 @@ MHD_Result EventHub::upgrade(MHD_Connection* connection) {
     auto* response = MHD_create_response_for_upgrade([](void* context, MHD_Connection* connection, void*, const char* bytes, std::size_t count,
         MHD_socket socket, MHD_UpgradeResponseHandle* handle) {
             const char* cursor = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "cursor");
+            const char* invocation = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "invocation");
             static_cast<EventHub*>(context)->accept(socket, handle, std::string_view(bytes, count),
-                cursor && *cursor ? std::optional(std::string(cursor)) : std::nullopt);
+                cursor && *cursor ? std::optional(std::string(cursor)) : std::nullopt,
+                invocation ? std::optional(std::string(invocation)) : std::nullopt);
         }, this);
     if (!response) return MHD_NO;
     MHD_add_response_header(response, "Upgrade", "websocket"); MHD_add_response_header(response, "Connection", "Upgrade");
@@ -151,7 +157,7 @@ void EventHub::run() {
                 } else {
                     client.blocked_since = {};
                     try {
-                        if (!client.stream) client.stream = streams_(client.cursor);
+                        if (!client.stream) client.stream = streams_(client.cursor, client.invocation);
                         const auto message = client.stream();
                         if (message.size() > 64 * 1024) close(1009);
                         else if (!message.empty()) client.output = frame(1, message);

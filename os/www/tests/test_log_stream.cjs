@@ -18,12 +18,16 @@ function fixture(t, url = 'http://board:80/koheron/') {
     w.fetch = (url, options) => new Promise(resolve => reads.push({
         url, options, reply: value => resolve({ok: true, text: async () => JSON.stringify(value)})
     }));
-    w.eval(code + '\nObject.assign(window, {KoheronLog, KoheronLogWidget}); new KoheronLogWidget(document);');
+    let status;
+    w.runtime = {subscribe: callback => { status = callback; }};
+    w.eval(code + '\nObject.assign(window, {KoheronLog, KoheronLogView, KoheronLogWidget}); new KoheronLogWidget(document, window.runtime);');
     const fire = delay => {
         const item = [...timers.entries()].find(([, timer]) => timer.delay === delay);
         assert.ok(item, 'Missing timer ' + delay); timers.delete(item[0]); item[1].fn();
     };
-    return {w, doc: w.document, sockets, reads, timers, fire, flush: () => new Promise(resolve => setImmediate(resolve))};
+    return {w, doc: w.document, sockets, reads, timers, fire,
+        status: value => status({health: {instrument_service: value}}),
+        flush: () => new Promise(resolve => setImmediate(resolve))};
 }
 const batch = (cursor, messages = [], reset = false) => ({
     type: 'logs', cursor, reset, entries: messages.map(msg => ({msg, ts: null, prio: 6}))
@@ -36,10 +40,10 @@ test('live WebSocket batches and heartbeats never poll HTTP or duplicate message
     f.sockets[0].reply(batch('a', ['ready']));
     f.sockets[0].reply(batch('a'));
     assert.equal(f.reads.length, 0);
-    assert.equal(f.doc.querySelector('#koheron-log').textContent.split('\n').length, 1);
+    assert.equal(f.doc.querySelectorAll('#koheron-log .log-line').length, 1);
     assert.equal(f.doc.querySelector('#log-status').textContent, 'Live');
     f.sockets[0].reply(batch('b', ['second']));
-    assert.equal(f.doc.querySelector('#koheron-log').textContent.split('\n').length, 2);
+    assert.equal(f.doc.querySelectorAll('#koheron-log .log-line').length, 2);
 });
 
 test('pause releases the stream, ignores late frames and resumes at its cursor', t => {
@@ -103,6 +107,8 @@ test('stale journal cursor clears old history and safely renders priority and te
     assert.doesNotMatch(f.doc.querySelector('#koheron-log').textContent, /old/);
     assert.equal(f.doc.querySelector('#koheron-log img'), null);
     assert.equal(f.doc.querySelector('.log-line').dataset.level, 'error');
+    assert.equal(f.doc.querySelector('#log-notice').hidden, false);
+    assert.match(f.doc.querySelector('#log-notice').textContent, /history is no longer available/);
 });
 
 test('malformed or oversized batches reconnect without rendering', t => {
@@ -146,4 +152,89 @@ test('watchdog reconnects stalled streams and timed-out HTTP releases its read l
 test('HTTPS pages use a secure WebSocket on their original host and port', t => {
     const f = fixture(t, 'https://board:8443/koheron/');
     assert.equal(f.sockets[0].url, 'wss://board:8443/api/logs/koheron/events');
+});
+
+test('search and severity filter retained and incoming rows without reconnecting', t => {
+    const f = fixture(t), search = f.doc.querySelector('#log-search'), level = f.doc.querySelector('#log-severity');
+    const value = batch('a', ['ready', 'FAULT', 'fault warning']);
+    value.entries[1].prio = 3; value.entries[2].prio = 4;
+    f.sockets[0].reply(value);
+    search.value = ' fault '; search.dispatchEvent(new f.w.Event('input'));
+    level.value = '3'; level.dispatchEvent(new f.w.Event('change'));
+    assert.equal(f.doc.querySelector('#log-count').textContent, '1 of 3 groups');
+    assert.equal(f.doc.querySelector('.log-line:not([hidden]) .log-message').textContent, 'FAULT');
+    f.sockets[0].reply(batch('b', ['not a fault']));
+    assert.equal(f.doc.querySelector('#log-count').textContent, '1 of 4 groups');
+    assert.equal(f.sockets.length, 1); assert.equal(f.reads.length, 0);
+    search.value = 'absent'; search.dispatchEvent(new f.w.Event('input'));
+    assert.equal(f.doc.querySelector('.log-empty').hidden, false);
+    assert.match(f.doc.querySelector('.log-empty').textContent, /No messages match/);
+});
+
+test('current run uses the service invocation and follows a new run without mixing rows', t => {
+    const f = fixture(t), scope = f.doc.querySelector('#log-scope');
+    assert.equal(scope.options[1].disabled, true);
+    f.status({invocation: 'a'.repeat(32)}); assert.equal(scope.options[1].disabled, false);
+    assert.equal(f.sockets.length, 1); // All runs does not reconnect on health updates.
+    scope.value = 'current'; scope.dispatchEvent(new f.w.Event('change'));
+    assert.equal(f.sockets[0].closed, true);
+    assert.match(f.sockets[1].url, /\?invocation=a{32}$/);
+    f.sockets[1].reply(batch('a', ['run A']));
+    f.status({error: 'temporary failure'}); assert.equal(f.sockets.length, 2);
+    f.status({invocation: 'b'.repeat(32)});
+    assert.equal(f.sockets[1].closed, true);
+    assert.match(f.sockets[2].url, /\?invocation=b{32}$/);
+    f.sockets[2].reply(batch('b', ['run B']));
+    assert.doesNotMatch(f.doc.querySelector('#koheron-log').textContent, /run A/);
+    assert.equal(f.doc.querySelector('#log-notice').hidden, true);
+});
+
+test('scope change stays paused and stale socket frames cannot mix runs', t => {
+    const f = fixture(t), scope = f.doc.querySelector('#log-scope');
+    f.status({invocation: 'a'.repeat(32)});
+    const late = f.sockets[0].onmessage;
+    f.doc.querySelector('#log-pause').click();
+    scope.value = 'current'; scope.dispatchEvent(new f.w.Event('change'));
+    assert.equal(f.sockets.length, 1);
+    assert.equal(f.doc.querySelector('#log-status').textContent, 'Paused');
+    f.doc.querySelector('#log-pause').click();
+    late({data: JSON.stringify(batch('old', ['old run']))});
+    f.sockets[1].reply(batch('a', ['current run']));
+    assert.doesNotMatch(f.doc.querySelector('#koheron-log').textContent, /old run/);
+    assert.match(f.sockets[1].url, /invocation=a{32}$/);
+    f.status({invocation: '0'.repeat(32)});
+    assert.equal(scope.value, 'all'); assert.equal(scope.options[1].disabled, true);
+    assert.equal(f.sockets[2].url, 'ws://board/api/logs/koheron/events');
+});
+
+test('HTTP fallback retains the selected run filter', async t => {
+    const f = fixture(t), scope = f.doc.querySelector('#log-scope');
+    f.status({invocation: 'a'.repeat(32)});
+    scope.value = 'current'; scope.dispatchEvent(new f.w.Event('change'));
+    f.sockets[1].reply(batch('a', ['current']));
+    f.sockets[1].onclose();
+    assert.match(f.reads[0].url, /tail\?cursor=a&invocation=a{32}$/);
+    f.reads.shift().reply(batch('b', ['fallback'])); await f.flush();
+    assert.equal(f.doc.querySelector('#log-status').textContent, 'Live · polling');
+});
+
+test('invalid truncation metadata is rejected before rendering', t => {
+    const f = fixture(t), value = batch('a', ['invalid']);
+    value.entries[0].truncated = 'yes';
+    f.sockets[0].reply(value);
+    assert.equal(f.sockets[0].closed, true);
+    assert.equal(f.doc.querySelectorAll('.log-line').length, 0);
+});
+
+test('scrolling away disables following and programmatic scroll does not re-enable it', t => {
+    const f = fixture(t), pre = f.doc.querySelector('#koheron-log'), follow = f.doc.querySelector('#log-follow');
+    Object.defineProperty(pre, 'scrollHeight', {value: 400});
+    Object.defineProperty(pre, 'clientHeight', {value: 200});
+    pre.scrollTop = 0; pre.dispatchEvent(new f.w.Event('scroll'));
+    assert.equal(follow.checked, false);
+    pre.scrollTop = 200; pre.dispatchEvent(new f.w.Event('scroll'));
+    assert.equal(follow.checked, false);
+    follow.checked = true; follow.dispatchEvent(new f.w.Event('change'));
+    assert.equal(pre.scrollTop, 400);
+    assert.equal(follow.checked, true);
 });

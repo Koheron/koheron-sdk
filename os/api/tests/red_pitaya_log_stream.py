@@ -20,10 +20,12 @@ def verify(host):
         assert len(body) <= 65536
         return json.loads(body)
 
-    def connect(cursor=None, headers=''):
+    def connect(cursor=None, headers='', invocation=None):
         path = '/api/logs/koheron/events'
-        if cursor:
-            path += '?cursor=' + urllib.parse.quote(cursor, safe='')
+        query = {}
+        if cursor: query['cursor'] = cursor
+        if invocation: query['invocation'] = invocation
+        if query: path += '?' + urllib.parse.urlencode(query)
         return WebSocket(80, host=host, path=path, address=host, headers=headers)
 
     def receive(stream):
@@ -37,6 +39,7 @@ def verify(host):
             assert value['type'] == 'logs'
             assert len(value['entries']) <= 200
             assert all(0 <= entry['prio'] <= 7 for entry in value['entries'])
+            assert all(isinstance(entry['truncated'], bool) for entry in value['entries'])
             return value
 
     def client_close():
@@ -67,6 +70,20 @@ def verify(host):
         checks.append('three real instrument TCP disconnects arrive as incremental WS log batches')
     finally:
         stream.close()
+    invocation = http('/api/system/status')['health']['instrument_service']['invocation']
+    assert len(invocation) == 32 and invocation != '0' * 32
+    current = http('/api/logs/koheron/tail?invocation=' + invocation)
+    stream = connect(invocation=invocation)
+    try:
+        assert b'101' in stream.headers
+        assert receive(stream) == current
+        assert current['entries'] and not current['reset']
+        checks.append('current service invocation is exposed in health; filtered WS and HTTP history agree')
+    finally:
+        stream.close()
+    empty = http('/api/logs/koheron/tail?invocation=' + '0' * 32)
+    assert empty['entries'] == [] and empty['cursor'] is None and not empty['reset']
+    checks.append('an unknown invocation returns no entries and never falls back to other runs')
     client_close()
     deadline = time.monotonic() + 3
     while True:
@@ -100,6 +117,7 @@ def verify(host):
         'recorded_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'host': host, 'checks': checks, 'initial_entries': len(first['entries']),
         'replayed_entries': len(resumed['entries']), 'reset_entries': len(recovered['entries']),
+        'service_invocation': invocation, 'current_run_entries': len(current['entries']),
         'delivery_ms': samples,
         'measurement': 'Three light TCP connect/close samples; client-close to receipt on the host, including network and journald delay; not a stress test or a boot benchmark.',
         'scope': 'Production GET and read-only WebSockets; four instrument TCP connect/close probes; no lifecycle, settings, upload, FPGA or reboot actions.'

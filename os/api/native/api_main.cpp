@@ -363,9 +363,11 @@ public:
             const char* requested_cursor = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "cursor");
             std::optional<std::string> cursor = requested_cursor && *requested_cursor ? std::optional(std::string(requested_cursor)) : std::nullopt;
             if (suffix == "/tail") {
+                const char* requested = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "invocation");
+                if (requested && !valid_invocation(requested)) return error_reply("invalid invocation", 400);
                 if (cursor && (cursor->size() > 1024 || !std::ranges::all_of(*cursor,
                     [](unsigned char c) { return c >= 33 && c <= 126; }))) return error_reply("invalid cursor", 400);
-                return Reply{200, follow_logs(settings.unit, cursor)(), "application/json", {}};
+                return Reply{200, follow_logs(settings.unit, cursor, requested ? std::optional(std::string(requested)) : std::nullopt)(), "application/json", {}};
             }
             if (suffix.empty()) {
                 int limit = 200;
@@ -581,8 +583,8 @@ int main(int argc, char** argv) {
         if (pthread_sigmask(SIG_BLOCK, &signals, nullptr) != 0) throw std::runtime_error("Could not block shutdown signals");
         App app(std::move(settings));
         app.events = std::make_unique<EventHub>([&app] { return encode(app.snapshot()); });
-        app.log_events = std::make_unique<EventHub>(EventHub::Stream{}, [&app](std::optional<std::string> cursor) {
-            return follow_logs(app.settings.unit, std::move(cursor));
+        app.log_events = std::make_unique<EventHub>(EventHub::Stream{}, [&app](std::optional<std::string> cursor, std::optional<std::string> invocation) {
+            return follow_logs(app.settings.unit, std::move(cursor), std::move(invocation));
         });
         const unsigned flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_THREAD_PER_CONNECTION | MHD_USE_ITC | MHD_USE_ERROR_LOG | MHD_ALLOW_UPGRADE;
         MHD_Daemon* raw_daemon = nullptr;

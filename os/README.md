@@ -179,14 +179,31 @@ Logs have a separate connection so Pause releases the journal reader without
 interrupting controls or health. The native reader stays open and follows
 journal notifications; the browser no longer polls while that stream is healthy.
 Both transports return `{type: "logs", cursor, entries, reset}`; entries contain
-microsecond `ts`, `msg` and systemd `prio` (0–7). Initial history is the latest
+microsecond `ts`, `msg`, effective `prio` (0–7) and boolean `truncated`. Priority
+uses systemd's value and recognizes Koheron's leading `PANIC:`, `CRITICAL:`,
+`ERROR:` and `WARNING:` labels, keeping whichever severity is stronger.
+Initial history is the latest
 200 entries. Each batch has at most 200 entries, 4 KiB of source message per
-entry and less than 64 KiB of encoded JSON; oversized messages are truncated.
+entry and less than 64 KiB of encoded JSON; oversized messages keep a complete
+UTF-8 prefix and display a truncation marker.
 Backlogs drain in bounded batches. Empty batches every two seconds keep the
 browser watchdog alive. Reconnect and Resume seek after the last delivered
 cursor. An invalid or expired cursor returns `reset: true` and recent history;
-the widget clears its old history to avoid duplicates. The display retains
-1,000 grouped rows, follow and download controls.
+the widget clears its old history and displays a lost-history notice. Journal
+rotation retains valid cursors; removing their files triggers the same reset.
+The display retains 1,000 grouped rows. Appending logs preserves existing message
+nodes and text selection; pruning older rows preserves the visible scroll anchor.
+Repeat groups show the latest timestamp, with first/latest times in the tooltip.
+Truncated messages remain separate because equal prefixes can hide different messages.
+
+Search and severity filters apply to retained and incoming rows without reconnecting.
+Download exports the visible groups. “All runs” covers this boot; “Current run”
+uses the instrument service's `InvocationID`, exposed as
+`health.instrument_service.invocation` in status snapshots. Both log endpoints
+accept optional `invocation=ID` (32 lowercase hex digits), and match it strictly.
+The widget follows a new run ID while “Current run” is selected, starting a new
+cursor and clearing previous rows. The option is unavailable until the service
+reports a valid run ID. Follow, Pause and Resume work with either scope.
 
 Blocked or stalled log sockets retry with a 1–10 second backoff and use bounded
 HTTP batches once per second in the meantime; the badge reads “Live · polling”.

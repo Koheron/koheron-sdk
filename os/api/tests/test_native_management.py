@@ -289,6 +289,20 @@ class NativeManagementTest(NativeFixture):
         finally:
             for stream in streams: stream.close()
 
+    def test_log_invocation_filter_and_validation(self):
+        invocation = 'a' * 32
+        value = self.get('/api/logs/koheron/tail?invocation=' + invocation)
+        self.assertEqual(value['entries'], [])
+        stream = WebSocket(self.port, path='/api/logs/koheron/events?invocation=' + invocation)
+        self.addCleanup(stream.close)
+        self.assertIn(b'101', stream.headers)
+        self.assertEqual(json.loads(stream.frame()[1])['entries'], [])
+        for invalid in ('', 'a' * 31, 'a' * 33, 'A' * 32, 'z' * 32, '%0A'):
+            self.assertEqual(self.request('/api/logs/koheron/tail?invocation=' + invalid)[0], 400)
+            rejected = WebSocket(self.port, path='/api/logs/koheron/events?invocation=' + invalid)
+            try: self.assertIn(b'400', rejected.headers)
+            finally: rejected.close()
+
 
 if __name__ == '__main__':
     unittest.main()
