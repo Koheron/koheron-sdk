@@ -1,0 +1,103 @@
+{
+  "browser": "154.0.8037.57",
+  "cpu": "Intel(R) Core(TM) Ultra X7 368H",
+  "platform": "linux 6.17.0-1032-oem",
+  "method": "empty-hook static plot, 16 KiB heap sampling including collected objects",
+  "headless": true,
+  "gpu": "disabled",
+  "dpr": 1,
+  "plotViewport": [
+    400,
+    200
+  ],
+  "frames": 60,
+  "draws": 100,
+  "rounds": 3,
+  "results": [
+    {
+      "round": 0,
+      "variant": "previous",
+      "totalDraws": 6000,
+      "sampledAllocatedBytesPerDraw": 341.9053333333333,
+      "sampledBytesByFunction": {
+        "draw": 1607776,
+        "drawOverlay": 393712,
+        "(V8 API)": 33532,
+        "(BYTECODE_COMPILER)": 16412
+      }
+    },
+    {
+      "round": 0,
+      "variant": "owned",
+      "totalDraws": 6000,
+      "sampledAllocatedBytesPerDraw": 0,
+      "sampledBytesByFunction": {}
+    },
+    {
+      "round": 1,
+      "variant": "owned",
+      "totalDraws": 6000,
+      "sampledAllocatedBytesPerDraw": 5.466666666666667,
+      "sampledBytesByFunction": {
+        "Map": 16400,
+        "next": 16400
+      }
+    },
+    {
+      "round": 1,
+      "variant": "previous",
+      "totalDraws": 6000,
+      "sampledAllocatedBytesPerDraw": 325.50733333333335,
+      "sampledBytesByFunction": {
+        "draw": 1361752,
+        "drawOverlay": 557784,
+        "(V8 API)": 17116,
+        "(BYTECODE_COMPILER)": 16392
+      }
+    },
+    {
+      "round": 2,
+      "variant": "previous",
+      "totalDraws": 6000,
+      "sampledAllocatedBytesPerDraw": 336.446,
+      "sampledBytesByFunction": {
+        "draw": 1558616,
+        "drawOverlay": 442944,
+        "(V8 API)": 17116
+      }
+    },
+    {
+      "round": 2,
+      "variant": "owned",
+      "totalDraws": 6000,
+      "sampledAllocatedBytesPerDraw": 0,
+      "sampledBytesByFunction": {}
+    }
+  ],
+  "sourceSHA256": {
+    "web/plotting/benchmark/hooks.cjs": "2f0df836d92a37c05eeacf360397c9609b6378b8c95a306a2269fd4cf1dd7805",
+    "web/plotting/benchmark/harness.cjs": "328acf69bbe266766f1d7626fc20ad193fca448b85a8d597b1193f8058752891",
+    "web/plot-basics/plot-basics.ts": "f26609b2340307c14e8f369aedd6b4d076aee8d0fc4d3e4d3f2ff69dfd24577a",
+    "web/plotting/benchmark/workload.js": "acbc7065265a0334268655191fe8d0ceb8cc24017c856f19f0434debb882a3fc",
+    "web/plotting/src/jquery.colorhelpers.js": "09da5c94edc26c5d097343447ec56bb31f618d9d476a7652022f1b0a22643de8",
+    "web/plotting/src/jquery.flot.axislabels.js": "002fd1985afe180e48a8551e18d2689826be3dda3009a1ce1cf006706a9726f6",
+    "web/plotting/src/jquery.flot.canvas.js": "9931d4a47df2181e243900b9d4956e97faf8c954f7dfbea3ffdc580e5898b0a1",
+    "web/plotting/src/jquery.flot.js": "3b3bee2bb1633254807c67d28dfca66941b4365304a75b652c1c17cf8b1cd6a8",
+    "web/plotting/src/jquery.flot.resize.js": "8aa93543f14b3c327178134ecea4c358fa0ccd6bc6f008392ac8ccbf56a651ad",
+    "web/plotting/src/jquery.flot.selection.js": "34f312f671137e3e328f8404148e049078ae6feae4dca1ae47dcb23eb64eb1e8",
+    "web/plotting/src/jquery.flot.time.js": "a582c832adc7138a6b05aaf61f16ebac274701f1be4afea77e739a1c34b9c41a"
+  },
+  "cpuAffinity": "0-3",
+  "comparisonSnapshot": {
+    "created": "2026-10-10T18:05:12.722Z",
+    "sha256": {
+      "jquery.flot.js": "888dbcf52382a22851d1b663a1c9a6b46db08c2c54312aae63b2684b90cd42f0",
+      "jquery.flot.resize.js": "9cc2778b4c6379691c110f2e94e81bb2b3f36bf6e170816364743d699451d95f",
+      "jquery.flot.selection.js": "5fadba41621edf56ead2205e5362dec4289ece222bc92b6ecf32ca568a064e65",
+      "jquery.flot.time.js": "cc3e54c567464f94303203a77aacc3c5bc1db7d5484d99e89450b6b0965d24f3",
+      "jquery.flot.axislabels.js": "4dcef7a048dd3203031c82677c888f12611bc741ef3a170b20097f8302372f0e",
+      "jquery.flot.canvas.js": "9b5c1a907a71ba720433eff902ac9db789e3f21600018f89b64d0d8181f90604",
+      "plot-basics.ts": "f26609b2340307c14e8f369aedd6b4d076aee8d0fc4d3e4d3f2ff69dfd24577a"
+    }
+  }
+}

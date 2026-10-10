@@ -61,6 +61,9 @@ mutated. These internal buffers are mutable across `setData`; retain `data`,
 not `datapoints.points`, for captures/exports. Data-processing hooks bypass the
 fast path. Finite numeric samples use direct bounds/buffer updates; coercion,
 gaps and Infinity/MAX_VALUE sentinels retain the compatibility path.
+Every hook call checks the live list before allocating payload arrays. Occupied
+lists retain the original dispatcher, including argument identity/arity, receiver
+and live callback order.
 Reductions reuse one output array per trace, preserve extrema and
 gaps, retain boundary neighbors and restore every bin under deep zoom.
 Captured reference reductions are recomputed because array identity does not
@@ -114,6 +117,8 @@ the extrema-loop comparison in [benchmark/EXTREMA_RESULTS.md](benchmark/EXTREMA_
 the paired normalization comparison in
 [benchmark/NORMALIZATION_RESULTS.md](benchmark/NORMALIZATION_RESULTS.md),
 the line-clipping comparison in
-[benchmark/CLIPPING_RESULTS.md](benchmark/CLIPPING_RESULTS.md)
-and the latest projection buffer comparison in
-[benchmark/PROJECTION_BUFFER_RESULTS.md](benchmark/PROJECTION_BUFFER_RESULTS.md).
+[benchmark/CLIPPING_RESULTS.md](benchmark/CLIPPING_RESULTS.md),
+the projection buffer comparison in
+[benchmark/PROJECTION_BUFFER_RESULTS.md](benchmark/PROJECTION_BUFFER_RESULTS.md)
+and the empty-hook allocation comparison in
+[benchmark/HOOK_RESULTS.md](benchmark/HOOK_RESULTS.md).
