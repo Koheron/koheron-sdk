@@ -1,0 +1,351 @@
+{
+  "recorded_utc": "2026-10-10T11:00:23.381692+00:00",
+  "host": "192.168.1.85",
+  "management_url": "http://192.168.1.85/koheron/",
+  "instrument_url": "http://192.168.1.85/",
+  "application_source_commit": "9f6bc8d21f1d6fc867381e9ffe1bd2e422afbfe1",
+  "build_checks": {
+    "armhf_api": "passed; GCC 15/C++23 artifacts up to date",
+    "instrument_and_management_web": "passed",
+    "download_permission_regressions": 3,
+    "kernel_download_regressions": 2
+  },
+  "installed_files_sha256": {
+    "api/koheron-api": "8a920dedeb4e2251a7208e758d0da0deeb675a9ad7e065587783fa056f9f07e8",
+    "api/koheron-install": "5bce5eb5e6f63bd30374bac64422540d56151d46fdd1dccc63457d20016ef343",
+    "api/koheron-server-init": "b15e7bd40b9f1047e6c595e223aa84b3c4fc587c7add068ab21a4f4a2b629b5d",
+    "nginx/nginx-server.conf": "95fd7ae93aa59a96f1b1df1c241a9ce6ec515a8828923c34bbe792d4fd716ce7",
+    "nginx/nginx.conf": "5163a2a89e1cab016396d9fb8a5dd3458fc0a59e6f7e09e56d31061569377906",
+    "systemd/koheron-api.service": "e771becf70d2f52d4fc2339edec01748cdc1ba079d623741ac10f19f38dfd09d",
+    "systemd/koheron-api.socket": "d2726dc1f90d564b485f0d1b1e9c9d0d3f214da44ade41f2947ddeeb5180b20b",
+    "systemd/koheron-server-init.service": "5ad1573d969c96b15145a530acabcffafa3ffef0cb2aa8c5204d4915545f6158",
+    "systemd/nginx.service": "ba62f099fa7fbe37b4c6aa9fb89310da8a6ac62cae57f7769bf1c307f6572cdc",
+    "www/bootstrap.min.css": "6d92dfc1700fd38cd130ad818e23bc8aef697f815b2ea5face2b5dfad22f2e11",
+    "www/bootstrap.min.js": "9ee2fcff6709e4d0d24b09ca0fc56aade12b4961ed9c43fd13b03248bfb57afe",
+    "www/glyphicons-halflings-regular.woff2": "fe185d11a49676890d47bb783312a0cda5a44c4039214094e7957b4c040ef11c",
+    "www/html-imports.min.js": "2cd317599fdd802305b1362e882fa30a93ecf1697be9d93b9efaa4eca000a84a",
+    "www/html-imports.min.js.map": "48153c3a33cbe4e5526e1434a66fe325fb1934ca49ae78e82ea3c29f0ce83956",
+    "www/index.html": "6c4f10d29de44731a2df8c93683ea9cc370b5fde0fd41b830f077ce7fc298f3e",
+    "www/instrument.css": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761",
+    "www/instrument_summary.html": "031097f6eba97b224b3ca061c1d998e98342c06dcbb175ca8405d86e9e84d155",
+    "www/instruments.js": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5",
+    "www/jquery.min.js": "fc9a93dd241f6b045cbff0481cf4e1901becd0e12fb45166a8f17f95823f0b1a",
+    "www/kbird.ico": "321deebf06d7987db621870a184840b77d1f49db4654ad02a9e43cf4fc58426e",
+    "www/koheron.css": "7c080fdc2572500a61a24e6debae1d85a394b964d57a5b89a0bec2e19b3d9846",
+    "www/koheron.svg": "a9831880ca34deffbaf39e0d4f217337d6738e478d37adc76938f10e70915a42",
+    "www/koheron_logo.svg": "3cf9e6da56a3839f84ced705515308430c23d0f04fb281f0726aad650b5d9053",
+    "www/lato-v11-latin-400.woff2": "9687ee5934e8a8b125cd0e3f7e21b9eea12c5eba602dfb12941aeafaad44fbe3",
+    "www/lato-v11-latin-700.woff2": "47a03cdb40941ed9bb87178d34076aa70d7c8a21c2645d9a71e7edb02f94a4c2",
+    "www/lato-v11-latin-900.woff2": "40ceb670daf6af4dd3bbac15882e7da081e2948058c5e76ab0ae694474a1d1d3",
+    "www/logs_rate.html": "ef78bd6910257371eeb510eb4e5c60a27ecf64a6892a04739c6aa3493b016d55",
+    "www/main.css": "9c0cf2560880262c566b04b4453fc8d7de384dc37b2d5ef80d6f5943ac238c22",
+    "www/navigation.html": "58815ec247d5a982dffc4474bf9fa7e39b07f89555db341adddbe7278b2ed600",
+    "www/system.css": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a"
+  },
+  "all_30_installed_files_match_build": true,
+  "http_results": {
+    "/koheron/": {
+      "status": 200,
+      "bytes": 4943,
+      "sha256": "6c4f10d29de44731a2df8c93683ea9cc370b5fde0fd41b830f077ce7fc298f3e",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "4943",
+        "Last-Modified": "Sat, 10 Oct 2026 01:44:09 GMT",
+        "Connection": "close",
+        "Vary": "Accept-Encoding",
+        "ETag": "\"6ac99869-134f\"",
+        "Accept-Ranges": "bytes"
+      }
+    },
+    "/koheron/instruments.js": {
+      "status": 200,
+      "bytes": 85332,
+      "sha256": "2148d18a4c49dd837e1d0ec0c32b19fd6465ed1acf2c3d48b5fdb7c88ceffde5",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "application/javascript",
+        "Content-Length": "85332",
+        "Last-Modified": "Sat, 10 Oct 2026 10:19:30 GMT",
+        "Connection": "close",
+        "ETag": "\"6aca1132-14d54\"",
+        "Accept-Ranges": "bytes"
+      }
+    },
+    "/koheron/system.css": {
+      "status": 200,
+      "bytes": 10771,
+      "sha256": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "text/css",
+        "Content-Length": "10771",
+        "Last-Modified": "Sat, 10 Oct 2026 10:19:30 GMT",
+        "Connection": "close",
+        "ETag": "\"6aca1132-2a13\"",
+        "Accept-Ranges": "bytes"
+      }
+    },
+    "/api/system/status": {
+      "status": 200,
+      "bytes": 1478,
+      "sha256": "b5e4cc81762a77d6206f35fd97139bee592f9cddb27af0ce6467058f7e55553f",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "1478",
+        "Connection": "close",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    "/api/system/diagnostics": {
+      "status": 200,
+      "bytes": 4064,
+      "sha256": "02132a21308f24b25c6244f5cb9b415142b5631680c8bfe195401a4f736cf063",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "4064",
+        "Connection": "close",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": "attachment; filename=koheron-diagnostics.json"
+      }
+    },
+    "/api/instruments/preflight/fft": {
+      "status": 200,
+      "bytes": 301,
+      "sha256": "15ab85e506431584129f9fdca3d3a0508669d18833e1f6ddcedc00e51a145531",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "301",
+        "Connection": "close",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    "/run/rates/sessions.json": {
+      "status": 200,
+      "bytes": 33,
+      "sha256": "1470a6c90753d452b9c4e803751b865ae72ed461c56adcb8997f1278fed325ec",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "33",
+        "Last-Modified": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Connection": "close",
+        "ETag": "\"6aca179d-21\"",
+        "Accept-Ranges": "bytes"
+      }
+    },
+    "/": {
+      "status": 200,
+      "bytes": 2390,
+      "sha256": "fa6b1fcd528c89c4412a456ab7c8344f9749b494958039e94d40d917f3771cec",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "2390",
+        "Last-Modified": "Thu, 08 Oct 2026 22:42:36 GMT",
+        "Connection": "close",
+        "Vary": "Accept-Encoding",
+        "ETag": "\"6ac81c5c-956\"",
+        "Expires": "Sat, 10 Oct 2026 10:46:53 GMT",
+        "Cache-Control": "max-age=0",
+        "Accept-Ranges": "bytes"
+      }
+    },
+    "/jquery.min.js": {
+      "status": 200,
+      "bytes": 87533,
+      "sha256": "fc9a93dd241f6b045cbff0481cf4e1901becd0e12fb45166a8f17f95823f0b1a",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:57:56 GMT",
+        "Content-Type": "application/javascript",
+        "Content-Length": "87533",
+        "Last-Modified": "Thu, 08 Oct 2026 20:30:20 GMT",
+        "Connection": "close",
+        "ETag": "\"6ac7fd5c-155ed\"",
+        "Expires": "Sat, 10 Oct 2026 10:57:56 GMT",
+        "Cache-Control": "max-age=0",
+        "Accept-Ranges": "bytes"
+      }
+    },
+    "/bootstrap.min.js": {
+      "status": 200,
+      "bytes": 39680,
+      "sha256": "9ee2fcff6709e4d0d24b09ca0fc56aade12b4961ed9c43fd13b03248bfb57afe",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:57:56 GMT",
+        "Content-Type": "application/javascript",
+        "Content-Length": "39680",
+        "Last-Modified": "Thu, 08 Oct 2026 20:30:20 GMT",
+        "Connection": "close",
+        "ETag": "\"6ac7fd5c-9b00\"",
+        "Expires": "Sat, 10 Oct 2026 10:57:56 GMT",
+        "Cache-Control": "max-age=0",
+        "Accept-Ranges": "bytes"
+      }
+    },
+    "/bootstrap.min.css": {
+      "status": 200,
+      "bytes": 121457,
+      "sha256": "6d92dfc1700fd38cd130ad818e23bc8aef697f815b2ea5face2b5dfad22f2e11",
+      "headers": {
+        "Server": "nginx/1.28.3",
+        "Date": "Sat, 10 Oct 2026 10:57:56 GMT",
+        "Content-Type": "text/css",
+        "Content-Length": "121457",
+        "Last-Modified": "Thu, 08 Oct 2026 20:30:20 GMT",
+        "Connection": "close",
+        "ETag": "\"6ac7fd5c-1da71\"",
+        "Expires": "Sat, 10 Oct 2026 10:57:56 GMT",
+        "Cache-Control": "max-age=0",
+        "Accept-Ranges": "bytes"
+      }
+    }
+  },
+  "services_after": [
+    {
+      "Id": "koheron-server.service",
+      "ActiveState": "active",
+      "MainPID": "151",
+      "NRestarts": "0"
+    },
+    {
+      "Id": "koheron-api.service",
+      "ActiveState": "active",
+      "MainPID": "8502",
+      "NRestarts": "0"
+    },
+    {
+      "Id": "nginx.service",
+      "ActiveState": "active",
+      "MainPID": "399",
+      "NRestarts": "0"
+    },
+    {
+      "Id": "uwsgi.service",
+      "ActiveState": "inactive",
+      "MainPID": "0",
+      "NRestarts": "0"
+    }
+  ],
+  "services_enabled_for_boot": [
+    "koheron-api.service",
+    "koheron-api.socket",
+    "nginx.service"
+  ],
+  "uwsgi_socket_state": "inactive",
+  "production_fft_probe_before": {
+    "recorded_utc": "2026-10-10T10:41:51.782149+00:00",
+    "host": "192.168.1.85",
+    "live_instrument": {
+      "is_default": true,
+      "name": "fft",
+      "version": "0.3.0"
+    },
+    "server_version": "1.0",
+    "fft_size": 2048,
+    "number_averages": 1023,
+    "window_index": 1,
+    "drivers": [
+      "Common",
+      "FFT",
+      "KServer",
+      "PhaseModulator",
+      "RedPitayaAdcCalibration",
+      "Xadc"
+    ],
+    "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+  },
+  "production_fft_probe_after": {
+    "recorded_utc": "2026-10-10T10:59:52.175651+00:00",
+    "host": "192.168.1.85",
+    "live_instrument": {
+      "name": "fft",
+      "version": "0.3.0",
+      "is_default": true
+    },
+    "server_version": "1.0",
+    "fft_size": 2048,
+    "number_averages": 1023,
+    "window_index": 1,
+    "drivers": [
+      "Common",
+      "FFT",
+      "KServer",
+      "PhaseModulator",
+      "RedPitayaAdcCalibration",
+      "Xadc"
+    ],
+    "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+  },
+  "production_fft_settings_unchanged": true,
+  "browser_record": "../../www/tests/native-management-deployed-red-pitaya-browser.json",
+  "browser_check_count": 9,
+  "user_chrome": {
+    "url": "http://192.168.1.85/",
+    "failure_before": "jQuery request returned HTTP 403; jQuery/$ undefined stopped FFT initialization before WebSocket connections",
+    "asset_permissions_before": {
+      "jquery.min.js": "0600",
+      "bootstrap.min.js": "0600",
+      "bootstrap.min.css": "0600"
+    },
+    "after_reload": "Live spectrum",
+    "observed_fps": [
+      56,
+      58
+    ],
+    "fft_points": 2048,
+    "window": "Hann"
+  },
+  "archive_permission_repair": {
+    "changed_entries": [
+      {
+        "name": "bootstrap.min.js",
+        "before": "0o600",
+        "after": "0o644"
+      },
+      {
+        "name": "bootstrap.min.css",
+        "before": "0o600",
+        "after": "0o644"
+      },
+      {
+        "name": "jquery.min.js",
+        "before": "0o600",
+        "after": "0o644"
+      }
+    ],
+    "entry_count": 41,
+    "all_payload_sha256_unchanged": true,
+    "archive_sha256": "0b5a66b8da2bdde3ffb19ac4cb374a2c2fd3e933adcaad835c40f3455573cd67"
+  },
+  "backup_directory": "/var/lib/koheron-management-backup-20261010",
+  "deployment_staging_removed": true,
+  "scope": "Existing V1 laboratory image: deployed native API and management UI on normal port 80; repaired live and archived FFT web permissions. Read-only UI/RPC checks, no instrument lifecycle actions, FPGA programming, reboot or complete OS image flash.",
+  "sources_sha256": {
+    "os/scripts/download_verified.sh": "aae42301c345844689229ba9f85dec77efb9189ecd4bf1cdd4a37492dd237888",
+    "os/tests/test_download_verified.py": "df4a0275b8ed8f9fae6c4886581daa4b9e1b8b3686e5605541125108a0f115c4",
+    "os/www/tests/management_readonly_browser.cjs": "831339e2416a1a8fac859d32a7979a38d2ffc38822481802821abade9a412a56"
+  },
+  "screenshots": [
+    "../../www/tests/native-management-deployed-red-pitaya-desktop.png",
+    "../../www/tests/native-management-deployed-red-pitaya-mobile.png",
+    "../../www/tests/native-management-deployed-red-pitaya-fft.png"
+  ]
+}

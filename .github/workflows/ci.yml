@@ -36,6 +36,8 @@ jobs:
         run: python3 -m unittest discover -s os/tests -p test_toolchain_manifest.py
       - name: Test kernel and device-tree compiler dependencies
         run: python3 -m unittest discover -s os/tests -p test_linux_make.py
+      - name: Check downloaded asset permissions
+        run: python3 -m unittest discover -s os/tests -p test_download_verified.py
       - name: Check C++ logging
         run: python3 -m unittest discover -s server/tests -p test_syslog.py
       - name: Validate instrument configurations

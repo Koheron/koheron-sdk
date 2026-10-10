@@ -1,5 +1,49 @@
 # Native management runtime tests
 
+[Deployed management verification](native-management-deployed-red-pitaya.json)
+records the current API and UI installed at the board's regular port-80 URL,
+`http://192.168.1.85/koheron/`. The earlier repeat tests below used a private
+preview listener and removed its services afterward; they did not update that
+URL. This deployment installs the runtime libraries, native binaries, service
+units, nginx configuration and web assets, and disables the old uWSGI service.
+All 30 installed files match the build. API/socket/nginx are enabled for boot;
+the board was not rebooted and a complete OS image was not flashed.
+
+The [browser record](../../www/tests/native-management-deployed-red-pitaya-browser.json)
+covers nine read-only checks against the real running FFT: status, journal and
+health, a 12-second WebSocket connection without HTTP fallback, compatibility,
+command details, live transfer rates, four viewport widths and the FFT's live
+spectrum over its instrument WebSocket connection. There are no
+JavaScript errors, failed resource requests or horizontal overflow. Reviewed
+screenshots: [desktop](../../www/tests/native-management-deployed-red-pitaya-desktop.png)
+and [mobile](../../www/tests/native-management-deployed-red-pitaya-mobile.png),
+plus [the live FFT](../../www/tests/native-management-deployed-red-pitaya-fft.png).
+The FFT and nginx PIDs remain 151 and 399. TCP reads still return 2048 points,
+1023 averages and Hann window; no instrument lifecycle action or FPGA programming
+was performed. The old UI/API/configuration are retained on the board at
+`/var/lib/koheron-management-backup-20261010`.
+
+The user's existing Chrome initially failed on the FFT page: nginx returned
+403 for `jquery.min.js`, whose archive permissions were 0600. Bootstrap's JS
+and CSS had the same permissions. `download_verified.sh` now publishes verified
+public inputs as 0644 and repairs verified cached files. Three regression tests
+cover fresh downloads under a restrictive umask, cached permission repair
+without a download, and preserving the previous file on checksum failure.
+The board's three live assets and stored FFT archive permissions were repaired;
+all 41 archive payload hashes remain unchanged. After reloading the user's
+Chrome, the live spectrum renders at 56–58 FPS with Hann and 2,048 points.
+
+To repeat the deployed FFT 0.3.0 UI verification without instrument mutations:
+
+```sh
+MANAGEMENT_URL=http://BOARD/koheron/ \
+CHROMIUM_PATH=/path/to/chromium \
+node os/www/tests/management_readonly_browser.cjs
+```
+
+`PUPPETEER_MODULE` can select Puppeteer Core outside Node's default search path;
+`BROWSER_OUTPUT` selects the record and screenshot directory.
+
 [Full Red Pitaya repeat validation](native-management-red-pitaya-retest-validation.json)
 tests the polished application at `dc70fcc3`: 27 native integration checks and
 16 Chromium checks, including UI boot selection, activation, ZIP upload/removal,
