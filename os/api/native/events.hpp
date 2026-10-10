@@ -7,6 +7,8 @@
 #include <thread>
 
 namespace koheron::management {
+// Clients without browser provenance headers remain compatible with the SDK.
+[[nodiscard]] bool same_origin(MHD_Connection* connection);
 // Read-only RFC6455 stream. Commands remain HTTP requests with explicit results.
 class EventHub {
     struct Client {
@@ -15,6 +17,8 @@ class EventHub {
         std::string input, output;
         bool closing = false;
         std::chrono::steady_clock::time_point deadline{};
+        std::chrono::steady_clock::time_point next_ping{}, pong_deadline{};
+        std::string ping;
     };
     std::mutex mutex_;
     std::condition_variable changed_;

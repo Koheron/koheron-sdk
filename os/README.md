@@ -144,6 +144,16 @@ directory syncing fails after a rename, the API reports failure and keeps its
 inventory consistent with the visible files; callers should read status before
 retrying.
 
+Browser API requests must have matching Origin/Referer and fetch-site headers
+when present. Navigation and embedded-resource requests cannot run mutations,
+and HEAD never activates or removes an instrument. nginx preserves the request
+host, including its port, and supplies the actual scheme. SDK and CLI clients
+without browser provenance headers retain the existing GET run/delete routes.
+Legacy text replies use `text/plain` with `nosniff`; JSON contracts are unchanged.
+Compatibility JSON must be valid UTF-8, strict JSON, and contain no trailing data.
+Replacing the selected boot-default archive reruns preflight before committing
+the upload. Invalid replacements preserve the existing archive and preference.
+
 Health reads Linux uptime, load averages, `MemAvailable`, filesystem capacity
 and systemd service properties. Samples are shared for two seconds. Timing
 values use microseconds: API initialization covers inventory/listener setup,
@@ -158,10 +168,15 @@ the complete download is bounded to 1 MiB.
 
 The WebSocket is read-only and accepts at most eight clients, leaving HTTP
 capacity for commands. It checks browser origin, handles ping/close frames and
-disconnects slow clients with bounded buffering. The management page shares one
+disconnects slow clients with bounded buffering. Every ten seconds it sends a
+ping; peers must return the matching pong within five seconds to retain their
+slot. The management page shares one
 connection for instrument state, activation progress and health. It reconnects,
 falls back to HTTP status reads, and suspends the connection while hidden. Logs
 continue using their existing journal cursors and pause/follow controls.
+HTTP status reads time out after eight seconds and are cancelled when the page
+is hidden or disposed. Late HTTP results cannot replace a newer WebSocket
+snapshot. Lost or malformed status disables mutations until valid status returns.
 
 Boot extraction uses `koheron-install --extract-default`. It reads the selected
 archive from `/usr/local/instruments/default`, validates and stages it before

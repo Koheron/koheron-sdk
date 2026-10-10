@@ -31,7 +31,7 @@ constexpr std::size_t max_upload = 20 * 1024 * 1024;
 struct Reply {
     unsigned status = 200;
     std::string body;
-    std::string type = "text/html; charset=utf-8";
+    std::string type = "text/plain; charset=utf-8";
     std::string disposition;
 };
 Reply json_reply(Json value, unsigned status = 200) { return {status, encode(value) + '\n', "application/json", {}}; }
@@ -165,7 +165,6 @@ class App {
         }
         activation.unlock(); activation_pending_.store(false, std::memory_order_release);
         finish({}, "Instrument " + std::string(requested) + " is running");
-        if (modern) return json_reply(operation());
         const auto after = bookmark(settings.unit);
         {
             std::lock_guard lock(state_mutex_);
@@ -173,6 +172,7 @@ class App {
             log_cursor_ = before && !before->cursor.empty() ? std::optional(before->cursor) : std::nullopt;
             log_timestamp_ = started;
         }
+        if (modern) return json_reply(operation());
         return {200, "Instrument " + std::string(requested) + ".zip successfully installed", {}, {}};
     }
 public:
@@ -218,8 +218,11 @@ public:
         std::lock_guard transaction(mutation_mutex_);
         Archive archive(temporary);
         if (!archive.member("version")) return {400, "Instrument archive missing version file", {}, {}};
-        archive.validate();
         const auto target = settings.instruments / name;
+        if (is_default(target)) {
+            const auto checked = preflight(temporary, settings);
+            if (!checked.ready()) return failure(checked.code, checked.message, checked.code == "insufficient_space" ? 507 : 422);
+        } else archive.validate();
         fs::rename(temporary, target);
         auto value = instrument(target);
         {
@@ -280,6 +283,7 @@ public:
             if (!path.starts_with(prefix)) continue;
             const auto name = path.substr(prefix.size());
             if (name.empty() || name.contains('/')) return {404, "Not found", {}, {}};
+            if (action != "commands" && method != "GET") return failure("method_not_allowed", "Method not allowed", 405);
             if (action == "run") return run(name);
             const auto zip = safe_filename(std::string(name) + ".zip");
             const auto archive = settings.instruments / zip;
@@ -443,11 +447,12 @@ MHD_Result post(void* context, MHD_ValueKind, const char* key, const char* filen
     }
 }
 MHD_Result respond(MHD_Connection* connection, Reply reply) {
-    if (reply.type.empty()) reply.type = "text/html; charset=utf-8";
+    if (reply.type.empty()) reply.type = "text/plain; charset=utf-8";
     auto* response = MHD_create_response_from_buffer(reply.body.size(), reply.body.data(), MHD_RESPMEM_MUST_COPY);
     if (!response) return MHD_NO;
     MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_TYPE, reply.type.c_str());
     MHD_add_response_header(response, MHD_HTTP_HEADER_CACHE_CONTROL, "no-store");
+    MHD_add_response_header(response, "X-Content-Type-Options", "nosniff");
     if (!reply.disposition.empty()) MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_DISPOSITION, reply.disposition.c_str());
     const auto result = MHD_queue_response(connection, reply.status, response);
     MHD_destroy_response(response);
@@ -458,7 +463,15 @@ MHD_Result handle(void* context, MHD_Connection* connection, const char* url, co
     try {
         if (!*request_context) {
             auto request = std::make_unique<Request>(*static_cast<App*>(context));
-            if (std::string_view(method) == "POST" && std::string_view(url) == "/api/instruments/upload") {
+            const std::string_view path(url);
+            const bool mutation = path.starts_with("/api/instruments/run/") || path.starts_with("/api/instruments/delete/") ||
+                path.starts_with("/api/instruments/activate/") || path.starts_with("/api/instruments/default/") ||
+                path.starts_with("/api/instruments/control/") || path == "/api/instruments/upload";
+            const auto header = [&](const char* name) { const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, name); return value ? std::string_view(value) : std::string_view(); };
+            if (!same_origin(connection) || (mutation && (header("Sec-Fetch-Mode") == "navigate" ||
+                (!header("Sec-Fetch-Dest").empty() && header("Sec-Fetch-Dest") != "empty"))))
+                request->error = failure("origin_rejected", "Browser requests must come from this board's interface", 403);
+            if (!request->error && std::string_view(method) == "POST" && path == "/api/instruments/upload") {
                 request->processor = MHD_create_post_processor(connection, 8192, post, request.get());
                 if (!request->processor) request->error = Reply{400, "Instrument upload failed.", {}, {}};
             }
@@ -469,7 +482,7 @@ MHD_Result handle(void* context, MHD_Connection* connection, const char* url, co
         if (request.responded) return MHD_YES;
         if (*size != 0) {
             request.received += *size;
-            if (request.received > max_upload) request.error = Reply{413, "Instrument upload exceeds 20 MiB limit", {}, {}};
+            if (!request.error && request.received > max_upload) request.error = Reply{413, "Instrument upload exceeds 20 MiB limit", {}, {}};
             if (!request.error && request.processor && MHD_post_process(request.processor, bytes, *size) == MHD_NO && !request.error)
                 request.error = Reply{400, "Instrument upload failed.", {}, {}};
             *size = 0;

@@ -41,8 +41,10 @@ void append(Json& target, Json value) { json_object_array_add(target.get(), valu
 std::string encode(const Json& value) { return json_object_to_json_string_ext(value.get(), JSON_C_TO_STRING_PLAIN); }
 Json parse(std::string_view value) {
     std::unique_ptr<json_tokener, decltype(&json_tokener_free)> tokener(json_tokener_new(), json_tokener_free);
+    json_tokener_set_flags(tokener.get(), JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8);
     Json result(json_tokener_parse_ex(tokener.get(), value.data(), static_cast<int>(value.size())));
-    if (json_tokener_get_error(tokener.get()) != json_tokener_success) throw std::runtime_error("Invalid JSON");
+    if (json_tokener_get_error(tokener.get()) != json_tokener_success ||
+        value.substr(json_tokener_get_parse_end(tokener.get())).find_first_not_of(" \t\r\n") != value.npos) throw std::runtime_error("Invalid JSON");
     return result;
 }
 std::string field(json_object* value, const char* key) {

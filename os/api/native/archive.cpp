@@ -171,7 +171,8 @@ Preflight preflight(const fs::path& filename, const Settings& settings) {
         } else result.warnings.push_back("Executable architecture could not be verified");
         const auto metadata = archive.member("instrument.json", 16384);
         if (metadata) {
-            result.metadata = parse(*metadata);
+            try { result.metadata = parse(*metadata); }
+            catch (const std::exception&) { throw InvalidArchive("Invalid instrument compatibility JSON"); }
             json_object *format = nullptr, *minimum = nullptr;
             if (!result.metadata || !json_object_is_type(result.metadata.get(), json_type_object) ||
                 !json_object_object_get_ex(result.metadata.get(), "format", &format) || !json_object_is_type(format, json_type_int) || json_object_get_int(format) != 1 ||

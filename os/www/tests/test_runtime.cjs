@@ -29,6 +29,7 @@ function fixture(t) {
     w.XMLHttpRequest = class {
         open(method, url) { this.method = method; this.url = url; }
         send() { requests.push(this); }
+        abort() { this.aborted = true; if (this.onabort) this.onabort(); }
         reply(status, value) { this.status = status; this.responseText = JSON.stringify(value); this.onload(); }
     };
     w.eval(code + '\nObject.assign(window, {RuntimeStream, InstrumentsWidget, SystemInfoWidget, PreflightView});');
@@ -96,4 +97,82 @@ test('unavailable health values remain explicit and stale data is marked', async
     f.sockets[0].onclose(); f.requests.shift().onerror(); await f.flush();
     assert.equal(f.doc.querySelector('#health-table').dataset.stale, 'true');
     assert.equal(f.doc.querySelector('#instrument-stop').disabled, true);
+});
+
+test('late HTTP snapshots and errors cannot overwrite a newer WebSocket state', async t => {
+    const f = fixture(t); f.sockets[0].reply(status());
+    void f.w.runtime.refresh(); const older = f.requests.shift();
+    f.sockets[0].reply(status({operation: {phase: 'starting', busy: true, revision: 2}}));
+    older.reply(200, status()); await f.flush();
+    assert.equal(f.doc.querySelector('#instrument-stop').disabled, true);
+    assert.match(f.doc.querySelector('#runtime-operation').textContent, /Starting/);
+    void f.w.runtime.refresh(); const failed = f.requests.shift();
+    f.sockets[0].reply(status({operation: {phase: 'succeeded', busy: false, revision: 3, message: 'Started'}}));
+    failed.onerror(); await f.flush();
+    assert.equal(f.doc.querySelector('#board-connection').textContent, 'Connected');
+    assert.equal(f.doc.querySelector('#health-table').dataset.stale, 'false');
+});
+
+test('disconnect marks controls stale immediately and status reads time out promptly', t => {
+    const f = fixture(t);
+    assert.equal(f.doc.querySelector('#upload-btn').disabled, true);
+    f.sockets[0].reply(status()); f.sockets[0].onclose();
+    assert.equal(f.doc.querySelector('#instrument-stop').disabled, true);
+    assert.equal(f.doc.querySelector('#health-table').dataset.stale, 'true');
+    assert.equal(f.requests[0].timeout, 8000);
+});
+
+test('dispose cancels in-flight status and ignores its late result', async t => {
+    const f = fixture(t); f.sockets[0].reply(status());
+    void f.w.runtime.refresh(); const request = f.requests.shift();
+    f.w.runtime.dispose(); assert.equal(request.aborted, true);
+    request.reply(200, status({current_instrument: installed[1], instruments: {instruments: installed, live_instrument: installed[1]}}));
+    await f.flush();
+    assert.equal(f.doc.querySelector('#live-name').textContent, 'fft');
+    assert.equal(Array.from(f.timers.values()).filter(timer => timer.delay === 2000).length, 0);
+});
+
+test('malformed nested status is rejected without rendering or enabling commands', t => {
+    const f = fixture(t); f.sockets[0].reply(status());
+    f.sockets[0].reply(status({operation: {phase: 'idle', busy: 'false', revision: 0},
+        instruments: {instruments: [{name: 5}], live_instrument: null}}));
+    assert.equal(f.doc.querySelector('#upload-btn').disabled, true);
+    assert.equal(f.doc.querySelector('tr[data-name="5"]'), null);
+    assert.equal(f.sockets[0].closed, true);
+});
+
+test('blocked WebSocket constructor falls back to HTTP', async t => {
+    const f = fixture(t); f.w.runtime.dispose();
+    f.w.WebSocket = class { constructor() { throw new f.w.DOMException('Blocked', 'SecurityError'); } };
+    assert.doesNotThrow(() => f.w.eval('window.runtime = new RuntimeStream(document);'));
+    assert.equal(f.requests.length, 1);
+    f.requests.shift().reply(200, status()); await f.flush();
+    assert.ok(Array.from(f.timers.values()).some(timer => timer.delay === 2000));
+    f.w.runtime.dispose();
+});
+
+test('hidden pages cancel old reads and resume with a fresh stream', async t => {
+    const f = fixture(t); f.sockets[0].reply(status());
+    void f.w.runtime.refresh(); const old = f.requests.shift();
+    Object.defineProperty(f.doc, 'hidden', {configurable: true, value: true});
+    f.doc.dispatchEvent(new f.w.Event('visibilitychange'));
+    assert.equal(old.aborted, true); assert.equal(f.sockets[0].closed, true);
+    Object.defineProperty(f.doc, 'hidden', {configurable: true, value: false});
+    f.doc.dispatchEvent(new f.w.Event('visibilitychange'));
+    assert.equal(f.sockets.length, 2);
+    f.sockets[1].reply(status({current_instrument: installed[1],
+        instruments: {instruments: installed, live_instrument: installed[1]}}));
+    old.reply(200, status()); await f.flush();
+    assert.equal(f.doc.querySelector('#live-name').textContent, 'scope');
+});
+
+test('timed-out fallback recovers instead of holding the read lock', async t => {
+    const f = fixture(t); f.sockets[0].reply(status()); f.sockets[0].onclose();
+    f.requests.shift().ontimeout(); await f.flush();
+    assert.equal(f.doc.querySelector('#upload-btn').disabled, true);
+    const poll = Array.from(f.timers.values()).find(timer => timer.delay === 2000);
+    assert.ok(poll); poll.fn();
+    assert.equal(f.requests.length, 1); f.requests.shift().reply(200, status()); await f.flush();
+    assert.equal(f.doc.querySelector('#upload-btn').disabled, false);
+    assert.equal(f.doc.querySelector('#health-table').dataset.stale, 'false');
 });

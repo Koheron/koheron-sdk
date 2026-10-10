@@ -47,13 +47,13 @@ def package(name, fail=False, extra=None):
     return data.getvalue()
 
 
-def request(path, data=None, headers=None):
-    query = urllib.request.Request('http://127.0.0.1:18087' + path, data=data, headers=headers or {})
+def request(path, data=None, headers=None, method=None):
+    query = urllib.request.Request('http://127.0.0.1:18087' + path, data=data, headers=headers or {}, method=method)
     try: response = urllib.request.urlopen(query, timeout=10)
     except urllib.error.HTTPError as error: response = error
     with response:
         body = response.read()
-        return response.status, json.loads(body) if response.headers.get_content_type() == 'application/json' else body.decode()
+        return response.status, json.loads(body) if body and response.headers.get_content_type() == 'application/json' else body.decode()
 
 
 def upload(name, data):
@@ -215,6 +215,74 @@ def main():
             assert status == 200 and diagnostics['logs'] and diagnostics['health']['memory']
             assert len(json.dumps(diagnostics)) < 1024 * 1024
             passed('bounded diagnostic export includes real journal and health')
+            if '--hardening' in sys.argv:
+                status, operation = request('/api/instruments/activate/new', b'')
+                assert status == 200 and operation['phase'] == 'succeeded'
+                subprocess.run(['journalctl', '--sync'], check=True, timeout=5)
+                current_logs = request('/api/logs/koheron/instrument/incr')[1]
+                assert any('native-instrument-new' in entry['msg'] for entry in current_logs['entries'])
+                assert all(entry['ts'] >= operation['started_us'] for entry in current_logs['entries'])
+                passed('POST activation log bookmark includes first new startup message')
+                boot_default = (store / 'old.zip').read_bytes()
+                assert upload('old', package('old', extra={'../escape': b'unsafe'}))[0] == 422
+                assert upload('old', incompatible)[0] == 422
+                assert (store / 'old.zip').read_bytes() == boot_default
+                assert (store / 'default').read_text().strip() == 'old.zip'
+                assert upload('old', package('old'))[0] == 200
+                assert (store / 'default').read_text().strip() == 'old.zip'
+                passed('boot-default replacement validates compatibility before committing and preserves valid updates')
+                active_pid = ctl('show', '-p', 'MainPID', '--value', INSTRUMENT).stdout
+                for path, body in (('run/new', None), ('delete/new', None),
+                        ('control/stop', b''), ('activate/old', b''), ('default/new', b''), ('upload', b'ignored')):
+                    assert request('/api/instruments/' + path, body, {'Origin': 'http://foreign'})[0] == 403
+                assert request('/api/instruments/run/old', headers={'Sec-Fetch-Mode': 'navigate'})[0] == 403
+                assert request('/api/instruments/run/old', headers={'Sec-Fetch-Site': 'cross-site'})[0] == 403
+                assert ctl('show', '-p', 'MainPID', '--value', INSTRUMENT).stdout == active_pid
+                assert (store / 'new.zip').exists() and not list(store.glob('.upload-*'))
+                passed('foreign browser mutations and navigation rejected through nginx without side effects')
+                for path in ('run/old', 'delete/new'):
+                    assert request('/api/instruments/' + path, method='HEAD')[0] == 405
+                assert ctl('show', '-p', 'MainPID', '--value', INSTRUMENT).stdout == active_pid
+                assert (store / 'new.zip').exists()
+                passed('HEAD cannot activate or delete instruments')
+                origin = 'http://127.0.0.1:18087'
+                assert request('/api/instruments/control/start', b'', {'Origin': origin, 'Referer': origin + '/koheron/',
+                    'Sec-Fetch-Site': 'same-origin'})[0] == 200
+                stream = WebSocket(18087, f'Origin: {origin}\r\n', '127.0.0.1:18087')
+                try: assert b'101 Switching Protocols' in stream.headers; stream.frame()
+                finally: stream.close()
+                passed('same-origin commands and WebSocket preserve proxy Host port')
+                query = urllib.request.Request(origin + '/api/instruments/run/%3Csvg%20onload%3Dalert(1)%3E')
+                try: response = urllib.request.urlopen(query, timeout=5)
+                except urllib.error.HTTPError as error: response = error
+                with response:
+                    assert response.headers.get_content_type() == 'text/plain'
+                    assert response.headers['X-Content-Type-Options'] == 'nosniff'
+                    assert b'<svg' in response.read()
+                passed('reflected legacy errors use plain text and nosniff')
+                compatible = {**metadata, 'board': 'red-pitaya'}
+                malformed = package('malformed', extra={'serverd': Path('/bin/sleep').read_bytes(),
+                    'instrument.json': json.dumps(compatible).encode() + b' trailing'})
+                assert upload('malformed', malformed)[0] == 200
+                assert request('/api/instruments/preflight/malformed')[1]['code'] == 'invalid_archive'
+                passed('malformed compatibility JSON is rejected on ARMhf')
+                idle = WebSocket(18087); healthy = WebSocket(18087)
+                try:
+                    started = time.monotonic(); ping_seen = False
+                    while time.monotonic() - started < 17:
+                        opcode, payload = healthy.frame()
+                        if opcode == 9:
+                            ping_seen = True; healthy.send(10, payload); idle.send(10, b'wrong')
+                        assert opcode != 8
+                        if ping_seen and time.monotonic() - started >= 16: break
+                    assert ping_seen
+                    idle.socket.settimeout(1)
+                    try:
+                        while True: idle.frame()
+                    except EOFError: pass
+                    assert request('/api/system/status')[0] == 200
+                finally: idle.close(); healthy.close()
+                passed('nginx WebSocket heartbeat retains responsive peer and expires unmatched pong')
         else:
             subprocess.run([str(ROOT / 'koheron-server-init'), '/run/koheron-server.sock'],
                 env={**os.environ, 'LD_LIBRARY_PATH': str(ROOT / 'lib')}, check=True, timeout=5)

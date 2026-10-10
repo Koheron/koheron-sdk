@@ -47,6 +47,30 @@ MHD_Result reject(MHD_Connection* connection, unsigned status) {
     const auto result = MHD_queue_response(connection, status, response); MHD_destroy_response(response); return result;
 }
 }
+bool same_origin(MHD_Connection* connection) {
+    const auto header = [&](const char* name) { const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, name); return value ? std::string_view(value) : std::string_view(); };
+    const auto site = header("Sec-Fetch-Site");
+    if (!site.empty() && site != "same-origin" && site != "none") return false;
+    const auto matches = [&](std::string_view value, bool referer) {
+        if (value.empty()) return true;
+        const auto scheme = value.starts_with("http://") ? std::string_view("http") : value.starts_with("https://") ? std::string_view("https") : std::string_view();
+        if (scheme.empty()) return false;
+        const auto forwarded = header("X-Forwarded-Proto");
+        if (!forwarded.empty() && forwarded != scheme) return false;
+        value.remove_prefix(scheme.size() + 3);
+        if (referer) value = value.substr(0, value.find_first_of("/?#"));
+        const auto normalize = [&](std::string_view authority) {
+            auto result = std::string(authority);
+            std::ranges::transform(result, result.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            const std::string_view port = scheme == "http" ? ":80" : ":443";
+            if (result.ends_with(port)) result.resize(result.size() - port.size());
+            return result;
+        };
+        const auto host = header("Host");
+        return !host.empty() && normalize(value) == normalize(host);
+    };
+    return matches(header("Origin"), false) && matches(header("Referer"), true);
+}
 EventHub::EventHub(std::function<std::string()> snapshot) : snapshot_(std::move(snapshot)), thread_([this] { run(); }) {}
 EventHub::~EventHub() { stop(); }
 void EventHub::wake() { std::lock_guard lock(mutex_); dirty_ = true; changed_.notify_one(); }
@@ -57,7 +81,8 @@ void EventHub::stop() {
 void EventHub::accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input) {
     std::lock_guard lock(mutex_);
     if (stopped_ || clients_.size() >= 8 || input.size() > 512) { MHD_upgrade_action(handle, MHD_UPGRADE_ACTION_CLOSE); return; }
-    clients_.push_back({socket, handle, std::string(input), {}, false, {}}); dirty_ = true; changed_.notify_one();
+    clients_.push_back({socket, handle, std::string(input), {}, false, {},
+        std::chrono::steady_clock::now() + std::chrono::seconds(10), {}, {}}); dirty_ = true; changed_.notify_one();
 }
 MHD_Result EventHub::upgrade(MHD_Connection* connection) {
     const auto header = [&](const char* name) { const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, name); return value ? std::string_view(value) : std::string_view(); };
@@ -68,8 +93,7 @@ MHD_Result EventHub::upgrade(MHD_Connection* connection) {
     if (key.size() != 24 || !key.ends_with("==") || !std::ranges::all_of(key.substr(0, 22), [&](char c) { return alphabet.contains(c); }) ||
         alphabet.find(key[21]) % 16 != 0) return reject(connection, 400);
     // Browser connections must be same-origin; CLI clients may omit Origin.
-    const auto origin = header("Origin"), host = header("Host");
-    if (!origin.empty() && origin != "http://" + std::string(host) && origin != "https://" + std::string(host)) return reject(connection, 403);
+    if (!same_origin(connection)) return reject(connection, 403);
     { std::lock_guard lock(mutex_); if (stopped_ || clients_.size() >= 8) return reject(connection, 503); }
     const std::string source = std::string(key) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     std::array<unsigned char, 20> digest{};
@@ -95,6 +119,7 @@ void EventHub::run() {
             try { message = frame(1, snapshot_()); } catch (...) { /* HTTP fallback remains available. */ }
             lock.lock(); next = std::chrono::steady_clock::now() + std::chrono::seconds(2);
             for (auto& client : clients_) {
+                if (client.closing) continue;
                 if (!client.output.empty() || message.size() > 128 * 1024) client.closing = true;
                 else client.output = message;
             }
@@ -133,7 +158,20 @@ void EventHub::run() {
                     client.output += frame(8, payload); client.closing = true; client.deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
                 }
                 else if (opcode == 9) client.output += frame(10, payload);
+                else if (!client.ping.empty() && payload == client.ping) {
+                    client.ping.clear(); client.pong_deadline = {};
+                    client.next_ping = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+                }
             }
+            const auto now = std::chrono::steady_clock::now();
+            if (!client.closing && !client.ping.empty() && now >= client.pong_deadline) {
+                client.closing = true; client.output.clear();
+            }
+            if (!client.closing && client.ping.empty() && now >= client.next_ping) {
+                client.ping = std::to_string(monotonic_us());
+                client.output += frame(9, client.ping); client.pong_deadline = now + std::chrono::seconds(5);
+            }
+            if (client.output.size() > 128 * 1024) { client.closing = true; client.output.clear(); }
             if (!client.output.empty()) {
                 const auto sent = ::send(client.socket, client.output.data(), client.output.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
                 if (sent > 0) client.output.erase(0, sent);

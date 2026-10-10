@@ -14,12 +14,15 @@ class RuntimeStream {
     private watchdog: number;
     private fallbackTimer: number;
     private stopped = false;
-    private reading = false;
+    private request: AbortController;
+    private generation = 0;
+    private delivery = 0;
     private connected = false;
     private retryDelay = 1000;
     private listeners: Array<(status: RuntimeStatus) => void> = [];
     private errors: Array<(message: string) => void> = [];
     private last: RuntimeStatus;
+    private lastError = '';
 
     constructor(private document: Document) {
         document.addEventListener('visibilitychange', () => {
@@ -35,14 +38,34 @@ class RuntimeStream {
     subscribe(render: (status: RuntimeStatus) => void, error: (message: string) => void = () => {}): void {
         this.listeners.push(render); this.errors.push(error);
         if (this.last) { render(this.last); }
+        if (this.lastError) { error(this.lastError); }
     }
     private deliver(value: RuntimeStatus): void {
+        const object = (item: any) => !!item && typeof item === 'object' && !Array.isArray(item);
+        const instrument = (item: any) => object(item) && typeof item.name === 'string' && item.name.length > 0 &&
+            typeof item.version === 'string' && typeof item.is_default === 'boolean';
+        const operation = value?.operation;
         if (!value || value.type !== 'status' || !value.instruments || !Array.isArray(value.instruments.instruments) ||
-            !value.operation || !value.health) { throw new Error('Invalid board status received.'); }
+            !value.instruments.instruments.every(instrument) ||
+            (value.current_instrument != null && !instrument(value.current_instrument)) ||
+            (value.instruments.live_instrument != null && !instrument(value.instruments.live_instrument)) ||
+            !object(operation) || typeof operation.busy !== 'boolean' || !Number.isSafeInteger(operation.revision) || operation.revision < 0 ||
+            !['idle', 'validating', 'extracting', 'stopping', 'starting', 'restarting', 'rolling_back', 'succeeded', 'failed'].includes(operation.phase) ||
+            ['action', 'instrument', 'code', 'message', 'rollback'].some(key => operation[key] != null && typeof operation[key] !== 'string') ||
+            !object(value.health) || (value.health.load_average != null &&
+                (!Array.isArray(value.health.load_average) || !value.health.load_average.every(Number.isFinite)))) {
+            throw new Error('Invalid board status received.');
+        }
+        ++this.delivery; this.lastError = '';
         this.last = value;
         this.listeners.forEach(listener => listener(value));
     }
+    private notifyError(message: string): void {
+        this.lastError = message; this.errors.forEach(listener => listener(message));
+    }
     private disconnect(): void {
+        ++this.generation;
+        if (this.request) { this.request.abort(); this.request = null; }
         const w = this.document.defaultView;
         w.clearTimeout(this.timer); w.clearTimeout(this.watchdog); w.clearTimeout(this.fallbackTimer);
         this.connected = false;
@@ -56,11 +79,14 @@ class RuntimeStream {
         const w = this.document.defaultView;
         if (!w.WebSocket) { void this.refresh(); return; }
         const protocol = w.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = this.socket = new w.WebSocket(`${protocol}//${w.location.host}/api/events`);
+        let socket: WebSocket;
+        try { socket = this.socket = new w.WebSocket(`${protocol}//${w.location.host}/api/events`); }
+        catch (_) { void this.refresh(); return; }
         const reconnect = () => {
             if (this.socket !== socket) { return; }
             this.disconnect();
             if (this.stopped || this.document.hidden) { return; }
+            this.notifyError('Board connection lost. Reconnecting…');
             void this.refresh();
             this.timer = w.setTimeout(() => this.connect(), this.retryDelay);
             this.retryDelay = Math.min(10000, this.retryDelay * 2);
@@ -78,15 +104,23 @@ class RuntimeStream {
         this.watchdog = w.setTimeout(reconnect, 5000);
     }
     async refresh(): Promise<void> {
-        if (this.reading || this.stopped || this.document.hidden) { return; }
-        this.reading = true;
-        try { this.deliver(await new Instruments().getRuntimeStatus()); }
-        catch (error) { this.errors.forEach(listener => listener(String(error))); }
+        if (this.request || this.stopped || this.document.hidden) { return; }
+        const controller = this.request = new this.document.defaultView.AbortController();
+        const generation = this.generation, delivery = this.delivery;
+        const current = () => this.request === controller && generation === this.generation &&
+            delivery === this.delivery && !this.stopped && !this.document.hidden;
+        try {
+            const value = await new Instruments().getRuntimeStatus(controller.signal);
+            if (current()) { this.deliver(value); }
+        }
+        catch (error) { if (current()) { this.notifyError(String(error)); } }
         finally {
-            this.reading = false;
-            if (!this.connected && !this.stopped && !this.document.hidden) {
-                this.document.defaultView.clearTimeout(this.fallbackTimer);
-                this.fallbackTimer = this.document.defaultView.setTimeout(() => this.refresh(), 2000);
+            if (this.request === controller) {
+                this.request = null;
+                if (!this.connected && !this.stopped && !this.document.hidden) {
+                    this.document.defaultView.clearTimeout(this.fallbackTimer);
+                    this.fallbackTimer = this.document.defaultView.setTimeout(() => this.refresh(), 2000);
+                }
             }
         }
     }

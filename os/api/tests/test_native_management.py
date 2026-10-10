@@ -13,9 +13,9 @@ from native_fixture import NativeFixture, archive
 
 
 class WebSocket:
-    def __init__(self, port, headers=''):
+    def __init__(self, port, headers='', host='localhost'):
         self.socket = socket.create_connection(('127.0.0.1', port), timeout=3)
-        self.socket.sendall((f'GET /api/events HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\n'
+        self.socket.sendall((f'GET /api/events HTTP/1.1\r\nHost: {host}\r\nUpgrade: websocket\r\n'
             'Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\n'
             'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n' + headers + '\r\n').encode())
         self.buffer = b''

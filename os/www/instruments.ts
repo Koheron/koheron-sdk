@@ -17,24 +17,37 @@ class Instruments {
         xhr.send(body);
     }
 
-    private json(method: string, path: string, system = false): Promise<any> {
+    private json(method: string, path: string, system = false, timeout = 300000, signal?: AbortSignal): Promise<any> {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
+            let settled = false;
+            const complete = (error: Error | null, value?: any) => {
+                if (settled) { return; }
+                settled = true;
+                if (signal) { signal.removeEventListener('abort', abort); }
+                if (error) { reject(error); } else { resolve(value); }
+            };
+            const abort = () => { xhr.abort(); complete(new Error('Request cancelled.')); };
             xhr.open(method, '/api/' + (system ? 'system/' : 'instruments/') + path, true);
-            xhr.timeout = 300000;
+            xhr.timeout = timeout;
             xhr.onload = () => {
                 let value: any;
                 try { value = JSON.parse(xhr.responseText); }
-                catch (_) { reject(new Error(`Invalid board response (HTTP ${xhr.status}).`)); return; }
-                if (xhr.status !== 200) { reject(new Error(value.error || `Request failed (HTTP ${xhr.status}).`)); return; }
-                resolve(value);
+                catch (_) { complete(new Error(`Invalid board response (HTTP ${xhr.status}).`)); return; }
+                if (xhr.status !== 200) { complete(new Error(value?.error || `Request failed (HTTP ${xhr.status}).`)); return; }
+                complete(null, value);
             };
-            xhr.onerror = () => reject(new Error('Cannot reach the board. Check the connection and refresh.'));
-            xhr.ontimeout = () => reject(new Error('Request timed out. Check the live status before trying again.'));
+            xhr.onerror = () => complete(new Error('Cannot reach the board. Check the connection and refresh.'));
+            xhr.ontimeout = () => complete(new Error('Request timed out. Check the live status before trying again.'));
+            xhr.onabort = () => complete(new Error('Request cancelled.'));
+            if (signal) {
+                if (signal.aborted) { complete(new Error('Request cancelled.')); return; }
+                signal.addEventListener('abort', abort, {once: true});
+            }
             xhr.send(null);
         });
     }
-    getRuntimeStatus(): Promise<RuntimeStatus> { return this.json('GET', 'status', true); }
+    getRuntimeStatus(signal?: AbortSignal): Promise<RuntimeStatus> { return this.json('GET', 'status', true, 8000, signal); }
     preflight(name: string): Promise<any> { return this.json('GET', 'preflight/' + encodeURIComponent(name)); }
     activate(name: string): Promise<any> { return this.json('POST', 'activate/' + encodeURIComponent(name)); }
     setDefault(name: string): Promise<any> { return this.json('POST', 'default/' + encodeURIComponent(name)); }

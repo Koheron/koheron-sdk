@@ -12,6 +12,7 @@ class InstrumentsWidget {
     private lastOperation = -1;
     private snapshot: RuntimeStatus;
     private inspection = 0;
+    private unavailable = false;
 
     constructor(private document: Document, private runtime?: RuntimeStream) {
         this.table = document.getElementById('instruments-table') as HTMLTableElement;
@@ -22,6 +23,7 @@ class InstrumentsWidget {
         this.uploadInput.addEventListener('change', () => this.uploadInstrumentClick());
         document.getElementById('refresh-instruments').addEventListener('click', () => this.refresh());
         if (runtime) {
+            this.setConnection('Connecting to the board…', true);
             runtime.subscribe(status => this.renderRuntime(status), error => this.setConnection(error, true));
             for (const action of ['start', 'stop', 'restart'] as const) {
                 document.getElementById('instrument-' + action).addEventListener('click', () =>
@@ -53,6 +55,7 @@ class InstrumentsWidget {
     }
 
     private setConnection(text: string, failed = false): void {
+        this.unavailable = failed;
         this.connection.textContent = text;
         this.connection.hidden = !failed;
         const indicator = this.document.getElementById('board-connection');
@@ -109,7 +112,7 @@ class InstrumentsWidget {
     }
 
     private async perform(message: string, action: () => Promise<any>, operation = false): Promise<void> {
-        if (this.busy) { return; }
+        if (this.busy || this.unavailable) { return; }
         this.begin(message);
         if (operation) {
             this.message.hidden = true;
@@ -242,7 +245,7 @@ class InstrumentsWidget {
 
     private setDisabled(disabled: boolean): void {
         this.document.querySelectorAll<HTMLButtonElement>('#instruments-table button, #upload-btn, #refresh-instruments, #instrument-start, #instrument-stop, #instrument-restart')
-            .forEach(button => button.disabled = disabled);
+            .forEach(button => button.disabled = disabled || (!!this.runtime && this.unavailable));
     }
 
     private finish(text: string, failed = false, showFeedback = true): void {
@@ -256,7 +259,7 @@ class InstrumentsWidget {
 
     uploadInstrumentClick(): void {
         const file = this.uploadInput.files && this.uploadInput.files[0];
-        if (!file || this.busy) { return; }
+        if (!file || this.busy || this.unavailable) { return; }
         this.uploadInput.value = '';
         this.upload(file);
     }

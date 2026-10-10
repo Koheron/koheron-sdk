@@ -1,5 +1,20 @@
 # Native management runtime tests
 
+[Hardening validation](native-management-hardening-validation.json) records the
+current follow-up checks and artifact hashes: 109 native tests, 101 sanitizer
+tests, 26 browser regressions, and ARMhf/ARM64 builds. The suite covers foreign
+browser requests, navigation/HEAD side effects, reflected HTML, strict metadata,
+idle WebSocket expiration, late HTTP results, cancellation, fallback recovery,
+and validation before replacing the boot-default archive.
+The [current board record](native-management-hardening-red-pitaya.json) and
+[console output](native-management-hardening-red-pitaya.txt) cover 27 private
+fixture checks, including the browser boundary, proxy port preservation,
+heartbeat expiration, default replacement, and the POST activation log bookmark.
+[Current Chromium results](../../www/tests/native-management-hardening-browser.json)
+record desktop/mobile controls and a stable heartbeat without HTTP fallback.
+The earlier extension measurements below refer to the original implementation
+snapshot; their hashes are preserved.
+
 [Management validation](native-management-validation.json) records source and
 binary hashes for the API/UI extension: 100 native tests, 19 browser regressions,
 ARMhf/ARM64 builds and 92 sanitizer tests. The new cases cover compatibility,
@@ -10,6 +25,7 @@ the bounded WebSocket protocol/connection lifecycle.
 [console output](native-management-red-pitaya.txt) record 19 checks through
 private systemd notify services and a separate nginx listener on the physical
 board. `red_pitaya_integration.py --management-controls` selects these cases;
+add `--hardening` for the browser request boundary and heartbeat checks.
 `--preview` temporarily serves staged management assets for browser inspection.
 The harness runs on the existing laboratory image with Python available; it is
 not part of the standard board runtime. It leaves the production FFT server,
@@ -117,14 +133,13 @@ docker run --rm -v "$PWD:/work" -w /work \
     make -j2 -f os/api/Makefile CXX=g++-15 BUILD_DIR=$NATIVE_API_BIN_DIR \
       CXXFLAGS="-O1 -g -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread -MMD -MP -fsanitize=address,undefined -fno-omit-frame-pointer" \
       LDFLAGS="-fsanitize=address,undefined"
-    for suite in api install led activation; do
+    for suite in api install boot led activation management hardening; do
       python3 -m unittest discover -s os/api/tests -p "test_native_$suite.py" -v
     done
-    python3 os/api/tests/sanitizer_stress.py
   '
 ```
 
 Check that no sanitizer diagnostic files are created: several invalid-input
 tests intentionally expect nonzero exits and capture the child process's stderr.
-The three host fault-injection tests use a separate preload shim and are covered
+The eight host fault-injection tests use a separate preload shim and are covered
 by the ordinary Docker suite.
