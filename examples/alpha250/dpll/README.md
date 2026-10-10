@@ -393,6 +393,34 @@ sample-gap reporting under backpressure and recovery after an epoch reset.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).
 
+### Phase/gain retiming integration on V1 (2026-10-10)
+
+PR #838 was rebased onto V1 `d2d35ba9`, including the shared lookahead
+accumulator from #834 and residual lookup from #837. The initialization
+conflict preserves the accumulator's phase state and the canonical difference's
+registered raw value and pi-tie flag. No pipeline clocks or constraints changed.
+
+The shared seven-suite unwrapper/history regression passes, including all twelve
+latency configurations and canonical differences with both lookahead and split
+history. The DPLL unwrapper, gain-programmer reset, two-controller programming
+and P/PI/front-end suites also pass with unchanged sample latency.
+
+The fresh full build **fails setup timing** on this integrated revision:
+
+```sh
+make -j4 CFG=examples/alpha250/dpll/config.mk \
+  TMP=tmp/pr838-v1-integration VIVADO_VERSION=2026.1 MODE=development \
+  N_CPUS=4 ENFORCE_TIMING=1 fpga
+```
+
+Worst setup slack is **-0.003040 ns**, with **-0.006079 ns** total negative
+slack. The failing path runs from the gain-programmer state register to the
+replicated channel-1 command enables. Hold (+0.042 ns), pulse width and all
+12 bus-skew checks pass. The strict gate blocks bitstream generation; this
+revision is **not qualified for merging**. The earlier passing result on the
+old PR base does not qualify this combination. No further optimization trials
+were run, and no hardware was deployed or tested.
+
 ### Residual normalization build (2026-10-10)
 
 The extractor now registers the normalized residual coordinate on the existing
