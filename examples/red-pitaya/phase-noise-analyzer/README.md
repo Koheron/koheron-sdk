@@ -114,6 +114,9 @@ the spectrum is empty; an existing reference is retained.
 
 ## Build and run
 
+`bash build.sh red-pitaya` builds an SD card image containing FFT as the default
+instrument and the phase-noise analyzer. To build and deploy PNA separately:
+
 ```sh
 make CFG=examples/red-pitaya/phase-noise-analyzer/config.mk N_CPUS=4
 make CFG=examples/red-pitaya/phase-noise-analyzer/config.mk run HOST=192.168.1.84

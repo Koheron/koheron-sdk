@@ -149,7 +149,7 @@ build_board() {
       log "Preparing to flash SD card. Caching sudo credentials..."
       sudo -v
       log "Flashing SD card using CFG=${IMAGE_CONFIG}"
-      sudo --preserve-env=PATH make CFG="${IMAGE_CONFIG}" flash
+      sudo --preserve-env=PATH make CFG="${IMAGE_CONFIG}" COPY_INSTRUMENTS="${COPY_INSTRUMENTS[*]}" flash
       success "SD card image flashed successfully."
     else
       log "Skipping SD card flashing as requested."
