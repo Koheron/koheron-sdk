@@ -1,5 +1,30 @@
 # Native management runtime tests
 
+[Management cache repair](../../www/tests/native-management-cache-validation.json)
+records the failure in the user's existing Chrome: the updated management HTML
+could not initialize because an older cached bundle lacked `RuntimeStream`.
+The three generated pages now reference script and stylesheet URLs with content
+hashes; changes to either asset rebuild all affected page versions. nginx
+requires revalidation with `Cache-Control: no-cache`.
+
+Three build regressions pass, including JavaScript and CSS dependency changes.
+A [real browser cache regression](../../www/tests/native-management-cache-browser.json)
+first retains an old cached bundle despite newer HTML, then confirms that the
+generated URL bypasses it and subsequent navigation revalidates. The existing
+Chrome tab now shows Connected, running FFT, live logs and 11 health rows.
+The [board browser repeat](../../www/tests/native-management-cache-board-browser.json)
+covers the nine read-only checks described below, including the manager heartbeat
+and live FFT data. The C++ API, instrument process and FFT settings are unchanged.
+To repeat the cache regression after `make www`:
+
+```sh
+CHROMIUM_PATH=/path/to/chromium \
+node os/www/tests/management_cache_browser.cjs
+```
+
+As with the other browser harnesses, `PUPPETEER_MODULE` and `BROWSER_OUTPUT`
+select the installed module and evidence directory.
+
 [Deployed management verification](native-management-deployed-red-pitaya.json)
 records the current API and UI installed at the board's regular port-80 URL,
 `http://192.168.1.85/koheron/`. The earlier repeat tests below used a private

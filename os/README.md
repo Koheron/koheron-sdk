@@ -224,8 +224,12 @@ showed that per-request gzip reduced bytes but increased download latency.
 The OS serves the management pages at `/koheron/`: installed instruments,
 running status, server logs, system information and data rates. These pages
 live in `os/www/` and share the instrument control styles in
-`web/instrument/instrument.css`. Their assets ship with the OS image. The single-page manager
-shows installed instruments, logs and system details together. It supports
+`web/instrument/instrument.css`. Their assets ship with the OS image. The pages
+use content versions for their script and stylesheet URLs, and nginx requires
+cache revalidation. This keeps existing browser profiles on the current assets
+after an in-place API/UI update. `make www` refreshes the three management pages
+when their script or stylesheet contents change.
+The single-page manager shows installed instruments, logs and system details together. It supports
 upload/run/remove feedback, live status updates and log pause, follow and download.
 The live instrument strip adds Start/Stop/Restart. Each instrument's More menu
 offers compatibility checks, boot selection and removal; the details page also

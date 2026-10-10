@@ -103,17 +103,13 @@ $(TMP_WWW_PATH)/koheron.css:
 	mkdir -p $(@D)
 	curl https://assets.koheron.com/css/main.css -o $@
 
-$(TMP_WWW_PATH)/index.html: $(WWW_PATH)/index.html
-	mkdir -p $(@D)
-	cp $< $@
+WWW_PAGES := $(addprefix $(TMP_WWW_PATH)/,index.html instrument_summary.html logs_rate.html)
+WWW_PAGE_ASSETS := $(addprefix $(TMP_WWW_PATH)/,instruments.js main.css instrument.css system.css)
+WWW_ASSET_VERSIONER := $(WEB_PATH)/version_assets.py
 
-$(TMP_WWW_PATH)/instrument_summary.html: $(WWW_PATH)/instrument_summary.html
+$(WWW_PAGES): $(TMP_WWW_PATH)/%.html: $(WWW_PATH)/%.html $(WWW_PAGE_ASSETS) $(WWW_ASSET_VERSIONER) $(OS_PATH)/rootfs.mk
 	mkdir -p $(@D)
-	cp $< $@
-
-$(TMP_WWW_PATH)/logs_rate.html: $(WWW_PATH)/logs_rate.html
-	mkdir -p $(@D)
-	cp $< $@
+	python3 "$(WWW_ASSET_VERSIONER)" "$<" "$(TMP_WWW_PATH)" "$@"
 
 $(TMP_WWW_PATH)/navigation.html: $(WEB_PATH)/navigation.html
 	mkdir -p $(@D)
