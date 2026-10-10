@@ -30,6 +30,12 @@ Extract the `.img` from `tmp/examples/alpha250/fft/alpha250-fft.zip` and write i
 
 `make CFG=examples/alpha250/fft/config.mk flash` writes the existing release ZIP
 without rebuilding it. Run `make image` first when the image needs updating.
+An unchanged `make image` reuses its metadata, overlay and release ZIP. Image
+inputs or selections refresh the build timestamp; `BUILD_ID=...` and
+`BUILD_TIME_UTC=YYYYMMDD.HHMMSS` provide explicit metadata overrides.
+
+`N_CPUS=8 ./build.sh red-pitaya` limits make to eight parallel jobs and passes
+the same thread limit to build tools. The default uses the available CPU count.
 
 Insert the card with the board powered off, then boot and find its IP address. The image includes the FFT instrument. Use an example for your board when setting `CFG`.
 
@@ -132,6 +138,12 @@ Driver order determines RPC IDs. Changing the ordered driver list regenerates
 interfaces and metadata together. Python generator edits and complete server
 compiler flags are tracked as build inputs. Web builds use the current compiler
 sources and refresh the Docker builder when its inputs change.
+Web source membership is tracked even when a file disappears without a config
+edit. Selecting an older HTML or CSS source with the same filename refreshes
+the copied asset without recompiling unchanged TypeScript. Instrument archives
+and their board copies are published atomically. Missing board copies and
+switches between cached projects with the same instrument name use the selected
+archive. Version and compatibility metadata overrides refresh the package.
 
 When adding a shared Tcl source, add its transitive dependencies to the selected
 group, or use `TCL_EXTRA_FILES` for instrument-specific dependencies outside the

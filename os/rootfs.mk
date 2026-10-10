@@ -1,3 +1,6 @@
+ROOTFS_MK := $(lastword $(MAKEFILE_LIST))
+include $(dir $(ROOTFS_MK))../make/dependencies.mk
+
 ###############################################################################
 # HTTP API
 ###############################################################################
@@ -251,11 +254,8 @@ GIT_DIRTY    := $(shell \
     if [ -n "$$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then echo yes; else echo no; fi; \
   else echo n/a; fi)
 
-# ---------- Build ID: UTC timestamp + short commit + -dirty if needed ----------
-BUILD_TIME_UTC := $(shell date -u +%Y%m%d.%H%M%S)
-BUILD_REV      := $(GIT_COMMIT)
-BUILD_DIRTY_SFX:= $(if $(filter yes,$(GIT_DIRTY)),-dirty,)
-BUILD_ID       ?= $(BUILD_TIME_UTC).$(BUILD_REV)$(BUILD_DIRTY_SFX)
+# Timestamps are assigned when metadata inputs change, not at make startup.
+# Explicit BUILD_ID and BUILD_TIME_UTC overrides remain supported.
 
 RELEASE_NAME := $(BOARD)-$(NAME)
 
@@ -264,57 +264,9 @@ MANIFEST_TXT          := $(TMP_PROJECT_PATH)/manifest-$(RELEASE_NAME).txt
 
 RELEASE_ZIP := $(TMP_PROJECT_PATH)/$(RELEASE_NAME).zip
 
-# ---------- Manifest generation ----------
-$(MANIFEST_TXT): FORCE
-	@mkdir -p $(@D)
-	@{ \
-	  echo "release=$(RELEASE_NAME)"; \
-	  echo "build_id=$(BUILD_ID)"; \
-	  echo "project=$(NAME)"; \
-	  echo "board=$(BOARD)"; \
-	  echo "zynq=$(ZYNQ_TYPE)"; \
-	  echo "kernel=$(LINUX_TAG)"; \
-	  echo "u-boot=$(UBOOT_TAG)"; \
-	  echo "device-tree=$(DTREE_TAG)"; \
-	  echo "compiler_image=$(DOCKER_IMAGE)"; \
-	  echo "server_compiler=$(GCC_ARCH)-g++-$(GCC_VERSION)"; \
-	  echo "kernel_compiler=$(KERNEL_CC)"; \
-	  echo "uboot_compiler=$(UBOOT_CC)"; \
-	  echo "host_compiler=$(OS_HOSTCC)"; \
-	  bash "$(OS_PATH)/scripts/toolchain_versions.sh" "$(VIVADO_PATH)" "$(VITIS_PATH)"; \
-	  echo "koheron_version=$(KOHERON_VERSION)"; \
-	  echo "git_commit=$(GIT_COMMIT)"; \
-	  echo "git_branch=$(GIT_BRANCH)"; \
-	  echo "git_tag=$(GIT_TAG)"; \
-	  echo "git_describe=$(GIT_DESCRIBE)"; \
-	  echo "git_dirty=$(GIT_DIRTY)"; \
-	  echo "generated_utc=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)"; \
-	} > $@.tmp
-	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
-	@rm -f $@.tmp
-
 $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt: $(MANIFEST_TXT) | $(OVERLAY_DIR)/
 	# ensure parents exist and copy
 	install -D -m0644 $< $@
-
-# ---------- /etc/koheron-release ----------
-$(OVERLAY_DIR)/etc/koheron-release: FORCE
-	@mkdir -p $(dir $@)
-	@{ \
-	  echo "NAME=Koheron"; \
-	  echo "RELEASE=$(RELEASE_NAME)"; \
-	  echo "BUILD_ID=$(BUILD_ID)"; \
-	  echo "UBUNTU=$(UBUNTU_VERSION)"; \
-	  echo "KOHERON_VERSION=$(KOHERON_VERSION)"; \
-	  echo "GIT_COMMIT=$(GIT_COMMIT)"; \
-	  echo "GIT_BRANCH=$(GIT_BRANCH)"; \
-	  echo "GIT_TAG=$(GIT_TAG)"; \
-	  echo "GIT_DESCRIBE=$(GIT_DESCRIBE)"; \
-	  echo "GIT_DIRTY=$(GIT_DIRTY)"; \
-	} > $@.tmp
-	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
-	@rm -f $@.tmp
-	@chmod 0644 $@
 
 # Stage WWW
 $(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | $(OVERLAY_DIR)/
@@ -430,6 +382,27 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/motd \
   $(OVERLAY_DIR)/etc/systemd/system/nginx.service
 
+EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
+IMAGE_METADATA_INPUTS := $(BASE_ROOTFS_TAR) $(OS_FILES) $(EXTLINUX_CONF) \
+  $(filter-out $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt $(OVERLAY_DIR)/etc/koheron-release,$(OVERLAY_FILES)) \
+  $(ROOTFS_MK) $(CONFIG_MK) $(BOARD_MK) \
+  $(OS_PATH)/scripts/build_image.sh $(OS_PATH)/scripts/finalize_rootfs.sh \
+  $(OS_PATH)/scripts/chroot_overlay.sh $(OS_PATH)/scripts/toolchain_versions.sh \
+  $(wildcard $(VIVADO_PATH)/bin/vivado $(VITIS_PATH)/bin/vitis)
+IMAGE_METADATA_SETTINGS := $(TMP_OS_PATH)/.image-metadata-settings
+IMAGE_METADATA_KEYS := RELEASE_NAME BUILD_ID BUILD_TIME_UTC NAME BOARD ZYNQ_TYPE \
+  LINUX_TAG UBOOT_TAG DTREE_TAG DOCKER_IMAGE GCC_ARCH GCC_VERSION KERNEL_CC \
+  UBOOT_CC OS_HOSTCC UBUNTU_VERSION KOHERON_VERSION GIT_COMMIT GIT_BRANCH GIT_TAG \
+  GIT_DESCRIBE GIT_DIRTY VIVADO_PATH VITIS_PATH
+$(eval $(call build_settings_stamp,$(IMAGE_METADATA_SETTINGS),\
+  $$(foreach K,$$(IMAGE_METADATA_KEYS),$$(call build_shell_quote,$$(K)=$$($$(K)))) \
+  $$(foreach F,$$(IMAGE_METADATA_INPUTS),$$(call build_shell_quote,INPUT=$$(F)))))
+
+# Both files describe one build and share one generated timestamp/build ID.
+$(MANIFEST_TXT) $(OVERLAY_DIR)/etc/koheron-release &: $(IMAGE_METADATA_INPUTS) $(IMAGE_METADATA_SETTINGS) $(OS_PATH)/scripts/write_image_metadata.py
+	python3 "$(OS_PATH)/scripts/write_image_metadata.py" "$(IMAGE_METADATA_SETTINGS)" \
+	  "$(MANIFEST_TXT)" "$(OVERLAY_DIR)/etc/koheron-release"
+
 $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
 	# ensure destination dir for tar exists
 	mkdir -p $(@D)
@@ -457,8 +430,6 @@ clean_overlay_rootfs:
 ###############################################################################
 # SD CARD IMAGE
 ###############################################################################
-
-EXTLINUX_CONF ?= $(OS_PATH)/extlinux.conf
 
 $(RELEASE_ZIP): $(BASE_ROOTFS_TAR) \
   $(OS_FILES) \

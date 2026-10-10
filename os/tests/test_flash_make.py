@@ -41,6 +41,7 @@ WEB_PATH := {SDK}/web
 SERVER_PATH := {SDK}/server
 TMP := {self.root}
 TMP_PROJECT_PATH := {self.root}
+TMP_OS_PATH := {self.root}/os-output
 BOARD := test
 NAME := review
 CFG := example/config.mk
@@ -49,8 +50,6 @@ PYTHON_REQUIREMENTS_STAMP := {self.root}/requirements.stamp
 .PHONY: FORCE
 FORCE:
 include {SDK}/os/rootfs.mk
-$(MANIFEST_TXT):
-\t@touch $@
 $(RELEASE_ZIP):
 \t@sleep 0.05
 \t@echo assemble >> {self.root}/events
@@ -60,7 +59,8 @@ $(RELEASE_ZIP):
     def make(self, *goals):
         return subprocess.run(['make', '--no-print-directory', '-j4', '-f', str(self.harness),
             f'BASE_ROOTFS_TAR={self.root}/base.tgz', f'OVERLAY_TAR={self.root}/overlay.tar',
-            '-o', str(self.root / 'base.tgz'), '-o', str(self.root / 'overlay.tar'), *goals],
+            '-o', str(self.root / 'base.tgz'), '-o', str(self.root / 'overlay.tar'),
+            '-o', str(self.root / 'manifest-test-review.txt'), *goals],
             cwd=self.root, text=True, capture_output=True, timeout=10,
             env={**os.environ, 'MAKEFLAGS': '', 'MFLAGS': ''})
 
@@ -80,9 +80,20 @@ $(RELEASE_ZIP):
 
     def test_explicit_image_and_flash_goals_wait_for_assembly(self):
         self.release.write_text('existing')
+        source = self.root / 'os/scripts/build_image.sh'
+        source.write_text('# changed image input\n')
+        # Back-to-back writes can share a filesystem timestamp.
+        newer = self.release.stat().st_mtime_ns + 1
+        os.utime(source, ns=(newer, newer))
         result = self.make('image', 'flash')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((self.root / 'events').read_text(), 'assemble\nflash updated\n')
+
+    def test_explicit_unchanged_image_and_flash_reuse_existing_archive(self):
+        self.release.write_text('existing')
+        result = self.make('image', 'flash')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.root / 'events').read_text(), 'flash existing\n')
 
 
 if __name__ == '__main__':
