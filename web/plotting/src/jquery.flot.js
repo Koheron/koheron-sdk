@@ -2330,12 +2330,20 @@ Licensed under the MIT license.
                     batchSize = series.lines.batchSize && series.data.length >= 256 &&
                         !series.lines.fill && !series.lines.steps && series.shadowSize === 0
                         ? Math.max(2, series.lines.batchSize | 0) : 0,
-                    segments = 0, lastX1 = 0, lastY1 = 0, lastX2 = 0, lastY2 = 0;
+                    segments = 0, lastX1 = 0, lastY1 = 0, lastX2 = 0, lastY2 = 0,
+                    xmin = axisx.min, xmax = axisx.max, ymin = axisy.min, ymax = axisy.max,
+                    // Region bits: left, right, below, above the data range.
+                    code = (points[0] < xmin ? 1 : points[0] > xmax ? 2 : 0) |
+                        (points[1] < ymin ? 4 : points[1] > ymax ? 8 : 0);
 
                 ctx.beginPath();
                 for (var i = ps; i < points.length; i += ps) {
                     var x1 = points[i - ps], y1 = points[i - ps + 1],
-                        x2 = points[i], y2 = points[i + 1];
+                        x2 = points[i], y2 = points[i + 1],
+                        nextCode = (x2 < xmin ? 1 : x2 > xmax ? 2 : 0) |
+                            (y2 < ymin ? 4 : y2 > ymax ? 8 : 0),
+                        needsClip = code | nextCode, outside = code & nextCode;
+                    code = nextCode;
 
                     if (x1 == null || x2 == null) {
                         if (batchSize && segments) {
@@ -2345,61 +2353,67 @@ Licensed under the MIT license.
                         continue;
                     }
 
-                    // clip with ymin
-                    if (y1 <= y2 && y1 < axisy.min) {
-                        if (y2 < axisy.min)
-                            continue;   // line segment is outside
-                        // compute new intersection point
-                        x1 = (axisy.min - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y1 = axisy.min;
-                    }
-                    else if (y2 <= y1 && y2 < axisy.min) {
-                        if (y1 < axisy.min)
-                            continue;
-                        x2 = (axisy.min - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y2 = axisy.min;
-                    }
+                    // Adjacent segments share an endpoint. Classify each
+                    // source point once, reject pairs on the same outside side,
+                    // and clip crossing segments in the original data-space order.
+                    if (outside) continue;
+                    if (needsClip) {
+                        // clip with ymin
+                        if (y1 <= y2 && y1 < ymin) {
+                            if (y2 < ymin)
+                                continue;   // line segment is outside
+                            // compute new intersection point
+                            x1 = (ymin - y1) / (y2 - y1) * (x2 - x1) + x1;
+                            y1 = ymin;
+                        }
+                        else if (y2 <= y1 && y2 < ymin) {
+                            if (y1 < ymin)
+                                continue;
+                            x2 = (ymin - y1) / (y2 - y1) * (x2 - x1) + x1;
+                            y2 = ymin;
+                        }
 
-                    // clip with ymax
-                    if (y1 >= y2 && y1 > axisy.max) {
-                        if (y2 > axisy.max)
-                            continue;
-                        x1 = (axisy.max - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y1 = axisy.max;
-                    }
-                    else if (y2 >= y1 && y2 > axisy.max) {
-                        if (y1 > axisy.max)
-                            continue;
-                        x2 = (axisy.max - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y2 = axisy.max;
-                    }
+                        // clip with ymax
+                        if (y1 >= y2 && y1 > ymax) {
+                            if (y2 > ymax)
+                                continue;
+                            x1 = (ymax - y1) / (y2 - y1) * (x2 - x1) + x1;
+                            y1 = ymax;
+                        }
+                        else if (y2 >= y1 && y2 > ymax) {
+                            if (y1 > ymax)
+                                continue;
+                            x2 = (ymax - y1) / (y2 - y1) * (x2 - x1) + x1;
+                            y2 = ymax;
+                        }
 
-                    // clip with xmin
-                    if (x1 <= x2 && x1 < axisx.min) {
-                        if (x2 < axisx.min)
-                            continue;
-                        y1 = (axisx.min - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x1 = axisx.min;
-                    }
-                    else if (x2 <= x1 && x2 < axisx.min) {
-                        if (x1 < axisx.min)
-                            continue;
-                        y2 = (axisx.min - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x2 = axisx.min;
-                    }
+                        // clip with xmin
+                        if (x1 <= x2 && x1 < xmin) {
+                            if (x2 < xmin)
+                                continue;
+                            y1 = (xmin - x1) / (x2 - x1) * (y2 - y1) + y1;
+                            x1 = xmin;
+                        }
+                        else if (x2 <= x1 && x2 < xmin) {
+                            if (x1 < xmin)
+                                continue;
+                            y2 = (xmin - x1) / (x2 - x1) * (y2 - y1) + y1;
+                            x2 = xmin;
+                        }
 
-                    // clip with xmax
-                    if (x1 >= x2 && x1 > axisx.max) {
-                        if (x2 > axisx.max)
-                            continue;
-                        y1 = (axisx.max - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x1 = axisx.max;
-                    }
-                    else if (x2 >= x1 && x2 > axisx.max) {
-                        if (x1 > axisx.max)
-                            continue;
-                        y2 = (axisx.max - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x2 = axisx.max;
+                        // clip with xmax
+                        if (x1 >= x2 && x1 > xmax) {
+                            if (x2 > xmax)
+                                continue;
+                            y1 = (xmax - x1) / (x2 - x1) * (y2 - y1) + y1;
+                            x1 = xmax;
+                        }
+                        else if (x2 >= x1 && x2 > xmax) {
+                            if (x1 > xmax)
+                                continue;
+                            y2 = (xmax - x1) / (x2 - x1) * (y2 - y1) + y1;
+                            x2 = xmax;
+                        }
                     }
 
                     // Keep the direct Canvas calls for sparse/unbatched paths;

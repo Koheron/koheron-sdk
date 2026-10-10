@@ -7,7 +7,8 @@ hooks. Never edit `benchmark/baseline/` to make a comparison pass.
 Seeded fixtures prepare eight frames before timing. Noise in live/average/max-hold
 spectra varies between frames; captured references stay fixed. Scenarios
 cover 16,385-bin FFT with four traces, 32,769-bin log PNA with three traces,
-deep FFT zoom, 8,192-sample two-channel scope and log Y PNA. All contain gaps;
+deep FFT zoom, 8,192-sample two-channel scope, log Y PNA and a narrow Y scope
+zoom (±0.05 over ±1 signals). All contain gaps;
 spectra include adjacent narrow peaks/troughs. Both variants run with identical
 1000 x 500 CSS pixels, DPR 1, headless Chrome and GPU disabled. Each case warms
 30 frames. Three rounds alternate variant order. Do not run other builds or
@@ -71,7 +72,9 @@ allocation. Report this memory tradeoff with timing results.
 
 The browser suite compares clipped segments and rendered pixels at DPR 1/2,
 checks trusted interactions and resizing, plugin fallbacks and original
-normalization. Repeated range checks compare axes, ticks, bounds, legends,
+normalization. Clipping checks cover every pair of interior, boundary, side and
+corner points, gaps/re-entry and direct normalized-buffer edits, including log
+transforms, batched lines, steps, fills and shadows. Repeated range checks compare axes, ticks, bounds, legends,
 samples and rendered pixels against the original at DPR 1/2, including automatic
 Y bounds and narrow zooms. They verify range-update buffer reuse, mode/formatter
 rebuilds, drag cancellation, event-handler counts and live device-pixel-ratio

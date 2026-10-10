@@ -49,6 +49,11 @@ lines use overlapping short paths, data-space clipping before axis transforms,
 and one transform per shared endpoint. Sparse traces, fills, steps and shadows
 use the standard renderer. Batch size is an internal opt-in for opaque
 instrument colors; translucent lines should use the standard path.
+The line clipper classifies each shared source endpoint once per line pass, skips
+clipping for fully visible segments and rejects pairs on the same outside side.
+Crossing segments retain the original Y-then-X data-space intersections before
+axis transforms. Region codes are local to the draw; changing normalized points
+or axis ranges cannot reuse an old classification. No persistent storage is added.
 
 `series.reuseDatapoints` opts the shared widget into normalized XY buffer reuse
 and a fused normalization/bounds pass. Raw sample arrays are never copied or
@@ -102,7 +107,9 @@ Performance conditions, metrics, profiling and baseline rules are in
 [benchmark/README.md](benchmark/README.md). Measured results are recorded in
 [benchmark/RESULTS.md](benchmark/RESULTS.md),
 [benchmark/CONTINUED_RESULTS.md](benchmark/CONTINUED_RESULTS.md), the
-range-update comparison in [benchmark/RANGE_RESULTS.md](benchmark/RANGE_RESULTS.md)
-the extrema-loop comparison in [benchmark/EXTREMA_RESULTS.md](benchmark/EXTREMA_RESULTS.md)
-and the latest paired normalization comparison in
-[benchmark/NORMALIZATION_RESULTS.md](benchmark/NORMALIZATION_RESULTS.md).
+range-update comparison in [benchmark/RANGE_RESULTS.md](benchmark/RANGE_RESULTS.md),
+the extrema-loop comparison in [benchmark/EXTREMA_RESULTS.md](benchmark/EXTREMA_RESULTS.md),
+the paired normalization comparison in
+[benchmark/NORMALIZATION_RESULTS.md](benchmark/NORMALIZATION_RESULTS.md)
+and the latest line-clipping comparison in
+[benchmark/CLIPPING_RESULTS.md](benchmark/CLIPPING_RESULTS.md).
