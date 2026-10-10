@@ -52,7 +52,7 @@ else
 endif
 BOOTGEN := source $(VIVADO_PATH)/settings64.sh && bootgen
 GCC_VERSION := 15
-DOCKER_UBUNTU_VERSION ?= $(if $(filter 13,$(GCC_VERSION)),24.04,26.04)
+DOCKER_UBUNTU_VERSION ?= 26.04
 DOCKER_IMAGE ?= cross-armhf:$(DOCKER_UBUNTU_VERSION)
 
 DOCKER_PATH := $(SDK_PATH)/docker

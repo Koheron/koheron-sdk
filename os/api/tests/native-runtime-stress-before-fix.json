@@ -1,0 +1,271 @@
+{
+  "native_api_sha256": "743c038d9e533bd8ca71b09e6a8c3b3a2cba1fb5d6bcc6b54ca6b10ab2cc04c1",
+  "completed_phases": [
+    {
+      "phase": "ramp-1",
+      "clients": 1,
+      "duration_s": 30.00490915204864,
+      "requests": 7096,
+      "successful_requests": 7096,
+      "successful_requests_per_s": 236.4946337294778,
+      "status_counts": {
+        "200": 7096
+      },
+      "errors": {},
+      "unexpected_errors": {},
+      "latency_ms": {
+        "p50": 5.219892016611993,
+        "p95": 6.045821006409824,
+        "p99": 14.968247967772186,
+        "max": 35.76159197837114
+      },
+      "latency_histogram_upper_ms": {
+        "2": 1554,
+        "5": 1970,
+        "10": 3447,
+        "20": 98,
+        "50": 27
+      },
+      "path_counts": {
+        "/api/instruments/details": 2535,
+        "/api/instruments": 507,
+        "/api/system/build": 507,
+        "/api/system/manifest": 507,
+        "/api/system/release": 507,
+        "/api/instruments/commands/a": 507,
+        "/api/logs/koheron?lines=100": 507,
+        "/api/logs/koheron/bookmark": 507,
+        "/api/logs/koheron/instrument/bookmark": 506,
+        "/api/logs/koheron/instrument/incr": 506
+      },
+      "error_examples": [],
+      "null_live_snapshots_during_activation": 0
+    },
+    {
+      "phase": "ramp-8",
+      "clients": 8,
+      "duration_s": 30.02569103904534,
+      "requests": 10291,
+      "successful_requests": 10291,
+      "successful_requests_per_s": 342.7398219284148,
+      "status_counts": {
+        "200": 10291
+      },
+      "errors": {},
+      "unexpected_errors": {},
+      "latency_ms": {
+        "p50": 12.025573989376426,
+        "p95": 59.51280996669084,
+        "p99": 78.43496499117464,
+        "max": 124.81801700778306
+      },
+      "latency_histogram_upper_ms": {
+        "2": 186,
+        "5": 2348,
+        "10": 2236,
+        "20": 967,
+        "50": 3354,
+        "100": 1184,
+        "200": 16
+      },
+      "path_counts": {
+        "/api/instruments/details": 3678,
+        "/api/instruments": 735,
+        "/api/system/build": 734,
+        "/api/system/manifest": 735,
+        "/api/system/release": 735,
+        "/api/instruments/commands/a": 735,
+        "/api/logs/koheron?lines=100": 735,
+        "/api/logs/koheron/bookmark": 735,
+        "/api/logs/koheron/instrument/bookmark": 735,
+        "/api/logs/koheron/instrument/incr": 734
+      },
+      "error_examples": [],
+      "null_live_snapshots_during_activation": 0
+    },
+    {
+      "phase": "ramp-32",
+      "clients": 32,
+      "duration_s": 30.133141100988723,
+      "requests": 10644,
+      "successful_requests": 10644,
+      "successful_requests_per_s": 353.2323419031397,
+      "status_counts": {
+        "200": 10644
+      },
+      "errors": {},
+      "unexpected_errors": {},
+      "latency_ms": {
+        "p50": 24.786690017208457,
+        "p95": 240.2012210804969,
+        "p99": 280.0777630181983,
+        "max": 389.20236099511385
+      },
+      "latency_histogram_upper_ms": {
+        "2": 27,
+        "5": 957,
+        "10": 1912,
+        "20": 2042,
+        "50": 947,
+        "100": 181,
+        "200": 2933,
+        "500": 1645
+      },
+      "path_counts": {
+        "/api/instruments/details": 3830,
+        "/api/instruments": 756,
+        "/api/system/build": 753,
+        "/api/system/manifest": 753,
+        "/api/system/release": 755,
+        "/api/instruments/commands/a": 757,
+        "/api/logs/koheron?lines=100": 757,
+        "/api/logs/koheron/bookmark": 759,
+        "/api/logs/koheron/instrument/bookmark": 761,
+        "/api/logs/koheron/instrument/incr": 763
+      },
+      "error_examples": [],
+      "null_live_snapshots_during_activation": 0
+    },
+    {
+      "phase": "ramp-64",
+      "clients": 64,
+      "duration_s": 30.150305546005256,
+      "requests": 10567,
+      "successful_requests": 10567,
+      "successful_requests_per_s": 350.47737688350117,
+      "status_counts": {
+        "200": 10567
+      },
+      "errors": {},
+      "unexpected_errors": {},
+      "latency_ms": {
+        "p50": 147.3845689324662,
+        "p95": 335.5518140597269,
+        "p99": 382.71777296904474,
+        "max": 578.6619499558583
+      },
+      "latency_histogram_upper_ms": {
+        "10": 1,
+        "20": 2,
+        "50": 28,
+        "100": 2885,
+        "200": 3153,
+        "500": 4494,
+        "1000": 4
+      },
+      "path_counts": {
+        "/api/instruments/details": 3767,
+        "/api/instruments": 756,
+        "/api/system/build": 751,
+        "/api/system/manifest": 753,
+        "/api/system/release": 757,
+        "/api/instruments/commands/a": 761,
+        "/api/logs/koheron?lines=100": 756,
+        "/api/logs/koheron/bookmark": 759,
+        "/api/logs/koheron/instrument/bookmark": 755,
+        "/api/logs/koheron/instrument/incr": 752
+      },
+      "error_examples": [],
+      "null_live_snapshots_during_activation": 0
+    },
+    {
+      "phase": "soak-32",
+      "clients": 32,
+      "duration_s": 300.08562557504047,
+      "requests": 104957,
+      "successful_requests": 104957,
+      "successful_requests_per_s": 349.7568395649597,
+      "status_counts": {
+        "200": 104957
+      },
+      "errors": {},
+      "unexpected_errors": {},
+      "latency_ms": {
+        "p50": 21.690503926947713,
+        "p95": 247.39337502978742,
+        "p99": 296.34327604435384,
+        "max": 485.4858329053968
+      },
+      "latency_histogram_upper_ms": {
+        "2": 218,
+        "5": 8964,
+        "10": 20743,
+        "20": 20992,
+        "50": 8274,
+        "100": 909,
+        "200": 26148,
+        "500": 18709
+      },
+      "path_counts": {
+        "/api/instruments/details": 37492,
+        "/api/instruments": 7489,
+        "/api/system/build": 7490,
+        "/api/system/manifest": 7492,
+        "/api/system/release": 7494,
+        "/api/instruments/commands/a": 7496,
+        "/api/logs/koheron?lines=100": 7498,
+        "/api/logs/koheron/bookmark": 7500,
+        "/api/logs/koheron/instrument/bookmark": 7502,
+        "/api/logs/koheron/instrument/incr": 7504
+      },
+      "error_examples": [],
+      "null_live_snapshots_during_activation": 0
+    },
+    {
+      "phase": "mixed-mutations-16",
+      "clients": 16,
+      "duration_s": 240.0503390999511,
+      "requests": 84071,
+      "successful_requests": 84071,
+      "successful_requests_per_s": 350.22237550347677,
+      "status_counts": {
+        "200": 84071
+      },
+      "errors": {},
+      "unexpected_errors": {},
+      "latency_ms": {
+        "p50": 15.409173909574747,
+        "p95": 122.47828498948365,
+        "p99": 149.26425693556666,
+        "max": 258.03333707153797
+      },
+      "latency_histogram_upper_ms": {
+        "2": 549,
+        "5": 14696,
+        "10": 18616,
+        "20": 11122,
+        "50": 3504,
+        "100": 22513,
+        "200": 13029,
+        "500": 42
+      },
+      "path_counts": {
+        "/api/instruments/details": 30031,
+        "/api/instruments": 6002,
+        "/api/system/build": 6002,
+        "/api/system/manifest": 6003,
+        "/api/system/release": 6003,
+        "/api/instruments/commands/a": 6004,
+        "/api/logs/koheron?lines=100": 6005,
+        "/api/logs/koheron/bookmark": 6006,
+        "/api/logs/koheron/instrument/bookmark": 6007,
+        "/api/logs/koheron/instrument/incr": 6008
+      },
+      "error_examples": [],
+      "null_live_snapshots_during_activation": 237
+    }
+  ],
+  "failure": "First activation under 16 concurrent readers timed out at the client after 10 seconds; activation remained waiting for the live snapshot lock while reads continued.",
+  "mutation_actions_completed": 0,
+  "journal_activation_lines": [
+    "[ 1710.507853] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 1710.516640] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 1710.517698] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 1710.787022] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 1710.894904] koheron serverd[25438]: stress-instrument-b",
+    "[ 1710.912960] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 1711.313193] koheron koheron-api[31849]: Failed to send the response headers for the request for `/api/instruments/run/b'. Error: The socket is no longer available for sending"
+  ],
+  "production_unchanged": true,
+  "temporary_units_removed": true
+}

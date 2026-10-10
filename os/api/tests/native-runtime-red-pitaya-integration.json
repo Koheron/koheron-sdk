@@ -1,0 +1,91 @@
+{
+  "checks": [
+    "systemd notify readiness and nginx HTTP Unix-socket proxy",
+    "multipart upload and real systemd instrument activation",
+    "instrument cursor includes the first startup message of the new invocation",
+    "drivers.json download",
+    "unsafe extraction fails before stopping the running service",
+    "failed readiness restores files and restarts the previous service",
+    "instrument log stream follows the restored service invocation",
+    "real journal tail, timestamps, bookmark and incremental cursor",
+    "socket activation survives API restart and recovers loaded identity",
+    "stopped instrument status",
+    "default protection and archive deletion",
+    "native LED RPC against the production FFT server"
+  ],
+  "activation_ms": 253.32054999944376,
+  "journal_sample": {
+    "cursor": "s=9de2bc6efafe40d9af05165ca0d4408a;i=1c0e;b=e73f93b7256846c9b5b601b45ee27b98;m=15633471b;t=65d71097ffa56;x=ceed8f5eaf022384",
+    "entries": [
+      {
+        "ts": 1791588642053771,
+        "msg": "native-instrument-old"
+      },
+      {
+        "ts": 1791588642073534,
+        "msg": "If --exec is used argument list must contain ';' separator, refusing."
+      },
+      {
+        "ts": 1791588755544388,
+        "msg": "native-instrument-old"
+      },
+      {
+        "ts": 1791588756173432,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791588756864529,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791588757064170,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791589192265721,
+        "msg": "native-instrument-old"
+      },
+      {
+        "ts": 1791589192904293,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791589193614493,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791589193824122,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791589930730258,
+        "msg": "native-instrument-old"
+      },
+      {
+        "ts": 1791589931414031,
+        "msg": "native-instrument-new"
+      },
+      {
+        "ts": 1791589932144663,
+        "msg": "native-instrument-broken"
+      },
+      {
+        "ts": 1791589932333654,
+        "msg": "native-instrument-new"
+      }
+    ]
+  },
+  "production_pids_before": {
+    "koheron-server": "147",
+    "uwsgi": "144",
+    "nginx": "150"
+  },
+  "production_api_hash": "f369d1250fd9a68fab70b9298bf1f91a1b9843c152603be7817dfe2fd2eb94de",
+  "production_pids_after": {
+    "koheron-server": "147",
+    "uwsgi": "144",
+    "nginx": "150"
+  },
+  "production_api_unchanged": true,
+  "temporary_units_removed": true
+}

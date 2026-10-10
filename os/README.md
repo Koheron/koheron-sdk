@@ -6,14 +6,15 @@ Build and installation: [SDK quick start](../README.md#quick-start).
 
 The default runtime is Ubuntu Base **26.04.1** and Xilinx **2026.1 / Linux 6.18**, independent of `VIVADO_VERSION` (default **2025.1**). Bootloader, firmware and device-tree source releases follow the selected Vivado/Vitis toolchain. The reference development host remains Ubuntu 24.04; the default build container uses Ubuntu 26.04 and GCC 15.
 
-Override `LINUX_VERSION` and `UBUNTU_VERSION` to select earlier releases, for example:
+Override `LINUX_VERSION` to select an earlier kernel release, for example:
 
 ```sh
 make CFG=examples/alpha250/fft/config.mk VIVADO_VERSION=2025.1 \
-  LINUX_VERSION=2025.1 UBUNTU_VERSION=24.04.5 GCC_VERSION=13 image
+  LINUX_VERSION=2025.1 image
 ```
 
-Build the [Ubuntu 24.04/GCC 13 fallback container](../docker/README.md) before using this older runtime configuration.
+The native management runtime and its shared libraries target Ubuntu 26.04.
+Older rootfs releases require a matching custom builder and package selection.
 
 APT repositories are derived from the extracted Ubuntu rootfs's `/etc/os-release`. New Xilinx source releases require entries in `source-checksums.sha256`. Defaults refer to released versions, not development snapshots or moving branches.
 
@@ -40,8 +41,9 @@ with C sorting and formatting conventions. To use another locale, install
 removes APT caches and package documentation, including files already present in
 Ubuntu Base, while retaining copyright notices and runtime encoding data.
 
-uWSGI starts eagerly alongside other services and automatically inherits the
-Unix socket from systemd. Its Python initialization does not gate `basic.target`.
+The C++23 management API starts eagerly alongside other services and inherits
+its HTTP Unix socket from systemd. It reports readiness only after the inventory
+and listener are usable. Its startup does not gate `basic.target`.
 Instrument extraction, the server and nginx also start with their existing early
 boot prerequisites, without blocking `basic.target` or services such as SSH.
 The server still waits for extraction and reports readiness with `Type=notify`;
@@ -83,8 +85,8 @@ Image-build tests are in [tests/](./tests/); instrument loading tests are in [ap
 
 ## Runtime kernel features
 
-The Zynq and ZynqMP defconfigs build in Unix socket diagnostics for the packaged
-uWSGI backlog monitor, autofs, UTS/network namespaces, cgroup BPF and nftables for
+The Zynq and ZynqMP defconfigs build in Unix socket diagnostics, autofs,
+UTS/network namespaces, cgroup BPF and nftables for
 systemd services, and SysRq/Yama for the distribution's sysctl settings. These
 features are built in because the OS image does not install kernel modules.
 The kernel log buffer is 128 KiB to retain boot diagnostics before journald starts.
@@ -94,6 +96,26 @@ the OS image, and verify boot logs, SSH, the management API and instrument
 switching on the target board. A kernel rebuild does not require an FPGA rebuild.
 
 ## Management web interface
+
+The board runtime consists of three C++23 executables in `/usr/local/api`:
+`koheron-api`, `koheron-install` and `koheron-server-init`. nginx proxies HTTP to
+the systemd-managed `/run/koheron-api/app.sock`. The daemon uses libmicrohttpd,
+libzip, json-c, libunistring and libsystemd; it queries service state and journals directly.
+The existing 16 HTTP routes, upload field naming and host SDK remain compatible.
+Instrument installation stages and validates files before stopping the service,
+waits for systemd readiness and restores the previous installation on failure.
+Uploads are capped at 20 MiB; extraction is capped at 256 MiB and 10,000 entries.
+
+The standard image has no Python interpreter, Flask, uWSGI or cloud-guest-utils.
+First-boot partition growth uses `sfdisk`, followed by `partx` and `resize2fs`.
+Host Python clients and build/test tools are unchanged.
+
+`make CFG=... api` builds the native executables in Docker. `api_sync` updates
+the binaries, units and nginx configuration; it checks shared-library loading
+before switching services. For an older Ubuntu 26.04 V1 image, install
+`libmicrohttpd12t64 libzip5 libjson-c5 libunistring5 libstdc++6` first. Rebuild the full image
+to remove the old Python packages. Ubuntu 24.04 board images require a matching
+custom toolchain and dependencies.
 
 nginx uses two `www-data` workers, low-cost gzip compression for HTML,
 and bounded API response buffers. Upload buffering uses

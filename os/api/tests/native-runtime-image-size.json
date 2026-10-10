@@ -1,0 +1,933 @@
+{
+  "date": "2026-10-10",
+  "baseline_commit": "902bd235c7582d31f0778b8b29b54e3e1864cd26",
+  "builder_image_id": "sha256:c90842ea998da8e40ef697c8d1986e73a73d5c469ffa0e525f839275098f0025",
+  "ubuntu_base": {
+    "file": "ubuntu-base-26.04.1-base-armhf.tar.gz",
+    "sha256": "a40848e9c4ed72c22bdcb6a7bc9832e1ca8a30e5a3e2a0543dc56ed14e2e38b7"
+  },
+  "shared_artifacts": {
+    "tmp/examples/red-pitaya/fft/os/boot.bin": "fbf502184e805bda83e64af1ea49aa40cd033e3be7f217cec6b3579a5ce09e8c",
+    "tmp/examples/red-pitaya/fft/os/kernel.itb": "85a5476d48e63e642aa5cf4127c36773002ef3ec5b98ab171701c9203db74ee4",
+    "tmp/examples/red-pitaya/fft/fft.zip": "2c7351b4187417d228a32ebcfd504a24fe159eb03ceacf374217a818903a8cd2",
+    "tmp/examples/red-pitaya/fft/manifest-red-pitaya-fft.txt": "8f6391ab1986af479257831c1fa0b12496c8ce52285f518ff93f569c88660675",
+    "tmp/examples/red-pitaya/fft/os/rootfs_overlay/usr/local/www/index.html": "22ceef412061eff74a1f63afccae740ad3b76f3d688254ea5507c830973ae3cb"
+  },
+  "common_packages": {
+    "adduser": {
+      "version": "3.153ubuntu1",
+      "installed_size_kib": 437
+    },
+    "apt:armhf": {
+      "version": "3.2.0",
+      "installed_size_kib": 4324
+    },
+    "base-files:armhf": {
+      "version": "14ubuntu6.2",
+      "installed_size_kib": 489
+    },
+    "base-passwd:armhf": {
+      "version": "3.6.8",
+      "installed_size_kib": 308
+    },
+    "bash-completion": {
+      "version": "1:2.16.0-8build1",
+      "installed_size_kib": 1952
+    },
+    "bash:armhf": {
+      "version": "5.3-2ubuntu1",
+      "installed_size_kib": 1480
+    },
+    "bsdutils:armhf": {
+      "version": "1:2.41.3-3ubuntu2.2",
+      "installed_size_kib": 406
+    },
+    "coreutils": {
+      "version": "9.5-1ubuntu2+0.0.0~ubuntu25",
+      "installed_size_kib": 10
+    },
+    "coreutils-from-uutils": {
+      "version": "0.0.0~ubuntu25",
+      "installed_size_kib": 237
+    },
+    "curl:armhf": {
+      "version": "8.18.0-1ubuntu2.7",
+      "installed_size_kib": 442
+    },
+    "dash:armhf": {
+      "version": "0.5.12-12ubuntu3",
+      "installed_size_kib": 203
+    },
+    "dbus-bin:armhf": {
+      "version": "1.16.2-2ubuntu4",
+      "installed_size_kib": 416
+    },
+    "dbus-daemon:armhf": {
+      "version": "1.16.2-2ubuntu4",
+      "installed_size_kib": 357
+    },
+    "dbus-session-bus-common": {
+      "version": "1.16.2-2ubuntu4",
+      "installed_size_kib": 83
+    },
+    "dbus-system-bus-common": {
+      "version": "1.16.2-2ubuntu4",
+      "installed_size_kib": 94
+    },
+    "dbus:armhf": {
+      "version": "1.16.2-2ubuntu4",
+      "installed_size_kib": 172
+    },
+    "debconf": {
+      "version": "1.5.92",
+      "installed_size_kib": 507
+    },
+    "debianutils:armhf": {
+      "version": "5.23.2build1",
+      "installed_size_kib": 366
+    },
+    "diffutils:armhf": {
+      "version": "1:3.12-1",
+      "installed_size_kib": 500
+    },
+    "dpkg:armhf": {
+      "version": "1.23.7ubuntu1",
+      "installed_size_kib": 6248
+    },
+    "e2fsprogs:armhf": {
+      "version": "1.47.2-3ubuntu4",
+      "installed_size_kib": 1845
+    },
+    "fdisk:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 471
+    },
+    "findutils:armhf": {
+      "version": "4.10.0-3build2",
+      "installed_size_kib": 556
+    },
+    "gcc-16-base:armhf": {
+      "version": "16-20260322-1ubuntu1",
+      "installed_size_kib": 105
+    },
+    "gnu-coreutils:armhf": {
+      "version": "9.7-3ubuntu2",
+      "installed_size_kib": 8976
+    },
+    "gpgv:armhf": {
+      "version": "2.4.8-4ubuntu3",
+      "installed_size_kib": 427
+    },
+    "grep:armhf": {
+      "version": "3.12-1",
+      "installed_size_kib": 308
+    },
+    "gzip:armhf": {
+      "version": "1.14-1~exp2ubuntu1.1",
+      "installed_size_kib": 183
+    },
+    "hostname:armhf": {
+      "version": "3.25build1",
+      "installed_size_kib": 89
+    },
+    "init-system-helpers": {
+      "version": "1.69",
+      "installed_size_kib": 133
+    },
+    "iproute2:armhf": {
+      "version": "6.19.0-1ubuntu1.1",
+      "installed_size_kib": 3234
+    },
+    "iw:armhf": {
+      "version": "6.17-1",
+      "installed_size_kib": 283
+    },
+    "kmod:armhf": {
+      "version": "34.2-2ubuntu2",
+      "installed_size_kib": 223
+    },
+    "less:armhf": {
+      "version": "668-1build1",
+      "installed_size_kib": 427
+    },
+    "libacl1:armhf": {
+      "version": "2.3.2-2",
+      "installed_size_kib": 57
+    },
+    "libapparmor1:armhf": {
+      "version": "5.0.2-0ubuntu1~26.04.1",
+      "installed_size_kib": 101
+    },
+    "libapt-pkg7.0:armhf": {
+      "version": "3.2.0",
+      "installed_size_kib": 2999
+    },
+    "libattr1:armhf": {
+      "version": "1:2.5.2-4",
+      "installed_size_kib": 100
+    },
+    "libaudit-common": {
+      "version": "1:4.1.2-1build1",
+      "installed_size_kib": 17
+    },
+    "libaudit1:armhf": {
+      "version": "1:4.1.2-1build1",
+      "installed_size_kib": 214
+    },
+    "libblkid1:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 321
+    },
+    "libbpf1:armhf": {
+      "version": "1:1.6.3-1ubuntu1",
+      "installed_size_kib": 358
+    },
+    "libbrotli1:armhf": {
+      "version": "1.2.0-3build1",
+      "installed_size_kib": 795
+    },
+    "libbsd0:armhf": {
+      "version": "0.12.2-2build2",
+      "installed_size_kib": 116
+    },
+    "libbz2-1.0:armhf": {
+      "version": "1.0.8-6build2",
+      "installed_size_kib": 86
+    },
+    "libc-bin:armhf": {
+      "version": "2.43-2ubuntu2.3",
+      "installed_size_kib": 1840
+    },
+    "libc-gconv-modules-extra:armhf": {
+      "version": "2.43-2ubuntu2.3",
+      "installed_size_kib": 18616
+    },
+    "libc6:armhf": {
+      "version": "2.43-2ubuntu2.3",
+      "installed_size_kib": 4815
+    },
+    "libcap-ng0:armhf": {
+      "version": "0.8.5-4build5",
+      "installed_size_kib": 149
+    },
+    "libcap2-bin:armhf": {
+      "version": "1:2.75-10ubuntu2",
+      "installed_size_kib": 295
+    },
+    "libcap2:armhf": {
+      "version": "1:2.75-10ubuntu2",
+      "installed_size_kib": 155
+    },
+    "libcbor0.10:armhf": {
+      "version": "0.10.2-2ubuntu3",
+      "installed_size_kib": 92
+    },
+    "libcom-err2:armhf": {
+      "version": "1.47.2-3ubuntu4",
+      "installed_size_kib": 113
+    },
+    "libcrypt1:armhf": {
+      "version": "1:4.5.1-1",
+      "installed_size_kib": 227
+    },
+    "libcurl4t64:armhf": {
+      "version": "8.18.0-1ubuntu2.7",
+      "installed_size_kib": 694
+    },
+    "libdb5.3t64:armhf": {
+      "version": "5.3.28+dfsg2-10ubuntu1",
+      "installed_size_kib": 1126
+    },
+    "libdbus-1-3:armhf": {
+      "version": "1.16.2-2ubuntu4",
+      "installed_size_kib": 363
+    },
+    "libdebconfclient0:armhf": {
+      "version": "0.280ubuntu1",
+      "installed_size_kib": 90
+    },
+    "libdevmapper1.02.1:armhf": {
+      "version": "2:1.02.205-2ubuntu3",
+      "installed_size_kib": 375
+    },
+    "libedit2:armhf": {
+      "version": "3.1-20251016-1",
+      "installed_size_kib": 173
+    },
+    "libelf1t64:armhf": {
+      "version": "0.194-4",
+      "installed_size_kib": 208
+    },
+    "libexpat1:armhf": {
+      "version": "2.7.4-1ubuntu0.2",
+      "installed_size_kib": 314
+    },
+    "libext2fs2t64:armhf": {
+      "version": "1.47.2-3ubuntu4",
+      "installed_size_kib": 467
+    },
+    "libfdisk1:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 456
+    },
+    "libffi8:armhf": {
+      "version": "3.5.2-4",
+      "installed_size_kib": 90
+    },
+    "libfido2-1:armhf": {
+      "version": "1.16.0-2build1",
+      "installed_size_kib": 221
+    },
+    "libgcc-s1:armhf": {
+      "version": "16-20260322-1ubuntu1",
+      "installed_size_kib": 180
+    },
+    "libgcrypt20:armhf": {
+      "version": "1.12.0-2ubuntu1",
+      "installed_size_kib": 1010
+    },
+    "libgmp10:armhf": {
+      "version": "2:6.3.0+dfsg-5ubuntu2",
+      "installed_size_kib": 343
+    },
+    "libgnutls30t64:armhf": {
+      "version": "3.8.12-2ubuntu1.1",
+      "installed_size_kib": 1960
+    },
+    "libgpg-error0:armhf": {
+      "version": "1.58-2",
+      "installed_size_kib": 174
+    },
+    "libgssapi-krb5-2:armhf": {
+      "version": "1.22.1-2ubuntu4.1",
+      "installed_size_kib": 291
+    },
+    "libhogweed6t64:armhf": {
+      "version": "3.10.2-1",
+      "installed_size_kib": 313
+    },
+    "libidn2-0:armhf": {
+      "version": "2.3.8-4build1",
+      "installed_size_kib": 292
+    },
+    "libk5crypto3:armhf": {
+      "version": "1.22.1-2ubuntu4.1",
+      "installed_size_kib": 276
+    },
+    "libkeyutils1:armhf": {
+      "version": "1.6.3-6ubuntu3",
+      "installed_size_kib": 85
+    },
+    "libkmod2:armhf": {
+      "version": "34.2-2ubuntu2",
+      "installed_size_kib": 105
+    },
+    "libkrb5-3:armhf": {
+      "version": "1.22.1-2ubuntu4.1",
+      "installed_size_kib": 838
+    },
+    "libkrb5support0:armhf": {
+      "version": "1.22.1-2ubuntu4.1",
+      "installed_size_kib": 151
+    },
+    "libldap-common": {
+      "version": "2.6.10+dfsg-1ubuntu5",
+      "installed_size_kib": 99
+    },
+    "libldap2:armhf": {
+      "version": "2.6.10+dfsg-1ubuntu5",
+      "installed_size_kib": 446
+    },
+    "liblsof0:armhf": {
+      "version": "4.99.4+dfsg-2build2",
+      "installed_size_kib": 220
+    },
+    "liblz4-1:armhf": {
+      "version": "1.10.0-8",
+      "installed_size_kib": 152
+    },
+    "liblzma5:armhf": {
+      "version": "5.8.3-1",
+      "installed_size_kib": 392
+    },
+    "libmd0:armhf": {
+      "version": "1.1.0-2build4",
+      "installed_size_kib": 90
+    },
+    "libmnl0:armhf": {
+      "version": "1.0.5-3build1",
+      "installed_size_kib": 86
+    },
+    "libmount1:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 393
+    },
+    "libncursesw6:armhf": {
+      "version": "6.6+20251231-1",
+      "installed_size_kib": 438
+    },
+    "libnettle8t64:armhf": {
+      "version": "3.10.2-1",
+      "installed_size_kib": 348
+    },
+    "libnghttp2-14:armhf": {
+      "version": "1.68.0-2ubuntu0.2",
+      "installed_size_kib": 163
+    },
+    "libnl-3-200:armhf": {
+      "version": "3.12.0-2",
+      "installed_size_kib": 166
+    },
+    "libnl-genl-3-200:armhf": {
+      "version": "3.12.0-2",
+      "installed_size_kib": 86
+    },
+    "libp11-kit0:armhf": {
+      "version": "0.26.2-2",
+      "installed_size_kib": 1157
+    },
+    "libpam-modules-bin:armhf": {
+      "version": "1.7.0-5ubuntu3.1",
+      "installed_size_kib": 571
+    },
+    "libpam-modules:armhf": {
+      "version": "1.7.0-5ubuntu3.1",
+      "installed_size_kib": 3078
+    },
+    "libpam-runtime": {
+      "version": "1.7.0-5ubuntu3.1",
+      "installed_size_kib": 524
+    },
+    "libpam0g:armhf": {
+      "version": "1.7.0-5ubuntu3.1",
+      "installed_size_kib": 292
+    },
+    "libparted2t64:armhf": {
+      "version": "3.6-6",
+      "installed_size_kib": 326
+    },
+    "libpcre2-8-0:armhf": {
+      "version": "10.46-1build1",
+      "installed_size_kib": 539
+    },
+    "libpopt0:armhf": {
+      "version": "1.19+dfsg-2build1",
+      "installed_size_kib": 132
+    },
+    "libproc2-0:armhf": {
+      "version": "2:4.0.4-9ubuntu1",
+      "installed_size_kib": 168
+    },
+    "libpsl5t64:armhf": {
+      "version": "0.21.2-1.1build2",
+      "installed_size_kib": 91
+    },
+    "libreadline8t64:armhf": {
+      "version": "8.3-4",
+      "installed_size_kib": 418
+    },
+    "librtmp1:armhf": {
+      "version": "2.4+20151223.gitfa8646d.1-3",
+      "installed_size_kib": 147
+    },
+    "libsasl2-2:armhf": {
+      "version": "2.1.28+dfsg1-9ubuntu3",
+      "installed_size_kib": 115
+    },
+    "libsasl2-modules-db:armhf": {
+      "version": "2.1.28+dfsg1-9ubuntu3",
+      "installed_size_kib": 106
+    },
+    "libseccomp2:armhf": {
+      "version": "2.6.0-2ubuntu5",
+      "installed_size_kib": 211
+    },
+    "libselinux1:armhf": {
+      "version": "3.9-4build1",
+      "installed_size_kib": 163
+    },
+    "libsemanage-common": {
+      "version": "3.9-1build1",
+      "installed_size_kib": 20
+    },
+    "libsemanage2:armhf": {
+      "version": "3.9-1build1",
+      "installed_size_kib": 224
+    },
+    "libsepol2:armhf": {
+      "version": "3.9-2",
+      "installed_size_kib": 542
+    },
+    "libsmartcols1:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 261
+    },
+    "libss2:armhf": {
+      "version": "1.47.2-3ubuntu4",
+      "installed_size_kib": 113
+    },
+    "libssh2-1t64:armhf": {
+      "version": "1.11.1-1ubuntu0.26.04.4",
+      "installed_size_kib": 344
+    },
+    "libssl3t64:armhf": {
+      "version": "3.5.5-1ubuntu3.4",
+      "installed_size_kib": 4486
+    },
+    "libstdc++6:armhf": {
+      "version": "16-20260322-1ubuntu1",
+      "installed_size_kib": 2384
+    },
+    "libsystemd-shared:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 5135
+    },
+    "libsystemd0:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 879
+    },
+    "libtasn1-6:armhf": {
+      "version": "4.21.0-2",
+      "installed_size_kib": 102
+    },
+    "libtext-charwidth-perl:armhf": {
+      "version": "0.04-11build4",
+      "installed_size_kib": 33
+    },
+    "libtext-wrapi18n-perl": {
+      "version": "0.06-10",
+      "installed_size_kib": 24
+    },
+    "libtinfo6:armhf": {
+      "version": "6.6+20251231-1",
+      "installed_size_kib": 483
+    },
+    "libtirpc-common": {
+      "version": "1.3.7-0.1",
+      "installed_size_kib": 27
+    },
+    "libtirpc3t64:armhf": {
+      "version": "1.3.7-0.1",
+      "installed_size_kib": 170
+    },
+    "libudev1:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 265
+    },
+    "libunistring5:armhf": {
+      "version": "1.3-2build1",
+      "installed_size_kib": 1932
+    },
+    "libusb-1.0-0:armhf": {
+      "version": "2:1.0.29-2build1",
+      "installed_size_kib": 154
+    },
+    "libuuid1:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 122
+    },
+    "libwrap0:armhf": {
+      "version": "7.6.q-36build2",
+      "installed_size_kib": 129
+    },
+    "libxtables12:armhf": {
+      "version": "1.8.11-2ubuntu3",
+      "installed_size_kib": 103
+    },
+    "libxxhash0:armhf": {
+      "version": "0.8.3-2build1",
+      "installed_size_kib": 85
+    },
+    "libzstd1:armhf": {
+      "version": "1.5.7+dfsg-3",
+      "installed_size_kib": 537
+    },
+    "login.defs": {
+      "version": "1:4.17.4-2ubuntu3",
+      "installed_size_kib": 103
+    },
+    "login:armhf": {
+      "version": "1:4.16.0-2+really2.41.3-3ubuntu2.2",
+      "installed_size_kib": 271
+    },
+    "logsave:armhf": {
+      "version": "1.47.2-3ubuntu4",
+      "installed_size_kib": 111
+    },
+    "lsb-base": {
+      "version": "11.6build1",
+      "installed_size_kib": 12
+    },
+    "lsof:armhf": {
+      "version": "4.99.4+dfsg-2build2",
+      "installed_size_kib": 483
+    },
+    "mawk:armhf": {
+      "version": "1.3.4.20260129-1",
+      "installed_size_kib": 237
+    },
+    "mount:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 520
+    },
+    "nano:armhf": {
+      "version": "8.7.1-1ubuntu0.1",
+      "installed_size_kib": 848
+    },
+    "ncurses-base": {
+      "version": "6.6+20251231-1",
+      "installed_size_kib": 393
+    },
+    "ncurses-bin:armhf": {
+      "version": "6.6+20251231-1",
+      "installed_size_kib": 852
+    },
+    "net-tools:armhf": {
+      "version": "2.10-2ubuntu1",
+      "installed_size_kib": 932
+    },
+    "netbase": {
+      "version": "6.5build1",
+      "installed_size_kib": 35
+    },
+    "nginx-common": {
+      "version": "1.28.3-2ubuntu1.11",
+      "installed_size_kib": 227
+    },
+    "nginx:armhf": {
+      "version": "1.28.3-2ubuntu1.11",
+      "installed_size_kib": 978
+    },
+    "openssh-client:armhf": {
+      "version": "1:10.2p1-2ubuntu3.7",
+      "installed_size_kib": 3096
+    },
+    "openssh-server:armhf": {
+      "version": "1:10.2p1-2ubuntu3.7",
+      "installed_size_kib": 2375
+    },
+    "openssh-sftp-server:armhf": {
+      "version": "1:10.2p1-2ubuntu3.7",
+      "installed_size_kib": 80
+    },
+    "openssl-provider-legacy:armhf": {
+      "version": "3.5.5-1ubuntu3.4",
+      "installed_size_kib": 414
+    },
+    "parted:armhf": {
+      "version": "3.6-6",
+      "installed_size_kib": 152
+    },
+    "passwd:armhf": {
+      "version": "1:4.17.4-2ubuntu3",
+      "installed_size_kib": 4493
+    },
+    "perl-base:armhf": {
+      "version": "5.40.1-7ubuntu0.1",
+      "installed_size_kib": 7023
+    },
+    "procps:armhf": {
+      "version": "2:4.0.4-9ubuntu1",
+      "installed_size_kib": 2332
+    },
+    "psmisc:armhf": {
+      "version": "23.7-2ubuntu2",
+      "installed_size_kib": 844
+    },
+    "readline-common": {
+      "version": "8.3-4",
+      "installed_size_kib": 81
+    },
+    "rsync:armhf": {
+      "version": "3.4.1+ds1-7ubuntu0.3",
+      "installed_size_kib": 689
+    },
+    "rust-coreutils:armhf": {
+      "version": "0.8.0-0ubuntu3",
+      "installed_size_kib": 13564
+    },
+    "sed:armhf": {
+      "version": "4.9-2ubuntu1",
+      "installed_size_kib": 360
+    },
+    "sensible-utils": {
+      "version": "0.0.26build1",
+      "installed_size_kib": 66
+    },
+    "sudo-common": {
+      "version": "1.2ubuntu",
+      "installed_size_kib": 26
+    },
+    "sudo:armhf": {
+      "version": "1.9.17p2-1ubuntu3.2",
+      "installed_size_kib": 3684
+    },
+    "systemd-resolved:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 702
+    },
+    "systemd-sysv:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 81
+    },
+    "systemd-timesyncd:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 241
+    },
+    "systemd:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 13336
+    },
+    "sysvinit-utils:armhf": {
+      "version": "3.15-5ubuntu1",
+      "installed_size_kib": 202
+    },
+    "tar:armhf": {
+      "version": "1.35+dfsg-4ubuntu0.4",
+      "installed_size_kib": 624
+    },
+    "tzdata": {
+      "version": "2026c-0ubuntu0.26.04.1",
+      "installed_size_kib": 1356
+    },
+    "ubuntu-keyring": {
+      "version": "2023.11.28.1build1",
+      "installed_size_kib": 29
+    },
+    "ucf": {
+      "version": "3.0052ubuntu1",
+      "installed_size_kib": 148
+    },
+    "udev:armhf": {
+      "version": "259.5-0ubuntu3.4",
+      "installed_size_kib": 10549
+    },
+    "unzip:armhf": {
+      "version": "6.0-29ubuntu1",
+      "installed_size_kib": 369
+    },
+    "usbutils:armhf": {
+      "version": "1:019-1",
+      "installed_size_kib": 359
+    },
+    "util-linux:armhf": {
+      "version": "2.41.3-3ubuntu2.2",
+      "installed_size_kib": 4653
+    },
+    "zlib1g:armhf": {
+      "version": "1:1.3.dfsg+really1.3.1-1ubuntu3",
+      "installed_size_kib": 118
+    }
+  },
+  "common_package_versions_identical": true,
+  "removed_packages": {
+    "cloud-guest-utils": {
+      "version": "0.33-1build1",
+      "installed_size_kib": 61
+    },
+    "libnorm1t64:armhf": {
+      "version": "1.5.9+dfsg-4",
+      "installed_size_kib": 351
+    },
+    "libpgm-5.3-0t64:armhf": {
+      "version": "5.3.128~dfsg-2.1build2",
+      "installed_size_kib": 282
+    },
+    "libpython3-stdlib:armhf": {
+      "version": "3.14.3-0ubuntu2",
+      "installed_size_kib": 26
+    },
+    "libpython3.14-minimal:armhf": {
+      "version": "3.14.4-1ubuntu0.2",
+      "installed_size_kib": 5572
+    },
+    "libpython3.14-stdlib:armhf": {
+      "version": "3.14.4-1ubuntu0.2",
+      "installed_size_kib": 10712
+    },
+    "libpython3.14:armhf": {
+      "version": "3.14.4-1ubuntu0.2",
+      "installed_size_kib": 5323
+    },
+    "libsodium23:armhf": {
+      "version": "1.0.18-2",
+      "installed_size_kib": 312
+    },
+    "libsqlite3-0:armhf": {
+      "version": "3.46.1-9ubuntu0.3",
+      "installed_size_kib": 1204
+    },
+    "libxml2-16:armhf": {
+      "version": "2.15.2+dfsg-0.1ubuntu0.3",
+      "installed_size_kib": 1048
+    },
+    "libyajl2:armhf": {
+      "version": "2.1.0-5.1",
+      "installed_size_kib": 85
+    },
+    "libyaml-0-2:armhf": {
+      "version": "0.2.5-2build3",
+      "installed_size_kib": 147
+    },
+    "libzmq5:armhf": {
+      "version": "4.3.5-1build3",
+      "installed_size_kib": 564
+    },
+    "media-types": {
+      "version": "14.0.0build1",
+      "installed_size_kib": 99
+    },
+    "python3-blinker": {
+      "version": "1.9.0-2build1",
+      "installed_size_kib": 43
+    },
+    "python3-click": {
+      "version": "8.2.0+0.really.8.1.8-1build1",
+      "installed_size_kib": 374
+    },
+    "python3-flask": {
+      "version": "3.1.3-1ubuntu1",
+      "installed_size_kib": 443
+    },
+    "python3-itsdangerous": {
+      "version": "2.2.0-2build1",
+      "installed_size_kib": 71
+    },
+    "python3-jinja2": {
+      "version": "3.1.6-1build1",
+      "installed_size_kib": 531
+    },
+    "python3-markupsafe:armhf": {
+      "version": "3.0.3-1build1",
+      "installed_size_kib": 103
+    },
+    "python3-minimal:armhf": {
+      "version": "3.14.3-0ubuntu2",
+      "installed_size_kib": 110
+    },
+    "python3-systemd:armhf": {
+      "version": "235-1build9",
+      "installed_size_kib": 405
+    },
+    "python3-werkzeug": {
+      "version": "3.1.5-1",
+      "installed_size_kib": 828
+    },
+    "python3.14-minimal:armhf": {
+      "version": "3.14.4-1ubuntu0.2",
+      "installed_size_kib": 5018
+    },
+    "python3.14:armhf": {
+      "version": "3.14.4-1ubuntu0.2",
+      "installed_size_kib": 913
+    },
+    "python3:armhf": {
+      "version": "3.14.3-0ubuntu2",
+      "installed_size_kib": 80
+    },
+    "uwsgi-core:armhf": {
+      "version": "2.0.31-2",
+      "installed_size_kib": 5359
+    },
+    "uwsgi-plugin-python3:armhf": {
+      "version": "2.0.31+3+0.0.2build4",
+      "installed_size_kib": 252
+    }
+  },
+  "added_packages": {
+    "libjson-c5:armhf": {
+      "version": "0.18+ds-3",
+      "installed_size_kib": 90
+    },
+    "libmicrohttpd12t64:armhf": {
+      "version": "1.0.1-2",
+      "installed_size_kib": 199
+    },
+    "libzip5:armhf": {
+      "version": "1.11.4-2",
+      "installed_size_kib": 156
+    }
+  },
+  "variants": {
+    "python": {
+      "image_path": "tmp/native-baseline/project/red-pitaya-fft.img",
+      "image_bytes": 350224384,
+      "image_sha256": "f8ed91b2f605b396d07f050f91e36c10d62996aac246d18247b2d1ceb8da50f6",
+      "zip_bytes": 83262835,
+      "zip_sha256": "88324c2bc803559478786b78041bb333ef664679ea7827c5571f84aeff2cdabe",
+      "rootfs_allocated_bytes": 257363968,
+      "rootfs_apparent_bytes": 227927741,
+      "ext4_block_count": 73329,
+      "ext4_block_size": 4096,
+      "configured_base_bytes": 74247047,
+      "configured_base_sha256": "faaef60ca9f254a6047216270aae47bcc71fb5b1a2acd8cb7a2f88a50aa5de84",
+      "packages_count": 204,
+      "partition_table": {
+        "partitiontable": {
+          "label": "dos",
+          "id": "0x738d84e9",
+          "device": "/dev/loop1",
+          "unit": "sectors",
+          "sectorsize": 512,
+          "partitions": [
+            {
+              "node": "/dev/loop1p1",
+              "start": 8192,
+              "size": 22528,
+              "type": "e"
+            },
+            {
+              "node": "/dev/loop1p2",
+              "start": 30720,
+              "size": 653312,
+              "type": "83"
+            }
+          ]
+        }
+      }
+    },
+    "native": {
+      "image_path": "tmp/examples/red-pitaya/fft/red-pitaya-fft.img",
+      "image_bytes": 289406976,
+      "image_sha256": "7984c53096f67f96a9f98c43c4623378553bc10044c44a5d0b7ac8c87fa266f4",
+      "zip_bytes": 64853161,
+      "zip_sha256": "af4d815a5998d6d6f021ab6353f6ab776ef4eb45bd34bbac624057b5969a72dd",
+      "rootfs_allocated_bytes": 198660096,
+      "rootfs_apparent_bytes": 174319669,
+      "ext4_block_count": 58392,
+      "ext4_block_size": 4096,
+      "configured_base_bytes": 55820251,
+      "configured_base_sha256": "f53a26f6aafdd6378083f8e7bdd197479149442b0c26a89cf51baed80ccdd88f",
+      "packages_count": 179,
+      "partition_table": {
+        "partitiontable": {
+          "label": "dos",
+          "id": "0xee14770e",
+          "device": "/dev/loop1",
+          "unit": "sectors",
+          "sectorsize": 512,
+          "partitions": [
+            {
+              "node": "/dev/loop1p1",
+              "start": 8192,
+              "size": 22528,
+              "type": "e"
+            },
+            {
+              "node": "/dev/loop1p2",
+              "start": 30720,
+              "size": 534528,
+              "type": "83"
+            }
+          ]
+        }
+      },
+      "native_binary_sha256": {
+        "koheron-install": "745dd082ba512ad346650f9483bd8f4bb6f9a2513ae0d29add15260647d96128",
+        "koheron-server-init": "4aa1d28d671627abbb56eb21b2029c90a374457c5b819c20672708e66e0bf433",
+        "koheron-api": "164cbe9316e4ce9e9e29e4c50ac487a2ac125889a85e744d76daec19c4f7138d"
+      }
+    }
+  },
+  "native_source_sha256": "221e6dc77afd883f54c4a47806db5cff9bf1c8bb446796d265d8a67004365ebc"
+}

@@ -117,18 +117,14 @@ class TestKoheronServer(unittest.TestCase):
         # pprint.pprint(lines)
         self.assertEqual(parse_systemctl_line(lines[0]), "Interface eth0 found: {}".format(host))
 
-class TestUwsgi(unittest.TestCase):
+class TestManagementApi(unittest.TestCase):
     def __init__(self, name, ssh):
-        super(TestUwsgi, self).__init__(name)
+        super(TestManagementApi, self).__init__(name)
         self.ssh = ssh
 
-    def test_uwsgi_service(self):
-        stdin, stdout, sterr = self.ssh.exec_command('systemctl status uwsgi')
-        lines = stdout.readlines()
-        # pprint.pprint(lines)
-        self.assertEqual(lines[0], "● uwsgi.service - uWSGI\n")
-        self.assertEqual(lines[1].lstrip(), "Loaded: loaded (/etc/systemd/system/uwsgi.service; enabled; vendor preset: enabled)\n")
-        self.assertTrue(lines[2].lstrip().startswith("Active: active (running)"))
+    def test_management_service(self):
+        stdin, stdout, stderr = self.ssh.exec_command('systemctl is-active koheron-api.service koheron-api.socket')
+        self.assertEqual(stdout.readlines(), ['active\n', 'active\n'])
 
     def test_intruments_details(self):
         with urllib.request.urlopen("http://{}/api/instruments/details".format(host)) as url:
@@ -205,5 +201,5 @@ if __name__ == '__main__':
     ssh = set_ssh(host)
     run_test_suite(TestSystem, ssh)
     run_test_suite(TestKoheronServer, ssh)
-    run_test_suite(TestUwsgi, ssh)
+    run_test_suite(TestManagementApi, ssh)
     run_test_suite(TestNginx, ssh)

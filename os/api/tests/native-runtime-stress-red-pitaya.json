@@ -1,0 +1,1528 @@
+{
+  "date": "2026-10-10",
+  "scope": "Private native management runtime through private nginx over LAN; dummy instrument activation, real systemd/journal, existing production FFT LED RPC. No FPGA programming, acquisition or image flashing.",
+  "stopped_early": {
+    "reason": "User requested reducing stress scope; stopped the extended run before completion.",
+    "actions_completed": [
+      {
+        "iteration": 0,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 1,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 2,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 3,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 4,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 5,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 6,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 7,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 8,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 9,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 10,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 11,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 12,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 13,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 14,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 15,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 16,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 17,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 18,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 19,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 20,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 21,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 22,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 23,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 24,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 25,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 26,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 27,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 28,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 29,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      }
+    ],
+    "last_phase": "mixed-mutations-16"
+  },
+  "completed_request_phases_only": true,
+  "mixed_reader_phase": "Interrupted at user request after all 30 mutation cycles completed. Reader request counts and final validation are unavailable for this partial phase; it is excluded from successful request totals.",
+  "extended_checks_not_run": [
+    "500 board interrupted uploads",
+    "50 restarts under load",
+    "3 forced-kill recoveries"
+  ],
+  "before": {
+    "pids": {
+      "koheron-server": "151",
+      "uwsgi": "394",
+      "nginx": "399"
+    },
+    "api_sha256": "f369d1250fd9a68fab70b9298bf1f91a1b9843c152603be7817dfe2fd2eb94de",
+    "boot_id": "8675d505-758f-4b39-86ad-7dc3937d4154",
+    "started_monotonic_s": 1985.631971682,
+    "uname": "Linux koheron 6.18.0-xilinx #8 SMP PREEMPT Fri Oct  9 00:12:54 CEST 2026 armv7l GNU/Linux",
+    "binary_hashes": {
+      "koheron-api": "164cbe9316e4ce9e9e29e4c50ac487a2ac125889a85e744d76daec19c4f7138d",
+      "koheron-install": "745dd082ba512ad346650f9483bd8f4bb6f9a2513ae0d29add15260647d96128",
+      "koheron-server-init": "4aa1d28d671627abbb56eb21b2029c90a374457c5b819c20672708e66e0bf433"
+    }
+  },
+  "after": {
+    "pids": {
+      "koheron-server": "151",
+      "uwsgi": "394",
+      "nginx": "399"
+    },
+    "api_sha256": "f369d1250fd9a68fab70b9298bf1f91a1b9843c152603be7817dfe2fd2eb94de"
+  },
+  "production_unchanged": true,
+  "temporary_units_removed": true,
+  "leftover_temporary_files": [],
+  "load": {
+    "host": "192.168.1.85",
+    "port": 18089,
+    "ramp_seconds": 30,
+    "soak_seconds": 300,
+    "profile": [
+      "/api/instruments/details",
+      "/api/instruments/details",
+      "/api/instruments/details",
+      "/api/instruments/details",
+      "/api/instruments/details",
+      "/api/instruments",
+      "/api/system/build",
+      "/api/system/manifest",
+      "/api/system/release",
+      "/api/instruments/commands/a",
+      "/api/logs/koheron?lines=100",
+      "/api/logs/koheron/bookmark",
+      "/api/logs/koheron/instrument/bookmark",
+      "/api/logs/koheron/instrument/incr"
+    ],
+    "results": [
+      {
+        "phase": "ramp-1",
+        "clients": 1,
+        "duration_s": 30.004697312018834,
+        "requests": 6845,
+        "successful_requests": 6845,
+        "successful_requests_per_s": 228.13094659209017,
+        "status_counts": {
+          "200": 6845
+        },
+        "errors": {},
+        "unexpected_errors": {},
+        "latency_ms": {
+          "p50": 5.305623053573072,
+          "p95": 6.210774066857994,
+          "p99": 14.18550405651331,
+          "max": 39.70710909925401
+        },
+        "latency_histogram_upper_ms": {
+          "2": 1295,
+          "5": 2106,
+          "10": 3336,
+          "20": 71,
+          "50": 37
+        },
+        "path_counts": {
+          "/api/instruments/details": 2445,
+          "/api/instruments": 489,
+          "/api/system/build": 489,
+          "/api/system/manifest": 489,
+          "/api/system/release": 489,
+          "/api/instruments/commands/a": 489,
+          "/api/logs/koheron?lines=100": 489,
+          "/api/logs/koheron/bookmark": 489,
+          "/api/logs/koheron/instrument/bookmark": 489,
+          "/api/logs/koheron/instrument/incr": 488
+        },
+        "error_examples": [],
+        "null_live_snapshots_during_activation": 0
+      },
+      {
+        "phase": "ramp-8",
+        "clients": 8,
+        "duration_s": 30.02968260203488,
+        "requests": 10321,
+        "successful_requests": 10321,
+        "successful_requests_per_s": 343.6932763085756,
+        "status_counts": {
+          "200": 10321
+        },
+        "errors": {},
+        "unexpected_errors": {},
+        "latency_ms": {
+          "p50": 12.208403088152409,
+          "p95": 58.78107901662588,
+          "p99": 78.79621197935194,
+          "max": 132.73821806069463
+        },
+        "latency_histogram_upper_ms": {
+          "2": 153,
+          "5": 2411,
+          "10": 2184,
+          "20": 1024,
+          "50": 3397,
+          "100": 1135,
+          "200": 17
+        },
+        "path_counts": {
+          "/api/instruments/details": 3689,
+          "/api/instruments": 737,
+          "/api/system/build": 736,
+          "/api/system/manifest": 737,
+          "/api/system/release": 737,
+          "/api/instruments/commands/a": 737,
+          "/api/logs/koheron?lines=100": 737,
+          "/api/logs/koheron/bookmark": 737,
+          "/api/logs/koheron/instrument/bookmark": 737,
+          "/api/logs/koheron/instrument/incr": 737
+        },
+        "error_examples": [],
+        "null_live_snapshots_during_activation": 0
+      },
+      {
+        "phase": "ramp-32",
+        "clients": 32,
+        "duration_s": 30.129898324026726,
+        "requests": 10615,
+        "successful_requests": 10615,
+        "successful_requests_per_s": 352.30785998156506,
+        "status_counts": {
+          "200": 10615
+        },
+        "errors": {},
+        "unexpected_errors": {},
+        "latency_ms": {
+          "p50": 23.61506305169314,
+          "p95": 241.58974003512412,
+          "p99": 284.7289250930771,
+          "max": 379.40516404341906
+        },
+        "latency_histogram_upper_ms": {
+          "2": 20,
+          "5": 843,
+          "10": 2017,
+          "20": 2123,
+          "50": 951,
+          "100": 120,
+          "200": 2726,
+          "500": 1815
+        },
+        "path_counts": {
+          "/api/instruments/details": 3800,
+          "/api/instruments": 752,
+          "/api/system/build": 751,
+          "/api/system/manifest": 753,
+          "/api/system/release": 755,
+          "/api/instruments/commands/a": 757,
+          "/api/logs/koheron?lines=100": 759,
+          "/api/logs/koheron/bookmark": 761,
+          "/api/logs/koheron/instrument/bookmark": 763,
+          "/api/logs/koheron/instrument/incr": 764
+        },
+        "error_examples": [],
+        "null_live_snapshots_during_activation": 0
+      },
+      {
+        "phase": "ramp-64",
+        "clients": 64,
+        "duration_s": 30.23440460395068,
+        "requests": 10489,
+        "successful_requests": 10489,
+        "successful_requests_per_s": 346.9226577271318,
+        "status_counts": {
+          "200": 10489
+        },
+        "errors": {},
+        "unexpected_errors": {},
+        "latency_ms": {
+          "p50": 149.31741496548057,
+          "p95": 338.75898993574083,
+          "p99": 388.593683950603,
+          "max": 544.5289920317009
+        },
+        "latency_histogram_upper_ms": {
+          "50": 31,
+          "100": 2935,
+          "200": 3056,
+          "500": 4466,
+          "1000": 1
+        },
+        "path_counts": {
+          "/api/instruments/details": 3740,
+          "/api/instruments": 753,
+          "/api/system/build": 745,
+          "/api/system/manifest": 750,
+          "/api/system/release": 752,
+          "/api/instruments/commands/a": 754,
+          "/api/logs/koheron?lines=100": 748,
+          "/api/logs/koheron/bookmark": 750,
+          "/api/logs/koheron/instrument/bookmark": 748,
+          "/api/logs/koheron/instrument/incr": 749
+        },
+        "error_examples": [],
+        "null_live_snapshots_during_activation": 0
+      },
+      {
+        "phase": "soak-32",
+        "clients": 32,
+        "duration_s": 300.12567061104346,
+        "requests": 104593,
+        "successful_requests": 104593,
+        "successful_requests_per_s": 348.4973470848161,
+        "status_counts": {
+          "200": 104593
+        },
+        "errors": {},
+        "unexpected_errors": {},
+        "latency_ms": {
+          "p50": 22.913791006430984,
+          "p95": 248.28178598545492,
+          "p99": 299.49784406926483,
+          "max": 482.86041896790266
+        },
+        "latency_histogram_upper_ms": {
+          "2": 209,
+          "5": 8802,
+          "10": 19945,
+          "20": 20854,
+          "50": 8990,
+          "100": 1067,
+          "200": 26218,
+          "500": 18508
+        },
+        "path_counts": {
+          "/api/instruments/details": 37371,
+          "/api/instruments": 7466,
+          "/api/system/build": 7465,
+          "/api/system/manifest": 7465,
+          "/api/system/release": 7466,
+          "/api/instruments/commands/a": 7468,
+          "/api/logs/koheron?lines=100": 7470,
+          "/api/logs/koheron/bookmark": 7472,
+          "/api/logs/koheron/instrument/bookmark": 7474,
+          "/api/logs/koheron/instrument/incr": 7476
+        },
+        "error_examples": [],
+        "null_live_snapshots_during_activation": 0
+      }
+    ],
+    "actions": [
+      {
+        "iteration": 0,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 1,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 2,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 3,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 4,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 5,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 6,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 7,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 8,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 9,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 10,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 11,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 12,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 13,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 14,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 15,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 16,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 17,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 18,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 19,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 20,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 21,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 22,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 23,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 24,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 25,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 26,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 27,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": true
+      },
+      {
+        "iteration": 28,
+        "target": "b",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      },
+      {
+        "iteration": 29,
+        "target": "a",
+        "upload_bytes": 2098085,
+        "rollback_and_unsafe_extraction": false
+      }
+    ]
+  },
+  "telemetry_file": "native-runtime-stress-telemetry.jsonl",
+  "telemetry_sha256": "526e742d38464050146b9efb2369d8afa28d3642f0ecb0610c5e4f6fb4e0b81a",
+  "telemetry_summary": {
+    "initial-idle": {
+      "samples": 2,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 272632,
+      "tmp_free_min_bytes": 177106944,
+      "Pss_kib": {
+        "min": 4232,
+        "median": 4233.0,
+        "max": 4234
+      },
+      "Rss_kib": {
+        "min": 6632,
+        "median": 6632.0,
+        "max": 6632
+      },
+      "Private_Dirty_kib": {
+        "min": 1332,
+        "median": 1332.0,
+        "max": 1332
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 5.0,
+        "max": 5
+      },
+      "threads": {
+        "min": 2,
+        "median": 2.0,
+        "max": 2
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 2479,
+        "median": 2485.5,
+        "max": 2492
+      },
+      "api_sampled_cpu_percent_one_core": 0.0
+    },
+    "cold-idle": {
+      "samples": 16,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 277140,
+      "tmp_free_min_bytes": 177098752,
+      "Pss_kib": {
+        "min": 4232,
+        "median": 4252.0,
+        "max": 4252
+      },
+      "Rss_kib": {
+        "min": 6632,
+        "median": 6632.0,
+        "max": 6632
+      },
+      "Private_Dirty_kib": {
+        "min": 1332,
+        "median": 1332.0,
+        "max": 1332
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 5.0,
+        "max": 5
+      },
+      "threads": {
+        "min": 2,
+        "median": 2.0,
+        "max": 2
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 2479,
+        "median": 2648.0,
+        "max": 2648
+      },
+      "api_sampled_cpu_percent_one_core": 0.0
+    },
+    "ramp-1": {
+      "samples": 28,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 273280,
+      "tmp_free_min_bytes": 177082368,
+      "Pss_kib": {
+        "min": 4704,
+        "median": 4884.0,
+        "max": 5317
+      },
+      "Rss_kib": {
+        "min": 7104,
+        "median": 7284.0,
+        "max": 7772
+      },
+      "Private_Dirty_kib": {
+        "min": 1480,
+        "median": 1660.0,
+        "max": 2040
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 8.0,
+        "max": 9
+      },
+      "threads": {
+        "min": 2,
+        "median": 3.0,
+        "max": 4
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 2637,
+        "median": 2806.0,
+        "max": 2806
+      },
+      "api_sampled_cpu_percent_one_core": 43.22825276364444
+    },
+    "ramp-8": {
+      "samples": 26,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 273500,
+      "tmp_free_min_bytes": 177065984,
+      "Pss_kib": {
+        "min": 5244,
+        "median": 5749.5,
+        "max": 6549
+      },
+      "Rss_kib": {
+        "min": 7664,
+        "median": 8154.0,
+        "max": 9340
+      },
+      "Private_Dirty_kib": {
+        "min": 2040,
+        "median": 2516.0,
+        "max": 3220
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 27.0,
+        "max": 33
+      },
+      "threads": {
+        "min": 2,
+        "median": 10.0,
+        "max": 17
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 2693,
+        "median": 2854.0,
+        "max": 2862
+      },
+      "api_sampled_cpu_percent_one_core": 74.43923425931193
+    },
+    "ramp-32": {
+      "samples": 26,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 265144,
+      "tmp_free_min_bytes": 177049600,
+      "Pss_kib": {
+        "min": 7380,
+        "median": 10158.0,
+        "max": 11087
+      },
+      "Rss_kib": {
+        "min": 9780,
+        "median": 12558.0,
+        "max": 13600
+      },
+      "Private_Dirty_kib": {
+        "min": 4156,
+        "median": 6934.0,
+        "max": 7752
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 92.0,
+        "max": 101
+      },
+      "threads": {
+        "min": 2,
+        "median": 33.0,
+        "max": 34
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 2825,
+        "median": 2994.0,
+        "max": 2994
+      },
+      "api_sampled_cpu_percent_one_core": 73.72427676938943
+    },
+    "ramp-64": {
+      "samples": 25,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 264796,
+      "tmp_free_min_bytes": 177033216,
+      "Pss_kib": {
+        "min": 7900,
+        "median": 10220,
+        "max": 10985
+      },
+      "Rss_kib": {
+        "min": 10320,
+        "median": 12636,
+        "max": 13616
+      },
+      "Private_Dirty_kib": {
+        "min": 4696,
+        "median": 6996,
+        "max": 7632
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 93,
+        "max": 102
+      },
+      "threads": {
+        "min": 2,
+        "median": 34,
+        "max": 37
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 3033,
+        "median": 3194,
+        "max": 3202
+      },
+      "api_sampled_cpu_percent_one_core": 73.3871101405972
+    },
+    "warm-idle-before-soak": {
+      "samples": 16,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 270576,
+      "tmp_free_min_bytes": 177025024,
+      "Pss_kib": {
+        "min": 7900,
+        "median": 7920.0,
+        "max": 7920
+      },
+      "Rss_kib": {
+        "min": 10320,
+        "median": 10320.0,
+        "max": 10320
+      },
+      "Private_Dirty_kib": {
+        "min": 4696,
+        "median": 4696.0,
+        "max": 4696
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 5.0,
+        "max": 5
+      },
+      "threads": {
+        "min": 2,
+        "median": 2.0,
+        "max": 2
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 3033,
+        "median": 3202.0,
+        "max": 3202
+      },
+      "api_sampled_cpu_percent_one_core": 0.0
+    },
+    "soak-32": {
+      "samples": 229,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 259472,
+      "tmp_free_min_bytes": 176877568,
+      "Pss_kib": {
+        "min": 8080,
+        "median": 11412,
+        "max": 12699
+      },
+      "Rss_kib": {
+        "min": 10500,
+        "median": 13852,
+        "max": 15208
+      },
+      "Private_Dirty_kib": {
+        "min": 4876,
+        "median": 8180,
+        "max": 9368
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 93,
+        "max": 105
+      },
+      "threads": {
+        "min": 2,
+        "median": 34,
+        "max": 37
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 3033,
+        "median": 3202,
+        "max": 3202
+      },
+      "api_sampled_cpu_percent_one_core": 78.05008054357418
+    },
+    "warm-idle-after-soak": {
+      "samples": 16,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 265640,
+      "tmp_free_min_bytes": 176865280,
+      "Pss_kib": {
+        "min": 8080,
+        "median": 8100.0,
+        "max": 8100
+      },
+      "Rss_kib": {
+        "min": 10500,
+        "median": 10500.0,
+        "max": 10500
+      },
+      "Private_Dirty_kib": {
+        "min": 4876,
+        "median": 4876.0,
+        "max": 4876
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 5.0,
+        "max": 5
+      },
+      "threads": {
+        "min": 2,
+        "median": 2.0,
+        "max": 2
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 3033,
+        "median": 3202.0,
+        "max": 3202
+      },
+      "api_sampled_cpu_percent_one_core": 0.0
+    },
+    "mixed-mutations-16": {
+      "samples": 84,
+      "sample_errors": 0,
+      "api_pids": [
+        2633
+      ],
+      "mem_available_min_kib": 257652,
+      "tmp_free_min_bytes": 172650496,
+      "Pss_kib": {
+        "min": 7992,
+        "median": 8848.0,
+        "max": 10091
+      },
+      "Rss_kib": {
+        "min": 10412,
+        "median": 11256.0,
+        "max": 13184
+      },
+      "Private_Dirty_kib": {
+        "min": 4688,
+        "median": 5532.0,
+        "max": 6548
+      },
+      "fd_count": {
+        "min": 5,
+        "median": 34.5,
+        "max": 58
+      },
+      "threads": {
+        "min": 2,
+        "median": 18.0,
+        "max": 21
+      },
+      "nginx_combined_Pss_kib": {
+        "min": 3025,
+        "median": 3174.0,
+        "max": 3202
+      },
+      "api_sampled_cpu_percent_one_core": 89.7004831714496
+    }
+  },
+  "telemetry_interval_s_median": 1.3004851440000493,
+  "clock_ticks_per_s": 100,
+  "api_service_before_cleanup": "Result=success\nNRestarts=0\nExecMainStatus=0",
+  "journal_since_start": [
+    "[ 1988.098851] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 1988.164842] koheron serverd[2630]: stress-instrument-a",
+    "[ 1988.189149] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 1988.249783] koheron systemd[1]: Starting koheron-stress-api.service - Koheron native management API...",
+    "[ 1988.391616] koheron koheron-api[2633]: Koheron management API ready",
+    "[ 1988.392823] koheron systemd[1]: Started koheron-stress-api.service - Koheron native management API.",
+    "[ 2497.894477] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2497.906098] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2497.913718] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2498.252260] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2498.339707] koheron serverd[23979]: stress-instrument-b",
+    "[ 2498.363485] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2499.218993] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2499.227991] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2499.229810] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2499.520777] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2499.620622] koheron serverd[24678]: stress-instrument-broken",
+    "[ 2499.627210] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2499.628184] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2499.631203] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2499.647886] koheron systemctl[24532]: Job for koheron-stress-instrument.service failed because the control process exited with error code.",
+    "[ 2499.647940] koheron systemctl[24532]: See \"systemctl status koheron-stress-instrument.service\" and \"journalctl -xeu koheron-stress-instrument.service\" for details.",
+    "[ 2499.983042] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2500.079347] koheron serverd[24945]: stress-instrument-b",
+    "[ 2500.122311] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2500.154129] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2500.469309] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2501.126088] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2501.141214] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2501.142322] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2501.393790] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2501.551201] koheron serverd[25589]: stress-instrument-a",
+    "[ 2501.596700] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2502.621552] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2502.635503] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2502.637150] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2503.078001] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2503.177776] koheron serverd[26434]: stress-instrument-b",
+    "[ 2503.212574] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2504.195449] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2504.200884] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2504.202341] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2504.613073] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2504.742317] koheron serverd[27189]: stress-instrument-a",
+    "[ 2504.809023] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2505.564943] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2505.574235] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2505.577239] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2506.112446] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2506.220193] koheron serverd[27927]: stress-instrument-broken",
+    "[ 2506.232676] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2506.233520] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2506.241225] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2506.288611] koheron systemctl[27718]: Job for koheron-stress-instrument.service failed because the control process exited with error code.",
+    "[ 2506.288661] koheron systemctl[27718]: See \"systemctl status koheron-stress-instrument.service\" and \"journalctl -xeu koheron-stress-instrument.service\" for details.",
+    "[ 2506.691997] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2506.816435] koheron serverd[28176]: stress-instrument-a",
+    "[ 2506.852788] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2506.867531] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2507.240575] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2508.098722] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2508.117957] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2508.123493] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2508.424678] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2508.579460] koheron serverd[28836]: stress-instrument-b",
+    "[ 2508.621350] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2509.904766] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2509.925054] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2509.926073] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2510.233419] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2510.335128] koheron serverd[29660]: stress-instrument-a",
+    "[ 2510.379519] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2511.721059] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2511.727252] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2511.730649] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2512.055290] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2512.155285] koheron serverd[30519]: stress-instrument-b",
+    "[ 2512.192874] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2512.985398] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2513.001620] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2513.003088] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2513.299677] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2513.371704] koheron serverd[31173]: stress-instrument-broken",
+    "[ 2513.376300] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2513.379019] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2513.381477] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2513.952221] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2514.045379] koheron serverd[31517]: stress-instrument-b",
+    "[ 2514.115325] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2514.131383] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2514.489107] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2515.181972] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2515.214694] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2515.221437] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2515.490315] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2515.619758] koheron serverd[32314]: stress-instrument-a",
+    "[ 2515.690752] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2516.798184] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2516.822445] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2516.833998] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2517.129404] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2517.236188] koheron serverd[678]: stress-instrument-b",
+    "[ 2517.267563] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2518.332927] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2518.346862] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2518.349034] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2518.666144] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2518.746885] koheron serverd[1462]: stress-instrument-a",
+    "[ 2518.764674] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2519.613511] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2519.621412] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2519.622537] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2519.987255] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2520.102604] koheron serverd[2145]: stress-instrument-broken",
+    "[ 2520.114804] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2520.117508] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2520.121738] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2520.136601] koheron systemctl[1960]: Job for koheron-stress-instrument.service failed because the control process exited with error code.",
+    "[ 2520.136653] koheron systemctl[1960]: See \"systemctl status koheron-stress-instrument.service\" and \"journalctl -xeu koheron-stress-instrument.service\" for details.",
+    "[ 2520.471232] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2520.564852] koheron serverd[2418]: stress-instrument-a",
+    "[ 2520.610677] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2520.636010] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2521.046242] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2521.743373] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2521.753343] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2521.755430] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2522.164331] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2522.254734] koheron serverd[3235]: stress-instrument-b",
+    "[ 2522.300528] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2523.641538] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2523.652380] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2523.654967] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2523.873667] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2524.008646] koheron serverd[4027]: stress-instrument-a",
+    "[ 2524.071521] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2525.092948] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2525.111709] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2525.112790] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2525.436586] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2525.541982] koheron serverd[4827]: stress-instrument-b",
+    "[ 2525.558131] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2526.237449] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2526.265449] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2526.277242] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2526.785703] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2526.858314] koheron serverd[5524]: stress-instrument-broken",
+    "[ 2526.861040] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2526.861895] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2526.865557] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2526.885444] koheron systemctl[5322]: Job for koheron-stress-instrument.service failed because the control process exited with error code.",
+    "[ 2526.885496] koheron systemctl[5322]: See \"systemctl status koheron-stress-instrument.service\" and \"journalctl -xeu koheron-stress-instrument.service\" for details.",
+    "[ 2527.220472] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2527.300671] koheron serverd[5745]: stress-instrument-b",
+    "[ 2527.334202] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2527.352449] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2527.673483] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2528.374611] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2528.380915] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2528.382612] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2528.615006] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2528.765974] koheron serverd[6379]: stress-instrument-a",
+    "[ 2528.804534] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2529.862453] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2529.874386] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2529.878219] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2530.229395] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2530.339701] koheron serverd[7176]: stress-instrument-b",
+    "[ 2530.391066] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2531.626257] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2531.638157] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2531.645831] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2531.907763] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2532.040253] koheron serverd[7961]: stress-instrument-a",
+    "[ 2532.122106] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2532.913986] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2532.922588] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2532.926800] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2533.282769] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2533.384289] koheron serverd[8660]: stress-instrument-broken",
+    "[ 2533.390136] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2533.391029] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2533.394836] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2534.002538] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2534.065318] koheron serverd[9042]: stress-instrument-a",
+    "[ 2534.097477] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2534.106654] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2534.402086] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2535.215395] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2535.223755] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2535.224842] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2535.625412] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2535.734550] koheron serverd[9891]: stress-instrument-b",
+    "[ 2535.759460] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2536.893797] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2536.903984] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2536.910987] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2537.104806] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2537.292543] koheron serverd[10592]: stress-instrument-a",
+    "[ 2537.320759] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2538.345704] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2538.355873] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2538.358455] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2538.645215] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2538.762986] koheron serverd[11388]: stress-instrument-b",
+    "[ 2538.780867] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2539.632940] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2539.642823] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2539.645574] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2539.890450] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2540.021526] koheron serverd[12020]: stress-instrument-broken",
+    "[ 2540.024910] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2540.025713] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2540.028014] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2540.314644] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2540.450157] koheron serverd[12245]: stress-instrument-b",
+    "[ 2540.489127] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2540.495891] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2540.799850] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2541.510372] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2541.526141] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2541.532977] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2541.903976] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2541.995635] koheron serverd[13031]: stress-instrument-a",
+    "[ 2542.028418] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2543.231846] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2543.245610] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2543.249472] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2543.508262] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2543.695019] koheron serverd[13822]: stress-instrument-b",
+    "[ 2543.727140] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2544.830612] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2544.839033] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2544.846169] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2545.300740] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2545.410228] koheron serverd[14663]: stress-instrument-a",
+    "[ 2545.473000] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2546.366989] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2546.376195] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2546.382147] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2546.851632] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2546.988931] koheron serverd[15452]: stress-instrument-broken",
+    "[ 2547.015375] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2547.016232] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2547.029453] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2547.321713] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2547.459012] koheron serverd[15698]: stress-instrument-a",
+    "[ 2547.493585] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2547.507378] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2547.719634] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2548.626102] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2548.640774] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2548.641858] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2548.894675] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2549.040423] koheron serverd[16407]: stress-instrument-b",
+    "[ 2549.108209] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2550.211538] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2550.223850] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2550.226342] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2550.464378] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2550.623174] koheron serverd[17128]: stress-instrument-a",
+    "[ 2550.681993] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2551.906642] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2551.914306] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2551.919288] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2552.225419] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2552.312543] koheron serverd[17954]: stress-instrument-b",
+    "[ 2552.330671] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2553.278531] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2553.285288] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2553.287149] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2553.582083] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2553.701144] koheron serverd[18599]: stress-instrument-broken",
+    "[ 2553.712280] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2553.713198] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2553.722895] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2554.279405] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2554.412438] koheron serverd[18948]: stress-instrument-b",
+    "[ 2554.477564] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2554.508609] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2554.762320] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2555.658371] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2555.663149] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2555.664773] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2556.039968] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2556.124728] koheron serverd[19804]: stress-instrument-a",
+    "[ 2556.148587] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2557.145422] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2557.158929] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2557.160476] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2557.512537] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2557.589166] koheron serverd[20481]: stress-instrument-b",
+    "[ 2557.613069] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2558.682468] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2558.693764] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2558.710610] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2558.967950] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2559.068335] koheron serverd[21131]: stress-instrument-a",
+    "[ 2559.119373] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2559.969705] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2559.993528] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2559.996569] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2560.320390] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2560.408911] koheron serverd[21772]: stress-instrument-broken",
+    "[ 2560.411125] koheron systemd[1]: koheron-stress-instrument.service: Main process exited, code=exited, status=23/n/a",
+    "[ 2560.411923] koheron systemd[1]: koheron-stress-instrument.service: Failed with result 'exit-code'.",
+    "[ 2560.417517] koheron systemd[1]: Failed to start koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2560.813439] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2560.902974] koheron serverd[22025]: stress-instrument-a",
+    "[ 2560.922258] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2560.938427] koheron koheron-api[2633]: Instrument installation failed: systemctl start koheron-stress-instrument.service failed",
+    "[ 2561.296382] koheron koheron-api[2633]: Instrument installation failed: Unsafe archive member: ../escape",
+    "[ 2562.022018] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2562.030173] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2562.031159] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2562.432054] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2562.497882] koheron serverd[22758]: stress-instrument-b",
+    "[ 2562.520801] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2563.928457] koheron systemd[1]: Stopping koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2563.942926] koheron systemd[1]: koheron-stress-instrument.service: Deactivated successfully.",
+    "[ 2563.944640] koheron systemd[1]: Stopped koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2564.188490] koheron systemd[1]: Starting koheron-stress-instrument.service - Private stress fixture (no FPGA access)...",
+    "[ 2564.340224] koheron serverd[23616]: stress-instrument-a",
+    "[ 2564.417858] koheron systemd[1]: Started koheron-stress-instrument.service - Private stress fixture (no FPGA access).",
+    "[ 2592.054160] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/logs/koheron'. Error: The socket is no longer available for sending",
+    "[ 2592.059488] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/logs/koheron'. Error: The socket is no longer available for sending",
+    "[ 2592.067491] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.068681] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.072191] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.072191] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.072191] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.072191] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.076128] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.077603] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.088210] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments'. Error: The socket is no longer available for sending",
+    "[ 2592.095452] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.098162] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments'. Error: The socket is no longer available for sending",
+    "[ 2592.098162] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.098162] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments/details'. Error: The socket is no longer available for sending",
+    "[ 2592.101107] koheron koheron-api[2633]: Failed to send the response headers for the request for `/api/instruments'. Error: The socket is no longer available for sending"
+  ],
+  "nginx_journal_since_start": [
+    "[ 1988.259045] koheron systemd[1]: Starting koheron-stress-nginx.service - Private nginx stress frontend...",
+    "[ 1988.381502] koheron nginx[2634]: nginx: the configuration file /tmp/koheron-native-stress/nginx-private.conf syntax is ok",
+    "[ 1988.390213] koheron nginx[2634]: nginx: configuration file /tmp/koheron-native-stress/nginx-private.conf test is successful",
+    "[ 1988.404366] koheron systemd[1]: Started koheron-stress-nginx.service - Private nginx stress frontend."
+  ],
+  "kernel_oom_or_segfault_since_start": [],
+  "led_rpc": {
+    "invocations": 100,
+    "target": "production FFT Unix RPC; redisplay existing IP digit",
+    "phase": "soak-32",
+    "latency_ms": [
+      45.37068299987368,
+      63.71946899980685,
+      44.297948999883374,
+      66.93478799979857,
+      40.55449400038924,
+      33.59934999980396,
+      52.166430999932345,
+      42.033546999846294,
+      30.675658999825828,
+      38.34688400002051,
+      24.80695200029004,
+      29.17914399995425,
+      28.782434999811812,
+      38.936582999667735,
+      71.5577089999897,
+      66.13358699996752,
+      47.94761599987396,
+      27.67373200003931,
+      43.02843400000711,
+      86.53500499985967,
+      59.48711800010642,
+      50.666729000113264,
+      38.513670999691385,
+      25.10501699998713,
+      44.63699500001894,
+      51.044621000073676,
+      54.52154699969469,
+      49.87145000040982,
+      94.54328800029543,
+      88.57695999995485,
+      49.358788000063214,
+      48.179522000282304,
+      34.33118699967963,
+      45.530844000040815,
+      42.10001599994939,
+      27.788238999619352,
+      27.327890999913507,
+      30.809971999588015,
+      23.85527299975365,
+      65.96939100018062,
+      76.99903200000335,
+      43.76493899962952,
+      29.949449000014283,
+      23.827247000099305,
+      53.50143499981641,
+      25.39687300031801,
+      52.93830499977048,
+      33.736590999978944,
+      22.156215999984852,
+      55.25926399968739,
+      54.057328999988385,
+      57.719901999917056,
+      43.778996000128245,
+      30.356382000263693,
+      25.040341000021726,
+      74.34432199988805,
+      85.24602099987533,
+      48.19998699986172,
+      26.71728700033782,
+      62.8546580001057,
+      51.36298400020678,
+      61.22383499996431,
+      63.10698400011461,
+      37.58894299971871,
+      25.14833799978078,
+      29.993109999850276,
+      46.32571700039989,
+      75.55340699991575,
+      55.68178400017132,
+      43.88267200010887,
+      30.04365600008896,
+      55.53849999978411,
+      31.95414800029539,
+      50.14078999965932,
+      39.75678799997695,
+      30.87419699977545,
+      69.58899199980806,
+      54.767588000231626,
+      37.339825999879395,
+      50.414939999882336,
+      37.417859000015596,
+      26.86364400005914,
+      28.407714999957534,
+      87.11020100008682,
+      91.76111999977365,
+      57.521785000062664,
+      57.75736900022821,
+      30.45499200015911,
+      27.49289499979568,
+      97.20182899991414,
+      42.33496300003026,
+      47.56121599984908,
+      88.64432299969849,
+      58.664340999712294,
+      38.971728999968036,
+      27.49042899995402,
+      54.41540599986183,
+      36.98779400019703,
+      54.35092099969552,
+      73.20259499965687
+    ],
+    "all_succeeded": true
+  },
+  "host_sanitizers": {
+    "compiler": "GCC 15 C++23",
+    "image_id": "sha256:2e741a6066b84252159e0e9d950604a3253488e22b9064b8534306011dca3e7f",
+    "cxxflags": "-O1 -g -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread -MMD -MP -fsanitize=address,undefined -fno-omit-frame-pointer",
+    "ldflags": "-fsanitize=address,undefined",
+    "asan_options": "detect_leaks=1:halt_on_error=1:log_path=/work/tmp/native-stress/asan-final-report",
+    "ubsan_options": "halt_on_error=1:print_stacktrace=1:log_path=/work/tmp/native-stress/ubsan-final-report",
+    "api_tests": 30,
+    "installer_tests": 21,
+    "led_tests": 5,
+    "activation_tests": 2,
+    "total_tests": 58,
+    "diagnostic_files": [],
+    "binary_sha256": {
+      "koheron-install": "b1f3a4bfd68220347b331d5dae3d19339a0d6553307f199f4e1eb6dbc7dedad6",
+      "koheron-server-init": "5037706bb67be70f7f472ca97c142b0df042e552e9c8cbfa16c96ba2816f0d1e",
+      "koheron-api": "cca3680e7ebf646c1f5590488318c8216d5a8f15a2597bc1e0e2ef75aa8e36de"
+    },
+    "stress": {
+      "clients": 32,
+      "duration_s": 30,
+      "successful_requests": 70755,
+      "aborted_uploads": 500,
+      "leftovers": []
+    }
+  }
+}

@@ -12,7 +12,7 @@ Reference host: **Ubuntu 24.04** with **Vivado/Vitis 2025.1** under `/tools/Xili
 
 Install Vivado/Vitis and any required board files or licenses separately. `make setup` installs host dependencies, the Python environment and Koheron package, Docker and SDK Docker images.
 
-Server and instrument C++ builds use C++23 with GCC 13 or newer in Docker.
+Server, instrument and board management builds use C++23 with GCC 15 in Docker.
 The standalone C++ client continues to support C++20.
 
 ## Quick start
@@ -39,8 +39,8 @@ make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 `run` streams logs after starting the instrument. `Ctrl+C` stops the stream and leaves it running. The [Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument) returns after deployment for scripts and agents. Rebuild the image for OS, kernel, boot, board support or default instrument changes.
 
 The default Docker builder uses GCC 15 for the server, Linux kernel and
-U-Boot. See [compiler settings](docker/README.md) for independent selections and
-the GCC 13 fallback. The reference host remains Ubuntu 24.04.
+U-Boot and the board management runtime. See [compiler settings](docker/README.md)
+for independent selections. The reference host remains Ubuntu 24.04.
 
 ## Configuration model
 
@@ -69,9 +69,10 @@ Pass `CFG=.../config.mk` to build and deployment targets. `make help` lists targ
 | `make list` | Lists example instruments. |
 | `make validate CFG=...` | Validates `config.mk` and `memory.yml`. |
 
-Pull requests and pushes run one smoke-test job with a one-minute timeout:
-example configurations, instrument copying, OS build dependencies, the management
-API, the startup helper and a small C++ logging check. Full server, sanitizer,
+Pull requests and pushes run a one-minute smoke-test job for example
+configurations, instrument copying, OS build dependencies and C++ logging.
+A separate Docker job builds and tests the native C++23 management runtime,
+installer and LED helper with GCC 15. Full server, sanitizer,
 instrument build, DSP and browser tests remain available to run locally when a
 change needs them.
 
@@ -124,7 +125,10 @@ Instrument ZIP: `tmp/<project>/<NAME>.zip`, also copied to `tmp/<board>/instrume
 Generated SD card images boot **Ubuntu Base 26.04.1** with the **Xilinx 2026.1 (Linux 6.18)** kernel. OS defaults are pinned independently of the selected Vivado/Vitis release; boot components and device-tree generation follow that toolchain. The runtime environment includes:
 
 - **nginx** serving static files and proxying **WebSocket** traffic.
-- An HTTP API (powered by **uWSGI**) for uploads and instrument management.
+- A **C++23 HTTP API**, native installer and LED helper for instrument management.
+
+The standard board image contains no Python interpreter, Flask or uWSGI.
+The host Python SDK continues to use the same HTTP routes.
 
 See [OS image build notes](./os/README.md) for settings and tests.
 

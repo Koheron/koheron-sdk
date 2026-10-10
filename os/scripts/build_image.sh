@@ -235,7 +235,7 @@ tar -C "$root_dir" -xf "$overlay_tar"
 
 # Runtime/log/state dirs that may live on tmpfs at boot
 install -d -m0755 "$root_dir/var/log/nginx"
-install -d -m0755 "$root_dir/run/uwsgi"
+install -d -m0755 "$root_dir/run/koheron-api"
 install -d -m0755 "$root_dir/var/lib/systemd/timesync"
 
 # --- nginx/site config installed from repo (outside chroot) ---

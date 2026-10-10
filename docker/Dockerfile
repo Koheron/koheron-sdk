@@ -3,6 +3,14 @@ FROM ubuntu:${UBUNTU_VERSION}
 ARG GCC_VERSION=15
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Native management tools use the same packaged libraries on both board ABIs.
+# Keep native repositories restricted to amd64; cross libraries come from ports.
+RUN dpkg --add-architecture armhf && dpkg --add-architecture arm64 \
+    && sed -i '/^Types: deb/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources \
+    && . /etc/os-release \
+    && printf 'deb [arch=armhf,arm64] http://ports.ubuntu.com/ubuntu-ports %s main universe\ndeb [arch=armhf,arm64] http://ports.ubuntu.com/ubuntu-ports %s-updates main universe\ndeb [arch=armhf,arm64] http://ports.ubuntu.com/ubuntu-ports %s-security main universe\n' \
+       "$VERSION_CODENAME" "$VERSION_CODENAME" "$VERSION_CODENAME" > /etc/apt/sources.list.d/koheron-cross.list
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ca-certificates wget unzip xz-utils curl \
     binutils-aarch64-linux-gnu binutils-arm-linux-gnueabihf \
@@ -14,6 +22,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libeigen3-dev \
     libnewlib-arm-none-eabi \
     libssl-dev zlib1g-dev uuid-dev pkg-config \
+    libmicrohttpd-dev libzip-dev libjson-c-dev libsystemd-dev libunistring-dev \
+    libmicrohttpd-dev:armhf libzip-dev:armhf libjson-c-dev:armhf libsystemd-dev:armhf libunistring-dev:armhf \
+    libmicrohttpd-dev:arm64 libzip-dev:arm64 libjson-c-dev:arm64 libsystemd-dev:arm64 libunistring-dev:arm64 \
     swig python3 python3-dev python3-setuptools device-tree-compiler \
     fdisk util-linux parted udev dosfstools e2fsprogs zip eatmydata \
     ccache gettext-base \
