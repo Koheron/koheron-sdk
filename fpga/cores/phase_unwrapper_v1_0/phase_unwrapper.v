@@ -7,7 +7,8 @@ module phase_unwrapper #
   parameter integer PIPELINED_OVERFLOW = 0,
   parameter integer PIPELINED_HISTORY = 0,
   parameter integer FUSED_DIFFERENCE = 0,
-  parameter integer CANONICAL_INPUT = 0
+  parameter integer CANONICAL_INPUT = 0,
+  parameter integer LOOKAHEAD_HISTORY = 0
 )
 (
   input  wire clk,
@@ -34,10 +35,21 @@ module phase_unwrapper #
   initial overflow = 0;
 
   wire signed [DOUT_WIDTH:0] next_phase;
+  wire signed [DOUT_WIDTH:0] conventional_phase;
+  // Keep the smaller legacy datapath for clocks that do not need cached
+  // prefixes. Synthesis removes it when the lookahead output is selected.
   phase_unwrapper_adder #(.WIDTH(DOUT_WIDTH+1),.BLOCK(PIPELINED_OVERFLOW ? 8 : 0)) history_add(
       {phase_out[DOUT_WIDTH-1],phase_out},
       {{(DOUT_WIDTH-DIN_WIDTH){unwrapped_diff[DIN_WIDTH]}},unwrapped_diff},
-      1'b0,next_phase);
+      1'b0,conventional_phase);
+  generate if (LOOKAHEAD_HISTORY && PIPELINED_OVERFLOW && !PIPELINED_HISTORY && DOUT_WIDTH>32 && DOUT_WIDTH>DIN_WIDTH+1) begin : lookahead_history
+    phase_unwrapper_lookahead #(.WIDTH(DOUT_WIDTH),.STEP_WIDTH(DIN_WIDTH+1)) history_add(
+        clk,rst,acc_on,phase_out,unwrapped_diff,next_phase[DOUT_WIDTH-1:0]);
+    assign next_phase[DOUT_WIDTH]=(phase_out[DOUT_WIDTH-1]==unwrapped_diff[DIN_WIDTH]) ?
+        phase_out[DOUT_WIDTH-1] : next_phase[DOUT_WIDTH-1];
+  end else begin : conventional_history
+    assign next_phase=conventional_phase;
+  end endgenerate
 
   // Compute phase difference
   always @(posedge clk) begin
@@ -187,6 +199,74 @@ module phase_unwrapper #
 
   assign freq_out = unwrapped_diff;
 
+endmodule
+
+// The caller captures sum into x with the same reset and enable. Cached
+// zero/one prefixes describe that registered state, not a delayed sample.
+// A signed narrow step changes the upper word by at most one. Its next
+// prefix flags can therefore be predicted from comparisons with 0, 1, -1
+// and -2, independently of the wide sum. The late low-word carry reaches
+// only a local toggle/mux rather than another wide combinational chain.
+module phase_unwrapper_lookahead #(
+    parameter integer WIDTH=64,
+    parameter integer STEP_WIDTH=17
+)(input wire clk,rst,enable,
+  input wire [WIDTH-1:0] x, input wire [STEP_WIDTH-1:0] step,
+  output wire [WIDTH-1:0] sum);
+    localparam GROUP_BITS=4;
+    localparam GROUPS=(WIDTH-STEP_WIDTH+GROUP_BITS-1)/GROUP_BITS;
+    reg [GROUPS-1:0] zero_prefix={GROUPS{1'b1}};
+    reg [GROUPS-1:0] one_prefix={{(GROUPS-1){1'b0}},1'b1};
+    wire [STEP_WIDTH:0] low_sum={1'b0,x[STEP_WIDTH-1:0]}+{1'b0,step};
+    wire carry_up=low_sum[STEP_WIDTH] && !step[STEP_WIDTH-1];
+    wire borrow_down=!low_sum[STEP_WIDTH] && step[STEP_WIDTH-1];
+    assign sum[STEP_WIDTH-1:0]=low_sum[STEP_WIDTH-1:0];
+
+    // Preserve the small comparator groups so synthesis cannot turn the
+    // parallel prefix comparisons into a serial chain of wide LUT terms.
+    (* keep = "true" *) wire [GROUPS-1:0] rest_zero_group,rest_one_group;
+    genvar g,b;
+    for (g=0;g<GROUPS;g=g+1) begin : upper
+        localparam BASE=STEP_WIDTH+g*GROUP_BITS;
+        localparam N=(WIDTH-BASE<GROUP_BITS) ? WIDTH-BASE : GROUP_BITS;
+        wire up=carry_up && one_prefix[g];
+        wire down=borrow_down && zero_prefix[g];
+        if (g==0) begin : first_comparison
+            if (N==1) begin : single
+                assign rest_zero_group[g]=1;
+                assign rest_one_group[g]=1;
+            end else begin : multiple
+                assign rest_zero_group[g]=!(|x[BASE+N-1:BASE+1]);
+                assign rest_one_group[g]=&x[BASE+N-1:BASE+1];
+            end
+        end else begin : comparison
+            assign rest_zero_group[g]=!(|x[BASE +: N]);
+            assign rest_one_group[g]=&x[BASE +: N];
+        end
+        for (b=0;b<N;b=b+1) begin : bit_sum
+            if (b==0) begin : first
+                assign sum[BASE+b]=x[BASE+b]^(up | down);
+            end else begin : prefix
+                assign sum[BASE+b]=x[BASE+b]^((up && (&x[BASE+b-1:BASE])) |
+                    (down && !(|x[BASE+b-1:BASE])));
+            end
+        end
+        if (g>0) begin : prediction
+            wire is_one=x[STEP_WIDTH] && (&rest_zero_group[g-1:0]);
+            wire is_minus_two=!x[STEP_WIDTH] && (&rest_one_group[g-1:0]);
+            always @(posedge clk) begin
+                if (rst) begin
+                    zero_prefix[g]<=1;
+                    one_prefix[g]<=0;
+                end else if (enable) begin
+                    zero_prefix[g]<=carry_up ? one_prefix[g] :
+                        borrow_down ? is_one : zero_prefix[g];
+                    one_prefix[g]<=carry_up ? is_minus_two :
+                        borrow_down ? zero_prefix[g] : one_prefix[g];
+                end
+            end
+        end
+    end
 endmodule
 
 // Short local carry chains, connected by the 7-series dedicated carry fabric.

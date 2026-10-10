@@ -13,7 +13,7 @@ module test_phase_history_tb;
     wire overflow[0:2];
     phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64)) ripple(
         clk,acc_on,rst,phase_in,frequency[0],history[0],overflow[0]);
-    phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64),.PIPELINED_OVERFLOW(1)) bounded(
+    phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64),.PIPELINED_OVERFLOW(1),.LOOKAHEAD_HISTORY(1)) bounded(
         clk,acc_on,rst,phase_in,frequency[1],history[1],overflow[1]);
     phase_unwrapper #(.DIN_WIDTH(24),.DOUT_WIDTH(64),.PIPELINED_OVERFLOW(1),.PIPELINED_HISTORY(1)) piped(
         clk,acc_on,rst,phase_in,frequency[2],history[2],overflow[2]);
@@ -86,6 +86,8 @@ module test_phase_history_tb;
         // normal frequency pipeline and accumulator across signed overflow.
         ripple.phase_out=64'h7fffffffffffffff;
         bounded.phase_out=64'h7fffffffffffffff;
+        bounded.lookahead_history.history_add.zero_prefix=1;
+        bounded.lookahead_history.history_add.one_prefix='1;
         piped.phase_out=64'h7fffffffffffffff;
         piped.split_history.low_state=32'hffffffff;
         general_fused.phase_out=64'h7fffffffffffffff;

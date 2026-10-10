@@ -8,6 +8,9 @@ if {[get_property CONFIG.PREDECODE_WRITES [get_bd_cells ctl/axi_ctl_register]] !
 source [file join [file dirname [info script]] ../../../alpha250/phase-noise-analyzer/tests/check_extractor.tcl]
 for {set channel 0} {$channel < 4} {incr channel} {
     check_phase_extractor cordic$channel
+    if {[get_property CONFIG.LOOKAHEAD_HISTORY [get_bd_cells cordic$channel/phase_unwrapper]] != 1} {
+        error "Expected cached carry prefixes for 250 MHz history"
+    }
     foreach {key expected} {Multiplier_Construction Use_Mults PipeStages 8 PortAWidth 64 PortBWidth 32 OutputWidthHigh 93 OutputWidthLow 30} {
         if {[get_property CONFIG.$key [get_bd_cells scaler$channel]] ne $expected} {
             error "scaler$channel: unexpected $key"

@@ -110,10 +110,12 @@ proc create {module_name rounding_seed} {
         random_round [get_slice_pin phase_lfsr/m_axis_tdata 7 0]
     }
 
-    # Phase unwrapping
+    # Phase unwrapping. Cached carry prefixes shorten the wide feedback path
+    # above 125 MHz. Keep the smaller accumulator at Red Pitaya's 125 MHz.
 
     cell koheron:user:phase_unwrapper:1.0 phase_unwrapper {
         PIPELINED_OVERFLOW 1
+        LOOKAHEAD_HISTORY [expr {[get_parameter adc_clk] > 125000000}]
         DIN_WIDTH 16
         DOUT_WIDTH [get_parameter phase_accumulator_width]
     } {

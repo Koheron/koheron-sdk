@@ -13,6 +13,9 @@ source [file join [file dirname [info script]] ../../../alpha250/phase-noise-ana
 check_phase_extractor $c
 if {[get_property CONFIG.Output_Width [get_bd_cells $c/cordic]] != 24} {error "Wrong CORDIC width"}
 if {[get_property CONFIG.DOUT_WIDTH [get_bd_cells $c/phase_unwrapper]] != 64} {error "Wrong accumulator width"}
+if {[get_property CONFIG.LOOKAHEAD_HISTORY [get_bd_cells $c/phase_unwrapper]] != 0} {
+    error "Expected the smaller history accumulator at 125 MHz"
+}
 same_net $c/phase_round/phase_out $c/phase_unwrapper/phase_in
 same_net $c/phase_lfsr/m_axis_tdata $c/slice_7_0_cphase_lfsr_m_axis_tdata/Din
 same_net $c/slice_7_0_cphase_lfsr_m_axis_tdata/Dout $c/phase_round/random_round
