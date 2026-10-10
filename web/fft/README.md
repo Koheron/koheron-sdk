@@ -23,6 +23,10 @@ of acquisition-control updates; ALPHA15 uses it in its local board controls.
 `fft.css` owns the grid, responsive layout and 26-pixel control sizing.
 [Precision channels](../precision-channels/README.md) own precision-editor styles.
 
+CSV/PNG filenames identify the instrument, board, history view when selected,
+and UTC export time. PNG annotations wrap long names and acquisition labels at
+the displayed plot width while preserving the backing canvas's full resolution.
+
 See the [ALPHA250 interface guide](../../examples/alpha250/fft/README.md),
 [ALPHA250-4 acquisition mapping and limitations](../../examples/alpha250-4/fft/README.md)
 and [ALPHA15 acquisition guide](../../examples/alpha15/signal-analyzer/README.md).

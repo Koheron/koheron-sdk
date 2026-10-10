@@ -107,8 +107,10 @@ vm.runInContext(`
     plot.views = {mode: 'density', render() {}, dispose() {}};
     plot.history.reset(); plot.redraw();
     assert.ok(exportButtons.every(button => button.disabled)); // Empty history cannot silently export nothing.
+    assert.ok(exportButtons.every(button => button.title === 'History cleared. Resume to collect spectra.'));
     plot.views.mode = 'spectrum'; plot.redraw();
     assert.ok(exportButtons.every(button => !button.disabled)); // Retained live spectrum remains exportable.
+    assert.ok(exportButtons.every(button => button.title === 'Export the displayed spectrum'));
     plot.dispose();
     await plot.updatePlot();
     assert.equal(reads, 2);

@@ -360,6 +360,9 @@ class Plot {
         (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = !this.references.items.length;
         for (const button of Array.from(this.document.querySelectorAll<HTMLButtonElement>('.export-data, .export-plot'))) {
             button.disabled = !ready || (this.view !== 'spectrum' && !this.history.samples);
+            button.title = !ready ? 'Waiting for a valid spectrum' : button.disabled
+                ? this.paused ? 'History cleared. Resume to collect spectra.' : 'Waiting for received spectra'
+                : 'Export the displayed ' + this.view;
         }
         if (!this.plot_data.length) { return; }
         const range = this.plotBasics.getRangeX();

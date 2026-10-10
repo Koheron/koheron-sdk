@@ -18,29 +18,44 @@ class ExportFile {
         const scale = canvas.width / width;
         const height = canvas.height / scale;
         const references = historyView ? [] : this.spectrum.visibleReferences;
-        const headerHeight = 52 + 16 * references.length;
+        const filename = this.filename('png');
         const image = this.document.createElement('canvas');
-        image.width = canvas.width;
-        image.height = Math.ceil((height + headerHeight + 30) * scale);
         const context = image.getContext('2d');
         if (!context) { return; }
+        const labels: {text: string; color: string; font: string}[] = [];
+        const addLabel = (text: string, color = '#333', font = '11px sans-serif') => {
+            context.font = font;
+            let line = '';
+            const push = () => { labels.push({text:line, color, font}); line = ''; };
+            for (const word of text.split(' ')) {
+                const next = line ? line + ' ' + word : word;
+                if (context.measureText(next).width <= width - 24) { line = next; continue; }
+                if (line) { push(); }
+                for (const char of word) {
+                    if (line && context.measureText(line + char).width > width - 24) { push(); }
+                    line += char;
+                }
+            }
+            if (line) { push(); }
+        };
+        addLabel(this.boardName + ' ' + this.instrumentName + ' · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, '#333', '12px sans-serif');
+        addLabel((references.length ? 'Live · ' : '') + this.frameLabel(status));
+        references.forEach(reference => addLabel(reference.name + ' · ' + this.frameLabel(reference.status), reference.color));
+        const headerHeight = 20 + 16 * labels.length;
+        image.width = canvas.width;
+        image.height = Math.ceil((height + headerHeight + 30) * scale);
         context.scale(scale, scale);
         context.fillStyle = 'white';
         context.fillRect(0, 0, width, height + headerHeight + 30);
-        context.fillStyle = '#333';
-        context.font = '12px sans-serif';
-        context.fillText(this.boardName + ' ' + this.instrumentName + ' · ' + (historyView ? this.spectrum.view + ' · ' : '') + this.spectrum.yLabel, 12, 20);
-        context.font = '11px sans-serif';
-        context.fillText((references.length ? 'Live · ' : '') + this.frameLabel(status), 12, 38);
-        references.forEach((reference, index) => {
-            context.fillStyle = reference.color;
-            context.fillText(reference.name + ' · ' + this.frameLabel(reference.status), 12, 54 + 16 * index, width - 24);
+        labels.forEach((label, index) => {
+            context.fillStyle = label.color; context.font = label.font;
+            context.fillText(label.text, 12, 20 + 16 * index);
         });
         context.fillStyle = '#333';
         context.drawImage(canvas, 0, headerHeight, width, height);
         context.textAlign = 'center';
         if (!historyView) { context.fillText('Frequency (' + (status.spectrum?.unit || 'MHz') + ')', width / 2, height + headerHeight + 20); }
-        image.toBlob(blob => { if (blob) { this.download(blob, 'koheron_fft.png'); } });
+        image.toBlob(blob => { if (blob) { this.download(blob, filename); } });
     }
 
     private frameLabel(status: IFFTStatus): string {
@@ -73,6 +88,13 @@ class ExportFile {
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
+    private filename(extension: string): string {
+        const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const parts = [slug(this.instrumentName), slug(this.boardName)];
+        if (this.spectrum.view && this.spectrum.view !== 'spectrum') { parts.push(slug(this.spectrum.view)); }
+        return parts.join('-') + '-' + new Date().toISOString().replace(/[:.]/g, '-') + '.' + extension;
+    }
+
     private exportData(): void {
         const status = this.spectrum.frameStatus;
         if (!status) { return; }
@@ -88,7 +110,7 @@ class ExportFile {
         for (const [label, data] of [['Average (1 s linear power EMA)', this.spectrum.average_data], ['Max hold', this.spectrum.maximum_data]] as [string, number[][]][]) {
             if (data) { rows.push('', label, ...this.frameRows(status)); for (const row of data) { rows.push(row.join(',')); } }
         }
-        this.download(new Blob([rows.join('\n')], {type: 'text/csv;charset=utf-8'}), 'koheron_fft.csv');
+        this.download(new Blob([rows.join('\n')], {type: 'text/csv;charset=utf-8'}), this.filename('csv'));
     }
     private exportHistory(): void {
         const history = this.spectrum.history;
@@ -134,7 +156,7 @@ class ExportFile {
                 rows.push(level + ',' + frequencies.map((_, i) => history.density[i * 256 + code]).join(','));
             }
         }
-        this.download(new Blob([rows.join('\n')], {type: 'text/csv;charset=utf-8'}), 'koheron_fft_' + this.spectrum.view + '.csv');
+        this.download(new Blob([rows.join('\n')], {type: 'text/csv;charset=utf-8'}), this.filename('csv'));
     }
 
 }

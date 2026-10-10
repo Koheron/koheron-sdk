@@ -23,6 +23,7 @@ async function host(t, failure = false) {
         for (const fn of queued) { fn(time += 17); } await settle();
     };
     const canvas = {setTransform() {}, clearRect() {}, fillRect() {}, strokeRect() {}, fillText() {}, scale() {},
+        measureText(text) { return {width:text.length * 6}; },
         save() {}, restore() {}, translate() {}, rotate() {}, drawImage() {}, putImageData() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
         createImageData(width, height) { return {data: new Uint8ClampedArray(width * height * 4)}; }};
     w.HTMLCanvasElement.prototype.getContext = () => canvas;
@@ -184,7 +185,7 @@ test('pause, history, full-bin CSV/PNG exports and precision drafts use the shar
     assert(output.includes(String(2047*250/4096)));
     plot.views.mode='spectrogram'; h.app.exportFile.exportData(); await settle(); assert(output.includes('Age (s) / Frequency (MHz)'));
     plot.views.mode='density'; h.app.exportFile.exportData(); await settle(); assert(filename.includes('density'));
-    h.app.exportFile.exportPlot(); await settle(); assert.equal(filename,'koheron_fft.png');
+    h.app.exportFile.exportPlot(); await settle(); assert(filename.startsWith('fft-alpha250-4-density-') && filename.endsWith('.png'));
 });
 
 test('failure and page exit disable acquisition and stop late rendering and hardware writes', async t => {

@@ -158,13 +158,13 @@ vm.runInContext(`
     exporter.download = (blob, name) => { download = {blob, name}; };
     exporter.exportData();
     const csv = await download.blob.text();
-    assert.equal(download.name, 'koheron_fft_spectrogram.csv');
+    assert.ok(download.name.startsWith('fft-alpha250-spectrogram-') && download.name.endsWith('.csv'));
     assert.ok(csv.includes('Age (s) / Frequency (MHz),0,1,2,3'));
     assert.ok(csv.includes('0.05,,,,')); // Missing row explicitly exported.
     assert.equal(csv.split('\\n').filter(line => /^\\d+(?:\\.\\d+)?,/.test(line)).length, 100);
     spectrum.view = 'density'; exporter.exportData();
     const densityCSV = await download.blob.text();
-    assert.equal(download.name, 'koheron_fft_density.csv');
+    assert.ok(download.name.startsWith('fft-alpha250-density-') && download.name.endsWith('.csv'));
     assert.ok(densityCSV.includes('Received spectra,4'));
     assert.ok(densityCSV.includes('Values,Occurrence count'));
     const rollingHistory = new SpectrumHistory(); rollingHistory.setDuration(5);
