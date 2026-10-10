@@ -1,5 +1,5 @@
 /*
-    * Koheron Alpha250 devicetree
+    * Red Pitaya devicetree
      *
       * Copyright (C) 2015 Antmicro Ltd
        * Copyright (C) 2025 Koheron SAS
@@ -9,11 +9,13 @@
 /dts-v1/;
 #include "zynq-7000.dtsi"
 / {
-  model = "Koheron Alpha250";
+  model = "Red Pitaya";
   compatible = "xlnx,zynq-red-pitaya","xlnx,zynq-7000";
   aliases {
     serial0 = &uart0;
     mmc0 = &sdhci0;
+    ethernet0 = &gem0;
+    i2c0 = &i2c0;
   };
   memory@0 {
       device_type = "memory";
@@ -46,6 +48,20 @@
 &uart0 {
   bootph-pre-ram;
   status = "okay";
+};
+&gem0 {
+  status = "okay";
+  phy-mode = "rgmii-id";
+  phy-handle = <&ethphy0>;
+  mdio {
+    #address-cells = <1>;
+    #size-cells = <0>;
+    ethphy0: ethernet-phy@1 {
+      reg = <1>;
+      rx-internal-delay-ps = <2000>;
+      tx-internal-delay-ps = <2500>;
+    };
+  };
 };
 &usb0 {
   status = "okay";

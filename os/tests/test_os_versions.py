@@ -12,7 +12,7 @@ class OsVersionsTest(unittest.TestCase):
         harness = '''include Makefile
 .PHONY: print-os-versions
 print-os-versions:
-\t@printf '%s\\n' '$(LINUX_TAG)' '$(LINUX_URL)' '$(UBUNTU_VERSION)' '$(UBOOT_TAG)' '$(DTREE_TAG)' '$(ATRUST_TAG)' '$(VIVADO_PATH)' '$(UBUNTU_ARCH)'
+\t@printf '%s\\n' '$(LINUX_TAG)' '$(LINUX_URL)' '$(UBUNTU_VERSION)' '$(UBOOT_TAG)' '$(DTREE_TAG)' '$(ATRUST_TAG)' '$(VIVADO_PATH)' '$(UBUNTU_ARCH)' '$(UBOOT_URL)'
 '''
         result = subprocess.run(
             ['make', '--no-print-directory', '-f', '-', 'print-os-versions',
@@ -30,9 +30,10 @@ print-os-versions:
                         'xilinx-linux-v2026.1',
                         'https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v2026.1.tar.gz',
                         '26.04.1'])
-                    self.assertEqual(values[3:5], [f'xilinx-uboot-v{vivado}', f'xilinx_v{vivado}'])
+                    self.assertEqual(values[3:5], ['xilinx-uboot-v2026.1', f'xilinx_v{vivado}'])
                     self.assertEqual(values[5], f'arm-trust-v{vivado}' if arch == 'arm64' else '')
-                    self.assertEqual(values[6:], [f'/tools/Xilinx/{vivado}/Vivado', arch])
+                    self.assertEqual(values[6:8], [f'/tools/Xilinx/{vivado}/Vivado', arch])
+                    self.assertEqual(values[8], 'https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v2026.1.tar.gz')
                     checksums = (SDK / 'os/source-checksums.sha256').read_text()
                     for archive in (f'u-boot-xlnx-xilinx-uboot-v{vivado}.tar.gz',
                                     f'device-tree-xlnx-xilinx_v{vivado}.tar.gz',
@@ -41,10 +42,11 @@ print-os-versions:
 
     def test_older_runtime_can_be_selected_with_newer_tools(self):
         values = self.versions('alpha250/fft', '2026.1',
-                               'LINUX_VERSION=2025.1', 'UBUNTU_VERSION=24.04.5')
+                               'LINUX_VERSION=2025.1', 'UBUNTU_VERSION=24.04.5', 'UBOOT_VERSION=2025.1')
         self.assertEqual(values[0], 'xilinx-linux-v2025.1')
         self.assertIn('xilinx-v2025.1.tar.gz', values[1])
-        self.assertEqual(values[2:5], ['24.04.5', 'xilinx-uboot-v2026.1', 'xilinx_v2026.1'])
+        self.assertEqual(values[2:5], ['24.04.5', 'xilinx-uboot-v2025.1', 'xilinx_v2026.1'])
+        self.assertEqual(values[8], 'https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v2025.1.tar.gz')
 
 
 if __name__ == '__main__':

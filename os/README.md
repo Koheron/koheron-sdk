@@ -4,13 +4,13 @@ Build and installation: [SDK quick start](../README.md#quick-start).
 
 ## Settings
 
-The default runtime is Ubuntu Base **26.04.1** and Xilinx **2026.1 / Linux 6.18**, independent of `VIVADO_VERSION` (default **2025.1**). Bootloader, firmware and device-tree source releases follow the selected Vivado/Vitis toolchain. The reference development host remains Ubuntu 24.04; the default build container uses Ubuntu 26.04 and GCC 15.
+The default runtime is Ubuntu Base **26.04.1** and Xilinx **2026.1 / Linux 6.18**, independent of `VIVADO_VERSION` (default **2025.1**). U-Boot also defaults independently to Xilinx **2026.1 / U-Boot 2026.01**, selected with `UBOOT_VERSION`. FSBL, firmware and device-tree source releases follow the selected Vivado/Vitis toolchain. The reference development host remains Ubuntu 24.04; the default build container uses Ubuntu 26.04 and GCC 15.
 
 Override `LINUX_VERSION` to select an earlier kernel release, for example:
 
 ```sh
 make CFG=examples/alpha250/fft/config.mk VIVADO_VERSION=2025.1 \
-  LINUX_VERSION=2025.1 image
+  LINUX_VERSION=2025.1 UBOOT_VERSION=2025.1 image
 ```
 
 The native management runtime and its shared libraries target Ubuntu 26.04.
@@ -19,6 +19,34 @@ Older rootfs releases require a matching custom builder and package selection.
 APT repositories are derived from the extracted Ubuntu rootfs's `/etc/os-release`. New Xilinx source releases require entries in `source-checksums.sha256`. Defaults refer to released versions, not development snapshots or moving branches.
 
 Rebuild boot and FPGA artifacts when changing Vivado/Vitis versions; cached artifacts are not proof of compatibility. Validate image builds separately from board boot, FPGA overlays, DMA/cache correctness and acquisition tests.
+
+Build U-Boot alone with `make CFG=examples/red-pitaya/fft/config.mk uboot`.
+Changing `UBOOT_VERSION` reselects the verified source archive and rebuilds the
+shared output, including when returning to an older cached release. The release
+manifest records the selected U-Boot tag. An upgrade still requires a new
+`boot.bin` and board boot validation.
+
+The Red Pitaya, ALPHA250 and ALPHA250-1G bootloaders use a one-second serial
+countdown. Their SDK images use the Vitis FSBL and FIT images through extlinux,
+so these configurations omit SPL, EFI, NAND, parallel NOR, UBI/UBIFS, SquashFS
+and USB gadget downloads. FIT signature support, error diagnostics, SD,
+USB host storage, QSPI and network commands are retained. Normal FIT output is
+reduced. The shared extlinux configuration boots its single entry directly,
+without a second menu countdown; the U-Boot serial interrupt window remains.
+Vendor Zedboard and KR260 configurations are
+unchanged apart from the selected source release. The Red Pitaya U-Boot device
+tree identifies the board correctly and enables GEM0 with its XWAY PHY; EEPROM
+MAC, serial and hardware-revision reads are retained.
+Its PHY driver wakes the PHY after Linux shuts it down on reboot and applies
+the same RX/TX timing delays as the SDK kernel.
+The custom configurations retain the older environment-relocation and USB ULPI
+options needed when selecting `UBOOT_VERSION=2025.1`.
+
+[Initial Red Pitaya validation](tests/uboot-modernization-red-pitaya.json) and
+[further optimization measurements](tests/uboot-optimization-red-pitaya.json)
+record build checks, payload sizes, serial timings and hardware results.
+The candidate was loaded into RAM from the installed loader; cold boot of a
+replaced SD `boot.bin` remains to be validated.
 
 Zynq images set `RebootWatchdogSec=8min` through a systemd manager drop-in. The
 Cadence watchdog driver's 516-second maximum rejects systemd's 10-minute default.

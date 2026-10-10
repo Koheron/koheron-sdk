@@ -62,6 +62,7 @@ Pass `CFG=.../config.mk` to build and deployment targets. `make help` lists targ
 | `make server` | Compiles the C++ TCP/WebSocket server. |
 | `make web` | Builds the TypeScript/CSS assets for the web UI. |
 | `make os` | Builds the Linux root filesystem for the selected board. |
+| `make uboot` | Builds the board bootloader; select its release with `UBOOT_VERSION=...`. |
 | `make image` | Produces a bootable SD card image combining OS, boot files and instrument artefacts. |
 | `make run` | Builds, uploads and starts the instrument, then streams logs. |
 | `make copy CFG=... DEST=...` | Copies an instrument's sources and sets its package name from the destination directory. |

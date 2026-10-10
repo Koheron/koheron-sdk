@@ -3,10 +3,12 @@ ABS_TMP_OS_PATH := $(abspath $(TMP_OS_PATH))
 TMP_OS_BOARD_PATH ?= $(TMP_PROJECT_PATH)/os
 
 include $(dir $(lastword $(MAKEFILE_LIST)))compiler-settings.mk
-UBOOT_TAG ?= xilinx-uboot-v$(VIVADO_VERSION)
+# U-Boot can be upgraded independently of the FSBL and FPGA toolchain.
+UBOOT_VERSION ?= 2026.1
+UBOOT_TAG := xilinx-uboot-v$(UBOOT_VERSION)
 DTREE_TAG ?= xilinx_v$(VIVADO_VERSION)
 
-UBOOT_URL := https://github.com/Xilinx/u-boot-xlnx/archive/xilinx-v$(VIVADO_VERSION).tar.gz
+UBOOT_URL := https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v$(UBOOT_VERSION).tar.gz
 DTREE_URL := https://github.com/Xilinx/device-tree-xlnx/archive/refs/tags/$(DTREE_TAG).tar.gz
 
 UBOOT_PATH ?= $(TMP_OS_BOARD_PATH)/u-boot-xlnx-$(UBOOT_TAG)
@@ -55,6 +57,9 @@ clean_fsbl:
 # u-boot.elf
 ###############################################################################
 
+.PHONY: uboot
+uboot: $(TMP_OS_BOARD_PATH)/u-boot.elf
+
 $(UBOOT_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	mkdir -p $(@D)
 	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(UBOOT_URL)
@@ -74,7 +79,16 @@ UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
 UBOOT_COMPILER_STAMP := $(UBOOT_PATH)/.compiler-settings
 $(eval $(call compiler_settings_stamp,$(UBOOT_COMPILER_STAMP),$(UBOOT_CC)))
 
-$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE) $(UBOOT_COMPILER_STAMP) $(OS_PATH)/scripts/patch_uboot.sh
+# Switching back to a cached release must also replace the shared output ELF.
+UBOOT_SELECTION_STAMP := $(TMP_OS_BOARD_PATH)/.uboot-selection
+$(UBOOT_SELECTION_STAMP): compiler-settings-force
+	@mkdir -p "$(@D)"
+	@selection_tmp=$$(mktemp "$@.tmp.XXXXXX"); \
+	trap 'rm -f "$$selection_tmp"' EXIT; \
+	printf '%s\n' 'TAG=$(UBOOT_TAG)' 'PATH=$(UBOOT_PATH)' 'CONFIG=$(UBOOT_CONFIG)' > "$$selection_tmp"; \
+	if ! cmp -s "$$selection_tmp" "$@"; then mv -f "$$selection_tmp" "$@"; fi
+
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE) $(UBOOT_COMPILER_STAMP) $(UBOOT_SELECTION_STAMP) $(OS_PATH)/scripts/patch_uboot.sh
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	bash $(OS_PATH)/scripts/patch_uboot.sh $(UBOOT_PATH)
@@ -83,8 +97,8 @@ $(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONF
 	@touch $@
 	$(call ok,$@)
 
-$(TMP_OS_BOARD_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) | $(TMP_BOARD_PATH)/
-	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
+$(TMP_OS_BOARD_PATH)/u-boot.elf: $(UBOOT_CONFIG_STAMP) $(UBOOT_SELECTION_STAMP) | $(TMP_BOARD_PATH)/
+	$(DOCKER) make -C $(UBOOT_PATH) --jobs=$(N_CPUS) ARCH=$(UBOOT_ARCH) CFLAGS="$(UBOOT_CFLAGS) $(GCC_FLAGS)" \
 	  $(UBOOT_TOOLCHAIN_FLAGS) all
 	if [ -f $(UBOOT_PATH)/u-boot.elf ]; then cp $(UBOOT_PATH)/u-boot.elf $@; else cp $(UBOOT_PATH)/u-boot $@; fi
 	$(call ok,$@)
