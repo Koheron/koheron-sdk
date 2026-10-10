@@ -1,11 +1,11 @@
 # /etc/systemd/system/nginx.service
 [Unit]
-Description=Nginx (fronting uWSGI)
+Description=Nginx (fronting the management API)
 DefaultDependencies=no
-After=sysinit.target local-fs.target systemd-tmpfiles-setup.service uwsgi.socket
+After=sysinit.target local-fs.target systemd-tmpfiles-setup.service koheron-api.socket
 Before=shutdown.target
 Conflicts=shutdown.target
-Wants=uwsgi.socket
+Wants=koheron-api.socket
 
 [Service]
 Type=forking

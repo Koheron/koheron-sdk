@@ -1,0 +1,21 @@
+[Unit]
+Description=Koheron native management API
+DefaultDependencies=no
+After=sysinit.target local-fs.target systemd-tmpfiles-setup.service dbus.socket
+Wants=dbus.socket
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=notify
+User=root
+Group=root
+Sockets=koheron-api.socket
+ExecStart=/usr/local/api/koheron-api
+Restart=on-failure
+RestartSec=1s
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

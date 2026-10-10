@@ -1,0 +1,12 @@
+[Unit]
+Description=Koheron management API socket
+
+[Socket]
+ListenStream=/run/koheron-api/app.sock
+SocketUser=www-data
+SocketGroup=www-data
+SocketMode=0660
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

@@ -11,19 +11,18 @@ case "$ROOTDEV" in
   *) echo "grow-rootfs-once: root is $ROOTDEV, skipping"; exit 0 ;;
 esac
 
-# Grow partition entry to fill the device
-if growpart /dev/mmcblk0 2; then
+# Change only partition 2's size. -N preserves its start, type and boot flags;
+# explicit wipe suppression keeps filesystem signatures and data intact.
+# The kernel receives the updated size through partx below.
+if printf ',+\n' | sfdisk --no-reread --no-tell-kernel --wipe never --wipe-partitions never -N 2 /dev/mmcblk0; then
   :
 else
   result=$?
-  # growpart returns 1 when the partition is already at its maximum size.
-  if [ "$result" -ne 1 ]; then
-    echo "grow-rootfs-once: partition expansion failed (exit $result)" >&2
-    exit "$result"
-  fi
+  echo "grow-rootfs-once: partition expansion failed (exit $result)" >&2
+  exit "$result"
 fi
 
-# Refresh this partition even after NOCHANGE, so retries also pick up a
+# Refresh this partition even when already full, so retries also pick up a
 # previous on-disk expansion. A whole-disk reread can fail on a mounted root.
 partx --update --nr 2 /dev/mmcblk0
 udevadm settle

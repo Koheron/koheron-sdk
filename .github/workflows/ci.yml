@@ -27,17 +27,13 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install smoke-test dependencies
-        run: python3 -m pip install --disable-pip-version-check PyYAML Flask
+        run: python3 -m pip install --disable-pip-version-check PyYAML
       - name: Test instrument copying
         run: python3 -m unittest discover -s python/tests -p test_copy_instrument.py
       - name: Test image toolchain manifest
         run: python3 -m unittest discover -s os/tests -p test_toolchain_manifest.py
       - name: Test kernel and device-tree compiler dependencies
         run: python3 -m unittest discover -s os/tests -p test_linux_make.py
-      - name: Test OS API and startup helper
-        run: |
-          python3 -m unittest discover -s os/api/tests
-          python3 -m unittest discover -s os/tests -p test_server_init.py
       - name: Check C++ logging
         run: python3 -m unittest discover -s server/tests -p test_syslog.py
       - name: Validate instrument configurations
@@ -52,3 +48,15 @@ jobs:
           done < <(find examples -name config.mk | sort)
           test "$count" -gt 0
           echo "Validated $count instrument configurations"
+  management:
+    name: Native C++23 management runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build and test in Ubuntu 26.04 with GCC 15
+        run: |
+          docker build -f os/api/tests/Dockerfile -t koheron-management-tests .
+          docker run --rm -v "$PWD:/work" -w /work koheron-management-tests

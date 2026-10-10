@@ -96,10 +96,25 @@ dpkg-reconfigure --frontend=noninteractive tzdata
 eatmydata apt-get -yq install -o Dpkg::Use-Pty=0 --no-install-recommends \
   systemd systemd-sysv systemd-timesyncd systemd-resolved \
   openssh-server usbutils psmisc lsof parted curl less nano iw \
-  cloud-guest-utils e2fsprogs bash-completion unzip udev net-tools netbase \
+  fdisk e2fsprogs bash-completion unzip udev net-tools netbase \
   lsb-base sudo rsync kmod nginx \
-  python3-flask uwsgi-core uwsgi-plugin-python3 python3-systemd \
+  libmicrohttpd12t64 libzip5 libjson-c5 libunistring5 libstdc++6 \
   iproute2
+
+# Also clean an Ubuntu Base archive or cache that already contains Python.
+# cloud-guest-utils depended on Python; first-boot growth now uses sfdisk.
+mapfile -t obsolete_packages < <(
+  dpkg-query -W -f='${binary:Package}\t${db:Status-Abbrev}\n' \
+    'python*' 'libpython*' 'uwsgi*' cloud-guest-utils 2>/dev/null |
+    awk '$2 ~ /^ii/ { print $1 }'
+)
+if [ "${#obsolete_packages[@]}" -gt 0 ]; then
+  apt-get -yq -o Dpkg::Use-Pty=0 purge --auto-remove "${obsolete_packages[@]}"
+fi
+if command -v python3 >/dev/null || command -v python >/dev/null || command -v uwsgi >/dev/null; then
+  echo 'Unexpected Python/uWSGI interpreter in the board rootfs' >&2
+  exit 1
+fi
 
 # glibc provides C.UTF-8 without the locales package or a generated archive.
 # Set it after installing systemd, which migrates /etc/default/locale.

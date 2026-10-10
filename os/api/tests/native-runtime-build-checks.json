@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-10",
+  "base_commit": "902bd235c7582d31f0778b8b29b54e3e1864cd26",
+  "native_source_sha256": "458dd9f90b99552b4b7f958af16dcb9158aacf2dd033b5ce9b4ed7f494e7063c",
+  "compiler_image_id": "sha256:c90842ea998da8e40ef697c8d1986e73a73d5c469ffa0e525f839275098f0025",
+  "versions": [
+    "Koheron management API (C++23), libmicrohttpd 1.0.1, libzip 1.11.4",
+    "libjson-c5:armhf\t0.18+ds-3",
+    "libmicrohttpd12t64:armhf\t1.0.1-2",
+    "libsystemd0:armhf\t259.5-0ubuntu3.4",
+    "libunistring5:armhf\t1.3-2build1",
+    "libzip5:armhf\t1.11.4-2",
+    "15.2.0"
+  ],
+  "native_tests": 60,
+  "grow_rootfs_tests": 10,
+  "rootfs_settings_tests": 5,
+  "rootfs_overlay_tests": 2,
+  "os_regression_tests": 95,
+  "os_regression_skipped": 2,
+  "systemd_ordering_tests": 3,
+  "cross_builds": [
+    "armhf",
+    "arm64"
+  ],
+  "arm64_qemu_version_check": true,
+  "image": {
+    "path": "tmp/examples/red-pitaya/fft/red-pitaya-fft.img",
+    "bytes": 289406976,
+    "sha256": "ff601ae1f88b9d74b4582fb27501b09670eef2d364aeda238a8d460ee8feeebe",
+    "zip_bytes": 64860769,
+    "rootfs_du_mib": 190,
+    "no_installed_python_or_uwsgi_packages": true,
+    "native_api_runs_in_python_free_chroot": true,
+    "cached_hardware_and_instrument_artifacts": true,
+    "physical_boot_tested": false
+  }
+}

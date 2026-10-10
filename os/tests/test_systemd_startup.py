@@ -16,7 +16,7 @@ import uuid
 
 UNITS = Path(__file__).resolve().parents[1] / 'systemd'
 EARLY = ('unzip-default-instrument.service', 'koheron-server.service',
-         'nginx.service', 'uwsgi.service')
+         'nginx.service', 'koheron-api.service')
 PROBE = '''\
 import os, signal, socket, sys, time
 from pathlib import Path
@@ -119,10 +119,10 @@ class StartupOrderingTest(unittest.TestCase):
                 unit['Service']['Sockets'] = ' '.join(self.name(n) for n in sockets.split())
             del unit['Install']
             self.put(name, unit)
-        socket_unit = read_unit('uwsgi.socket')
+        socket_unit = read_unit('koheron-api.socket')
         socket_unit['Socket'] = {'ListenStream': str(self.root / 'api.sock')}
         del socket_unit['Install']
-        self.put('uwsgi.socket', socket_unit)
+        self.put('koheron-api.socket', socket_unit)
         self.put('dbus.socket', {'Unit': {'DefaultDependencies': 'no'},
                                  'Socket': {'ListenStream': str(self.root / 'system-bus.sock')}})
         self.put('dbus.service', {'Unit': {'DefaultDependencies': 'no'},
@@ -188,7 +188,7 @@ class StartupOrderingTest(unittest.TestCase):
     def test_slow_services_do_not_block_basic_but_preserve_readiness_and_shutdown(self):
         self.ctl('start', '--no-block', self.name('multi-user.target'))
         self.wait_for(lambda: self.state('ssh-probe.service') == 'active')
-        for name in ('unzip-default-instrument.service', 'uwsgi.service', 'nginx.service'):
+        for name in ('unzip-default-instrument.service', 'koheron-api.service', 'nginx.service'):
             self.wait_for(lambda: self.marker(name, 'started').exists())
             self.assertEqual(self.state(name), 'activating')
         self.assertEqual(self.state('dbus.socket'), 'active')
@@ -199,7 +199,7 @@ class StartupOrderingTest(unittest.TestCase):
         self.wait_for(lambda: self.marker(server, 'started').exists())
         self.assertEqual(self.state(server), 'activating')
         self.assertFalse(self.marker(led, 'started').exists())
-        for name in (server, 'uwsgi.service', 'nginx.service'):
+        for name in (server, 'koheron-api.service', 'nginx.service'):
             self.marker(name, 'release').touch()
             self.wait_for(lambda: self.state(name) == 'active')
         self.wait_for(lambda: self.marker(led, 'started').exists())

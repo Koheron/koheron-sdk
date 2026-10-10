@@ -37,10 +37,16 @@ sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 
 # ---- Enable services (create symlinks even in chroot) ----
+# A reused rootfs can still have the retired runtime's enablement links.
+rm -f /etc/systemd/system/{basic,multi-user}.target.wants/uwsgi.service \
+      /etc/systemd/system/sockets.target.wants/uwsgi.socket \
+      /etc/systemd/system/uwsgi.service /etc/systemd/system/uwsgi.socket
+rm -rf /etc/uwsgi /usr/local/api/app
+rm -f /usr/local/api/wsgi.py /usr/local/koheron-server/koheron-server-init.py
 # Recreate these links: older images enabled the services under basic.target.
 # Merely enabling them again leaves those old dependencies behind.
-systemctl reenable uwsgi
-systemctl enable uwsgi.socket
+systemctl reenable koheron-api
+systemctl enable koheron-api.socket
 systemctl enable grow-rootfs-once.service
 systemctl reenable unzip-default-instrument
 systemctl reenable koheron-server

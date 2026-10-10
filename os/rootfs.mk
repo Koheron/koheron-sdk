@@ -2,25 +2,23 @@
 # HTTP API
 ###############################################################################
 
-TMP_API_PATH := $(TMP)/api
+TMP_API_PATH := $(TMP)/api/$(UBUNTU_ARCH)
+include $(OS_PATH)/compiler-settings.mk
+API_COMPILER_SETTINGS := $(TMP_API_PATH)/.compiler-settings
+$(eval $(call compiler_settings_stamp,$(API_COMPILER_SETTINGS),$(GCC_ARCH)-g++-$(GCC_VERSION)))
 
 API_FILES := \
-  $(TMP_API_PATH)/wsgi.py \
-  $(TMP_API_PATH)/app/__init__.py \
-  $(TMP_API_PATH)/app/service_status.py \
-  $(TMP_API_PATH)/app/install_instrument.sh \
-  $(TMP_API_PATH)/app/install_instrument.py
+  $(TMP_API_PATH)/koheron-api \
+  $(TMP_API_PATH)/koheron-install \
+  $(TMP_API_PATH)/koheron-server-init
+API_SOURCES := $(wildcard $(OS_PATH)/api/native/*.cpp $(OS_PATH)/api/native/*.hpp) $(OS_PATH)/api/Makefile
 
 .PHONY: api
 api: $(API_FILES)
 
-$(TMP_API_PATH)/wsgi.py: $(OS_PATH)/api/wsgi.py
-	# create parents and copy
-	install -D -m0644 $< $@
-
-$(TMP_API_PATH)/app/%: $(OS_PATH)/api/%
-	# create parents and copy
-	install -D -m0644 $< $@
+$(API_FILES) &: $(API_SOURCES) $(API_COMPILER_SETTINGS)
+	$(DOCKER) env PKG_CONFIG_LIBDIR=/usr/lib/$(GCC_ARCH)/pkgconfig \
+	  make -j$(N_CPUS) -f $(OS_PATH)/api/Makefile CXX=$(GCC_ARCH)-g++-$(GCC_VERSION) BUILD_DIR=$(TMP_API_PATH) COMPILER_SETTINGS=$(API_COMPILER_SETTINGS)
 
 ifeq ($(origin PASSWORD),undefined)
 PASSWORD := $(if $(value PASSWD),$(value PASSWD),changeme)
@@ -31,10 +29,13 @@ api_sync www_sync: export SSHPASS = $(value PASSWORD)
 
 .PHONY: api_sync
 api_sync: $(API_FILES)
-	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_API_PATH)/." "root@$(HOST):/usr/local/api/"
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" $(API_FILES) "root@$(HOST):/usr/local/api/"
+	# Check the runtime libraries before changing active services or nginx.
+	sshpass -e ssh -i /ssh-private-key "root@$(HOST)" '/usr/local/api/koheron-api --version'
+	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/systemd/koheron-api.service" "$(OS_PATH)/systemd/koheron-api.socket" "$(OS_PATH)/systemd/koheron-server-init.service" "$(OS_PATH)/systemd/nginx.service" "root@$(HOST):/etc/systemd/system/"
 	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx.conf" "root@$(HOST):/etc/nginx/nginx.conf"
 	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(OS_PATH)/config/nginx-server.conf" "root@$(HOST):/etc/nginx/sites-available/koheron.conf"
-	sshpass -e ssh -i /ssh-private-key "root@$(HOST)" 'systemctl daemon-reload || true; systemctl reload-or-restart uwsgi || true; systemctl reload nginx || true'
+	sshpass -e ssh -i /ssh-private-key "root@$(HOST)" 'systemctl disable --now uwsgi.service uwsgi.socket || true; systemctl daemon-reload && systemctl enable --now koheron-api.socket koheron-api.service && systemctl restart koheron-api.service && nginx -t && systemctl reload nginx'
 
 .PHONY: api_clean
 api_clean:
@@ -329,12 +330,9 @@ $(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | $(OVERLAY_DIR)/
 $(OVERLAY_DIR)/usr/local/api/.stamp: $(API_FILES) | $(OVERLAY_DIR)/
 	# ensure destination exists, then stage
 	mkdir -p $(OVERLAY_DIR)/usr/local/api
-	rsync -a --delete $(TMP_API_PATH)/ $(OVERLAY_DIR)/usr/local/api/
+	find $(OVERLAY_DIR)/usr/local/api -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+	install -m0755 $(API_FILES) $(OVERLAY_DIR)/usr/local/api/
 	touch $@
-
-# Koheron server bits
-$(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py: $(OS_PATH)/scripts/koheron-server-init.py
-	install -D -m0755 $< $@
 
 # Systemd units
 $(OVERLAY_DIR)/etc/systemd/system/%: $(OS_PATH)/systemd/%
@@ -349,10 +347,6 @@ $(OVERLAY_DIR)/etc/systemd/system.conf.d/60-koheron-watchdog.conf: $(OS_PATH)/co
 	@cmp -s $@.tmp $@ || mv -f -- $@.tmp $@
 	@rm -f -- $@.tmp
 	@chmod 0644 $@
-
-# uwsgi
-$(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini: $(OS_PATH)/config/uwsgi.ini
-	install -D -m0644 $< $@
 
 # Login banner customization
 $(OVERLAY_DIR)/etc/update-motd.d/10-help-text: $(OS_PATH)/config/update-motd.d/10-help-text
@@ -422,16 +416,14 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/koheron-release \
   $(OVERLAY_DIR)/usr/local/www/.stamp \
   $(OVERLAY_DIR)/usr/local/api/.stamp \
-  $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py \
   $(OVERLAY_DIR)/etc/systemd/system/unzip-default-instrument.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-server-init.service \
   $(OVERLAY_DIR)/etc/systemd/system/ssh-host-keys.service \
   $(OVERLAY_DIR)/etc/systemd/system/ssh.service.d/host-keys.conf \
   $(OVERLAY_DIR)/etc/systemd/system.conf.d/60-koheron-watchdog.conf \
-  $(OVERLAY_DIR)/etc/uwsgi/uwsgi.ini \
-  $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service \
-  $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
+  $(OVERLAY_DIR)/etc/systemd/system/koheron-api.service \
+  $(OVERLAY_DIR)/etc/systemd/system/koheron-api.socket \
   $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once \
   $(OVERLAY_DIR)/etc/systemd/system/grow-rootfs-once.service \
   $(OVERLAY_DIR)/usr/local/instruments/unzip_default_instrument.sh \
@@ -449,6 +441,10 @@ OVERLAY_FILES := \
 $(OVERLAY_TAR): $(OVERLAY_FILES) | $(OVERLAY_DIR)/
 	# ensure destination dir for tar exists
 	mkdir -p $(@D)
+	# Remove obsolete SDK files when reusing an overlay from the Python runtime.
+	rm -rf $(OVERLAY_DIR)/etc/uwsgi
+	rm -f $(OVERLAY_DIR)/etc/systemd/system/uwsgi.service $(OVERLAY_DIR)/etc/systemd/system/uwsgi.socket \
+	  $(OVERLAY_DIR)/usr/local/koheron-server/koheron-server-init.py
 	tar -C $(OVERLAY_DIR) \
 	    --owner=0 --group=0 --numeric-owner \
 	    --mtime='UTC 1970-01-01' \

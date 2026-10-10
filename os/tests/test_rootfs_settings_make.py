@@ -29,12 +29,12 @@ assert os.environ['SSHPASS'] == os.environ['EXPECTED_PASSWORD']
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 TMP := {cache}
+UBUNTU_ARCH := armhf
 OS_PATH := {SDK}/os
 include {SDK}/os/rootfs.mk
 '''
-            skipped = [cache / 'api' / path for path in (
-                'wsgi.py', 'app/__init__.py', 'app/service_status.py', 'app/install_instrument.sh',
-                'app/install_instrument.py')]
+            skipped = [cache / 'api/armhf' / path for path in (
+                'koheron-api', 'koheron-install', 'koheron-server-init')]
             argv = ['make', '--no-print-directory', '-f', '-']
             for path in skipped:
                 argv.extend(['-o', str(path)])

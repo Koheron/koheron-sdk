@@ -14,12 +14,12 @@ import unittest
 OS_PATH = Path(__file__).resolve().parents[1]
 PAYLOAD = OS_PATH / 'scripts/chroot_overlay.sh'
 SERVICES = (
-    'uwsgi', 'uwsgi.socket', 'grow-rootfs-once.service',
+    'koheron-api', 'koheron-api.socket', 'grow-rootfs-once.service',
     'unzip-default-instrument', 'koheron-server', 'koheron-server-init',
     'nginx', 'systemd-networkd.service', 'systemd-resolved.service',
     'systemd-timesyncd.service',
 )
-REENABLE = {'uwsgi', 'unzip-default-instrument', 'koheron-server', 'nginx'}
+REENABLE = {'koheron-api', 'unzip-default-instrument', 'koheron-server', 'nginx'}
 
 
 @unittest.skipUnless(os.geteuid() == 0, 'Run as root inside the SDK build container')
