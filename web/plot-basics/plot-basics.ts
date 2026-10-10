@@ -48,6 +48,16 @@ class PlotBasics {
     private clickSeriesIndex = 0;
     private clickTraceLabel: string;
     private primaryTraceLabel: string;
+    private persistenceEnabled = false;
+    private persistenceDecay = 1;
+    private persistenceIntensity = .15;
+    private persistencePaused = false;
+    private persistenceFrame: number;
+    private persistenceLayer: HTMLCanvasElement;
+    private persistenceTrace: HTMLCanvasElement;
+    private persistenceTime: number;
+    private persistenceDrawnFrame: number;
+    private persistenceFade = 0;
 
     constructor(document: Document, private plot_placeholder: JQuery, private n_pts: number, public x_min, public x_max, public y_min, public y_max,
         private driver, private rangeFunction, private plotTitle: string) {
@@ -339,6 +349,112 @@ class PlotBasics {
         this.decimate = false;
     }
 
+    setPersistence(enabled: boolean, decay = 1, intensity = .15): void {
+        if (!Number.isFinite(decay) || decay <= 0 || !Number.isFinite(intensity) || intensity <= 0 || intensity > 1) { return; }
+        const changed = enabled !== this.persistenceEnabled;
+        this.persistenceEnabled = enabled;
+        this.persistenceDecay = decay;
+        this.persistenceIntensity = intensity;
+        if (changed) {
+            this.clearPersistence();
+            this.options.hooks = enabled ? {
+                drawSeries: [(plot, context, series) => {
+                    if (this.persistenceEnabled && series === plot.getData()[0] && series.data.length && plot.drawSeriesToCanvas) {
+                        this.drawPersistence(plot, series);
+                    }
+                }],
+                shutdown: [() => this.clearPersistence()]
+            } : undefined;
+            this.reset_range = this.rebuildPlot = true;
+        }
+    }
+
+    setPersistencePaused(paused: boolean): void {
+        if (paused !== this.persistencePaused) {
+            this.persistencePaused = paused;
+            this.persistenceTime = performance.now();
+        }
+    }
+
+    clearPersistence(): void {
+        // Zero dimensions release the pixel buffers even if a browser retains
+        // the detached canvas objects until its next garbage collection.
+        for (const canvas of [this.persistenceLayer, this.persistenceTrace]) {
+            if (canvas) { canvas.remove(); canvas.width = canvas.height = 0; }
+        }
+        this.persistenceLayer = this.persistenceTrace = undefined;
+        this.persistenceTime = this.persistenceDrawnFrame = undefined;
+        this.persistenceFade = 0;
+    }
+
+    getExportCanvas(): HTMLCanvasElement {
+        const base = this.plot?.getCanvas();
+        if (!base || !this.persistenceLayer) { return base; }
+        const canvas = base.ownerDocument.createElement('canvas');
+        canvas.width = base.width; canvas.height = base.height;
+        const context = canvas.getContext('2d');
+        context.globalAlpha = Math.exp(-this.persistenceFade);
+        context.drawImage(this.persistenceLayer, 0, 0);
+        context.globalAlpha = 1;
+        context.drawImage(base, 0, 0);
+        return canvas;
+    }
+
+    private drawPersistence(plot: jquery.flot.plot, series: jquery.flot.dataSeries): void {
+        const base = plot.getCanvas(), now = performance.now();
+        if (!this.persistenceLayer || this.persistenceLayer.width !== base.width || this.persistenceLayer.height !== base.height) {
+            this.clearPersistence();
+            this.persistenceLayer = base.ownerDocument.createElement('canvas');
+            this.persistenceTrace = base.ownerDocument.createElement('canvas');
+            for (const canvas of [this.persistenceLayer, this.persistenceTrace]) {
+                canvas.width = base.width; canvas.height = base.height;
+            }
+            const style = this.persistenceLayer.style;
+            style.position = 'absolute'; style.left = style.top = '0';
+            style.width = base.style.width; style.height = base.style.height;
+            style.pointerEvents = 'none';
+            this.persistenceLayer.className = 'plot-persistence';
+            this.persistenceLayer.setAttribute('aria-hidden','true');
+            // The base canvas carries the bright current trace, grid and
+            // references above the history. Flot's event overlay stays on top.
+            base.parentNode.insertBefore(this.persistenceLayer, base);
+        }
+        const layer = this.persistenceLayer.getContext('2d');
+        const elapsed = this.persistencePaused || this.persistenceTime === undefined ? 0 : Math.max(0, now - this.persistenceTime);
+        this.persistenceTime = now;
+        this.persistenceFade += elapsed / (1000 * this.persistenceDecay);
+        // Repeated tiny changes to an 8-bit alpha buffer can round to no
+        // change forever. Fade smoothly at composition time, committing
+        // larger reductions to stored pixels. A factor below 1/2 also lets
+        // the last remaining alpha level reach zero instead of rounding up.
+        if (this.persistenceFade >= Math.LN2 + .01) {
+            layer.globalCompositeOperation = 'destination-in';
+            layer.globalAlpha = Math.exp(-this.persistenceFade);
+            layer.fillRect(0, 0, base.width, base.height);
+            layer.globalAlpha = 1;
+            this.persistenceFade = 0;
+        }
+        const opacity = Math.exp(-this.persistenceFade);
+        if (!this.persistencePaused && (this.persistenceFrame === undefined || this.persistenceFrame !== this.persistenceDrawnFrame)) {
+            const trace = this.persistenceTrace.getContext('2d');
+            trace.setTransform(1, 0, 0, 1, 0, 0);
+            trace.clearRect(0, 0, base.width, base.height);
+            const width = plot.getPlaceholder().width(), height = plot.getPlaceholder().height();
+            trace.setTransform(base.width / width, 0, 0, base.height / height, 0, 0);
+            plot.drawSeriesToCanvas(series, trace);
+            // Composite a complete opaque trace once. Applying transparency to
+            // each batched stroke would brighten shared endpoints and crossings.
+            // Add new light in the buffer's time reference. The final opacity
+            // brings it back to today's intensity while older light decays.
+            layer.globalCompositeOperation = 'lighter';
+            layer.globalAlpha = Math.min(1, this.persistenceIntensity / opacity);
+            layer.drawImage(this.persistenceTrace, 0, 0);
+            layer.globalAlpha = 1;
+            this.persistenceDrawnFrame = this.persistenceFrame;
+        }
+        this.persistenceLayer.style.opacity = String(opacity);
+    }
+
     enableSpectrumReduction() {
         this.decimate = false;
         this.spectrumReduction = true;
@@ -574,6 +690,7 @@ class PlotBasics {
     }
 
     private replot(data: jquery.flot.dataSeries[]): void {
+        if (this.persistenceEnabled) { this.clearPersistence(); }
         const axes = this.plot && this.plot.getAxes();
         const full = !this.plot || !this.plot.updateRanges || this.rebuildPlot ||
             this.drawnPixelRatio !== (window.devicePixelRatio || 1) ||
@@ -591,7 +708,8 @@ class PlotBasics {
         }
     }
 
-    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: jquery.flot.dataSeries[] = [], overlayLabel?: string) {
+    redraw(plot_data: number[][], n_pts: number, peakDatapoint: number[], ylabel: string, callback: () => void, reference?: number[][], peakIsFinal = false, traces: jquery.flot.dataSeries[] = [], overlayLabel?: string, persistenceFrame?: number) {
+        if (this.persistenceEnabled) { this.persistenceFrame = persistenceFrame; }
         this.seriesOne.length = (reference ? 2 : 1) + traces.length;
         if (this._reducedSeries) this._reducedSeries.length = this.seriesOne.length;
         if (this._columnCaches) this._columnCaches.length = this.log_x && (this.spectrumReduction || this.decimate) ? this.seriesOne.length : 0;

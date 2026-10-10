@@ -9,11 +9,13 @@ const arg = (key, fallback) => process.argv.find(x => x.startsWith('--' + key + 
     const variants = arg('variants', 'previous,owned').split(',');
     if (variants.length !== 2 || variants[0] === variants[1]) throw new Error('Choose two distinct variants');
     const frames = Number(arg('frames', 180)), rounds = Number(arg('rounds', 3));
+    const selected = arg('scenarios','').split(',').filter(Boolean);
     const browser = await launch();
     const report = {browser:browser.version(),cpu:os.cpus()[0].model,platform:`${os.platform()} ${os.release()}`,
         method:'two same-origin frames, alternating redraw order within each rAF',
         headless:true,gpu:'disabled',viewport:[2400,800],plotViewport:[1000,500],dpr:1,
         hover:false,heapSampling:false,frames,rounds,results:[],sourceSHA256:{}};
+    if (selected.length) report.scenarios = selected;
     if (os.platform() === 'linux' && fs.existsSync('/proc/self/status')) {
         const affinity = fs.readFileSync('/proc/self/status','utf8').match(/^Cpus_allowed_list:\s*(.+)$/m);
         if (affinity) report.cpuAffinity = affinity[1].trim();
@@ -69,12 +71,16 @@ const arg = (key, fallback) => process.argv.find(x => x.startsWith('--' + key + 
                 };
             });
             const scenarios = await children[0].evaluate(() => scenarios.map(s => s.name));
+            if (selected.some(name => !scenarios.includes(name))) throw new Error('Unknown selected scenario');
             for (let i = 0; i < scenarios.length; i++) {
+                if (selected.length && !selected.includes(scenarios[i])) continue;
                 await page.evaluate(index => views.forEach(view => view.setup(index)),i);
                 await page.evaluate(() => measurePair(30));
                 const timings = await page.evaluate(count => measurePair(count),frames);
                 const row = {round,scenario:scenarios[i],redrawMS:Object.fromEntries(order.map((v,j) => [v,timings.redraw[j]])),
                     deltaOrder:order,deltaMS:timings.deltaMS,frameIntervalMS:timings.frameIntervalMS};
+                if (variants.includes('persistence')) row.persistenceCanvasBytes = Object.fromEntries(await Promise.all(children.map(async (frame,j) => [order[j],await frame.evaluate(() =>
+                    [basics.persistenceLayer,basics.persistenceTrace].reduce((bytes,canvas) => bytes+(canvas ? canvas.width*canvas.height*4 : 0),0))])));
                 report.results.push(row);
                 console.log(`${round+1} ${row.scenario}: ${variants.map(v => `${v} ${row.redrawMS[v].median.toFixed(2)} / ${row.redrawMS[v].p95.toFixed(2)} ms`).join('; ')}`);
                 if (errors.length) throw new Error(errors.join('\n'));

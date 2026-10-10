@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "build": "node build.cjs",
-    "test": "node --test tests/assets.cjs && node tests/browser.cjs && node tests/hooks.cjs && node tests/ranges.cjs && node tests/exports.cjs",
+    "test": "node --test tests/assets.cjs && node tests/browser.cjs && node tests/hooks.cjs && node tests/persistence.cjs && node tests/ranges.cjs && node tests/exports.cjs",
     "benchmark": "node benchmark/run.cjs",
     "benchmark:paired": "node benchmark/paired.cjs",
     "benchmark:hooks": "node benchmark/hooks.cjs",
@@ -14,6 +14,8 @@
     "pretest": "node build.cjs",
     "prebenchmark": "node build.cjs",
     "prebenchmark:paired": "node build.cjs",
-    "prebenchmark:hooks": "node build.cjs"
+    "prebenchmark:hooks": "node build.cjs",
+    "preview:persistence": "node benchmark/persistence-preview.cjs",
+    "prepreview:persistence": "node build.cjs"
   }
 }

@@ -135,3 +135,9 @@
     .fft-workspace .spectrum-canvas { height: 46dvh; }
     .fft-workspace .board-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.fft-workspace #persistence-controls { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.fft-workspace #persistence-controls label { display: inline-flex; align-items: center; gap: 5px; }
+.fft-workspace #persistence-decay { width: 70px; }
+.fft-workspace #persistence-intensity { width: 76px; }
+.fft-workspace #persistence-intensity-value { min-width: 3ch; font-variant-numeric: tabular-nums; }
