@@ -334,7 +334,12 @@ abstract class PnaPlot<P extends PnaPlotParameters> {
         : ready ? 'Capture the displayed live spectrum' : 'Waiting for a valid live spectrum';
     }
     (this.document.getElementById('clear-reference') as HTMLButtonElement).disabled = !this.references.items.length;
-    this.document.querySelectorAll<HTMLButtonElement>('.replace-reference').forEach(button => { button.disabled = !ready; });
+    this.document.querySelectorAll<HTMLButtonElement>('.replace-reference').forEach(button => {
+      if (!ready && button === this.document.activeElement) {
+        button.closest('.reference-row').querySelector<HTMLInputElement>('input[type=text]').focus();
+      }
+      button.disabled = !ready;
+    });
   }
 
   private captureReady: boolean;

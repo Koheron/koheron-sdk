@@ -141,3 +141,61 @@ test('reference names commit with Enter and cancel with Escape without changing 
     assert.equal(d.getElementById('reference-count').textContent, '1 / 8');
     panel.dispose();
 });
+
+test('reference actions preserve focus through recapture, removal, clearing and Undo', t => {
+    const {w, refs} = host(t), d = w.document;
+    d.body.innerHTML = '<button id="capture-reference">Capture ref</button><div id="plot-references"></div>';
+    const redraw = () => {
+        d.getElementById('clear-reference').disabled = !refs.items.length;
+        d.getElementById('capture-reference').disabled = refs.items.length === 8;
+    };
+    new w.FFTReferencePanel(d, refs, redraw, item => refs.replace(item, new Float32Array(4).fill(2e-12), status(), 8));
+    const capture = () => refs.capture(new Float32Array(4).fill(1e-12), status(), 8);
+    d.getElementById('clear-reference').addEventListener('click', () => refs.clear());
+    const row = index => d.querySelectorAll('.reference-row')[index];
+    const action = (index, selector) => {const button = row(index).querySelector(selector); button.focus(); button.click();};
+    const undo = () => {const button = d.getElementById('undo-reference'); button.focus(); button.click();};
+    capture(); capture(); capture();
+    action(1, '.replace-reference');
+    assert.strictEqual(d.activeElement, row(1).querySelector('.replace-reference'), 'recapture retains its action');
+    action(1, '.remove-reference');
+    assert.strictEqual(d.activeElement, row(1).querySelector('.remove-reference'), 'removal moves to the next row');
+    undo();
+    assert.strictEqual(d.activeElement, row(1).querySelector('input[type=text]'), 'Undo returns to the restored reference');
+    assert.equal(d.getElementById('reference-message').textContent, 'Undo complete.');
+    action(2, '.remove-reference');
+    assert.strictEqual(d.activeElement, row(1).querySelector('.remove-reference'), 'last-row removal moves to the previous row');
+    const clear = d.getElementById('clear-reference'); clear.focus(); clear.click();
+    assert.strictEqual(d.activeElement, d.getElementById('undo-reference'), 'clearing keeps Undo reachable');
+    undo();
+    assert.strictEqual(d.activeElement, row(0).querySelector('input[type=text]'));
+    action(0, '.remove-reference'); action(0, '.remove-reference');
+    assert.strictEqual(d.activeElement, d.getElementById('undo-reference'), 'last-reference removal focuses Undo');
+    undo();
+    for (let i = refs.items.length; i < 7; i++) capture();
+    d.getElementById('capture-reference').focus(); capture();
+    assert.strictEqual(d.activeElement, row(7).querySelector('input[type=text]'), 'a full collection focuses the new reference');
+});
+
+test('an asynchronous import preserves a name draft, selection and focus without committing it', async t => {
+    const {w, refs} = host(t), d = w.document;
+    d.body.innerHTML = '<button id="outside">Outside</button><div id="plot-references"></div>';
+    new w.FFTReferencePanel(d, refs, () => {}, () => {});
+    refs.capture(new Float32Array(4).fill(1e-12), status(), 8);
+    const item = refs.items[0], file = refs.serialize();
+    let finish;
+    const upload = d.getElementById('reference-file');
+    Object.defineProperty(upload, 'files', {value:[{name:'saved.json', size:file.length, text:() => new Promise(resolve => {finish = resolve;})}]});
+    upload.dispatchEvent(new w.Event('change'));
+    const input = d.querySelector('.reference-row input[type=text]');
+    input.focus(); input.value = 'Unfinished name'; input.setSelectionRange(2, 8, 'backward');
+    finish(file); await new Promise(resolve => setImmediate(resolve));
+    const restored = d.querySelector('.reference-row input[type=text]');
+    assert.strictEqual(d.activeElement, restored);
+    assert.equal(restored.value, 'Unfinished name'); assert.equal(item.name, 'Reference 1');
+    assert.equal(restored.selectionStart, 2); assert.equal(restored.selectionEnd, 8); assert.equal(restored.selectionDirection, 'backward');
+    restored.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Escape'}));
+    assert.equal(restored.value, item.name);
+    const outside = d.getElementById('outside'); outside.focus(); refs.load(file);
+    assert.strictEqual(d.activeElement, outside, 'collection updates never steal focus from other controls');
+});

@@ -74,16 +74,22 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya', 'alpha250-dpll']) {
         assert(csv.includes('"Sampling frequency (Hz)",8000'));
         assert(csv.includes('"Sampling frequency (Hz)",4000'));
         rows[0].querySelector('input[type=checkbox]').click();
+        rows[0].querySelector('.replace-reference').focus();
         rows[0].querySelector('.replace-reference').click();
         assert.equal(plot.references.items[0].parameters.fs,4000);
         assert.equal(plot.references.items[0].name,first.name);
         assert.equal(plot.references.items[0].visible,false);
+        assert.strictEqual(d.activeElement, d.querySelector('.replace-reference'));
+        d.getElementById('undo-reference').focus();
         d.getElementById('undo-reference').click(); assert.strictEqual(plot.references.items[0],first);
+        assert.strictEqual(d.activeElement, d.querySelector('.reference-row input[type=text]'));
         const saved=plot.references.serialize();
         const imported=new w.PnaReferences(board,signed); imported.load(saved);
         assert.deepEqual(JSON.parse(imported.serialize()),JSON.parse(saved));
         assert.equal(imported.items[0].data,undefined);
+        d.getElementById('clear-reference').focus();
         d.getElementById('clear-reference').click(); assert.equal(plot.references.items.length,0);
+        assert.strictEqual(d.activeElement, d.getElementById('undo-reference'));
         d.getElementById('undo-reference').click(); assert.equal(plot.references.items.length,2);
         plot.references.clear(); plot.references.load(saved);
         assert.equal(plot.visibleReferences.length,1);
@@ -95,6 +101,9 @@ for (const board of ['alpha250', 'alpha250-4', 'red-pitaya', 'alpha250-dpll']) {
         const row=d.querySelector('.reference-row'), data=plot.references.items[0].data;
         await update(); assert.strictEqual(d.querySelector('.reference-row'),row);
         assert.strictEqual(plot.references.items[0].data,data);
+        row.querySelector('.replace-reference').focus();
+        driver.values.fill(0); await update();
+        assert.strictEqual(d.activeElement, row.querySelector('input[type=text]'), 'settling retains focus in the reference row');
     });
 }
 
