@@ -69,7 +69,9 @@ full sorted source grid. Instrument frequency/time grids must remain sorted.
 
 Dense log-X reduction caches frequency-to-column projections per trace. Every
 coordinate is checked by value before reuse; range, width, log mode and visible
-index bounds also invalidate projections. Y extrema and gaps are recomputed
+index bounds also invalidate projections. Each loop iteration reads its row
+once for X and Y, using local buffer references captured after any capacity growth.
+Y extrema and gaps are recomputed
 each frame. Two Float64 buffers use 16 bytes per visible bin, growing to the
 trace's visible high-water capacity; removing a trace or disabling reduction
 releases its storage. Linear plots allocate no projection storage; sparse zooms
@@ -110,6 +112,8 @@ Performance conditions, metrics, profiling and baseline rules are in
 range-update comparison in [benchmark/RANGE_RESULTS.md](benchmark/RANGE_RESULTS.md),
 the extrema-loop comparison in [benchmark/EXTREMA_RESULTS.md](benchmark/EXTREMA_RESULTS.md),
 the paired normalization comparison in
-[benchmark/NORMALIZATION_RESULTS.md](benchmark/NORMALIZATION_RESULTS.md)
-and the latest line-clipping comparison in
-[benchmark/CLIPPING_RESULTS.md](benchmark/CLIPPING_RESULTS.md).
+[benchmark/NORMALIZATION_RESULTS.md](benchmark/NORMALIZATION_RESULTS.md),
+the line-clipping comparison in
+[benchmark/CLIPPING_RESULTS.md](benchmark/CLIPPING_RESULTS.md)
+and the latest projection buffer comparison in
+[benchmark/PROJECTION_BUFFER_RESULTS.md](benchmark/PROJECTION_BUFFER_RESULTS.md).

@@ -373,6 +373,8 @@ class PlotBasics {
         const transform = logarithmic ? Math.log10 : (value: number) => value;
         const lower = transform(from), span = transform(to) - lower;
         const reuse = PlotBasics.prepareColumnCache(cache, first, last, from, to, width, logarithmic, false);
+        // Capture buffers after preparation, which may grow their storage.
+        const cachedX = cache?.x, columns = cache?.columns;
         let count = 0;
         let column = -Infinity, min = -1, max = -1, previous = -1;
         // Keep numeric extrema outside the flush closure so the hot loop
@@ -388,12 +390,12 @@ class PlotBasics {
         };
         push(first);
         for (let i = first; i <= last; i++) {
-            const x = data[i][0], y = data[i][1], slot = i - first;
+            const row = data[i], x = row[0], y = row[1], slot = i - first;
             let nextColumn: number;
-            if (cache && reuse && cache.x[slot] === x) nextColumn = cache.columns[slot];
+            if (reuse && cachedX[slot] === x) nextColumn = columns[slot];
             else {
                 nextColumn = Math.floor((transform(x) - lower) * width / span);
-                if (cache) { cache.x[slot] = x; cache.columns[slot] = nextColumn; }
+                if (cachedX) { cachedX[slot] = x; columns[slot] = nextColumn; }
             }
             if (nextColumn !== column || !Number.isFinite(y)) {
                 flush(); column = nextColumn;
@@ -521,6 +523,7 @@ class PlotBasics {
         }
         if (first < i0) { out[count++] = plot_data[first]; }
         const reuse = PlotBasics.prepareColumnCache(cache, i0, i1, xMin, xMax, innerW, this.log_x, true);
+        const cachedX = cache?.x, columns = cache?.columns;
     
         let currCol = -2;
         let minI = -1, maxI = -1;
@@ -535,14 +538,13 @@ class PlotBasics {
         };
 
         for (let i = i0; i <= i1; i++) {
-            const x = plot_data[i][0];
-            const y = plot_data[i][1];
+            const row = plot_data[i], x = row[0], y = row[1];
             const slot = i - i0;
             let col: number;
-            if (cache && reuse && cache.x[slot] === x) col = cache.columns[slot];
+            if (reuse && cachedX[slot] === x) col = columns[slot];
             else {
                 col = colFromX(x);
-                if (cache) { cache.x[slot] = x; cache.columns[slot] = col; }
+                if (cachedX) { cachedX[slot] = x; columns[slot] = col; }
             }
             if (col < 0 || col >= innerW) continue;
             if (col !== currCol) {
@@ -553,7 +555,7 @@ class PlotBasics {
                 flush();
                 // Keep a gap marker even when its neighbors share one pixel.
                 if (!count || Number.isFinite(out[count - 1][1]))
-                    out[count++] = plot_data[i];
+                    out[count++] = row;
                 continue;
             }
             if (minI < 0 || y < minY) { minI = i; minY = y; }

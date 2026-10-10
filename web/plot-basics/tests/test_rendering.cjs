@@ -63,6 +63,9 @@ test('cached columns match uncached reduction after in-place grids, peaks, gaps 
         const expected = OriginalPlotBasics.reduceSpectrum(data, from, to, width, log);
         const actual = PlotBasics.reduceSpectrum(data, from, to, width, log, out, cache);
         assert.deepEqual(Array.from(actual), Array.from(expected), `spectrum frame ${frame}`);
+        data[2048][1] += 5;
+        assert.deepEqual(Array.from(PlotBasics.reduceSpectrum(data, from, to, width, log, out, cache)),
+            Array.from(OriginalPlotBasics.reduceSpectrum(data, from, to, width, log)), `spectrum warm frame ${frame}`);
         const basics = reducer(width); basics.log_x = log;
         const uncached = Array.from(basics.decimateToCanva(data, from, to, []));
         const cached = basics.decimateToCanva(data, from, to, out, cache);

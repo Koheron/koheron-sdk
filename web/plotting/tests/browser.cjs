@@ -42,7 +42,7 @@ const {launch, load, root} = require('../benchmark/harness.cjs');
                     };
                 });
             }
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 7; i++) {
                 const original = await pages.original.page.evaluate(i => capture(i), i);
                 const owned = await pages.owned.page.evaluate(i => capture(i), i);
                 assert.deepEqual(owned.offset, original.offset, 'same plot layout');
@@ -51,7 +51,7 @@ const {launch, load, root} = require('../benchmark/harness.cjs');
                 const segments = result => new Set(result.paths.flatMap(p => p.segments.map(s =>
                     JSON.stringify([p.color, p.width, ...s.map(x => Math.round(x * 1e6) / 1e6)]))));
                 assert.deepEqual(segments(owned), segments(original), 'same clipped segments, including peaks, troughs and gap neighbours');
-                if ([0,1,4].includes(i)) assert.ok(Math.max(...owned.paths.map(p => p.segments.length)) <= 32, 'bounded noise path complexity');
+                if ([0,1,4,6].includes(i)) assert.ok(Math.max(...owned.paths.map(p => p.segments.length)) <= 32, 'bounded noise path complexity');
                 const before = Buffer.from(original.image, 'base64'), after = Buffer.from(owned.image, 'base64');
                 assert.equal(after.length, before.length);
                 let different = 0;

@@ -8,7 +8,8 @@ Seeded fixtures prepare eight frames before timing. Noise in live/average/max-ho
 spectra varies between frames; captured references stay fixed. Scenarios
 cover 16,385-bin FFT with four traces, 32,769-bin log PNA with three traces,
 deep FFT zoom, 8,192-sample two-channel scope, log Y PNA and a narrow Y scope
-zoom (±0.05 over ±1 signals). All contain gaps;
+zoom (±0.05 over ±1 signals), plus a four-trace log X FFT that uses the spectrum
+reducer. All contain gaps;
 spectra include adjacent narrow peaks/troughs. Both variants run with identical
 1000 x 500 CSS pixels, DPR 1, headless Chrome and GPU disabled. Each case warms
 30 frames. Three rounds alternate variant order. Do not run other builds or
