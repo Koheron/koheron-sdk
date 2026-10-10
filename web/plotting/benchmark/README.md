@@ -64,6 +64,22 @@ hover injection or zoom/reset phase. Both plots draw in one rAF, so absolute
 timings and cadence are not comparable to the single-plot benchmark. Use the
 standard runner for allocation and interaction measurements.
 
+To isolate empty-hook drawing allocations, use the static control:
+
+```sh
+taskset -c 0-3 npm run benchmark:hooks --prefix web/plotting -- --variants=previous,owned --frames=60 --draws=100 --rounds=3
+```
+
+The control disables plugins, data, grid and text; it asserts all ten hook lists
+are empty and draws a 400 × 200 plot with synchronous overlay redraws. Each
+variant warms for 30 frames, then draws 100 times in each of 60 measured frames
+(6,000 draws/round). Three rounds alternate variant order. The 16 KiB heap
+sampler includes collected objects and reports estimated bytes/draw, with
+source/snapshot hashes. Its allocation results apply only to this control;
+use the standard runner for whole-instrument allocations and the paired runner
+for instrument redraw CPU. Sampling can miss small allocations, so zero sampled
+bytes is not proof of zero allocations.
+
 The `previous` snapshot lives in `tmp/plotting/comparison/`; taking another
 snapshot replaces it. Its timestamp and asset/widget hashes are included in
 the report, alongside current source hashes. The frozen `original` remains
@@ -73,11 +89,13 @@ allocation. Report this memory tradeoff with timing results.
 
 The browser suite compares clipped segments and rendered pixels at DPR 1/2,
 checks trusted interactions and resizing, plugin fallbacks and original
-normalization. Clipping checks cover every pair of interior, boundary, side and
-corner points, gaps/re-entry and direct normalized-buffer edits, including log
-transforms, batched lines, steps, fills and shadows. Repeated range checks compare axes, ticks, bounds, legends,
-samples and rendered pixels against the original at DPR 1/2, including automatic
-Y bounds and narrow zooms. They verify range-update buffer reuse, mode/formatter
+normalization. The hook suite compares all ten hook stages to original Flot,
+including exact payload identities, arity, receiver and listeners added/removed
+during dispatch. Clipping checks cover every pair of interior, boundary, side
+and corner points, gaps/re-entry and direct normalized-buffer edits, including
+log transforms, batched lines, steps, fills and shadows. Repeated range checks
+compare axes, ticks, bounds, legends, samples and rendered pixels against the
+original at DPR 1/2, including automatic Y bounds and narrow zooms. They verify range-update buffer reuse, mode/formatter
 rebuilds, drag cancellation, event-handler counts and live device-pixel-ratio
 changes via Chrome emulation. Export checks invoke the actual FFT/PNA exporters: CSV keeps all
 bins outside zoom, references and overlays; PNG keeps backing-canvas resolution.

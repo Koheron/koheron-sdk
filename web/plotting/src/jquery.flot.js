@@ -704,6 +704,7 @@ Licensed under the MIT license.
         bindEvents();
 
 
+        // Callers skip empty lists before allocating payload arrays.
         function executeHooks(hook, args) {
             args = [plot].concat(args);
             for (var i = 0; i < hook.length; ++i)
@@ -868,7 +869,8 @@ Licensed under the MIT license.
                 if (options.hooks[n] && options.hooks[n].length)
                     hooks[n] = hooks[n].concat(options.hooks[n]);
 
-            executeHooks(hooks.processOptions, [options]);
+            if (hooks.processOptions.length)
+                executeHooks(hooks.processOptions, [options]);
         }
 
         function setData(d) {
@@ -1163,7 +1165,8 @@ Licensed under the MIT license.
                 s.datapoints = { points: s._pointBuffer || [] };
                 delete s._pointBuffer;
 
-                executeHooks(hooks.processRawData, [ s, s.data, s.datapoints ]);
+                if (hooks.processRawData.length)
+                    executeHooks(hooks.processRawData, [ s, s.data, s.datapoints ]);
             }
 
             // first pass: clean and copy data
@@ -1298,7 +1301,8 @@ Licensed under the MIT license.
             for (i = 0; i < series.length; ++i) {
                 s = series[i];
 
-                executeHooks(hooks.processDatapoints, [ s, s.datapoints]);
+                if (hooks.processDatapoints.length)
+                    executeHooks(hooks.processDatapoints, [ s, s.datapoints]);
             }
 
             // second pass: find datamax/datamin for auto-scaling
@@ -1432,7 +1436,8 @@ Licensed under the MIT license.
             if (options.grid.clickable)
                 eventHolder.click(onClick);
 
-            executeHooks(hooks.bindEvents, [eventHolder]);
+            if (hooks.bindEvents.length)
+                executeHooks(hooks.bindEvents, [eventHolder]);
         }
 
         function shutdown() {
@@ -1443,7 +1448,8 @@ Licensed under the MIT license.
             eventHolder.unbind("mouseleave", onMouseLeave);
             eventHolder.unbind("click", onClick);
 
-            executeHooks(hooks.shutdown, [eventHolder]);
+            if (hooks.shutdown.length)
+                executeHooks(hooks.shutdown, [eventHolder]);
         }
 
         function setTransformationHelpers(axis) {
@@ -1659,7 +1665,8 @@ Licensed under the MIT license.
                 plotOffset[a] = typeof margin == "number" ? margin : margin[a] || 0;
             }
 
-            executeHooks(hooks.processOffset, [plotOffset]);
+            if (hooks.processOffset.length)
+                executeHooks(hooks.processOffset, [plotOffset]);
 
             // If the grid is visible, add its border width to the offset
 
@@ -1949,7 +1956,8 @@ Licensed under the MIT license.
 
             surface.clear();
 
-            executeHooks(hooks.drawBackground, [ctx]);
+            if (hooks.drawBackground.length)
+                executeHooks(hooks.drawBackground, [ctx]);
 
             var grid = options.grid;
 
@@ -1962,11 +1970,13 @@ Licensed under the MIT license.
             }
 
             for (var i = 0; i < series.length; ++i) {
-                executeHooks(hooks.drawSeries, [ctx, series[i]]);
+                if (hooks.drawSeries.length)
+                    executeHooks(hooks.drawSeries, [ctx, series[i]]);
                 drawSeries(series[i]);
             }
 
-            executeHooks(hooks.draw, [ctx]);
+            if (hooks.draw.length)
+                executeHooks(hooks.draw, [ctx]);
 
             if (grid.show && grid.aboveData) {
                 drawGrid();
@@ -3147,7 +3157,8 @@ Licensed under the MIT license.
             }
             octx.restore();
 
-            executeHooks(hooks.drawOverlay, [octx]);
+            if (hooks.drawOverlay.length)
+                executeHooks(hooks.drawOverlay, [octx]);
         }
 
         function highlight(s, point, auto) {
