@@ -123,6 +123,8 @@ progress rejects another new mutation with HTTP 409 instead of queuing it.
 | GET | `/api/system/status` | Instrument inventory, loaded identity, current/last operation and sampled health. |
 | GET | `/api/system/diagnostics` | Download metadata, status and bounded journal excerpts as JSON. |
 | WebSocket | `/api/events` | The same status snapshots, on operation changes and every two seconds. |
+| WebSocket | `/api/logs/koheron/events?cursor=CURSOR` | Recent instrument logs followed by incremental journal batches. Cursor is optional. |
+| GET | `/api/logs/koheron/tail?cursor=CURSOR` | One bounded batch using the same log protocol, for HTTP fallback. |
 
 Service controls use systemd D-Bus jobs and wait for completion, including
 `Type=notify` readiness. Activation reports validation, extraction, stopping,
@@ -166,14 +168,34 @@ Diagnostic exports limit journal messages to 4 KiB each and 512 KiB of encoded
 journal context. Oversized inventories or build metadata are omitted explicitly;
 the complete download is bounded to 1 MiB.
 
-The WebSocket is read-only and accepts at most eight clients, leaving HTTP
+Each WebSocket endpoint is read-only and accepts at most eight clients, leaving HTTP
 capacity for commands. It checks browser origin, handles ping/close frames and
 disconnects slow clients with bounded buffering. Every ten seconds it sends a
 ping; peers must return the matching pong within five seconds to retain their
 slot. The management page shares one
 connection for instrument state, activation progress and health. It reconnects,
-falls back to HTTP status reads, and suspends the connection while hidden. Logs
-continue using their existing journal cursors and pause/follow controls.
+falls back to HTTP status reads, and suspends the connection while hidden.
+Logs have a separate connection so Pause releases the journal reader without
+interrupting controls or health. The native reader stays open and follows
+journal notifications; the browser no longer polls while that stream is healthy.
+Both transports return `{type: "logs", cursor, entries, reset}`; entries contain
+microsecond `ts`, `msg` and systemd `prio` (0–7). Initial history is the latest
+200 entries. Each batch has at most 200 entries, 4 KiB of source message per
+entry and less than 64 KiB of encoded JSON; oversized messages are truncated.
+Backlogs drain in bounded batches. Empty batches every two seconds keep the
+browser watchdog alive. Reconnect and Resume seek after the last delivered
+cursor. An invalid or expired cursor returns `reset: true` and recent history;
+the widget clears its old history to avoid duplicates. The display retains
+1,000 grouped rows, follow and download controls.
+
+Blocked or stalled log sockets retry with a 1–10 second backoff and use bounded
+HTTP batches once per second in the meantime; the badge reads “Live · polling”.
+HTTP log reads time out after eight seconds. Pause, hidden pages and page
+transitions cancel pending reads and close the log socket; BFCache restoration
+resumes it. Late replies cannot overwrite a newer cursor or update paused logs.
+For log peers with blocked writes, the API stops reading and closes them after
+two seconds; outgoing buffers remain bounded. The original journal HTTP routes
+remain available for SDK clients.
 HTTP status reads time out after eight seconds and are cancelled when the page
 is hidden or disposed. Late HTTP results cannot replace a newer WebSocket
 snapshot. Lost or malformed status disables mutations until valid status returns.

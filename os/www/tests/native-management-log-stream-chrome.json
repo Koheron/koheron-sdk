@@ -1,0 +1,21 @@
+{
+  "recorded_utc": "2026-10-10T13:40:35.119209+00:00",
+  "browser": "Existing user Chrome profile, verified through browser controls",
+  "url": "http://192.168.1.85/koheron/",
+  "connection": "Connected",
+  "instrument": "fft",
+  "log_status": "Live",
+  "health_rows": 11,
+  "script_url": "http://192.168.1.85/koheron/instruments.js?v=c516d745da8049d2",
+  "javascript_errors_and_warnings": [],
+  "pause_resume": {
+    "paused_status": "Paused",
+    "board_connection_while_paused": "Connected",
+    "last_message": "TCPSocket: Connection closed by client",
+    "repeat_count_before": 4,
+    "repeat_count_after_probe_while_paused": 4,
+    "repeat_count_after_resume": 5,
+    "result": "Paused display stays frozen; one intervening TCP log is replayed once on Resume."
+  },
+  "network_verification": "The Live badge is emitted by valid WS batches; HTTP fallback uses Live \u00b7 polling. Browser regressions separately assert no HTTP log requests while WS is healthy. No Chrome network request counter was collected on hardware."
+}

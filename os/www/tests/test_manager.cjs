@@ -110,15 +110,16 @@ test('status errors recover and encoded instrument names stay intact', async t =
 test('log pause survives in-flight fetch; resume and bounded grouping work', async t => {
     const {w, doc, flush} = fixture(t);
     let complete;
+    w.WebSocket = class { constructor() { throw new Error('Blocked'); } };
     w.fetch = () => new Promise(resolve => { complete = resolve; });
     w.eval('new KoheronLogWidget(document)');
     doc.querySelector('#log-pause').click();
-    complete({ok: true, json: async () => ({cursor: '1', entries: [{ts: null, msg: 'late'}]})});
+    complete({ok: true, text: async () => JSON.stringify({type: 'logs', reset: false, cursor: '1', entries: [{ts: null, msg: 'late'}]})});
     await flush();
     assert.equal(doc.querySelector('#koheron-log').textContent, '');
     assert.equal(doc.querySelector('#log-status').textContent, 'Paused');
     doc.querySelector('#log-pause').click();
-    complete({ok: true, json: async () => ({cursor: '2', entries: [{ts: null, msg: 'ready'}]})});
+    complete({ok: true, text: async () => JSON.stringify({type: 'logs', reset: false, cursor: '2', entries: [{ts: null, msg: 'ready'}]})});
     await flush(); assert.match(doc.querySelector('#koheron-log').textContent, /ready/);
     w.eval(`const format = KoheronLogWidget.prototype.makeCoalescingFormatter(document.querySelector('#koheron-log'), () => false);
         format(Array.from({length: 1200}, (_, i) => ({ts: null, msg: String(i)})));

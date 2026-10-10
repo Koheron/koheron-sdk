@@ -1,93 +1,131 @@
 // (c) Koheron
-// KoheronLog: fetch and display koheron-server logs
+// KoheronLog: stream and display koheron-server logs
 
 interface KoheronLogEntry {
-    ts: string | null;    // microseconds since epoch (string)
-    prio: number;         // systemd priority 0..7
+    ts: number | string | null; // microseconds since epoch
+    prio?: number;             // systemd priority 0..7
     msg: string;
 }
 
-type KoheronLogCallback = (entries: KoheronLogEntry[]) => void;
+type KoheronLogCallback = (entries: KoheronLogEntry[], reset?: boolean) => void;
 
+// A separate read-only stream lets Pause release its journal reader without
+// interrupting instrument controls. HTTP uses the same bounded cursor protocol.
 class KoheronLog {
-    private endpoint: string;
     private cursor: string | null = null;
-    private timer: number | null = null;
-    private pollInterval: number;
-    private maxLines: number;
-    private onUpdate?: KoheronLogCallback;
+    private socket: WebSocket = null;
+    private timer: number;
+    private retryTimer: number;
+    private watchdog: number;
+    private request: AbortController = null;
     private running = false;
-    private busy = false;
+    private connected = false;
+    private generation = 0;
+    private retryDelay = 1000;
 
-    /**
-     * @param endpoint API root for logs (default "/api/logs/koheron")
-     * @param pollInterval Polling interval in ms (default 1000)
-     * @param maxLines How many lines to fetch for the first load (default 200)
-     * @param onUpdate Optional callback called with new log entries
-     */
-    constructor(endpoint = "/api/logs/koheron",
-                pollInterval = 1000,
-                maxLines = 200,
-                onUpdate?: KoheronLogCallback,
-                private onState: (error: boolean) => void = () => {}) {
-        this.endpoint = endpoint;
-        this.pollInterval = pollInterval;
-        this.maxLines = maxLines;
-        this.onUpdate = onUpdate;
+    constructor(private endpoint = '/api/logs/koheron',
+                private pollInterval = 1000,
+                private onUpdate: KoheronLogCallback = () => {},
+                private onState: (error: boolean, fallback?: boolean) => void = () => {}) {
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) { this.disconnect(); }
+            else if (this.running) { this.connect(); }
+        });
+        window.addEventListener('pagehide', () => this.disconnect());
+        window.addEventListener('pageshow', event => {
+            if (event.persisted && this.running) { this.connect(); }
+        });
     }
-
-    /** Start polling logs */
-    public start(): void {
+    start(): void {
         if (this.running) { return; }
-        this.running = true;
-        this.pull(this.cursor === null);
+        this.running = true; this.connect();
     }
-
-    /** Stop polling logs */
-    public stop(): void {
-        this.running = false;
-        if (this.timer !== null) {
-            window.clearTimeout(this.timer);
-            this.timer = null;
+    stop(): void { this.running = false; this.disconnect(); }
+    refresh(): void { if (!this.connected) { void this.pull(); } }
+    private disconnect(): void {
+        ++this.generation; this.connected = false;
+        window.clearTimeout(this.timer); window.clearTimeout(this.retryTimer); window.clearTimeout(this.watchdog);
+        if (this.request) { this.request.abort(); this.request = null; }
+        if (this.socket) {
+            const socket = this.socket; this.socket = null;
+            socket.onmessage = null; socket.onclose = null; socket.onerror = null; socket.close();
         }
     }
-
-    /** Manually force a refresh (does not affect the interval) */
-    public refresh(): void {
-        this.pull(this.cursor === null);
+    private url(path: string): string {
+        return this.endpoint + path + (this.cursor ? '?cursor=' + encodeURIComponent(this.cursor) : '');
     }
-
-    private async pull(initial: boolean): Promise<void> {
-        if (!this.running || this.busy) { return; }
-        if (this.timer !== null) { window.clearTimeout(this.timer); this.timer = null; }
-        this.busy = true;
+    private deliver(data: any, fallback: boolean): void {
+        if (!data || data.type !== 'logs' || typeof data.reset !== 'boolean' ||
+            (data.cursor !== null && (typeof data.cursor !== 'string' || data.cursor.length > 1024)) ||
+            !Array.isArray(data.entries) || data.entries.length > 200 ||
+            data.entries.some((entry: any) => !entry || typeof entry.msg !== 'string' || entry.msg.length > 12288 ||
+                (entry.ts !== null && !(typeof entry.ts === 'number' && Number.isSafeInteger(entry.ts) && entry.ts >= 0) &&
+                    !(typeof entry.ts === 'string' && /^\d{1,17}$/.test(entry.ts))) ||
+                (entry.prio != null && (!Number.isInteger(entry.prio) || entry.prio < 0 || entry.prio > 7))) ||
+            (data.entries.length > 0 && !data.cursor)) { throw new Error('Invalid log batch'); }
+        // Heartbeats repeat the current cursor. Never render a batch twice.
+        if (data.reset || data.cursor !== this.cursor) { this.onUpdate(data.entries, data.reset); }
+        this.cursor = data.cursor; this.onState(false, fallback);
+    }
+    private connect(): void {
+        if (!this.running || document.hidden || this.socket) { return; }
+        const reconnect = () => {
+            this.disconnect();
+            if (!this.running || document.hidden) { return; }
+            this.onState(true); void this.pull();
+            this.retryTimer = window.setTimeout(() => this.connect(), this.retryDelay);
+            this.retryDelay = Math.min(10000, this.retryDelay * 2);
+        };
+        let socket: WebSocket;
+        const requestedCursor = this.cursor;
         try {
-            if (document.hidden) { return; }
-            const url = this.cursor && !initial
-                ? `${this.endpoint}/incr?cursor=${encodeURIComponent(this.cursor)}`
-                : `${this.endpoint}?lines=${this.maxLines}`;
-
-            const resp = await fetch(url, { cache: "no-store" });
-            if (!resp.ok) {
-                throw new Error(`Log fetch failed (${resp.status})`);
-            }
-
-            const data = await resp.json() as { cursor: string, entries: KoheronLogEntry[] };
-            if (!this.running) { return; }
-            this.onState(false);
-            if (data.cursor) {
-                this.cursor = data.cursor;
-            }
-
-            if (this.onUpdate && Array.isArray(data.entries) && data.entries.length > 0) {
-                this.onUpdate(data.entries);
-            }
-        } catch (err) {
-            if (this.running) { this.onState(true); }
-        } finally {
-            this.busy = false;
-            if (this.running) {
-                this.timer = window.setTimeout(() => this.pull(false), this.pollInterval);
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            socket = this.socket = new WebSocket(protocol + '//' + location.host + this.url('/events'));
+        } catch (_) { reconnect(); return; }
+        const failed = () => { if (this.socket === socket) { reconnect(); } };
+        socket.onclose = failed; socket.onerror = failed;
+        socket.onmessage = event => {
+            if (this.socket !== socket || !this.running || document.hidden) { return; }
+            try {
+                if (typeof event.data !== 'string' || event.data.length > 65536) { throw new Error('Oversized log batch'); }
+                // If HTTP advanced the cursor while this handshake was pending,
+                // reopen at that cursor rather than replaying the older WS batch.
+                if (!this.connected && this.cursor !== requestedCursor) {
+                    this.disconnect(); this.connect(); return;
+                }
+                this.deliver(JSON.parse(event.data), false);
+                this.connected = true; this.retryDelay = 1000;
+                if (this.request) { this.request.abort(); this.request = null; }
+                window.clearTimeout(this.timer); window.clearTimeout(this.watchdog);
+                this.watchdog = window.setTimeout(failed, 7000);
+            } catch (_) { failed(); }
+        };
+        this.watchdog = window.setTimeout(failed, 5000);
+    }
+    private async pull(): Promise<void> {
+        if (!this.running || document.hidden || this.connected || this.request) { return; }
+        window.clearTimeout(this.timer);
+        const controller = this.request = new AbortController(), generation = this.generation;
+        const current = () => this.request === controller && this.generation === generation &&
+            this.running && !document.hidden && !this.connected;
+        const timeout = window.setTimeout(() => {
+            if (current()) { this.onState(true); }
+            controller.abort();
+        }, 8000);
+        try {
+            const response = await fetch(this.url('/tail'), {cache: 'no-store', signal: controller.signal});
+            if (!response.ok) { throw new Error('Log read failed'); }
+            const bytes = await response.text();
+            if (bytes.length > 65536) { throw new Error('Oversized log batch'); }
+            if (current() && !controller.signal.aborted) { this.deliver(JSON.parse(bytes), true); }
+        } catch (_) { if (current()) { this.onState(true); } }
+        finally {
+            window.clearTimeout(timeout);
+            if (this.request === controller) {
+                this.request = null;
+                if (this.running && !document.hidden && !this.connected) {
+                    this.timer = window.setTimeout(() => this.pull(), this.pollInterval);
+                }
             }
         }
     }
@@ -100,8 +138,8 @@ class KoheronLogWidget {
         const pause = document.getElementById('log-pause') as HTMLButtonElement;
         const status = document.getElementById('log-status');
         const format = this.makeCoalescingFormatter(pre, () => follow.checked);
-        const log = new KoheronLog('/api/logs/koheron', 1000, 200, format, failed => {
-            status.textContent = failed ? 'Disconnected · retrying…' : 'Live';
+        const log = new KoheronLog('/api/logs/koheron', 1000, format, (failed, fallback) => {
+            status.textContent = failed ? 'Disconnected · retrying…' : fallback ? 'Live · polling' : 'Live';
             status.dataset.state = failed ? 'error' : 'live';
         });
         pause.addEventListener('click', () => {
@@ -124,7 +162,6 @@ class KoheronLogWidget {
             link.href = url; link.download = 'koheron-instrument.log'; link.click();
             window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
-        window.addEventListener('pagehide', event => { if (!event.persisted) { log.stop(); } });
         log.start();
     }
 
@@ -149,7 +186,8 @@ class KoheronLogWidget {
             pre.appendChild(fragment);
             pre.scrollTop = shouldFollow ? pre.scrollHeight : scrollTop;
         };
-        return (entries: KoheronLogEntry[]) => {
+        return (entries: KoheronLogEntry[], reset = false) => {
+            if (reset) { lines.length = 0; }
             for (const entry of entries) {
                 const last = lines[lines.length - 1];
                 const priority = typeof entry.prio === 'number' ? entry.prio : 6;

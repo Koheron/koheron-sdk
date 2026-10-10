@@ -13,9 +13,9 @@ from native_fixture import NativeFixture, archive
 
 
 class WebSocket:
-    def __init__(self, port, headers='', host='localhost'):
-        self.socket = socket.create_connection(('127.0.0.1', port), timeout=3)
-        self.socket.sendall((f'GET /api/events HTTP/1.1\r\nHost: {host}\r\nUpgrade: websocket\r\n'
+    def __init__(self, port, headers='', host='localhost', path='/api/events', address='127.0.0.1'):
+        self.socket = socket.create_connection((address, port), timeout=3)
+        self.socket.sendall((f'GET {path} HTTP/1.1\r\nHost: {host}\r\nUpgrade: websocket\r\n'
             'Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\n'
             'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n' + headers + '\r\n').encode())
         self.buffer = b''
@@ -245,6 +245,49 @@ class NativeManagementTest(NativeFixture):
         self.assertEqual(value['operation']['phase'], 'succeeded')
         self.assertEqual(value['instruments']['live_instrument']['name'], 'new')
         self.stop_api()  # An open upgraded connection must not prevent shutdown.
+
+    def test_log_stream_empty_journal_and_heartbeat(self):
+        stream = WebSocket(self.port, path='/api/logs/koheron/events')
+        self.addCleanup(stream.close)
+        self.assertIn(b'101', stream.headers)
+        for _ in range(2):
+            opcode, payload = stream.frame()
+            self.assertEqual(opcode, 1)
+            self.assertEqual(json.loads(payload), dict(type='logs', cursor=None, entries=[], reset=False))
+        self.stop_api()  # Closing the journal reader and WS must not hang shutdown.
+
+    def test_log_tail_and_stale_cursor_are_bounded(self):
+        self.assertEqual(self.get('/api/logs/koheron/tail'),
+                         dict(type='logs', cursor=None, entries=[], reset=False))
+        value = self.get('/api/logs/koheron/tail?cursor=missing')
+        self.assertTrue(value['reset'])
+        stream = WebSocket(self.port, path='/api/logs/koheron/events?cursor=missing')
+        self.addCleanup(stream.close)
+        self.assertTrue(json.loads(stream.frame()[1])['reset'])
+
+    def test_log_stream_provenance_cursor_and_method_validation(self):
+        for path in ('/api/logs/koheron/tail', '/api/logs/koheron/events'):
+            for cursor in ('x' * 1025, '%0A', 'bad%20cursor'):
+                self.assertEqual(self.request(path + '?cursor=' + cursor)[0], 400)
+        stream = WebSocket(self.port, 'Origin: http://foreign\r\n', path='/api/logs/koheron/events')
+        self.addCleanup(stream.close)
+        self.assertIn(b'403', stream.headers)
+        self.assertEqual(self.request('/api/logs/koheron/events')[0], 426)
+        self.assertEqual(self.request('/api/logs/koheron/events', b'', method='POST')[0], 405)
+
+    def test_log_stream_budget_does_not_starve_status_or_http(self):
+        streams = []
+        try:
+            for _ in range(8):
+                stream = WebSocket(self.port, path='/api/logs/koheron/events')
+                streams.append(stream); self.assertEqual(stream.frame()[0], 1)
+            extra = WebSocket(self.port, path='/api/logs/koheron/events'); streams.append(extra)
+            self.assertIn(b'503', extra.headers)
+            status = WebSocket(self.port); streams.append(status)
+            self.assertEqual(json.loads(status.frame()[1])['type'], 'status')
+            self.assertEqual(self.get('/api/system/status')['type'], 'status')
+        finally:
+            for stream in streams: stream.close()
 
 
 if __name__ == '__main__':

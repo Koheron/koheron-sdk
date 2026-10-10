@@ -1,5 +1,45 @@
 # Native management runtime tests
 
+[WebSocket log validation](native-management-log-stream-validation.json) records
+the dedicated instrument journal stream, bounded cursor replay, HTTP fallback
+and pause/resume. Build checks pass separately: 113 native tests, 17 rootfs
+tests, 46 browser regressions, 23 management tests with ASan/UBSan/leak detection,
+three web build regressions and the Docker C++23/GCC 15 ARMhf API/web targets.
+The browser regressions cover blocked sockets, heartbeat timeouts, stale
+HTTP/WS races, hidden pages, BFCache, invalid batches and duplicate prevention.
+
+On the Red Pitaya's regular port 80, [five production checks](native-management-log-stream-red-pitaya.json)
+verify history parity with HTTP, real incremental journal entries, cursor replay,
+stale cursor recovery and origin rejection. Three light TCP connect/close probes
+arrived in 5.36, 50.52 and 50.65 ms, including LAN and journald delay. These are
+samples of the new stream, not a comparison or stress/boot benchmark.
+The [existing user Chrome](../../www/tests/native-management-log-stream-chrome.json)
+shows Connected and Live. Pause keeps board controls connected and the displayed
+repeat count frozen at four; a TCP log during the pause appears once on Resume,
+raising the count to five. The final versioned bundle has no observed JavaScript
+errors or warnings. Seven public assets match the final build and revalidate.
+
+The FFT PID remains 10199, with 2048 points, 1023 averages and Hann window.
+It had been restarted before this test's baseline; earlier records retain their
+original PID 151. Only the API restarts, from PID 8502 to 15419; nginx PID 399
+is preserved. No FPGA programming, image flash, reboot or instrument lifecycle
+operation was performed. The previous API/UI/site are backed up at
+`/var/lib/koheron-management-logs-backup-20261010`.
+
+To repeat the light production log checks from the host:
+
+```sh
+python3 os/api/tests/red_pitaya_log_stream.py \
+  --host BOARD --output /path/to/log-stream.json
+```
+
+The probe requires the instrument's standard TCP port 36000 and only connects
+and closes; it does not send acquisition commands. An initial helper used port
+8080 without a WebSocket upgrade and produced journal handshake warnings;
+the corrected run above passed, with unchanged FFT state. WebSocket fallback
+failure races are simulated in host regressions, rather than disrupting the
+board's network.
+
 [Management cache repair](../../www/tests/native-management-cache-validation.json)
 records the failure in the user's existing Chrome: the updated management HTML
 could not initialize because an older cached bundle lacked `RuntimeStream`.

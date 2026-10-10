@@ -1,0 +1,21 @@
+{
+  "recorded_utc": "2026-10-10T13:34:40.177231+00:00",
+  "host": "192.168.1.85",
+  "checks": [
+    "port-80 WS initial history matches bounded HTTP, with priority",
+    "three real instrument TCP disconnects arrive as incremental WS log batches",
+    "reconnect replays only entries after the saved cursor",
+    "invalid or expired cursor resets to bounded recent history",
+    "nginx and native API reject foreign browser origins"
+  ],
+  "initial_entries": 94,
+  "replayed_entries": 1,
+  "reset_entries": 98,
+  "delivery_ms": [
+    5.36,
+    50.52,
+    50.65
+  ],
+  "measurement": "Three light TCP connect/close samples; client-close to receipt on the host, including network and journald delay; not a stress test or a boot benchmark.",
+  "scope": "Production GET and read-only WebSockets; four instrument TCP connect/close probes; no lifecycle, settings, upload, FPGA or reboot actions."
+}

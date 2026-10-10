@@ -11,6 +11,10 @@ namespace koheron::management {
 [[nodiscard]] bool same_origin(MHD_Connection* connection);
 // Read-only RFC6455 stream. Commands remain HTTP requests with explicit results.
 class EventHub {
+public:
+    using Stream = std::function<std::string()>;
+    using StreamFactory = std::function<Stream(std::optional<std::string>)>;
+private:
     struct Client {
         MHD_socket socket;
         MHD_UpgradeResponseHandle* handle;
@@ -19,20 +23,25 @@ class EventHub {
         std::chrono::steady_clock::time_point deadline{};
         std::chrono::steady_clock::time_point next_ping{}, pong_deadline{};
         std::string ping;
+        Stream stream;
+        std::optional<std::string> cursor;
+        std::chrono::steady_clock::time_point blocked_since{};
     };
     std::mutex mutex_;
     std::condition_variable changed_;
     std::vector<Client> clients_;
     bool stopped_ = false, dirty_ = true;
     std::function<std::string()> snapshot_;
+    StreamFactory streams_;
     std::thread thread_;
     void run();
 public:
-    explicit EventHub(std::function<std::string()> snapshot);
+    explicit EventHub(std::function<std::string()> snapshot, StreamFactory streams = {});
     ~EventHub();
     void wake();
     void stop();
-    void accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input);
+    void accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input,
+        std::optional<std::string> cursor = {});
     [[nodiscard]] MHD_Result upgrade(MHD_Connection* connection);
 };
 }

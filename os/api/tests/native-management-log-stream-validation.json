@@ -1,0 +1,141 @@
+{
+  "recorded_utc": "2026-10-10T13:40:35.119500+00:00",
+  "application_base_commit": "32029a0e9d1d6baeba027b984d79f7de998f595d",
+  "change": "Live instrument journal over a dedicated bounded WebSocket, cursor replay and HTTP fallback.",
+  "build_checks": {
+    "toolchain": "C++23, GCC 15 in Ubuntu 26.04 Docker",
+    "native_tests": 113,
+    "rootfs_tests": 17,
+    "browser_regressions": 46,
+    "management_sanitizer_tests": 23,
+    "sanitizers": "ASan, UBSan, leak detection; targeted management tests on host",
+    "web_build_regressions": 3,
+    "armhf_api_and_web_build": "passed",
+    "typescript_build": "passed"
+  },
+  "hardware_checks": {
+    "host": "192.168.1.85",
+    "url": "http://192.168.1.85/koheron/",
+    "production_log_checks": 5,
+    "log_record": "native-management-log-stream-red-pitaya.json",
+    "existing_user_chrome_record": "../../www/tests/native-management-log-stream-chrome.json",
+    "services": {
+      "koheron-server": {
+        "before_pid": 10199,
+        "after_pid": 10199,
+        "state": "active",
+        "restarts": 0
+      },
+      "koheron-api": {
+        "before_pid": 8502,
+        "after_pid": 15419,
+        "state": "active",
+        "restarts": 0
+      },
+      "nginx": {
+        "before_pid": 399,
+        "after_pid": 399,
+        "state": "active",
+        "restarts": 0
+      }
+    },
+    "fft_before": {
+      "recorded_utc": "2026-10-10T13:31:07.027985+00:00",
+      "host": "192.168.1.85",
+      "live_instrument": {
+        "name": "fft",
+        "version": "0.3.0",
+        "is_default": true
+      },
+      "server_version": "1.0",
+      "fft_size": 2048,
+      "number_averages": 1023,
+      "window_index": 1,
+      "drivers": [
+        "Common",
+        "FFT",
+        "KServer",
+        "PhaseModulator",
+        "RedPitayaAdcCalibration",
+        "Xadc"
+      ],
+      "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+    },
+    "fft_after": {
+      "recorded_utc": "2026-10-10T13:36:46.364225+00:00",
+      "host": "192.168.1.85",
+      "live_instrument": {
+        "name": "fft",
+        "version": "0.3.0",
+        "is_default": true
+      },
+      "server_version": "1.0",
+      "fft_size": 2048,
+      "number_averages": 1023,
+      "window_index": 1,
+      "drivers": [
+        "Common",
+        "FFT",
+        "KServer",
+        "PhaseModulator",
+        "RedPitayaAdcCalibration",
+        "Xadc"
+      ],
+      "scope": "Read-only production HTTP status and TCP RPC reads; no settings changed or FPGA programmed"
+    },
+    "settings_identical": true,
+    "nginx_syntax": "passed",
+    "installed_payload_sha256": {
+      "api/koheron-api": "9f8261168f2ba38ec24c713602c1c869c8a55564d1d2463003cff2f5cb7f9f9a",
+      "nginx-server.conf": "e11bbda8e54d9efb151db2eeb039583ca738692923cc2e0c7a1bf48506a2b9f8",
+      "www/instruments.js": "c516d745da8049d2a2affeb0fe888c9efb3635733ae4b3da1d81be41ab9748d1",
+      "www/main.css": "9c0cf2560880262c566b04b4453fc8d7de384dc37b2d5ef80d6f5943ac238c22",
+      "www/instrument.css": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761",
+      "www/system.css": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a",
+      "www/index.html": "1076c73188e95e528a6ddd3cf3332e34a09f9b0bdf50a0ab705ac3fa0151b1b6",
+      "www/instrument_summary.html": "39808f3db55b0473f0fc039bc43719d739e8d4c42035fe659b643e7b9894dea7",
+      "www/logs_rate.html": "afd00e28196ed612199f6fdaf41ce52c03fd29d948228b65f5fe965ae72c969a"
+    },
+    "public_http_assets": {
+      "http://192.168.1.85/koheron/instruments.js?v=c516d745da8049d2": {
+        "status": 200,
+        "sha256": "c516d745da8049d2a2affeb0fe888c9efb3635733ae4b3da1d81be41ab9748d1",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/main.css?v=9c0cf2560880262c": {
+        "status": 200,
+        "sha256": "9c0cf2560880262c566b04b4453fc8d7de384dc37b2d5ef80d6f5943ac238c22",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/instrument.css?v=5e7f110b26d2e333": {
+        "status": 200,
+        "sha256": "5e7f110b26d2e333b711af3997181dace27e4a8a8982f2eeb8ab9f49616b2761",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/system.css?v=ef2d181b1dee29c2": {
+        "status": 200,
+        "sha256": "ef2d181b1dee29c2ef0b79a8cee97429e3964d9b0f94bd2b43c107d5524a429a",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/": {
+        "status": 200,
+        "sha256": "1076c73188e95e528a6ddd3cf3332e34a09f9b0bdf50a0ab705ac3fa0151b1b6",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/instrument_summary.html": {
+        "status": 200,
+        "sha256": "39808f3db55b0473f0fc039bc43719d739e8d4c42035fe659b643e7b9894dea7",
+        "cache_control": "no-cache"
+      },
+      "http://192.168.1.85/koheron/logs_rate.html": {
+        "status": 200,
+        "sha256": "afd00e28196ed612199f6fdaf41ce52c03fd29d948228b65f5fe965ae72c969a",
+        "cache_control": "no-cache"
+      }
+    },
+    "backup": "/var/lib/koheron-management-logs-backup-20261010",
+    "scope": "In-place API/UI update and nginx reload; no instrument lifecycle operation, FPGA programming, image flash, reboot or extended stress."
+  },
+  "test_note": "An initial test helper mistakenly connected to instrument WS port 8080 without an upgrade, producing two journal handshake-error messages at 13:34:18 UTC. The helper was corrected to TCP port 36000; all five recorded production checks then passed. No instrument settings or service were changed by either probe.",
+  "limits": "Delivery measurements are three light LAN samples including journald/network delay; no before/after latency or boot-time benchmark. Actual Chrome pause/resume was verified manually, and failure/reconnect races were covered in deterministic browser regressions."
+}

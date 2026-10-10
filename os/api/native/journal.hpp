@@ -1,5 +1,6 @@
 #pragma once
 #include "common.hpp"
+#include <functional>
 
 namespace koheron::management {
 struct LogEntry {
@@ -7,6 +8,7 @@ struct LogEntry {
     std::string invocation;
     std::string message;
     std::optional<std::uint64_t> timestamp;
+    int priority = 6;
 };
 struct LogResult {
     std::vector<LogEntry> entries;
@@ -18,4 +20,7 @@ struct LogResult {
     const std::optional<std::uint64_t>& min_timestamp = {});
 [[nodiscard]] std::optional<LogEntry> bookmark(std::string_view unit,
     const std::optional<std::string>& invocation = {});
+// Construct and use the journal reader on the event thread. Empty output means
+// no change; an empty log batch every two seconds keeps the browser watchdog alive.
+[[nodiscard]] std::function<std::string()> follow_logs(std::string unit, std::optional<std::string> cursor);
 } // namespace koheron::management

@@ -71,20 +71,26 @@ bool same_origin(MHD_Connection* connection) {
     };
     return matches(header("Origin"), false) && matches(header("Referer"), true);
 }
-EventHub::EventHub(std::function<std::string()> snapshot) : snapshot_(std::move(snapshot)), thread_([this] { run(); }) {}
+EventHub::EventHub(std::function<std::string()> snapshot, StreamFactory streams) :
+    snapshot_(std::move(snapshot)), streams_(std::move(streams)), thread_([this] { run(); }) {}
 EventHub::~EventHub() { stop(); }
 void EventHub::wake() { std::lock_guard lock(mutex_); dirty_ = true; changed_.notify_one(); }
 void EventHub::stop() {
     { std::lock_guard lock(mutex_); stopped_ = true; changed_.notify_one(); }
     if (thread_.joinable()) thread_.join();
 }
-void EventHub::accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input) {
+void EventHub::accept(MHD_socket socket, MHD_UpgradeResponseHandle* handle, std::string_view input, std::optional<std::string> cursor) {
     std::lock_guard lock(mutex_);
     if (stopped_ || clients_.size() >= 8 || input.size() > 512) { MHD_upgrade_action(handle, MHD_UPGRADE_ACTION_CLOSE); return; }
     clients_.push_back({socket, handle, std::string(input), {}, false, {},
-        std::chrono::steady_clock::now() + std::chrono::seconds(10), {}, {}}); dirty_ = true; changed_.notify_one();
+        std::chrono::steady_clock::now() + std::chrono::seconds(10), {}, {}, {}, std::move(cursor), {}}); dirty_ = true; changed_.notify_one();
 }
 MHD_Result EventHub::upgrade(MHD_Connection* connection) {
+    if (streams_) {
+        const char* cursor = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "cursor");
+        if (cursor && (std::strlen(cursor) > 1024 || !std::ranges::all_of(std::string_view(cursor),
+            [](unsigned char c) { return c >= 33 && c <= 126; }))) return reject(connection, 400);
+    }
     const auto header = [&](const char* name) { const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, name); return value ? std::string_view(value) : std::string_view(); };
     if (!token(header("Upgrade"), "websocket") || !token(header("Connection"), "upgrade")) return reject(connection, 426);
     if (header("Sec-WebSocket-Version") != "13") return reject(connection, 426);
@@ -98,8 +104,12 @@ MHD_Result EventHub::upgrade(MHD_Connection* connection) {
     const std::string source = std::string(key) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     std::array<unsigned char, 20> digest{};
     SHA1(reinterpret_cast<const unsigned char*>(source.data()), source.size(), digest.data());
-    auto* response = MHD_create_response_for_upgrade([](void* context, MHD_Connection*, void*, const char* bytes, std::size_t count,
-        MHD_socket socket, MHD_UpgradeResponseHandle* handle) { static_cast<EventHub*>(context)->accept(socket, handle, std::string_view(bytes, count)); }, this);
+    auto* response = MHD_create_response_for_upgrade([](void* context, MHD_Connection* connection, void*, const char* bytes, std::size_t count,
+        MHD_socket socket, MHD_UpgradeResponseHandle* handle) {
+            const char* cursor = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "cursor");
+            static_cast<EventHub*>(context)->accept(socket, handle, std::string_view(bytes, count),
+                cursor && *cursor ? std::optional(std::string(cursor)) : std::nullopt);
+        }, this);
     if (!response) return MHD_NO;
     MHD_add_response_header(response, "Upgrade", "websocket"); MHD_add_response_header(response, "Connection", "Upgrade");
     MHD_add_response_header(response, "Sec-WebSocket-Accept", base64(digest).c_str());
@@ -112,7 +122,8 @@ void EventHub::run() {
         if (clients_.empty()) changed_.wait(lock, [&] { return stopped_ || !clients_.empty(); });
         changed_.wait_for(lock, std::chrono::milliseconds(50), [&] { return stopped_ || (dirty_ && !clients_.empty()); });
         if (stopped_) break;
-        const bool publish = !clients_.empty() && (dirty_ || std::chrono::steady_clock::now() >= next);
+        const bool publish = snapshot_ && !clients_.empty() && (dirty_ || std::chrono::steady_clock::now() >= next);
+        if (streams_) dirty_ = false;
         if (publish) {
             dirty_ = false; lock.unlock();
             std::string message;
@@ -133,6 +144,20 @@ void EventHub::run() {
                     client.closing = true;
                 }
             };
+            if (streams_ && !client.closing) {
+                if (!client.output.empty()) {
+                    if (client.blocked_since == std::chrono::steady_clock::time_point{}) client.blocked_since = std::chrono::steady_clock::now();
+                    if (std::chrono::steady_clock::now() - client.blocked_since > std::chrono::seconds(2)) close(1008);
+                } else {
+                    client.blocked_since = {};
+                    try {
+                        if (!client.stream) client.stream = streams_(client.cursor);
+                        const auto message = client.stream();
+                        if (message.size() > 64 * 1024) close(1009);
+                        else if (!message.empty()) client.output = frame(1, message);
+                    } catch (...) { close(1011); }
+                }
+            }
             std::array<char, 512> bytes{};
             const auto count = ::recv(client.socket, bytes.data(), bytes.size(), MSG_DONTWAIT);
             if (count == 0 || (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)) { client.closing = true; client.output.clear(); }

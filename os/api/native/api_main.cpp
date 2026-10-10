@@ -178,6 +178,7 @@ class App {
 public:
     Settings settings;
     std::unique_ptr<EventHub> events;
+    std::unique_ptr<EventHub> log_events;
     void ready() { api_ready_ = monotonic_us(); }
     bool reserve_upload() {
         std::lock_guard lock(upload_mutex_);
@@ -361,6 +362,11 @@ public:
             const auto suffix = path.substr(logs.size());
             const char* requested_cursor = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "cursor");
             std::optional<std::string> cursor = requested_cursor && *requested_cursor ? std::optional(std::string(requested_cursor)) : std::nullopt;
+            if (suffix == "/tail") {
+                if (cursor && (cursor->size() > 1024 || !std::ranges::all_of(*cursor,
+                    [](unsigned char c) { return c >= 33 && c <= 126; }))) return error_reply("invalid cursor", 400);
+                return Reply{200, follow_logs(settings.unit, cursor)(), "application/json", {}};
+            }
             if (suffix.empty()) {
                 int limit = 200;
                 if (const char* requested = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "lines")) {
@@ -490,9 +496,9 @@ MHD_Result handle(void* context, MHD_Connection* connection, const char* url, co
         }
         request.responded = true;
         if (request.error) return respond(connection, std::move(*request.error));
-        if (std::string_view(url) == "/api/events") {
+        if (std::string_view(url) == "/api/events" || std::string_view(url) == "/api/logs/koheron/events") {
             if (std::string_view(method) != "GET") return respond(connection, failure("method_not_allowed", "Method not allowed", 405));
-            return request.app.events->upgrade(connection);
+            return (std::string_view(url) == "/api/events" ? request.app.events : request.app.log_events)->upgrade(connection);
         }
         if (std::string_view(method) == "POST" && std::string_view(url) == "/api/instruments/upload") {
             // Finalization detects a missing closing multipart boundary.
@@ -575,6 +581,9 @@ int main(int argc, char** argv) {
         if (pthread_sigmask(SIG_BLOCK, &signals, nullptr) != 0) throw std::runtime_error("Could not block shutdown signals");
         App app(std::move(settings));
         app.events = std::make_unique<EventHub>([&app] { return encode(app.snapshot()); });
+        app.log_events = std::make_unique<EventHub>(EventHub::Stream{}, [&app](std::optional<std::string> cursor) {
+            return follow_logs(app.settings.unit, std::move(cursor));
+        });
         const unsigned flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_THREAD_PER_CONNECTION | MHD_USE_ITC | MHD_USE_ERROR_LOG | MHD_ALLOW_UPGRADE;
         MHD_Daemon* raw_daemon = nullptr;
         Fd listener;
@@ -602,6 +611,7 @@ int main(int argc, char** argv) {
         int signal = 0; sigwait(&signals, &signal);
         sd_notify(0, "STOPPING=1");
         app.events->stop();
+        app.log_events->stop();
         daemon.reset();
         if (!owned_socket.empty()) fs::remove(owned_socket);
         return 0;
