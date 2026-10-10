@@ -3,20 +3,17 @@ module lookahead_case #(parameter WIDTH=64, STEP_WIDTH=17)(output reg done=0);
     localparam GROUPS=(WIDTH-STEP_WIDTH+3)/4;
     reg clk=0, rst=1, enable=0;
     always #2 clk=~clk;
-    reg signed [WIDTH-1:0] state=0, expected=0;
+    wire signed [WIDTH-1:0] state;
+    reg signed [WIDTH-1:0] expected=0;
     reg signed [STEP_WIDTH-1:0] step=0;
-    wire [WIDTH-1:0] sum;
     reg [WIDTH-1:0] expected_sum;
     integer seed=31891+WIDTH+STEP_WIDTH, checked=0;
     reg z,o;
     phase_unwrapper_lookahead #(.WIDTH(WIDTH),.STEP_WIDTH(STEP_WIDTH)) dut(
-        clk,rst,enable,state,step,sum);
-    always @(posedge clk)
-        if (rst) state<=0;
-        else if (enable) state<=sum;
+        .clk(clk),.rst(rst),.enable(enable),.step(step),.phase(state));
     always @(posedge clk) begin
         expected_sum=$signed(expected)+$signed(step);
-        if (sum!==expected_sum) $fatal(1,"Incorrect sum WIDTH=%0d STEP=%0d cycle=%0d",WIDTH,STEP_WIDTH,checked);
+        if (dut.sum!==expected_sum) $fatal(1,"Incorrect sum WIDTH=%0d STEP=%0d cycle=%0d",WIDTH,STEP_WIDTH,checked);
         if (rst) expected=0;
         else if (enable) expected=expected_sum;
         #1;
@@ -37,7 +34,7 @@ module lookahead_case #(parameter WIDTH=64, STEP_WIDTH=17)(output reg done=0);
         reg zero_flag,one_flag;
         begin
             @(negedge clk);
-            rst=0; enable=0; state=value; expected=value;
+            rst=0; enable=0; dut.phase=value; expected=value;
             // Long-history boundaries are unreachable in a short simulation.
             // Initialize the complete accumulator state, including its cache.
             for (integer g=0;g<GROUPS;g=g+1) begin

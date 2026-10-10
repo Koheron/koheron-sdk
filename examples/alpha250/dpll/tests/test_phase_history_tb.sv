@@ -84,13 +84,13 @@ module test_phase_history_tb;
         repeat(5) @(negedge clk);rst=0;acc_on=1;
         // Seed an otherwise unreachable history boundary, then exercise the
         // normal frequency pipeline and accumulator across signed overflow.
-        ripple.phase_out=64'h7fffffffffffffff;
-        bounded.phase_out=64'h7fffffffffffffff;
+        ripple.phase_state=64'h7fffffffffffffff;
+        bounded.lookahead_history.history_add.phase=64'h7fffffffffffffff;
         bounded.lookahead_history.history_add.zero_prefix=1;
         bounded.lookahead_history.history_add.one_prefix='1;
-        piped.phase_out=64'h7fffffffffffffff;
+        piped.phase_state=64'h7fffffffffffffff;
         piped.split_history.low_state=32'hffffffff;
-        general_fused.phase_out=64'h7fffffffffffffff;
+        general_fused.phase_state=64'h7fffffffffffffff;
         general_fused.split_history.low_state=32'hffffffff;
         expected=64'h7fffffffffffffff;
         for(integer k=0;k<16;k=k+1) begin

@@ -28,7 +28,8 @@ module full_history_case #(parameter DIN_WIDTH=16)(output reg done=0);
     task seed_history(input [63:0] value);
         reg z,o;
         begin
-            reference.phase_out=value; dut.phase_out=value; legacy.phase_out=value;
+            reference.phase_state=value; legacy.phase_state=value;
+            dut.lookahead_history.history_add.phase=value;
             for (integer g=0;g<GROUPS;g=g+1) begin
                 z=1; o=1;
                 for (integer b=STEP_WIDTH;b<STEP_WIDTH+4*g;b=b+1) begin

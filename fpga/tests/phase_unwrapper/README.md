@@ -13,13 +13,43 @@ registers record whether all preceding high-word bits are zero or one.
 These predicates let the late low-word carry/borrow reach short local XOR
 logic instead of propagating through the entire history accumulator.
 
-The predicates describe the **current** history, and update with the same
-reset and enable as that history. Their next values are predicted from the
+The lookahead accumulator owns both the history register and its predicates;
+its caller supplies only a step, reset and enable. The predicates describe
+the **current** history and update on the same edge. Their next values are predicted from the
 old predicates and comparisons with one and minus two, without waiting for
 the full sum. The first group's empty-prefix predicates are constants.
 The 64-bit/17-bit configuration adds 22 state registers per accumulator.
 Output phase and frequency samples keep their exact values and clock
 latency; the existing delayed sticky overflow flag is unchanged.
+
+## Clock and configuration contract
+
+There is no added pipeline stage. For an input sampled on edge `n`, assuming
+history accumulation is enabled, the corresponding outputs update as follows:
+
+| Difference mode | Frequency | Full history, with or without lookahead | Split history |
+| --- | --- | --- | --- |
+| `FUSED_DIFFERENCE=0` | `n+1` | `n+2` | `n+3` |
+| `FUSED_DIFFERENCE=1` | `n` | `n+1` | `n+2` |
+
+All modes accept a new sample every clock. `rst` synchronously clears history
+and sticky overflow and takes precedence over `acc_on`. Neither signal stops
+or resets the input-difference pipeline: inputs continue to advance while
+history is disabled or reset. Full history holds while `acc_on=0`; split
+history still exposes its previously accepted sample on the following edge.
+Outputs initialize to zero, including before the first clock.
+
+`PIPELINED_HISTORY=1` takes precedence over `LOOKAHEAD_HISTORY` and requires
+`DOUT_WIDTH>32`, `DIN_WIDTH<32` and `PIPELINED_OVERFLOW=1`. Otherwise lookahead
+is selected only when `PIPELINED_OVERFLOW=1`, `DOUT_WIDTH>32` and
+`DOUT_WIDTH>DIN_WIDTH+1`; other combinations retain the conventional adder.
+`PIPELINED_OVERFLOW` delays only the sticky overflow indication by one clock
+in full-history mode. `CANONICAL_INPUT` is used only with `FUSED_DIFFERENCE`
+and requires sign-extended angles in `[-pi,pi)`.
+
+The core requires `DIN_WIDTH>=3` and `DOUT_WIDTH>=DIN_WIDTH`; fused difference
+requires `DIN_WIDTH>=4`. Invalid widths and unsupported split-history
+configurations produce explicit diagnostics.
 
 ## RTL checks
 
@@ -37,8 +67,12 @@ The runner checks:
 - Full 64-bit phase histories with 16-bit and 24-bit input phases against
   the original arithmetic and with lookahead disabled, including exact
   sample latency and both signed overflow boundaries.
+- An independent sample model checks initialization, exact phase/frequency
+  latency, continuous throughput and reset/enable behavior across twelve
+  configurations, including fused/canonical input, split-history precedence
+  and the conventional-adder fallbacks.
 - The existing 32-bit overflow-pipeline, ALPHA250 PNA split-history and
-  ALPHA250 DPLL arithmetic regressions.
+  ALPHA250 DPLL arithmetic regressions, plus phase-headroom/range-guard checks.
 
 Tests that seed a long history directly also seed its cached predicates;
 normal operation initializes both through the synchronous reset.
@@ -51,11 +85,11 @@ the baseline and changed RTL:
 ```sh
 make -j4 CFG=examples/alpha250-4/phase-noise-analyzer/config.mk \
   TMP=tmp/rtl-unwrapper-check VIVADO_VERSION=2026.1 MODE=development \
-  N_CPUS=4 ENFORCE_TIMING=1 FPGA_SYNTH_MODE=global fpga
+  N_CPUS=4 ENFORCE_TIMING=1 fpga
 ```
 
 Measurements on 2026-10-10 compare the original core at `dfb4ce6f` with
-the registered-lookahead core. No clock, constraint or implementation
+the initial registered-lookahead core at `00c58453`. No clock, constraint or implementation
 strategy changes are part of this RTL change.
 
 | ALPHA250-4 PNA, 250 MHz | Original | Lookahead |
@@ -63,8 +97,8 @@ strategy changes are part of this RTL change.
 | Overall worst setup slack | -0.069659 ns | +0.048918 ns |
 | Worst setup slack within phase unwrappers | -0.070 ns | +0.111 ns |
 | Overall worst hold slack, lookahead build | — | +0.028740 ns |
-| Synthesis LUTs | 24,019 | 24,079 |
-| Synthesis CARRY4 cells | 1,698 | 1,590 |
+| Synthesis LUT primitives | 24,019 | 24,079 |
+| Synthesis CARRY4 cells, before Unisim transformation | 1,698 | 1,590 |
 | Additional flip-flops | — | 88 |
 | Routing command elapsed time, including final hold route | 127 s | 65 s |
 
@@ -82,7 +116,7 @@ It is therefore not enabled there: the extra history registers did not offer
 a useful tradeoff in this 125 MHz PNA. No AWG timing constraint was weakened
 or waived.
 
-Final configuration builds use the same `make fpga` flags above:
+The initial configuration builds used the same `make fpga` flags above:
 
 | Instrument | History architecture | Setup / hold slack | Strict build |
 | --- | --- | --- | --- |
@@ -101,8 +135,32 @@ The DPLL baseline and final configuration both fail at exactly -0.077903 ns
 setup slack (TNS -0.112270 ns). The limiting path is from
 `cordic0/phase_extractor/inst/rotation[7].pipeline.xr_reg_rep_bsel[17]` to
 `residual_completion.completion/interpolation/dsp/B[6]`, outside the phase
-history. Its synthesized circuit is unchanged by this work. This existing
+history. The initial lookahead selection leaves its synthesized circuit unchanged. This existing
 phase-extractor closure problem is not fixed or waived here.
+
+### Accumulator state ownership
+
+The follow-up refactor places the history register inside the lookahead
+accumulator alongside its cached predicates. It adds no register stage or
+arithmetic primitive. All seven RTL suites pass, including the independent
+twelve-configuration latency test. A separate comparison against the RTL at
+`00c58453` also checks phase, frequency and overflow on every clock for those
+twelve configurations, with identical results.
+
+Full builds on the PR's current `V1` base use the normal `make fpga` command
+above, default global synthesis, and unchanged clocks, constraints and Vivado
+strategies. ALPHA250-4 passes at +0.046698 ns setup / +0.030740 ns hold, including
+all 18 bus-skew checks. Its worst unwrapper path is +0.098 ns; the limiting
+overall path remains in the vendor CORDIC. Flip-flop and arithmetic-primitive
+counts match the initial lookahead implementation. Red Pitaya passes at
++0.332713 / +0.020674 ns with all 15 bus-skew checks, reproducing the initial
+implementation's margins. Both board integration checks pass. ALPHA250 PNA
+also reproduces its original +0.066792 / +0.009590 ns margins and passes all
+13 bus-skew checks. Its board integration check passes as well.
+The DPLL build reproduces the original extractor-to-DSP setup failure exactly:
+WNS -0.077903 ns, TNS -0.112270 ns. Strict timing enforcement blocks its
+bitstream. All four synthesis primitive tables match the initial selection;
+this refactor introduces no extra registers or arithmetic cells.
 
 The board integration checks also verify the selected accumulator architecture:
 

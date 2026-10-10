@@ -29,8 +29,8 @@ module test_phase_headroom;
         repeat(6) @(negedge clk);
         rst=0;
         // Accelerate elapsed carrier phase to the old signed-32 boundary.
-        old_unwrap.phase_out=32'h7fffff00;
-        wide_unwrap.phase_out=64'h000000007fffff00;
+        old_unwrap.phase_state=32'h7fffff00;
+        wide_unwrap.phase_state=64'h000000007fffff00;
         for(i=0;i<1000;i=i+1) begin
             @(negedge clk);
             wrapped=((i*13+8192)%16384)-8192;
@@ -45,8 +45,8 @@ module test_phase_headroom;
         @(negedge clk);rst=1;old_input=0;input_phase=0;
         repeat(6) @(negedge clk);
         rst=0;
-        old_unwrap.phase_out=32'h80000100;
-        wide_unwrap.phase_out=-64'sh000000007fffff00;
+        old_unwrap.phase_state=32'h80000100;
+        wide_unwrap.phase_state=-64'sh000000007fffff00;
         for(i=0;i<1000;i=i+1) begin
             @(negedge clk);
             wrapped=((-i*13+8192)%16384+16384)%16384-8192;
