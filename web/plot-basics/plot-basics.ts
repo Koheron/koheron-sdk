@@ -51,6 +51,7 @@ class PlotBasics {
     private persistenceEnabled = false;
     private persistenceDecay = 1;
     private persistenceIntensity = .15;
+    private persistenceColor: string;
     private persistencePaused = false;
     private persistenceFrame: number;
     private persistenceLayer: HTMLCanvasElement;
@@ -104,8 +105,8 @@ class PlotBasics {
         this.reset_range = false;
         this.rebuildPlot = true;
         const placeholder = this.plot_placeholder[0];
-        const traceColor = placeholder?.ownerDocument.defaultView?.getComputedStyle(placeholder)
-            .getPropertyValue('--plot-trace-color').trim() || '#019cd5';
+        this.persistenceColor = placeholder?.ownerDocument.defaultView?.getComputedStyle(placeholder)
+            .getPropertyValue('--plot-persistence-color').trim();
 
         this.options = {
             canvas: true,
@@ -138,7 +139,7 @@ class PlotBasics {
             selection: {
                 mode: "xy"
             },
-            colors: [traceColor, "#006400"],
+            colors: ["#019cd5", "#006400"],
             legend: {
                 show: true,
                 noColumns: 0,
@@ -444,7 +445,9 @@ class PlotBasics {
             trace.clearRect(0, 0, base.width, base.height);
             const width = plot.getPlaceholder().width(), height = plot.getPlaceholder().height();
             trace.setTransform(base.width / width, 0, 0, base.height / height, 0, 0);
-            plot.drawSeriesToCanvas(series, trace);
+            // Only the detached trail uses the muted color. Keep the live
+            // series (and its legend/highlights) in the original plot palette.
+            plot.drawSeriesToCanvas(this.persistenceColor ? {...series, color: this.persistenceColor} : series, trace);
             // Composite a complete opaque trace once. Applying transparency to
             // each batched stroke would brighten shared endpoints and crossings.
             // Add new light in the buffer's time reference. The final opacity

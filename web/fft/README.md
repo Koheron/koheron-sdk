@@ -30,7 +30,8 @@ duration and level settings for history views. It also contains the optional
 **Persistence** toggle, decay, intensity and Clear trails controls. It starts
 collapsed, and its heading shows when persistence is on. Recent displayed live
 traces fade with a 0.25–5 s decay time; intensity sets the strength of newly
-added trails (5–50%). References, average/max hold, grid and cursors stay sharp.
+added trails (5–50%). The live trace keeps its original blue; only the fading
+trails use a muted blue-gray. References, average/max hold, grid and cursors stay sharp.
 Pause and hidden tabs freeze the trails. Clear trails removes only persistence;
 Clear history, acquisition changes, units, zoom and resize clear it too.
 Persistence follows displayed frames, so spectra skipped by painting are not
