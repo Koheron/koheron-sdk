@@ -96,10 +96,11 @@ microsecond timestamps and other entry fields.
 Xilinx tools. With CFG, it uses the same resolved settings as `info`, including
 overrides such as `MEMORY_YML`.
 
-`make check` validates all examples and runs Python, packaging, server dependency
-and web build regressions. With CFG, it validates that configuration; regressions
-use isolated fixtures. It uses existing host dependencies, without synthesis or
-board access. Install missing Python dependencies with `make python_requirements`
+`make check` validates all examples and runs Python and packaging checks plus OS,
+FPGA, server and web build regressions. With CFG, it validates that configuration;
+regressions use isolated fixtures. It uses existing host dependencies, without
+synthesis or board access. Install missing Python dependencies with
+`make python_requirements`
 and `make koheron_python`.
 
 `HOST_PYTHON=...` selects another prepared interpreter for inspection,
