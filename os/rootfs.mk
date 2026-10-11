@@ -102,9 +102,11 @@ $(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES) $(WEB_COMPILER_INPUTS)
 	mkdir -p $(@D)
 	$(WEB_COMPILE) --output "$@" $(WWW_TS_FILES)
 
-$(TMP_WWW_PATH)/koheron.css:
+WWW_ASSET_DOWNLOADER := $(WEB_PATH)/download_asset.sh
+
+$(TMP_WWW_PATH)/koheron.css: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://assets.koheron.com/css/main.css -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://assets.koheron.com/css/main.css"
 
 WWW_PAGES := $(addprefix $(TMP_WWW_PATH)/,index.html instrument_summary.html logs_rate.html)
 WWW_PAGE_ASSETS := $(addprefix $(TMP_WWW_PATH)/,instruments.js main.css instrument.css system.css)
@@ -133,37 +135,37 @@ $(TMP_WWW_PATH)/main.css: $(WEB_PATH)/main.css
 include $(WEB_PATH)/ui-assets.mk
 $(eval $(call ui_asset_rules,$(TMP_WWW_PATH)))
 
-$(TMP_WWW_PATH)/koheron.svg:
+$(TMP_WWW_PATH)/koheron.svg: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron.svg -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://assets.koheron.com/images/logo/koheron.svg"
 
-$(TMP_WWW_PATH)/koheron_logo.svg:
+$(TMP_WWW_PATH)/koheron_logo.svg: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron_logo.svg -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://assets.koheron.com/images/logo/koheron_logo.svg"
 
-$(TMP_WWW_PATH)/kbird.ico:
+$(TMP_WWW_PATH)/kbird.ico: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://assets.koheron.com/images/logo/koheron.ico -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://assets.koheron.com/images/logo/koheron.ico"
 
-$(TMP_WWW_PATH)/lato-v11-latin-400.woff2:
+$(TMP_WWW_PATH)/lato-v11-latin-400.woff2: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/1YwB1sO8YE1Lyjf12WNiUA.woff2 -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://fonts.gstatic.com/s/lato/v13/1YwB1sO8YE1Lyjf12WNiUA.woff2"
 
-$(TMP_WWW_PATH)/lato-v11-latin-700.woff2:
+$(TMP_WWW_PATH)/lato-v11-latin-700.woff2: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/H2DMvhDLycM56KNuAtbJYA.woff2 -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://fonts.gstatic.com/s/lato/v13/H2DMvhDLycM56KNuAtbJYA.woff2"
 
-$(TMP_WWW_PATH)/lato-v11-latin-900.woff2:
+$(TMP_WWW_PATH)/lato-v11-latin-900.woff2: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://fonts.gstatic.com/s/lato/v13/tI4j516nok_GrVf4dhunkg.woff2 -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://fonts.gstatic.com/s/lato/v13/tI4j516nok_GrVf4dhunkg.woff2"
 
-$(TMP_WWW_PATH)/html-imports.min.js:
+$(TMP_WWW_PATH)/html-imports.min.js: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js"
 
-$(TMP_WWW_PATH)/html-imports.min.js.map:
+$(TMP_WWW_PATH)/html-imports.min.js.map: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
-	curl https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map -o $@
+	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://raw.githubusercontent.com/webcomponents/html-imports/master/html-imports.min.js.map"
 
 ###############################################################################
 # BASE ROOTFS

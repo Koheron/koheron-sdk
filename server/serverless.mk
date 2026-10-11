@@ -1,4 +1,6 @@
 
+include $(dir $(lastword $(MAKEFILE_LIST)))../make/dependencies.mk
+
 APP_PATH := $(PROJECT_PATH)
 
 # -----------------------------------------------------------------------------
@@ -79,7 +81,14 @@ SERVER_COMPILER_STAMP := $(TMP_SERVER_PATH)/.compiler-settings
 $(eval $(call compiler_settings_stamp,$(SERVER_COMPILER_STAMP),$(GCC_ARCH)-g++-$(GCC_VERSION)))
 $(OBJ): $(SERVER_COMPILER_STAMP)
 
-$(SERVER): $(OBJ) $(GEN_HDRS) | $(KOHERON_SERVER_PATH)
+SERVER_FLAGS_STAMP := $(TMP_SERVER_PATH)/.compile-settings
+$(eval $(call build_settings_stamp,$(SERVER_FLAGS_STAMP),$$(call build_shell_quote,$$(SERVER_CCXX)) $$(call build_shell_quote,$$(SERVER_CCXXFLAGS))))
+$(OBJ): $(SERVER_FLAGS_STAMP)
+
+SERVER_LINK_STAMP := $(TMP_SERVER_PATH)/.link-settings
+$(eval $(call build_settings_stamp,$(SERVER_LINK_STAMP),$$(call build_shell_quote,$$(SERVER_CCXX)) $$(call build_shell_quote,$$(SERVER_CCXXFLAGS)) $$(foreach F,$$(OBJ),$$(call build_shell_quote,$$(F)))))
+
+$(SERVER): $(OBJ) $(GEN_HDRS) $(SERVER_LINK_STAMP) | $(KOHERON_SERVER_PATH)
 	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
 	$(call ok,$@)
 

@@ -309,5 +309,37 @@ $(TMP_WEB_PATH)/:
             assert_cached(selection)
 
 
+class AssetDownloadTests(unittest.TestCase):
+    def test_http_failure_preserves_cached_asset_and_removes_partial(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / 'curl'
+            binary.write_text(f'''#!{sys.executable}
+import os, pathlib, sys
+args = sys.argv[1:]
+assert any(arg.startswith('-') and not arg.startswith('--') and 'f' in arg for arg in args), args
+output = pathlib.Path(args[args.index('-o') + 1])
+output.write_bytes(b'partial')
+if os.environ.get('FAIL_DOWNLOAD'):
+    raise SystemExit(22)
+output.write_bytes(b'valid asset')
+''')
+            binary.chmod(0o755)
+            destination = root / 'cached.css'
+            destination.write_bytes(b'previous asset')
+            command = ['bash', str(WEB / 'download_asset.sh'), str(destination),
+                       'https://example.invalid/asset.css']
+            env = {**os.environ, 'PATH': f'{root}:{os.environ["PATH"]}',
+                   'FAIL_DOWNLOAD': '1'}
+            failed = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertEqual(destination.read_bytes(), b'previous asset')
+            self.assertEqual(list(root.glob('cached.css.download.*')), [])
+            env.pop('FAIL_DOWNLOAD')
+            succeeded = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(succeeded.returncode, 0, succeeded.stderr)
+            self.assertEqual(destination.read_bytes(), b'valid asset')
+
+
 if __name__ == '__main__':
     unittest.main()
