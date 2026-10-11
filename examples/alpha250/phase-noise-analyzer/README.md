@@ -23,12 +23,9 @@ segments, ring overruns, FFT length, hop length and Welch depth. See the
 
 # ALPHA250 phase-noise analyzer
 
-The 250 MHz settings bank uses the shared AXI controller's registered write
-decoder, as in the ALPHA250 DPLL and ALPHA250-4 analyzer. It captures word
-selection when the write address is accepted, shortening the register-enable
-path while preserving data, byte strobes and response timing. The FPGA
-regression reuses the DPLL's cycle-by-cycle comparison and independent register
-scoreboard at this analyzer's 12-word bank size.
+The 250 MHz settings bank reuses the shared AXI write decoder with
+`PREDECODE_WRITES=1`, preserving register and response timing. See the
+[timing qualification](../../../fpga/ip/awg_v1_0/tests/config-timing-margin.md).
 
 ## Selectable sample clock
 
