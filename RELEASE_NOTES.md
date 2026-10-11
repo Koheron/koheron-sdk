@@ -1,30 +1,44 @@
 # Koheron SDK V1 release notes
 
-V1 is a breaking update of the Koheron SDK. Main changes introduced or substantially improved in V1:
+V1 is under development. These notes describe the V1 branch as of 11 October
+2026. Boards still ship with V0. Use a V1 OS image for V1 instruments; a V1
+image cannot run a V0 instrument. See the [migration guide](MIGRATING.md) when
+moving an existing instrument.
 
-- Replaced the old `CONFIG=.../config.yml` flow with `CFG=.../config.mk`.
-- Split instrument configuration into `config.mk` for build settings and `memory.yml` for memory maps, registers, Linux device mappings and parameters.
-- Added FPGA Manager based runtime loading using `.bit.bin` bitstreams and `pl.dtbo` device-tree overlays.
-- Added generation of PL overlays from Vivado/Vitis device-tree output, `memory.dtsi` and optional `override.dtsi` files.
-- Added `memory.dtsi` generation from `memory.yml` for selected Linux-visible memory regions.
-- Added support for memory mappings through devices such as `/dev/mem`, `/dev/mem_wc` and `/dev/uio`.
-- Updated the development environment to Ubuntu 24.04 and Vivado/Vitis 2025.1.
-- Updated generated OS images to Ubuntu 24.04.5 with Xilinx 2025.1 components.
-- Added FIT image generation with kernel, base device tree and board overlay.
-- Reworked board support around `board.mk`, board overlays, board-local drivers, board-local cores, FSBL hooks and U-Boot patches.
-- Modernized the C++ server build with C++20, GCC 13, ccache, LTO and precompiled headers.
-- Improved generated-server dependency tracking to reduce unnecessary rebuilds.
-- Added generated `drivers.json` as an explicit instrument artifact.
-- Migrated several board and instrument drivers from header-only implementations to `.hpp` / `.cpp` pairs.
-- Migrated example instruments from `config.yml` to the new `config.mk` / `memory.yml` layout.
-- Added or updated helper targets such as `doctor`, `validate`, `list` and `examples`.
-- Improved parallel build output with synchronized Make logs.
-- Added release metadata in generated images, including build ID, board, instrument, Git revision and component versions.
-- Reworked root filesystem customization through a staged overlay tree.
-- Improved image packaging and SD-card flashing flow.
+## SDK and deployment
 
-Notes:
+- Instrument builds use `CFG=.../config.mk` instead of `CONFIG=.../config.yml`.
+  `memory.yml` defines the hardware and software memory map.
+- V1 images load instrument bitstreams and device-tree overlays through Linux
+  FPGA Manager. Instrument packages include the FPGA, server and web assets,
+  plus board and runtime requirements and the SDK commit.
+- `./build.sh <board>` builds a board image with its preset instruments.
+  `make run` builds and starts one instrument, while `make deploy` returns after
+  the board reports it ready. `make status` and `make logs` provide follow-up
+  diagnostics.
+- The board management service now runs in C++23. Its web interface and API
+  support instrument upload, compatibility checks, activation, boot-default
+  selection, status and live logs. Failed activations attempt to restore the
+  previous instrument.
+- Incremental builds reuse more FPGA, server, web and image work. The SDK Git
+  commit is recorded in package metadata without forcing a server recompile.
 
-- V1 OS images do not support legacy V0 instruments.
-- Some subsystems already existed on `master` and were improved rather than introduced from scratch, including the HTTP API, web staging, Docker build flow, generated server interfaces and ZynqMP support.
-- See `MIGRATING.md` for porting existing instruments to V1.
+## Instruments and interfaces
+
+- FFT interfaces gained shared spectrum, spectrogram and density views,
+  reusable reference captures, CSV/PNG exports and optional persistence.
+- The Red Pitaya now has a phase-noise analyzer. Acquisition on ALPHA250 and
+  Red Pitaya phase-noise analyzers runs continuously; ALPHA250 and ALPHA250-4
+  analyzers support selectable 200/250 MS/s clocks.
+- ALPHA250 DPLL controls are available from a live signal diagram.
+
+## Current defaults
+
+- The reference host is Ubuntu 24.04 with Vivado/Vitis 2025.1. `make setup`
+  installs the other build dependencies, not the Xilinx tools.
+- Images default to Ubuntu Base 26.04.1 with Xilinx Linux and U-Boot 2026.1.
+  The default Docker builder uses Ubuntu 26.04 and GCC 15; instrument server
+  and board management code use C++23.
+
+See the [development guide](docs/development.md) for instrument commands and
+the [OS guide](os/README.md) for image building and installation.
