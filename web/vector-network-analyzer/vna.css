@@ -1,0 +1,118 @@
+/* Shared instrument.css owns typography, headers, controls and status states.
+   This host only defines the two-plot workspace and its measurement controls. */
+.vna-workspace {
+    --accent: #667e89;
+    --accent-dark: #465a64;
+    --accent-light: #eef1f3;
+    --control-height: 26px;
+    --control-padding: 2px 8px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+.vna-workspace #main { margin: 0; padding: 6px 12px; width: 100%; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 0 16px; align-content: start; }
+.vna-workspace .measurement-toolbar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
+.vna-workspace #sweep-form { flex: 0 1 auto; max-width: 100%; }
+.vna-workspace .acquisition-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.vna-workspace .acquisition-controls .control-field { white-space: nowrap; }
+.vna-workspace .acquisition-actions, .vna-workspace .command-bar, .vna-workspace .plot-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.vna-workspace .acquisition-actions { flex: none; margin-left: auto; }
+.vna-workspace #run { border-color: var(--accent); }
+.vna-workspace #stop { min-width: 42px; }
+.vna-workspace .command-bar { margin-left: auto; }
+.vna-workspace .plot-actions { margin-left: auto; gap: 6px; }
+.vna-workspace .toolbar-actions { display: flex; gap: 0; }
+.vna-workspace .toolbar-actions button + button { border-left: 0; border-radius: 0 2px 2px 0; }
+.vna-workspace .toolbar-actions button:first-child { border-radius: 2px 0 0 2px; }
+.vna-workspace .check-label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.vna-workspace .unit-field { position: relative; display: inline-flex; align-items: center; }
+.vna-workspace .unit-field input { width: 100px; padding-right: 36px; font-variant-numeric: tabular-nums; }
+.vna-workspace .unit-field > span { position: absolute; right: 6px; color: var(--muted); font-size: 11px; pointer-events: none; }
+.vna-workspace #source-level { width: 80px; }
+.vna-workspace #point-count { width: 65px; }
+.vna-workspace #sweep-duration { width: 82px; }
+.vna-workspace .measurement-status { order: -1; display: grid; grid-template-columns: 310px minmax(0, 1fr); align-items: center; gap: 16px; padding: 2px 0; font-size: 11px; line-height: 1.4; }
+.vna-workspace .status-detail { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); align-items: center; gap: 8px; height: 2.8em; }
+.vna-workspace .status-detail > :is(#progress-detail, .notice) { grid-column: 1; grid-row: 1; min-width: 0; max-height: 100%; overflow: auto; overflow-wrap: anywhere; }
+.vna-workspace .notice, .vna-workspace .offline-actions { margin: 0; color: var(--muted); }
+.vna-workspace .notice[data-state="error"] { color: #a53e25; }
+.vna-workspace .offline-actions { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.vna-workspace .measurement { margin: 0; min-width: 0; display: flex; flex-direction: column; }
+.vna-workspace .plot-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-height: 30px; padding: 2px 0; }
+.vna-workspace #unwrap-label[hidden] { display: inline-flex !important; visibility: hidden; }
+.vna-workspace h2 { font-size: 12px; font-weight: 600; margin: 0; }
+.vna-workspace .muted { color: var(--muted); font-weight: 400; }
+.vna-workspace .badge { font-size: 10px; font-weight: 400; border-radius: 2px; padding: 2px 5px; white-space: nowrap; }
+.vna-workspace .badge.neutral { color: var(--muted); background: #f3f3f3; }
+.vna-workspace .badge.green { color: #34783f; background: #eff6f0; }
+.vna-workspace .badge.amber { color: #936423; background: #faf5ec; }
+.vna-workspace .canvas-wrap { position: relative; height: clamp(260px, 39dvh, 560px); }
+.vna-workspace .secondary-wrap { height: clamp(230px, 29dvh, 400px); }
+.vna-workspace .plot-placeholder { width: 100%; height: 100%; touch-action: pan-y pinch-zoom; }
+.vna-workspace .empty-state { position: absolute; inset: 0; display: grid; place-content: center; padding: 40px; text-align: center; color: var(--muted); pointer-events: none; }
+.vna-workspace .spectrum-readouts { display: grid; grid-template-columns: 16ch minmax(0, 1fr); gap: 4px 12px; padding: 5px 0; color: var(--muted); font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.vna-workspace #measurement-summary { grid-column: 1 / -1; height: 1.4em; }
+.vna-workspace :is(#measurement-summary, #hover-reading) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vna-workspace #sweep-timing { min-height: 1.4em; white-space: nowrap; }
+.vna-workspace #hover-reading { text-align: right; }
+.vna-workspace .sidebar { min-width: 0; border-left: 1px solid var(--border-light); padding-left: 12px; }
+.vna-workspace .sidebar > details { border-bottom: 1px solid var(--border-light); padding: 6px 0; }
+.vna-workspace .sidebar summary { cursor: pointer; color: #555; }
+.vna-workspace .sidebar summary .badge { margin-left: auto; }
+.vna-workspace .sidebar p { margin: 6px 0; color: var(--muted); font-size: 11px; }
+.vna-workspace .field-note { font-size: 11px; color: var(--muted); }
+.vna-workspace .calibration-options { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
+.vna-workspace .calibration-options > button:last-child { margin-left: auto; }
+.vna-workspace .markers-panel table { width: 100%; table-layout: fixed; margin-top: 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.vna-workspace .markers-panel :is(td, th) { text-align: right; padding: 4px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vna-workspace .markers-panel th:first-child { width: 42px; }
+.vna-workspace .markers-panel th:nth-child(2) { width: 84px; }
+.vna-workspace .markers-panel :is(td, th):first-child { text-align: left; }
+.vna-workspace .markers-panel thead { color: var(--muted); }
+.vna-workspace .markers-panel input { width: 76px; height: var(--control-height); padding: 2px 4px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; font: inherit; }
+.vna-workspace .preferences-panel .control-field { margin-top: 8px; }
+.vna-workspace .preferences-panel input { width: 130px; }
+.vna-workspace .progress-panel { display: grid; grid-template-columns: minmax(0, 146px) minmax(60px, 1fr) 4ch; align-items: center; gap: 8px; height: var(--control-height); }
+.vna-workspace #progress-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vna-workspace .progress-panel progress { width: 100%; height: 8px; accent-color: var(--accent); }
+.vna-workspace #progress-percent { text-align: right; font-variant-numeric: tabular-nums; }
+.vna-workspace .progress-panel[data-state="idle"] :is(progress, #progress-percent) { visibility: hidden; }
+.vna-workspace #progress-detail { color: var(--muted); }
+.vna-workspace .export-menu { position: relative; }
+.vna-workspace .export-menu summary { cursor: pointer; height: var(--control-height); padding: 3px 8px; border: 1px solid var(--border-light); border-radius: 2px; background: #fafafa; }
+.vna-workspace .export-menu > div { position: absolute; top: 100%; right: 0; z-index: 10; display: grid; min-width: 170px; padding: 4px; background: white; border: 1px solid var(--border); }
+.vna-workspace .export-menu button { text-align: left; margin: 2px 0; }
+.vna-workspace dialog { width: min(400px, calc(100vw - 24px)); padding: 16px; border: 1px solid var(--border); border-radius: 2px; color: #333; }
+.vna-workspace dialog::backdrop { background: #0004; }
+.vna-workspace dialog h2 { font-size: 14px; }
+.vna-workspace dialog p { margin: 12px 0; }
+.vna-workspace .dialog-actions { display: flex; justify-content: flex-end; gap: 6px; }
+@media (min-width: 1100px) {
+    .vna-workspace { height: 100dvh; }
+    .vna-workspace #main { min-height: 0; grid-template-rows: auto minmax(568px, 1fr); }
+    .vna-workspace .measurement { display: grid; grid-template-rows: 30px minmax(240px, 1.4fr) 30px minmax(200px, 1fr) 44px 34px; }
+    .vna-workspace .measurement-status { order: 0; }
+    .vna-workspace .canvas-wrap { height: auto; min-height: 0; }
+    .vna-workspace .sidebar { min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
+}
+@media (max-width: 1099px) {
+    .vna-workspace #main { grid-template-columns: minmax(0, 1fr); }
+    .vna-workspace .sidebar { border-left: 0; padding-left: 0; margin-top: 8px; border-top: 1px solid var(--border-light); }
+}
+@media (max-width: 800px) {
+    .vna-workspace .measurement-status { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (max-width: 600px) {
+    .vna-workspace .app-header { gap: 4px 10px; }
+    .vna-workspace nav { flex-basis: 100%; justify-content: flex-end; }
+    .vna-workspace #connection-detail { display: none; }
+    .vna-workspace #main { padding: 6px 8px; }
+    .vna-workspace #sweep-form { width: 100%; }
+    .vna-workspace .acquisition-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+    .vna-workspace .control-field { flex-direction: column; align-items: start; gap: 3px; }
+    .vna-workspace .plot-actions { margin-left: 0; }
+    .vna-workspace .command-bar { gap: 6px 10px; }
+    .vna-workspace .status-detail { height: 4.2em; }
+    .vna-workspace #measurement-summary { height: 2.8em; white-space: normal; }
+    .vna-workspace .sidebar .control-field { flex-direction: row; align-items: center; }
+}

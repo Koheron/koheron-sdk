@@ -1,0 +1,44 @@
+memory:
+  - name: control
+    offset: 0x4000_0000
+    range: 4K
+    registers:
+      - mmcm
+      - led
+      - acq_reset
+      - trigger
+      - output_gain
+      - chirp_samples
+      - chirp_coefficient[2]
+      - seed_data[2]
+      - seed_index
+      - seed_write
+      - capture_samples
+  - name: status
+    offset: 0x5000_0000
+    range: 4K
+    registers:
+      - adc[n_adc]
+      - capture_status
+  - name: xadc
+    offset: 0x43C0_0000
+    range: 64K
+  - name: ram_s2mm
+    offset: 0x1800_0000
+    range: 128M
+  - name: dma
+    offset: 0x4040_0000
+    range: 64K
+  - name: ocm_s2mm
+    offset: 0xFFFF_0000
+    range: 32K
+  - name: sclr
+    offset: 0xF800_0000
+    range: 64K
+
+parameters:
+  fclk0: 125000000
+  adc_clk: 125000000
+  dac_width: 14
+  adc_width: 14
+  n_adc: 2

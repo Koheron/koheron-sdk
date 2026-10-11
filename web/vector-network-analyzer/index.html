@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vector network analyzer · Koheron</title>
+  <link rel="icon" href="kbird.ico">
+  <link rel="stylesheet" href="bootstrap.min.css">
+  <link rel="stylesheet" href="_koheron.css">
+  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="instrument.css">
+  <link rel="stylesheet" href="plot-references.css">
+  <link rel="stylesheet" href="vna.css">
+  <script defer src="jquery.min.js"></script>
+  <script defer src="jquery.flot.js"></script>
+  <script defer src="jquery.flot.selection.js"></script>
+  <script defer src="jquery.flot.canvas.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body class="instrument-workspace vna-workspace">
+  <header class="app-header">
+    <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
+    <h1>Vector network analyzer</h1><span id="board-name" class="board-tag"></span>
+    <div class="connection-control"><span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span></div>
+    <span id="connection-detail" class="board-tag"></span>
+    <nav aria-label="Board navigation"><a href="/koheron">Instruments</a><a href="/koheron/logs_rate.html">Logs &amp; data rates</a></nav>
+  </header>
+  <main id="main">
+    <div class="measurement-toolbar">
+      <form id="sweep-form"><fieldset id="sweep-settings" class="acquisition-controls"><legend class="sr-only">Sweep setup</legend>
+        <label class="control-field">Start <span class="unit-field"><input id="start-frequency" type="number" value="1" min="1" max="99999" step="any" required><span>kHz</span></span></label>
+        <label class="control-field">Stop <span class="unit-field"><input id="stop-frequency" type="number" value="100" min=".001" max="100" step="any" required><span>MHz</span></span></label>
+        <label class="control-field">Points <select id="point-count"><option>101</option><option>201</option><option selected>501</option><option>1001</option><option>2001</option></select></label>
+        <label class="control-field">Chirp <select id="sweep-duration"><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option><option value="0.25" selected>250 ms</option></select></label>
+        <label class="control-field">Record <select id="record-mode"><option value="auto" selected>Auto</option><option value="full">Full</option></select></label>
+        <label class="control-field">Source <span class="unit-field"><input id="source-level" type="number" value="-6" min="-40" max="0" step="1" required><span>dBFS</span></span></label>
+      </fieldset></form>
+      <div class="acquisition-actions">
+        <div class="toolbar-actions"><button id="run" disabled>Run sweep</button><button id="stop" disabled>Stop</button></div>
+        <label class="check-label"><input id="repeat" type="checkbox">Repeat</label>
+      </div>
+    </div>
+    <section class="measurement" aria-label="Measurement results">
+      <div class="plot-heading"><h2>Transmission magnitude <span class="muted">(dB)</span></h2><span id="correction-label" class="badge neutral">Uncalibrated</span><div class="plot-actions"><div class="toolbar-actions"><button id="reset-view">Reset</button><button id="capture-reference" disabled>Capture ref</button></div><details class="export-menu"><summary>Export</summary><div><button id="export-csv" disabled>Measurement CSV</button><button id="export-png" disabled>Plot image PNG</button><button id="export-session">Session JSON</button><button id="import-session">Load session…</button></div></details></div></div>
+      <div class="canvas-wrap"><div id="magnitude-plot" class="plot-placeholder" tabindex="0" role="img" aria-label="Transmission magnitude. Drag to zoom, double-click or press Escape to reset."></div>
+        <div id="empty-state" class="empty-state">Connect OUT0 → device → IN0, then run a sweep or record a thru.</div>
+      </div>
+      <div class="plot-heading secondary-heading"><h2><span id="secondary-title">Transmission phase</span> <span class="muted">(<span id="secondary-unit">degrees</span>)</span></h2><div class="command-bar"><div class="toolbar-actions" role="group" aria-label="Response view"><button id="view-phase" aria-pressed="true">Phase</button><button id="view-delay" aria-pressed="false">Group delay</button></div><label id="unwrap-label" class="check-label"><input id="unwrap" type="checkbox">Unwrap phase</label></div></div>
+      <div class="canvas-wrap secondary-wrap"><div id="phase-plot" class="plot-placeholder" tabindex="0" role="img" aria-label="Transmission phase. Frequency zoom is shared with magnitude."></div></div>
+      <div class="spectrum-readouts"><span id="measurement-summary">No measurement yet</span><span id="sweep-timing"></span><span id="hover-reading">Drag to zoom · double-click to reset</span></div>
+      <div class="measurement-status">
+        <div id="progress-panel" class="progress-panel" role="status" data-state="idle"><strong id="progress-title">Ready</strong><progress id="sweep-progress" aria-label="Sweep progress" max="1" value="0"></progress><span id="progress-percent">0%</span></div>
+        <div class="status-detail">
+          <span id="progress-detail">Source output is off · run a sweep or record a thru.</span>
+          <div id="message" class="notice" role="status" hidden></div>
+          <div id="offline-actions" class="offline-actions" hidden><button id="retry">Retry</button><a href="?demo=1">Synthetic demo</a></div>
+        </div>
+      </div>
+    </section>
+    <aside class="sidebar instrument-disclosures" aria-label="Calibration, markers, references and preferences">
+      <details class="calibration-panel" open><summary>Thru calibration <span id="calibration-badge" class="badge amber">NOT RECORDED</span></summary>
+        <p id="calibration-description">Remove the board and cable response with a direct loopback measurement.</p>
+        <div class="calibration-options"><button id="calibrate" disabled>Record thru</button><label class="check-label"><input id="apply-calibration" type="checkbox" checked disabled>Apply correction</label><button id="clear-calibration" disabled>Clear</button></div>
+        <p id="calibration-date" class="field-note"></p>
+        <p id="connection-notes" class="field-note">Keep the same cables and load after calibration. Source level is digital dBFS.</p>
+      </details>
+      <details class="markers-panel" open><summary>Markers</summary>
+        <div class="toolbar-actions"><button id="find-peak" disabled>Find peak</button><button id="find-cutoff" disabled>Find −3 dB</button></div>
+        <table><thead><tr><th>Marker</th><th>Frequency</th><th>dB</th><th>Phase</th><th>Delay</th></tr></thead><tbody>
+          <tr><th>M1</th><td><input id="marker-0" value="1 MHz" aria-label="Marker 1 frequency"></td><td id="marker-0-gain">—</td><td id="marker-0-phase">—</td><td id="marker-0-delay">—</td></tr>
+          <tr><th>M2</th><td><input id="marker-1" value="10 MHz" aria-label="Marker 2 frequency"></td><td id="marker-1-gain">—</td><td id="marker-1-phase">—</td><td id="marker-1-delay">—</td></tr>
+          <tr><th>M3</th><td><input id="marker-2" value="50 MHz" aria-label="Marker 3 frequency"></td><td id="marker-2-gain">—</td><td id="marker-2-phase">—</td><td id="marker-2-delay">—</td></tr>
+        </tbody></table>
+      </details>
+      <div id="plot-references"></div>
+      <details class="preferences-panel"><summary>Preferences &amp; measurement notes</summary>
+        <label class="control-field">Port extension <span class="unit-field"><input id="port-extension" type="number" value="0" min="-1000000" max="1000000" step="any"><span>ns</span></span></label>
+        <p>Positive extension removes delay from the displayed response. It does not alter acquired data.</p>
+        <p>Thru correction gives normalized forward transmission under the same connections and load. This instrument does not measure reflection or perform a full two-port calibration.</p>
+        <p>Unwrapped phase and group delay require enough frequency points to resolve adjacent phase changes. Deep stopband readings are limited by noise.</p>
+        <p>Auto records the chirp plus at least 10 ms of response, rounded up to a power of two. Full keeps the longest record for long ringing or finer frequency spacing. Record a new thru after changing record length.</p>
+      </details>
+      <p id="board-notes" class="field-note">ALPHA250 · 1 kHz–100 MHz<br>OUT1 muted · 268.4 ms ADC record</p>
+    </aside>
+  </main>
+  <dialog id="calibration-dialog"><form method="dialog"><h2>Record thru</h2><p>Remove the device and connect <strong id="thru-connectors">OUT0 directly to IN0</strong> with the cables that will be used for the measurement.</p><p class="field-note">Keep the source level, sweep settings and cable arrangement unchanged after calibration.</p><div class="dialog-actions"><button value="cancel">Cancel</button><button id="confirm-calibration" type="button">Acquire thru</button></div></form></dialog>
+  <input id="session-file" type="file" accept=".json,application/json" hidden>
+</body>
+</html>
