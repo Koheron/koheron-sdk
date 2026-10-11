@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install smoke-test dependencies
-        run: python3 -m pip install --disable-pip-version-check PyYAML Jinja2 CppHeaderParser==2.7.4 numpy requests Click
+        run: python3 -m pip install --disable-pip-version-check PyYAML Jinja2 CppHeaderParser==2.7.4 numpy requests Click 'websocket-client>=1.8,<2'
       - name: Check SDK host workflows and example configurations
         run: make check HOST_PYTHON=python3 FORMAT=json
       - name: Test image toolchain manifest

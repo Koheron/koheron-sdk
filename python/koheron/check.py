@@ -54,7 +54,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     sdk_path = args.sdk_path.resolve()
     reporter = Reporter(color=sys.stdout.isatty(), format=args.format)
-    for module in ('yaml', 'jinja2', 'CppHeaderParser', 'numpy', 'requests', 'click'):
+    for module in ('yaml', 'jinja2', 'CppHeaderParser', 'numpy', 'requests', 'click', 'websocket'):
         if importlib.util.find_spec(module) is None:
             reporter.err(f'Missing host test dependency: {module}', 'Run make python_requirements and make koheron_python.')
     if reporter.errors:

@@ -251,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
     check_cfg(reporter, values)
     if args.target == 'check':
         code, _ = command_output([args.python, '-c',
-            'import yaml, jinja2, CppHeaderParser, numpy, requests, click'])
+            'import yaml, jinja2, CppHeaderParser, numpy, requests, click, websocket'])
         if code:
             reporter.err('Host test dependencies are unavailable', 'Run make python_requirements and make koheron_python.')
         else:

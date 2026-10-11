@@ -8,9 +8,9 @@ import string
 import json
 import re
 import requests
-import time
 import sys
 import os
+from contextlib import closing
 from urllib.parse import quote
 
 BLUE = "\033[94m"
@@ -94,15 +94,10 @@ def logs_bookmark(host, endpoint: str = 'koheron'):
 
 
 def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str = 'koheron'):
-    """Stream koheron-server logs starting from the given cursor."""
+    """Stream logs over WebSocket, with cursor-based reconnection and HTTP fallback."""
+    from .log_stream import log_batches
 
     stream = stream or sys.stdout
-    session = requests.Session()
-    params = {}
-    if cursor:
-        params['cursor'] = cursor
-
-    url = _logs_base_url(host, endpoint) + '/incr'
     start_timestamp_us = None
 
     def format_elapsed(ts_us):
@@ -130,38 +125,23 @@ def stream_logs(host, cursor=None, poll_interval=1.0, stream=None, endpoint: str
         r"^(?P<label>" + "|".join(severity_colors.keys()) + r"):\s*"
     )
 
-    while True:
-        try:
-            response = session.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-        except (requests.RequestException, ValueError) as exc:
-            print('[log-stream] {}: {}'.format(type(exc).__name__, exc), file=sys.stderr)
-            time.sleep(poll_interval)
-            continue
+    with closing(log_batches(_logs_base_url(host, endpoint), cursor, poll_interval)) as batches:
+        for data in batches:
+            for entry in data['entries']:
+                timestamp = format_elapsed(entry.get('ts'))
+                message = entry['msg'].rstrip('\n')
 
-        new_cursor = data.get('cursor')
-        if new_cursor:
-            params['cursor'] = new_cursor
-
-        entries = data.get('entries', [])
-        for entry in entries:
-            timestamp = format_elapsed(entry.get('ts'))
-            message = (entry.get('msg') or '').rstrip('\n')
-
-            match = severity_pattern.match(message)
-            if match:
-                label = match.group('label')
-                color = severity_colors[label]
-                message = f"{color}{message[match.end():]}{RESET}"
-            if timestamp:
-                colored_timestamp = f"{BLUE}[{timestamp}]{RESET}"
-                print(f"{colored_timestamp} {message}", file=stream)
-            else:
-                print(message, file=stream)
-            stream.flush()
-
-        time.sleep(poll_interval)
+                match = severity_pattern.match(message)
+                if match:
+                    label = match.group('label')
+                    color = severity_colors[label]
+                    message = f"{color}{message[match.end():]}{RESET}"
+                if timestamp:
+                    colored_timestamp = f"{BLUE}[{timestamp}]{RESET}"
+                    print(f"{colored_timestamp} {message}", file=stream)
+                else:
+                    print(message, file=stream)
+                stream.flush()
 
 
 def instrument_logs_bookmark(host):

@@ -34,7 +34,7 @@ def _parse_args(argv) -> argparse.Namespace:
         "--poll",
         type=float,
         default=1.0,
-        help="Polling interval (in seconds) between log fetches",
+        help="HTTP fallback polling interval in seconds (logs use WebSocket by default)",
     )
     return parser.parse_args(argv)
 

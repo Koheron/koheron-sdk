@@ -15,7 +15,7 @@ setup(
     description='Koheron Python Library',
     long_description='Please see our GitHub README',
     keywords='FPGA Linux Instrumentation',
-    install_requires=['requests', 'Click'],
+    install_requires=['requests', 'Click', 'websocket-client>=1.8,<2'],
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5'

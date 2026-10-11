@@ -45,7 +45,12 @@ Build and deploy subsequent instrument changes:
 make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 ```
 
-`run` streams logs after starting the instrument. `Ctrl+C` stops the stream and leaves it running. The [Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument) returns after deployment for scripts and agents. Rebuild the image for OS, kernel, boot, board support or default instrument changes.
+`run` streams logs over WebSocket after starting the instrument. It reconnects
+from the last log cursor and falls back to HTTP polling if WebSockets are
+unavailable. `Ctrl+C` closes the stream and leaves the instrument running. The
+[Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument)
+returns after deployment for scripts and agents. Rebuild the image for OS,
+kernel, boot, board support or default instrument changes.
 
 Use `make deploy` to build, upload and confirm instrument readiness, then return.
 It uses the V1 management API's preflight and activation routes and checks the
