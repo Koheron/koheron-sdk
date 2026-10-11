@@ -288,7 +288,8 @@ class VNAWorkspace {
     }
     stop(): void {
         this.clearRepeat(); this.input('repeat').checked = false;
-        if (!this.busy) return;
+        // Keep one fallback per sweep so finish() can cancel it completely.
+        if (!this.busy || this.stopTimer !== null) return;
         if (this.demo) { ++this.generation; this.finish('Sweep cancelled.'); return; }
         this.worker?.postMessage({type: 'cancel'}); this.el('progress-title').textContent = 'Stopping sweep';
         this.stopTimer = this.window.setTimeout(() => {

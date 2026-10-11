@@ -210,12 +210,20 @@ def run():
                 old=frame["timestamp"]
                 page.locator("#run").click()
                 page.wait_for_function("document.querySelector('#progress-title').textContent === 'Downloading record'",timeout=30000)
-                page.locator("#stop").click()
+                # Repeated Stop clicks must not leave an old fallback timer
+                # that can terminate the next sweep's persistent worker.
+                page.evaluate("document.querySelector('#stop').click(); document.querySelector('#stop').click()")
                 page.wait_for_function("!document.querySelector('#run').disabled",timeout=10000)
                 state=json.load(urlopen("http://127.0.0.1:8090/"))
                 assert state["owned"] == state["pending"] == state["releasePending"] == 0, state
                 assert page.evaluate("vna.model.latest.timestamp") == old
                 urlopen("http://127.0.0.1:8090/?fault=0").close()
+                frame=acquire(True)
+                page.evaluate("window.workerAfterRestart = vna.worker")
+                page.wait_for_timeout(2600)
+                assert page.evaluate("vna.worker !== null && vna.worker === workerAfterRestart")
+                assert page.locator("#progress-title").inner_text() == "Sweep complete"
+                assert page.evaluate("vna.model.latest.timestamp") == frame["timestamp"]
                 # Cancel an unfinished reference transform; it must not enter the cache.
                 page.locator("#record-mode").select_option("full")
                 page.locator("#source-level").fill("-18")
