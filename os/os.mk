@@ -238,8 +238,10 @@ $(TMP_OS_PATH)/pl-overlay/memory.dtsi: $(MEMORY_YML) $(FPGA_PATH)/memory.dtsi $(
 	$(call ok,$@)
 
 OVERRIDE_DTSI ?= $(FPGA_PATH)/override.dtsi
+OVERRIDE_DTSI_SELECTION_STAMP := $(TMP_OS_PATH)/pl-overlay/.override-selection
+$(eval $(call build_settings_stamp,$(OVERRIDE_DTSI_SELECTION_STAMP),$$(call build_shell_quote,$$(abspath $$(OVERRIDE_DTSI)))))
 
-$(TMP_OS_PATH)/pl-overlay/override.dtsi: $(OVERRIDE_DTSI) | $(TMP_OS_PATH)/pl-overlay/
+$(TMP_OS_PATH)/pl-overlay/override.dtsi: $(OVERRIDE_DTSI) $(OVERRIDE_DTSI_SELECTION_STAMP) | $(TMP_OS_PATH)/pl-overlay/
 	cp $< $@
 	$(call ok,$@)
 
@@ -367,7 +369,7 @@ define ITS_TEMPLATE
 };
 endef
 
-$(TMP_OS_PATH)/kernel.its: $(TMP_OS_PATH)/$(KERNEL_BIN) $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_PATH)/board-overlay/board.dtbo | $(TMP_OS_PATH)/
+$(TMP_OS_PATH)/kernel.its: $(TMP_OS_PATH)/$(KERNEL_BIN) $(TMP_OS_PATH)/devicetree.dtb $(TMP_OS_PATH)/board-overlay/board.dtbo $(OS_PATH)/os.mk | $(TMP_OS_PATH)/
 	@$(file >$@,$(ITS_TEMPLATE))
 	$(call ok,$@)
 

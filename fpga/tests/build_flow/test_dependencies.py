@@ -152,6 +152,8 @@ output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text(stage)
 ''')
             harness = root / 'Makefile'
+            core_selection = root / 'cores.mk'
+            core_selection.write_text(f'CORES := {core}\n')
             harness.write_text(f'''SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
@@ -164,7 +166,7 @@ VIVADO_VERSION ?= 2025.1
 VIVADO_PATH ?= first-path
 ENFORCE_TIMING ?= 0
 BITSTREAM := {root}/test.bit
-CORES := {core}
+include {core_selection}
 %/:
 \tmkdir -p $@
 include {SDK}/fpga/fpga.mk
@@ -188,6 +190,14 @@ $(MEMORY_TCL):
             build()
             self.assertEqual(len(events()), 4)
             self.assertEqual(times, [p.stat().st_mtime_ns for p in stamps])
+            core_selection.write_text('CORES :=\n')
+            before = len(events())
+            build()
+            self.assertEqual(events()[before:], ['project', 'hwdef', 'bitstream'])
+            core_selection.write_text(f'CORES := {core}\n')
+            before = len(events())
+            build()
+            self.assertEqual(events()[before:], ['project', 'hwdef', 'bitstream'])
             for settings in (['MODE=production'], [], ['FPGA_SYNTH_MODE=ip'], []):
                 before = len(events())
                 build(*settings)

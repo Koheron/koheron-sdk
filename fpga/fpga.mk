@@ -23,7 +23,8 @@ $(eval $(call build_settings_stamp,$(FPGA_PROJECT_STAMP),\
     $$(call build_shell_quote,SYNTH=$$(FPGA_SYNTH_MODE)) \
     $$(call build_shell_quote,BOARD=$$(BOARD_PATH)) \
     $$(call build_shell_quote,BD=$$(BD_TCL)) \
-    $$(call build_shell_quote,XDC=$$(XDC))))
+    $$(call build_shell_quote,XDC=$$(XDC)) \
+    $$(call build_shell_quote,CORES=$$(CORES))))
 
 VIVADO_LOG_FILTER := $(FPGA_PATH)/vivado/vivado-log-filter.awk
 VIVADO_FILTER := awk -f $(VIVADO_LOG_FILTER)
