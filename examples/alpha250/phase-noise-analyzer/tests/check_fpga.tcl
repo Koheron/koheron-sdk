@@ -2,6 +2,13 @@
 open_project [lindex $argv 0]
 open_bd_design [get_files */system.bd]
 validate_bd_design
+if {[get_property CONFIG.PREDECODE_WRITES [get_bd_cells ctl/axi_ctl_register]] != 1} {
+    error "Expected predecoded AXI settings writes at 250 MHz"
+}
+if {[get_property CONFIG.CTL_DATA_WIDTH [get_bd_cells ctl/axi_ctl_register]] != 12*32} {
+    error "Update the AXI equivalence test for the analyzer's changed register-bank size"
+}
+puts "PASS: 12-word predecoded AXI settings bank"
 source [file join [file dirname [info script]] check_extractor.tcl]
 
 proc require_same_net {left right} {

@@ -23,6 +23,13 @@ segments, ring overruns, FFT length, hop length and Welch depth. See the
 
 # ALPHA250 phase-noise analyzer
 
+The 250 MHz settings bank uses the shared AXI controller's registered write
+decoder, as in the ALPHA250 DPLL and ALPHA250-4 analyzer. It captures word
+selection when the write address is accepted, shortening the register-enable
+path while preserving data, byte strobes and response timing. The FPGA
+regression reuses the DPLL's cycle-by-cycle comparison and independent register
+scoreboard at this analyzer's 12-word bank size.
+
 ## Selectable sample clock
 
 Version 1.5.1 provides a **Sample rate** selector for **200 or 250 MS/s** in

@@ -3,6 +3,9 @@
 Baseline: V1 merge commit `9885ee452a5326b9fcc84be76a5d79ed7420c621`
 (PR #862). Measurements use Vivado/Vitis 2026.1 on Ubuntu 24.04,
 global synthesis and the existing implementation directives.
+This table measures AWG-only revision `3f54c4c7`, before the analyzer
+control-bank predecode. The subsequent [analyzer control-write qualification](../../../../examples/alpha250/phase-noise-analyzer/tests/control-timing.md)
+records the final ALPHA250 analyzer result.
 
 The depth and duty limit is exactly `2**PHASE_WIDTH`. Validation now tests
 higher bits and the full-turn bit together with nonzero lower bits, replacing
