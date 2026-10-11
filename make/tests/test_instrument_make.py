@@ -27,7 +27,8 @@ class InstrumentMakeTest(unittest.TestCase):
         (self.project / 'version').write_text('0.3.0\n')
         (self.project / 'instrument.json').write_text(json.dumps({
             'format': 1, 'board': 'red-pitaya', 'architecture': 'armhf',
-            'sdk_version': '1.0', 'min_runtime_api': 1}) + '\n')
+            'sdk_version': '1.0', 'sdk_commit': 'unknown',
+            'min_runtime_api': 1}) + '\n')
         python = self.root / 'venv/bin/python3'
         python.parent.mkdir(parents=True)
         python.symlink_to(sys.executable)
@@ -133,6 +134,20 @@ include {SDK}/make/instrument.mk
                 updated = self.snapshots()
                 self.make(setting)
                 self.assertEqual(self.snapshots(), updated)
+
+    def test_commit_change_refreshes_package_without_touching_server(self):
+        self.make('INSTRUMENT_SDK_COMMIT=aaaaaaaaaaaa')
+        server_time = (self.project / 'serverd').stat().st_mtime_ns
+        original = self.snapshots()
+        self.make('INSTRUMENT_SDK_COMMIT=bbbbbbbbbbbb')
+        with zipfile.ZipFile(self.archive) as archive:
+            self.assertEqual(json.loads(archive.read('instrument.json'))['sdk_commit'],
+                             'bbbbbbbbbbbb')
+        self.assertEqual((self.project / 'serverd').stat().st_mtime_ns, server_time)
+        self.assertNotEqual(self.snapshots(), original)
+        updated = self.snapshots()
+        self.make('INSTRUMENT_SDK_COMMIT=bbbbbbbbbbbb')
+        self.assertEqual(self.snapshots(), updated)
 
     def test_failed_and_interrupted_zip_preserve_previous_archives(self):
         self.make()
