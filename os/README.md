@@ -2,6 +2,36 @@
 
 Build and installation: [SDK quick start](../README.md#quick-start).
 
+## Building and flashing
+
+```sh
+make -j CFG=examples/alpha250/fft/config.mk image
+sudo --preserve-env=PATH make CFG=examples/alpha250/fft/config.mk FLASH_DEVICE=/dev/sdX flash
+```
+
+Replace `/dev/sdX` with the SD card's whole-disk device. Flashing erases the card.
+The release ZIP is `tmp/examples/alpha250/fft/alpha250-fft.zip`; it contains the
+bootable `.img`. `flash` writes the existing ZIP without rebuilding it; run
+`image` first when the image needs updating. Without `FLASH_DEVICE`, it selects
+all matching SD readers using `FLASH_ALLOWED_VENDORS` and `FLASH_ALLOWED_MODELS`.
+
+An unchanged `make image` reuses its metadata, overlay and release ZIP. Image
+inputs or selections refresh the build timestamp; `BUILD_ID=...` and
+`BUILD_TIME_UTC=YYYYMMDD.HHMMSS` provide explicit metadata overrides.
+
+To build a board's configured image and accompanying instruments:
+
+```sh
+N_CPUS=8 ./build.sh red-pitaya
+```
+
+Selections come from `boards/<board>/build_image.conf`. The Red Pitaya selection
+includes FFT and PNA. `N_CPUS` limits Make jobs and tool threads; the default uses
+the available CPU count. `./build.sh --list` lists supported board builds.
+Rebuild the image for changes to OS, kernel, boot, board support or default
+instruments; use [instrument deployment](../docs/development.md#deployment-and-logs)
+for subsequent instrument changes.
+
 ## Settings
 
 The default runtime is Ubuntu Base **26.04.1** and Xilinx **2026.1 / Linux 6.18**, independent of `VIVADO_VERSION` (default **2025.1**). U-Boot also defaults independently to Xilinx **2026.1 / U-Boot 2026.01**, selected with `UBOOT_VERSION`. FSBL, firmware and device-tree source releases follow the selected Vivado/Vitis toolchain. The reference development host remains Ubuntu 24.04; the default build container uses Ubuntu 26.04 and GCC 15.
