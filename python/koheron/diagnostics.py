@@ -2,7 +2,8 @@
 import json
 import os
 
-HOST_TEST_MODULES = ('yaml', 'jinja2', 'CppHeaderParser', 'numpy', 'requests', 'click', 'websocket')
+GENERATOR_MODULES = ('yaml', 'jinja2', 'CppHeaderParser')
+HOST_TEST_MODULES = GENERATOR_MODULES + ('numpy', 'requests', 'click', 'websocket')
 
 
 class Reporter:

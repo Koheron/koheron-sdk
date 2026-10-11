@@ -12,10 +12,10 @@ import sys
 from pathlib import Path
 
 if __package__:
-    from .diagnostics import HOST_TEST_MODULES, Reporter
+    from .diagnostics import GENERATOR_MODULES, HOST_TEST_MODULES, Reporter
     from .sdk_info import load_settings, read_settings
 else:
-    from diagnostics import HOST_TEST_MODULES, Reporter
+    from diagnostics import GENERATOR_MODULES, HOST_TEST_MODULES, Reporter
     from sdk_info import load_settings, read_settings
 
 
@@ -99,7 +99,7 @@ def check_python(reporter: Reporter, sdk_path: Path, python='python3', modules=F
     else:
         reporter.warn(".venv is missing; run make setup or make python_requirements")
     if modules and python3:
-        code, _ = command_output([python3, '-c', 'import yaml, jinja2, CppHeaderParser'])
+        code, _ = command_output([python3, '-c', 'import ' + ', '.join(GENERATOR_MODULES)])
         if code:
             reporter.err('Python generator dependencies are unavailable', 'Run make python_requirements.')
         else:
@@ -216,8 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-color", action="store_true", help="Disable colored status labels")
     args = parser.parse_args(argv)
 
-    color = sys.stdout.isatty() and not args.no_color and os.environ.get("NO_COLOR") is None
-    reporter = Reporter(color=color, format=args.format)
+    reporter = Reporter(color=sys.stdout.isatty() and not args.no_color, format=args.format)
     sdk_path = Path(args.sdk_path).resolve()
 
     check_layout(reporter, sdk_path)
@@ -238,15 +237,16 @@ def main(argv: list[str] | None = None) -> int:
     check_host_os(reporter)
     if args.target in ('all', 'server', 'fpga', 'image', 'os', 'check'):
         check_python(reporter, sdk_path, python=args.python, modules=args.target != 'check')
-    xilinx_root = Path("/tools/Xilinx") / args.xilinx_version
-    vivado_path = Path(args.vivado_path or values.get('VIVADO_PATH') or xilinx_root / 'Vivado').resolve()
-    vitis_path = Path(args.vitis_path or values.get('VITIS_PATH') or xilinx_root / 'Vitis').resolve()
-
     if args.target in ('all', 'fpga', 'image', 'os'):
+        xilinx_root = Path("/tools/Xilinx") / args.xilinx_version
+        vivado_path = Path(args.vivado_path or values.get('VIVADO_PATH') or xilinx_root / 'Vivado').resolve()
+        vitis_path = Path(args.vitis_path or values.get('VITIS_PATH') or xilinx_root / 'Vitis').resolve()
         check_xilinx(reporter, vivado_path, vitis_path, boot=args.target != 'fpga')
     if args.target in ('all', 'server', 'image', 'os', 'uboot', 'api', 'web'):
-        image = (args.web_image or values.get('WEB_DOCKER_IMAGE') or 'koheron-web:node24') if args.target == 'web' else (
-            args.docker_image or values.get('DOCKER_IMAGE') or 'cross-armhf:26.04')
+        if args.target == 'web':
+            image = args.web_image or values.get('WEB_DOCKER_IMAGE') or 'koheron-web:node24'
+        else:
+            image = args.docker_image or values.get('DOCKER_IMAGE') or 'cross-armhf:26.04'
         check_docker(reporter, image=image, web=args.target == 'web')
     check_cfg(reporter, values)
     if args.target == 'check':

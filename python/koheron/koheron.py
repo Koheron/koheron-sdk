@@ -50,32 +50,26 @@ def upload_instrument(host, zip_path, run=False):
     return r
 
 def run_instrument(host, name=None, restart=False):
-    instrument_running = False
-    instrument_in_store = False
     status = instrument_status(host)
-    instruments = status['instruments']
     live_instrument = status['live_instrument']
 
-    if name is None and live_instrument is None:
-        raise ValueError('No instrument is running; specify an instrument name')
-
-    if (name is None) or (live_instrument == name): # Instrument already running
+    if name is None:
+        if live_instrument is None:
+            raise ValueError('No instrument is running; specify an instrument name')
         name = live_instrument
-        instrument_running = True
 
-    if not instrument_running: # Find the instrument in the local store:
-        if name in instruments:
-            instrument_in_store = True
-        else:
-            print("Instrument {} not found".format(name))
-            print("Available instruments:")
-            for instrument in instruments:
-                print("- {}".format(instrument))
-            raise ValueError('Instrument {} not found'.format(name))
+    if name == live_instrument:
+        if not restart:
+            return
+    elif name not in status['instruments']:
+        print(f'Instrument {name} not found')
+        print('Available instruments:')
+        for instrument in status['instruments']:
+            print(f'- {instrument}')
+        raise ValueError(f'Instrument {name} not found')
 
-    if instrument_in_store or (instrument_running and restart):
-        r = requests.get('http://{}/api/instruments/run/{}'.format(host, quote(name, safe='')))
-        r.raise_for_status()
+    response = requests.get(f'http://{host}/api/instruments/run/{quote(name, safe="")}')
+    response.raise_for_status()
 
 
 def _logs_base_url(host, endpoint: str) -> str:

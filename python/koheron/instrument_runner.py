@@ -6,15 +6,15 @@ from typing import Optional
 
 import requests
 
-GREEN = "\033[1;32m"
-RESET = "\033[0m"
-
 from .koheron import (
     upload_instrument,
     run_instrument,
     instrument_logs_bookmark,
     stream_instrument_logs,
 )
+
+GREEN = "\033[1;32m"
+RESET = "\033[0m"
 
 
 def _parse_args(argv) -> argparse.Namespace:
@@ -43,30 +43,22 @@ def _safe_instrument_logs_bookmark(host: str) -> Optional[str]:
     try:
         return instrument_logs_bookmark(host)
     except requests.RequestException as exc:
-        print(
-            "[log-stream] Unable to bookmark instrument logs: {}".format(exc),
-            file=sys.stderr,
-        )
+        print(f"[log-stream] Unable to bookmark instrument logs: {exc}", file=sys.stderr)
         return None
 
 
 def main(argv=None) -> int:
-    if argv is None:
-        argv = sys.argv[1:]
     args = _parse_args(argv)
 
-    def color(text: str, color) -> str:
-        return f"{color}{text}{RESET}"
-
-    print(color("Uploading {} to {}...".format(args.instrument_zip, args.host), GREEN))
+    print(f"{GREEN}Uploading {args.instrument_zip} to {args.host}...{RESET}")
     upload_instrument(args.host, args.instrument_zip, run=False)
 
-    print(color("Starting instrument '{}'...".format(args.name), GREEN))
+    print(f"{GREEN}Starting instrument '{args.name}'...{RESET}")
     run_instrument(args.host, args.name, restart=True)
 
     bookmark = _safe_instrument_logs_bookmark(args.host)
 
-    print(color("Streaming logs (press Ctrl+C to stop)...", GREEN))
+    print(f"{GREEN}Streaming logs (press Ctrl+C to stop)...{RESET}")
     try:
         stream_instrument_logs(args.host, cursor=bookmark, poll_interval=args.poll)
     except KeyboardInterrupt:
