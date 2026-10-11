@@ -11,10 +11,12 @@ def main():
     parser.add_argument('--board', required=True)
     parser.add_argument('--architecture', choices=('armhf', 'arm64'), required=True)
     parser.add_argument('--sdk-version', required=True)
+    parser.add_argument('--sdk-commit', required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     content = (json.dumps({'format': 1, 'board': args.board,
         'architecture': args.architecture, 'sdk_version': args.sdk_version,
+        'sdk_commit': args.sdk_commit,
         'min_runtime_api': 1}, sort_keys=True, indent=2) + '\n').encode()
     if args.output.exists() and args.output.read_bytes() == content:
         return

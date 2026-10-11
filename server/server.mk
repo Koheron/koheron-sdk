@@ -162,7 +162,7 @@ SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-perf
 SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
 SERVER_CCXXFLAGS += -Wno-psabi -Wno-error=deprecated-declarations
 SERVER_CCXXFLAGS += $(SERVER_INCLUDE_DIRS)
-SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION).$(shell git rev-parse --short HEAD)\" -DINSTRUMENT_NAME=\"$(NAME)\" -DKOHERON_SERVER_BUILD
+SERVER_CCXXFLAGS += -DKOHERON_VERSION=\"$(KOHERON_VERSION)\" -DINSTRUMENT_NAME=\"$(NAME)\" -DKOHERON_SERVER_BUILD
 SERVER_CCXXFLAGS += -O3 -fno-math-errno -fno-exceptions
 SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
 SERVER_CCXXFLAGS += $(SERVER_EXTRA_CCXXFLAGS)

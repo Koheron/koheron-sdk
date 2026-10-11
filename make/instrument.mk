@@ -5,9 +5,12 @@ $(eval $(call build_settings_stamp,$(VERSION_FILE),$$(call build_shell_quote,$$(
 
 INSTRUMENT_MANIFEST := $(TMP_PROJECT_PATH)/instrument.json
 INSTRUMENT_MANIFEST_SETTINGS := $(TMP_PROJECT_PATH)/.manifest-settings
-$(eval $(call build_settings_stamp,$(INSTRUMENT_MANIFEST_SETTINGS),$$(foreach K,BOARD UBUNTU_ARCH KOHERON_VERSION,$$(call build_shell_quote,$$(K)=$$($$(K))))))
+# Capture HEAD once per Make invocation; packaging can then track it without
+# making every server object depend on the commit.
+INSTRUMENT_SDK_COMMIT := $(shell git -C $(call build_shell_quote,$(SDK_PATH)) rev-parse --short=12 HEAD 2>/dev/null || printf unknown)
+$(eval $(call build_settings_stamp,$(INSTRUMENT_MANIFEST_SETTINGS),$$(foreach K,BOARD UBUNTU_ARCH KOHERON_VERSION INSTRUMENT_SDK_COMMIT,$$(call build_shell_quote,$$(K)=$$($$(K))))))
 $(INSTRUMENT_MANIFEST): $(CONFIG_MK) $(BOARD_MK) $(SDK_PATH)/Makefile $(SDK_PATH)/python/koheron/instrument_manifest.py $(INSTRUMENT_MANIFEST_SETTINGS) | $(TMP_PROJECT_PATH)/
-	$(VENV)/bin/python3 $(SDK_PATH)/python/koheron/instrument_manifest.py --board "$(BOARD)" --architecture "$(UBUNTU_ARCH)" --sdk-version "$(KOHERON_VERSION)" --output "$@"
+	$(VENV)/bin/python3 $(SDK_PATH)/python/koheron/instrument_manifest.py --board "$(BOARD)" --architecture "$(UBUNTU_ARCH)" --sdk-version "$(KOHERON_VERSION)" --sdk-commit "$(INSTRUMENT_SDK_COMMIT)" --output "$@"
 
 INSTRUMENT_FILES := $(BITSTREAM).bin $(TMP_PROJECT_PATH)/pl.dtbo $(BITSTREAM) $(SERVER) $(DRIVERS_JSON_OUT) $(WEB_ASSETS) $(VERSION_FILE) $(INSTRUMENT_MANIFEST)
 INSTRUMENT_PACKAGE_SETTINGS := $(TMP_PROJECT_PATH)/.package-settings
