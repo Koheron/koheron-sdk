@@ -17,6 +17,8 @@ FPGA_IP_CACHE := $(abspath $(TMP)/ip-cache/$(VIVADO_VERSION))
 export FPGA_SYNTH_MODE FPGA_IP_CACHE
 
 # One settings snapshot also detects switching back to an earlier selection.
+PROJECT_HDL_FILES := $(wildcard $(PROJECT_PATH)/*.v $(PROJECT_PATH)/*.sv $(PROJECT_PATH)/*.vhd)
+PROJECT_TCL_FILES := $(filter-out $(FPGA_IMPL_TCL),$(TCL_FILES))
 FPGA_PROJECT_STAMP := $(TMP_FPGA_PATH)/.project-settings
 $(eval $(call build_settings_stamp,$(FPGA_PROJECT_STAMP),\
     $$(call build_shell_quote,MODE=$$(MODE)) \
@@ -24,7 +26,9 @@ $(eval $(call build_settings_stamp,$(FPGA_PROJECT_STAMP),\
     $$(call build_shell_quote,BOARD=$$(BOARD_PATH)) \
     $$(call build_shell_quote,BD=$$(BD_TCL)) \
     $$(call build_shell_quote,XDC=$$(XDC)) \
-    $$(call build_shell_quote,CORES=$$(CORES))))
+    $$(call build_shell_quote,CORES=$$(CORES)) \
+    $$(call build_shell_quote,HDL=$$(PROJECT_HDL_FILES)) \
+    $$(call build_shell_quote,TCL=$$(PROJECT_TCL_FILES))))
 
 VIVADO_LOG_FILTER := $(FPGA_PATH)/vivado/vivado-log-filter.awk
 VIVADO_FILTER := awk -f $(VIVADO_LOG_FILTER)
@@ -56,9 +60,13 @@ $(eval $(call build_settings_stamp,$(FPGA_TOOL_STAMP),\
     $$(call build_shell_quote,PART=$$(PART))))
 
 # Testbenches are excluded from the packaged synthesis core in core.tcl.
+core_package_files = $(filter-out %_tb.v %_tb.sv %_tb.vh %_tb.vhd %_tb.vhdl,$(wildcard $(1)/*.v $(1)/*.sv $(1)/*.vh $(1)/*.vhd $(1)/*.vhdl $(1)/*.xci $(1)/*.xdc $(1)/*.tcl $(1)/*.mem $(1)/*.md))
+CORE_SOURCE_STAMPS := $(foreach core,$(CORES),$(TMP_CORES_PATH)/.$(notdir $(core))-sources)
+$(foreach core,$(CORES),$(eval $(call build_settings_stamp,$(TMP_CORES_PATH)/.$(notdir $(core))-sources,$(foreach file,$(call core_package_files,$(core)),$(call build_shell_quote,$(file))))))
+
 define make_core_target
 $(TMP_CORES_PATH)/$(notdir $1)/component.xml: \
-    $(filter-out %_tb.v %_tb.sv %_tb.vh %_tb.vhd %_tb.vhdl,$(wildcard $1/*.v $1/*.sv $1/*.vh $1/*.vhd $1/*.vhdl $1/*.xci $1/*.xdc $1/*.tcl $1/*.mem $1/*.md)) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl $(FPGA_TOOL_STAMP) | $(TMP_CORES_PATH)/
+    $(call core_package_files,$1) $1/core_config.tcl $(FPGA_PATH)/vivado/core.tcl $(FPGA_TOOL_STAMP) $(TMP_CORES_PATH)/.$(notdir $1)-sources | $(TMP_CORES_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/core.tcl -tclargs $1 $(PART) $(TMP_CORES_PATH) 1
 	$(call ok,$$@)
 endef
@@ -94,7 +102,7 @@ export XDC
 export VENV
 export BD_TCL
 
-$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(MEMORY_TCL) $(filter-out $(FPGA_IMPL_TCL),$(TCL_FILES)) $(wildcard $(PROJECT_PATH)/*.v $(PROJECT_PATH)/*.sv $(PROJECT_PATH)/*.vhd) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/lib/dependencies.mk $(FPGA_PATH)/vivado/block_design.tcl $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(MEMORY_TCL) $(PROJECT_TCL_FILES) $(PROJECT_HDL_FILES) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/lib/dependencies.mk $(FPGA_PATH)/vivado/block_design.tcl $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl 2>&1 | $(VIVADO_FILTER)
 	touch $@
 	$(call ok,$@)

@@ -15,6 +15,124 @@ WEB = Path(__file__).resolve().parents[1]
 
 
 class WebBuildTests(unittest.TestCase):
+    def test_wasm_builder_and_compiler_selection_refresh_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            processor = root / 'vna/processor'
+            processor.mkdir(parents=True)
+            for name in ('processor.c', 'Dockerfile', 'ensure_builder.sh'):
+                shutil.copyfile(WEB / 'vector-network-analyzer/processor' / name,
+                                processor / name)
+            binary = root / 'bin'
+            binary.mkdir()
+            docker = binary / 'docker'
+            docker.write_text('''#!/usr/bin/env python3
+import hashlib, pathlib, sys
+root = pathlib.Path(__file__).parent.parent
+args = sys.argv[1:]
+images = root / 'images'
+images.mkdir(exist_ok=True)
+def image_path(name): return images / name.replace(':', '_')
+if args[:2] == ['image', 'inspect']:
+    image = image_path(args[-1])
+    if not image.exists(): raise SystemExit(1)
+    print(image.read_text())
+elif args[0] == 'build':
+    name = args[args.index('-t') + 1]
+    content = (pathlib.Path(args[-1]) / 'Dockerfile').read_bytes()
+    image_path(name).write_text(hashlib.sha256(content).hexdigest())
+    with (root / 'events').open('a') as stream: stream.write('build ' + name + '\\n')
+elif args[0] == 'run':
+    name = args[args.index('clang-18') - 1]
+    output = pathlib.Path(args[args.index('-o') + 1])
+    output.write_text(name + ' ' + image_path(name).read_text())
+    with (root / 'events').open('a') as stream: stream.write('compile ' + name + '\\n')
+else:
+    raise SystemExit('unexpected Docker command: ' + repr(args))
+''')
+            docker.chmod(0o755)
+            native = root / 'native.py'
+            native.write_text('''import pathlib, sys
+args = sys.argv[1:]
+pathlib.Path(args[args.index('-o') + 1]).write_text('native')
+''')
+            (root / 'Makefile').write_text(f'''SDK_PATH := {WEB.parent}
+PROJECT_PATH := {root}/project
+TMP_PROJECT_PATH := {root}/out/project
+include {WEB}/vector-network-analyzer/components.mk
+''')
+            output = root / 'out/project/chirp-processor.wasm'
+            env = {**os.environ, 'PATH': f'{binary}:{os.environ["PATH"]}',
+                   'MAKEFLAGS': '', 'MFLAGS': ''}
+
+            def make(*settings):
+                result = subprocess.run(['make', '--no-print-directory',
+                                         f'VNA_COMMON_PATH={processor.parent}',
+                                         *settings, str(output)], cwd=root, env=env,
+                                        capture_output=True, text=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+            make('VNA_WASM_IMAGE=first')
+            self.assertTrue(output.read_text().startswith('first '))
+            self.assertEqual(len((root / 'events').read_text().splitlines()), 2)
+            initial_time = output.stat().st_mtime_ns
+            make('VNA_WASM_IMAGE=first')
+            self.assertEqual(output.stat().st_mtime_ns, initial_time)
+            make('VNA_WASM_IMAGE=second')
+            self.assertTrue(output.read_text().startswith('second '))
+            previous = output.read_text()
+            (processor / 'Dockerfile').write_text((processor / 'Dockerfile').read_text() + '\n# changed\n')
+            make('VNA_WASM_IMAGE=second')
+            self.assertNotEqual(output.read_text(), previous)
+            previous_events = (root / 'events').read_text().splitlines()
+            make(f'VNA_WASM_CC={sys.executable} {native}')
+            self.assertEqual(output.read_text(), 'native')
+            self.assertEqual((root / 'events').read_text().splitlines(), previous_events)
+
+    def test_compiler_command_change_refreshes_instrument_and_dashboard(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'source.ts'
+            source.write_text('const value = 1;\n')
+            (root / 'downloads.mk').touch()
+            compiler = root / 'compiler.py'
+            compiler.write_text('''import pathlib, sys
+args = sys.argv[1:]
+pathlib.Path(args[args.index('--output') + 1]).write_text(args[0])
+''')
+            (root / 'Makefile').write_text(f'''OS_PATH := {WEB.parent}/os
+SERVER_PATH := {WEB.parent}/server
+WEB_PATH := {WEB}
+TMP := {root}/cache
+TMP_PROJECT_PATH := {root}/cache/instrument
+WEB_FILES := {source}
+WEB_DOWNLOADS_MK := {root}/downloads.mk
+COMPILER_MODE ?= first
+WEB_COMPILE = {sys.executable} {compiler} $(COMPILER_MODE)
+include $(OS_PATH)/rootfs.mk
+include {WEB}/web.mk
+%/:
+\tmkdir -p $@
+''')
+            outputs = (root / 'cache/www/instruments.js', root / 'cache/instrument/web/app.js')
+
+            def make(*settings):
+                result = subprocess.run(['make', '-j4', '--no-print-directory', *settings,
+                                         *map(str, outputs)], cwd=root, text=True,
+                                        capture_output=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+            make()
+            self.assertEqual([p.read_text() for p in outputs], ['first', 'first'])
+            first_times = [p.stat().st_mtime_ns for p in outputs]
+            make()
+            self.assertEqual([p.stat().st_mtime_ns for p in outputs], first_times)
+            make('COMPILER_MODE=second')
+            self.assertEqual([p.read_text() for p in outputs], ['second', 'second'])
+            second_times = [p.stat().st_mtime_ns for p in outputs]
+            make('COMPILER_MODE=second')
+            self.assertEqual([p.stat().st_mtime_ns for p in outputs], second_times)
+
     def test_default_compiler_refreshes_builder_and_uses_current_sources(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -167,14 +285,18 @@ include {WEB}/web.mk
 
             make()
             self.assertEqual(events.read_text().splitlines(), ['build'])
-            make('-q')
+            initial_time = output.stat().st_mtime_ns
+            make()
+            self.assertEqual(output.stat().st_mtime_ns, initial_time)
             for count, name in enumerate(inputs, start=2):
                 with self.subTest(compiler_input=name):
                     source = web / name
                     source.write_text(source.read_text() + '\n')
                     make()
                     self.assertEqual(len(events.read_text().splitlines()), count)
-                    make('-q')
+                    cached_time = output.stat().st_mtime_ns
+                    make()
+                    self.assertEqual(output.stat().st_mtime_ns, cached_time)
 
     def test_management_pages_refresh_asset_versions_after_js_and_css_changes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -219,7 +341,9 @@ include $(OS_PATH)/rootfs.mk
 
             make()
             initial = versions()
-            make('-q')
+            cached_times = [p.stat().st_mtime_ns for p in output.glob('*.html')]
+            make()
+            self.assertEqual([p.stat().st_mtime_ns for p in output.glob('*.html')], cached_times)
             runtime = source / 'runtime.ts'
             runtime.write_text(runtime.read_text() + '\n// New runtime implementation\n')
             make()
@@ -234,7 +358,10 @@ include $(OS_PATH)/rootfs.mk
             for name in pages:
                 self.assertNotEqual(stylesheet_update[name]['system.css'], javascript_update[name]['system.css'])
                 self.assertEqual(stylesheet_update[name]['instruments.js'], javascript_update[name]['instruments.js'])
-            make('-q')
+            cached_times = {name: (output / name).stat().st_mtime_ns for name in pages}
+            make()
+            self.assertEqual({name: (output / name).stat().st_mtime_ns for name in pages},
+                             cached_times)
 
     def test_config_change_replaces_older_assets_and_typescript_sources(self):
         with tempfile.TemporaryDirectory() as directory:

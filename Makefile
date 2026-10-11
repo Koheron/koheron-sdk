@@ -67,7 +67,7 @@ WEB_PATH := $(SDK_PATH)/web
 HOST_PYTHON ?= $(if $(wildcard $(VENV)/bin/python3),$(VENV)/bin/python3,python3)
 include $(SDK_PATH)/make/dependencies.mk
 
-CFG_OPTIONAL_GOALS := help doctor check status logs list examples setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
+CFG_OPTIONAL_GOALS := help doctor check status logs list examples clean_all setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
 
 ifneq ($(MAKECMDGOALS),)
 # validate and copy read CFG without including the full build graph.
@@ -146,7 +146,17 @@ SERVER_MK ?= $(SERVER_PATH)/server.mk
 WEB_MK ?= $(WEB_PATH)/web.mk
 
 PROJECT_PATH := $(patsubst %/,%,$(dir $(CONFIG_MK)))
-TMP_PROJECT_PATH := $(TMP)/$(PROJECT_PATH)
+# Resolve CFG before placing artifacts: relative paths containing '..' must not
+# escape TMP, and external instruments need a stable cache location.
+PROJECT_CANONICAL_PATH := $(realpath $(PROJECT_PATH))
+ifeq ($(PROJECT_CANONICAL_PATH),$(SDK_FULL_PATH))
+PROJECT_CACHE_PATH := .external/$(shell printf '%s' $(call build_shell_quote,$(PROJECT_CANONICAL_PATH)) | sha256sum | cut -d' ' -f1)
+else ifneq ($(filter $(SDK_FULL_PATH)/%,$(PROJECT_CANONICAL_PATH)),)
+PROJECT_CACHE_PATH := $(patsubst $(SDK_FULL_PATH)/%,%,$(PROJECT_CANONICAL_PATH))
+else
+PROJECT_CACHE_PATH := .external/$(shell printf '%s' $(call build_shell_quote,$(PROJECT_CANONICAL_PATH)) | sha256sum | cut -d' ' -f1)
+endif
+TMP_PROJECT_PATH := $(TMP)/$(PROJECT_CACHE_PATH)
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
 XDC :=
@@ -278,11 +288,7 @@ include $(PYTHON_MK)
 # Use "clean_all" to remove everything
 .PHONY: clean
 clean:
-	rm -rf $(patsubst %/.,%,$(TMP_PROJECT_PATH))
-
-.PHONY: clean_all
-clean_all:
-	rm -rf $(TMP)
+	$(HOST_PYTHON) $(SDK_PATH)/python/koheron/safe_clean.py --sdk-path $(call build_shell_quote,$(SDK_FULL_PATH)) --root $(call build_shell_quote,$(TMP)) --target $(call build_shell_quote,$(TMP_PROJECT_PATH))
 
 else
 
@@ -290,6 +296,10 @@ DOCKER_IMAGE ?= cross-armhf:$(DOCKER_UBUNTU_VERSION)
 WEB_DOCKER_IMAGE ?= koheron-web:node24
 
 endif
+
+.PHONY: clean_all
+clean_all:
+	$(HOST_PYTHON) $(SDK_PATH)/python/koheron/safe_clean.py --sdk-path $(call build_shell_quote,$(SDK_FULL_PATH)) --root $(call build_shell_quote,$(TMP)) --all
 
 SDK_INFO_VARS := SDK_PATH CONFIG_MK NAME VERSION BOARD BOARD_MK PART ZYNQ_TYPE UBUNTU_ARCH \
   MEMORY_YML BD_TCL DRIVERS WEB_FILES VIVADO_VERSION VIVADO_PATH VITIS_PATH \
