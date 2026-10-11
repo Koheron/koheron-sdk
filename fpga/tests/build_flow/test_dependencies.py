@@ -131,6 +131,8 @@ $(TMP_FPGA_PATH)/$(NAME).xpr.stamp:
             core.mkdir()
             (core / 'test.v').touch()
             (core / 'core_config.tcl').touch()
+            (root / 'design.v').touch()
+            (root / 'design.tcl').touch()
             tool = root / 'vivado.py'
             tool.write_text('''import os, pathlib, sys
 args = sys.argv[1:]
@@ -159,6 +161,8 @@ output.write_text(stage)
 .DELETE_ON_ERROR:
 FPGA_PATH := {SDK}/fpga
 TMP_PROJECT_PATH := {root}
+PROJECT_PATH := {root}
+TCL_FILES := $(wildcard $(PROJECT_PATH)/*.tcl)
 NAME := test
 PART ?= first
 MODE ?= development
@@ -207,6 +211,17 @@ $(MEMORY_TCL):
                 before = len(events())
                 build(*settings)
                 self.assertEqual(events()[before:], ['core', 'project', 'hwdef', 'bitstream'])
+            for source, stages in ((core / 'test.v', ['core', 'project', 'hwdef', 'bitstream']),
+                                   (root / 'design.v', ['project', 'hwdef', 'bitstream']),
+                                   (root / 'design.tcl', ['project', 'hwdef', 'bitstream'])):
+                source.unlink()
+                before = len(events())
+                build()
+                self.assertEqual(events()[before:], stages)
+                source.touch()
+                before = len(events())
+                build()
+                self.assertEqual(events()[before:], stages)
             (root / 'fail-timing').touch()
             bit_time = (root / 'test.bit').stat().st_mtime_ns
             before = len(events())
@@ -230,7 +245,7 @@ $(MEMORY_TCL):
 inspect_outputs:
 \t@printf '%s\\n' $(CORES_COMPONENT_XML) $(MEMORY_TCL) $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(FPGA_TIMING_STAMP) $(TMP_FPGA_PATH)/$(NAME).xpr.stamp $(TMP_FPGA_PATH)/$(NAME).xsa $(BITSTREAM) $(PYTHON_REQUIREMENTS_STAMP)
 inspect_settings:
-\t@printf '%s\\n' $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(FPGA_TIMING_STAMP)
+\t@printf '%s\\n' $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(FPGA_TIMING_STAMP) $(CORE_SOURCE_STAMPS)
 ''')
                 cmd = ['make', '--no-print-directory', '-f', 'Makefile', '-f', str(harness),
                        f'CFG=examples/{instrument}/config.mk', f'TMP={tmp}/build',

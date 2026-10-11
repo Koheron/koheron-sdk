@@ -23,4 +23,10 @@ $(WEB_BUILDER_STAMP): web-builder-force $(WEB_COMPILER_INPUTS)
 
 WEB_COMPILER_INPUTS += $(WEB_BUILDER_STAMP)
 endif
+
+# Both the instrument bundle and the management dashboard use this command.
+# Record its expansion so changing a native compiler override rebuilds both.
+WEB_COMPILE_COMMAND_STAMP := $(if $(TMP),$(TMP),$(TMP_PROJECT_PATH))/web/.compile-command
+$(eval $(call build_settings_stamp,$(WEB_COMPILE_COMMAND_STAMP),$$(call build_shell_quote,$$(WEB_COMPILE))))
+WEB_COMPILER_INPUTS += $(WEB_COMPILE_COMMAND_STAMP)
 endif

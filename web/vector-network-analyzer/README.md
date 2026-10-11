@@ -147,6 +147,9 @@ to the hardware capture duration.
 The first web build creates an LLVM 18 Docker builder from
 `web/vector-network-analyzer/processor/Dockerfile`. Subsequent builds reuse it.
 `VNA_WASM_IMAGE` and `VNA_WASM_CC` can select a different builder/compiler.
+The Wasm artifact is rebuilt when the compiler command or flags change. The
+default Docker compiler also tracks the selected image and Dockerfile. A custom
+`VNA_WASM_CC` runs without building the default Docker image.
 
 ## Checks
 
