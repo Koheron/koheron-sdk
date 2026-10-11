@@ -19,6 +19,11 @@ DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
+UBOOT_PATCH_FILES := $(sort $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f))
+UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
+UBOOT_PATCH_SELECTION_STAMP := $(TMP_OS_BOARD_PATH)/.uboot-patches
+$(eval $(call build_settings_stamp,$(UBOOT_PATCH_SELECTION_STAMP),$$(foreach F,$$(UBOOT_PATCH_FILES) $$(UBOOT_CONFIG_FILE),$$(call build_shell_quote,$$(F)))))
+
 BOOT_MEDIUM ?= mmcblk0
 
 ###############################################################################
@@ -67,19 +72,19 @@ $(UBOOT_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(UBOOT_URL)
 	$(call ok,$@)
 
-$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) | $(UBOOT_PATH)/
+$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) $(UBOOT_PATCH_SELECTION_STAMP) | $(UBOOT_PATH)/
 	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(UBOOT_TAR) $(UBOOT_URL)
+	rm -rf -- "$(@D)"
+	mkdir -p -- "$(@D)"
 	tar -zxf $< --strip-components=1 -C $(@D)
 	touch $@
 	$(call ok,$@)
-
-UBOOT_PATCH_FILES := $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f)
-UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
 
 # Configure U-Boot once to avoid concurrent defconfig/mrproper races
 UBOOT_CONFIG_STAMP := $(UBOOT_PATH)/.config
 UBOOT_COMPILER_STAMP := $(UBOOT_PATH)/.compiler-settings
 $(eval $(call compiler_settings_stamp,$(UBOOT_COMPILER_STAMP),$(UBOOT_CC)))
+$(UBOOT_COMPILER_STAMP): $(UBOOT_PATH)/.unpacked
 
 # Switching back to a cached release must also replace the shared output ELF.
 UBOOT_SELECTION_STAMP := $(TMP_OS_BOARD_PATH)/.uboot-selection

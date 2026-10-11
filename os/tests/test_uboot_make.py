@@ -13,6 +13,9 @@ class UBootMakeTest(unittest.TestCase):
             root = Path(directory)
             for name in ('archive', 'checksums', 'download'):
                 (root / name).touch()
+            patch_selection = root / 'board/.uboot-patches'
+            patch_selection.parent.mkdir()
+            patch_selection.write_text('\n')
             for version in ('2025.1', '2026.1'):
                 source = root / version
                 source.mkdir()

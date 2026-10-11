@@ -25,12 +25,14 @@ class LinuxMakeTest(unittest.TestCase):
             archive.touch()
             for name in ('.unpacked', '.patched'):
                 (kernel / name).touch()
+            patch_selection = root / f'.linux-patches-{arch}-xilinx-linux-vtest'
+            patch_selection.write_text('\n')
             source = os_path / f'xilinx_{zynq_type}_defconfig'
             source.write_text('CONFIG_FIRST=y\n')
             # Existing unpack/patch stamps keep this test offline.
             for path in (os_path / 'source-checksums.sha256',
                          os_path / 'scripts/download_verified.sh', archive,
-                         kernel / '.unpacked', kernel / '.patched', source):
+                         kernel / '.unpacked', kernel / '.patched', patch_selection, source):
                 os.utime(path, (100, 100))
             (kernel / 'Makefile').write_text('''\
 SHELL := /bin/bash

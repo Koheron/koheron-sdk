@@ -67,7 +67,7 @@ def main(argv=None):
             return reporter.finish(scope='host', hardware_tests=False, configurations=0, tests=0)
         configs = [(values['CONFIG_MK'], values['MEMORY_YML'])]
     else:
-        configs = [(str(path), None) for path in sorted((sdk_path / 'examples').glob('*/*/config.mk'))]
+        configs = [(str(path), None) for path in sorted((sdk_path / 'examples').rglob('config.mk'))]
         if not configs:
             reporter.err('No example configurations found')
     validator = sdk_path / 'python/koheron/validate_config.py'

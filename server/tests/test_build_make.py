@@ -135,5 +135,81 @@ include {SDK}/server/server.mk
         self.assertEqual((self.root / 'compiles').read_text().count(str(obj)), before.count(str(obj)))
 
 
+class AlternateServerBuildMakeTest(unittest.TestCase):
+    def test_flags_and_source_removal_refresh_cached_server(self):
+        for makefile in ('serverless.mk', 'server-bare.mk'):
+            with self.subTest(makefile=makefile), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                app = root / 'app'
+                app.mkdir()
+                for name in ('main', 'extra'):
+                    (app / f'{name}.cpp').write_text(f'int {name}() {{ return 0; }}\n')
+                (root / 'memory.yml').write_text('memory: []\n')
+                (root / 'requirements.stamp').touch()
+                compiler = root / 'compiler.py'
+                compiler.write_text('''import json, pathlib, sys
+args = sys.argv[1:]
+output = pathlib.Path(args[args.index('-o') + 1])
+output.parent.mkdir(parents=True, exist_ok=True)
+output.write_text(json.dumps(args))
+with pathlib.Path(__file__).with_name('events').open('a') as stream:
+    stream.write(('compile' if '-c' in args else 'link') + '\\n')
+''')
+                generator = root / 'generator.py'
+                generator.write_text('''import pathlib, sys
+path = pathlib.Path(sys.argv[sys.argv.index('--memory_hpp') + 1])
+path.write_text('// generated\\n')
+''')
+                harness = root / 'Makefile'
+                server = root / 'out/serverd'
+                harness.write_text(f'''SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+SDK_PATH := {SDK}
+SERVER_PATH := {SDK}/server
+PROJECT_PATH := {app}
+TMP_PROJECT_PATH := {root}/out
+SERVER := {server}
+MEMORY_YML := {root}/memory.yml
+PYTHON_REQUIREMENTS_STAMP := {root}/requirements.stamp
+MAKE_PY := {sys.executable} {generator}
+MAKE_PY_SOURCES := {generator}
+GCC_ARCH := arm-linux-gnueabihf
+GCC_VERSION := 15
+N_CPUS := 1
+DOCKER := {sys.executable} {compiler}
+NAME := original
+%/:
+\tmkdir -p $@
+include {SDK}/os/compiler-settings.mk
+include {SDK}/server/{makefile}
+''')
+
+                def build(name, sources):
+                    result = subprocess.run(
+                        ['make', '--no-print-directory', '-j4', '-f', str(harness),
+                         f'NAME={name}', 'SERVERLESS_CPP_SRCS=' + ' '.join(map(str, sources)),
+                         str(server)], cwd=root, text=True, capture_output=True, timeout=20)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+                sources = [app / 'main.cpp', app / 'extra.cpp']
+                build('original', sources)
+                initial_events = (root / 'events').read_text()
+                build('original', sources)
+                self.assertEqual((root / 'events').read_text(), initial_events)
+
+                build('renamed', sources)
+                self.assertIn('renamed', (root / 'out/server/main.o').read_text())
+                renamed_events = (root / 'events').read_text()
+                self.assertGreater(renamed_events.count('compile'), initial_events.count('compile'))
+
+                build('renamed', sources[:1])
+                self.assertNotIn('extra.o', server.read_text())
+                self.assertEqual((root / 'events').read_text().count('compile'),
+                                 renamed_events.count('compile'))
+                self.assertEqual((root / 'events').read_text().count('link'),
+                                 renamed_events.count('link') + 1)
+
+
 if __name__ == '__main__':
     unittest.main()
