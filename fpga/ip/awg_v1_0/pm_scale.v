@@ -40,19 +40,28 @@ module pm_scale #(
     wire [PHASE_WIDTH-1:0] scaled;
     generate if (SOURCE_MASK & 249) begin : g_scale
         wire [50:0] depth_padded = {{(50-PHASE_WIDTH){1'b0}}, deviation};
+        // Keep this boundary: moving these registers across the multipliers
+        // puts waveform selection and DSP input setup on the same path again.
+        (* dont_touch = "true" *) reg signed [MOD_WIDTH:0] modulation_sample;
+        (* dont_touch = "true" *) reg [50:0] depth_sample;
         (* use_dsp = "yes" *) reg signed [MOD_WIDTH+18:0] p0, p1, p2;
-        reg signed [MOD_WIDTH+18:0] q0, q1, q2;
-        reg signed [PRODUCT_WIDTH-1:0] sum01, high2, product, rounded;
+        (* use_dsp = "yes" *) reg signed [MOD_WIDTH+18:0] q0, q1, q2;
+        reg signed [PRODUCT_WIDTH-1:0] sum01, high2, rounded;
         reg [PHASE_WIDTH-1:0] result;
         always @(posedge clk) begin
-            p0 <= modulation * $signed({1'b0, depth_padded[16:0]});
-            p1 <= modulation * $signed({1'b0, depth_padded[33:17]});
-            p2 <= modulation * $signed({1'b0, depth_padded[50:34]});
-            q0 <= p0; q1 <= p1; q2 <= p2;
+            // Keep both DSP product stages after capturing the operands.
+            // Round the low product in the DSP post-adder, saving the later
+            // rounding stage and preserving the six-stage arithmetic delay.
+            modulation_sample <= modulation;
+            depth_sample <= depth_padded;
+            p0 <= modulation_sample * $signed({1'b0, depth_sample[16:0]});
+            p1 <= modulation_sample * $signed({1'b0, depth_sample[33:17]});
+            p2 <= modulation_sample * $signed({1'b0, depth_sample[50:34]});
+            q0 <= p0 + ({{(MOD_WIDTH+18){1'b0}}, 1'b1} << (MOD_WIDTH-2));
+            q1 <= p1; q2 <= p2;
             sum01 <= $signed(q0) + ($signed({{(PRODUCT_WIDTH-MOD_WIDTH-19){q1[MOD_WIDTH+18]}}, q1}) <<< 17);
             high2 <= $signed({{(PRODUCT_WIDTH-MOD_WIDTH-19){q2[MOD_WIDTH+18]}}, q2}) <<< 34;
-            product <= sum01 + high2;
-            rounded <= product + ({{(PRODUCT_WIDTH-1){1'b0}}, 1'b1} << (MOD_WIDTH-2));
+            rounded <= sum01 + high2;
             result <= rounded >>> (MOD_WIDTH-1);
         end
         assign scaled = result;

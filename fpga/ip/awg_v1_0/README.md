@@ -83,6 +83,14 @@ isolating restart/seed selection from arithmetic. Each pair is centered before
 combining it, preserving the exact noise samples and five-clock source latency
 while removing the final DC-subtraction stage.
 
+The modulation scaler registers the selected waveform and deviation before
+its DSP multipliers, isolating waveform selection from the multiplier.
+Both product-register stages are retained; rounding moves into the low-limb
+DSP post-adder to make room for operand capture. These operand registers are
+preserved because synthesis can otherwise move them back across the multiplier.
+The six arithmetic stages and following output register retain their
+original latency, aligned with phase, restart, validity and output enable.
+
 ## Vivado customization
 
 The packaged subsystem is `koheron:user:awg:1.0`. Its GUI exposes channel count
@@ -278,6 +286,7 @@ g++ -std=c++23 -Wall -Wextra -Werror -fno-exceptions -pthread -I. \
 /tmp/dds-pm-driver-test
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
 vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_phase_accumulator.tcl
+vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_scale.tcl
 vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_sim.tcl
 vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_control.tcl
 vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/synth.tcl
@@ -298,6 +307,10 @@ changing input pairs. It also checks accumulator, offset, reset/restart, wrap
 and BPSK sample timing against the original accumulator equations. Gaussian
 samples are checked against the original unbalanced sum and five-cycle delay,
 including changing seeds and repeated resets/restarts.
+The scaler test checks full-width mathematical results and seven-cycle
+data/valid/enable timing at every phase width from 32 through 48 and modulation
+widths 16 and 24, including depth extremes, signed rounding, all source shapes,
+changing settings, resets and restarts.
 
 `run_subsystem.tcl` additionally instantiates the actual packaged catalog IP and
 simulates/synthesizes one-channel, two-channel and no-sine profiles. It checks
