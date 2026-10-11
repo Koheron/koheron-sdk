@@ -15,6 +15,9 @@ Server, kernel, U-Boot and ARM Trusted Firmware use GCC 15 by default.
 FSBL/PMU firmware keeps the existing bare-metal toolchains. Compiler selection
 remains independent of the selected Vivado release.
 
+Server, instrument and board management builds use C++23. The standalone C++
+client continues to support C++20.
+
 `DOCKER_IMAGE` selects a custom builder. `HOST_GCC_VERSION`, `KERNEL_GCC_VERSION`,
 `UBOOT_GCC_VERSION` and `ATF_GCC_VERSION` can override individual compiler
 versions if the chosen image provides them.

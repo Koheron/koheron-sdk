@@ -239,7 +239,7 @@ def validate_config(reporter: Reporter, cfg: MakeConfig) -> None:
 
 def validate_memory(reporter: Reporter, memory_yml: Path) -> None:
     if not memory_yml.exists():
-        reporter.err(f"memory.yml missing next to config.mk: {memory_yml}")
+        reporter.err(f"Selected memory.yml missing: {memory_yml}")
         return
     reporter.ok(f"memory.yml exists: {memory_yml}")
     if yaml is None:
@@ -338,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate one Koheron instrument CFG and memory.yml.")
     parser.add_argument("--sdk-path", default=".", help="Path to the Koheron SDK repository")
     parser.add_argument("--cfg", required=True, help="Path to an instrument config.mk")
+    parser.add_argument('--memory-yml', type=Path, help='Resolved MEMORY_YML override')
     parser.add_argument("--no-color", action="store_true", help="Disable colored status labels")
     args = parser.parse_args(argv)
 
@@ -355,7 +356,7 @@ def main(argv: list[str] | None = None) -> int:
     cfg = MakeConfig(sdk_path, config_mk)
     cfg.parse()
     validate_config(reporter, cfg)
-    validate_memory(reporter, config_mk.parent / "memory.yml")
+    validate_memory(reporter, args.memory_yml or config_mk.parent / 'memory.yml')
     return 1 if reporter.errors else 0
 
 

@@ -32,6 +32,10 @@ MAKE_BASH_ENV := $(SDK_FULL_PATH)/.make-bash-env
 export BASH_ENV := $(MAKE_BASH_ENV)
 HOST ?= 192.168.1.100
 TMP ?= tmp
+FORMAT ?= text
+TARGET ?= all
+TIMEOUT ?= $(if $(filter deploy,$(MAKECMDGOALS)),120,10)
+LOG_LIMIT ?= 100
 
 PYTHON_VERSION := 3
 KOHERON_VERSION := 1.0
@@ -60,14 +64,19 @@ OS_PATH := $(SDK_PATH)/os
 FPGA_PATH := $(SDK_PATH)/fpga
 SERVER_PATH := $(SDK_PATH)/server
 WEB_PATH := $(SDK_PATH)/web
+HOST_PYTHON ?= $(if $(wildcard $(VENV)/bin/python3),$(VENV)/bin/python3,python3)
+include $(SDK_PATH)/make/dependencies.mk
 
-CFG_OPTIONAL_GOALS := help doctor list examples setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
+CFG_OPTIONAL_GOALS := help doctor check status logs list examples setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
 
 ifneq ($(MAKECMDGOALS),)
 # validate and copy read CFG without including the full build graph.
 CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS) validate copy,$(MAKECMDGOALS))
 else
 CFG_REQUIRED_GOALS := all
+endif
+ifneq ($(strip $(CFG)),)
+CFG_REQUIRED_GOALS += $(filter doctor check,$(MAKECMDGOALS))
 endif
 
 .PHONY: FORCE
@@ -77,6 +86,11 @@ FORCE:
 help:
 	@echo ' - all          : (Default goal) build the instrument: fpga, server and web'
 	@echo ' - run          : Run the instrument'
+	@echo ' - deploy       : Build, upload and wait for readiness, then return (TIMEOUT=120)'
+	@echo ' - status       : Read board and instrument status (HOST=..., TIMEOUT=10)'
+	@echo ' - logs         : Read recent server logs (LOG_LIMIT=100, TIMEOUT=10)'
+	@echo ' - info         : Resolved CFG, board, toolchains and artifact paths; FORMAT=json supported'
+	@echo ' - check        : Validate CFG (or all examples) and run local host regressions'
 	@echo ' - fpga         : Build the FPGA bitstream'
 	@echo '                  FPGA_SYNTH_MODE=ip enables experimental per-IP synthesis caching'
 	@echo ' - timing       : Check routed FPGA timing (fails on violations)'
@@ -90,7 +104,8 @@ help:
 	@echo ' - flash        : Flash the existing release ZIP (run image first)'
 	@echo ' - block_design : Build the Vivado block design interactively'
 	@echo ' - open_project : Open the Vivado .xpr project'
-	@echo ' - doctor       : Check host tools and optional CFG before building'
+	@echo ' - doctor       : Check requirements for TARGET=all|web|server|fpga|image|os|uboot|api'
+	@echo '                  Or TARGET=check; FORMAT=json supported'
 	@echo ' - validate     : Validate selected CFG and memory.yml'
 	@echo ' - copy         : Copy selected CFG instrument to DEST and set its NAME'
 	@echo ' - list         : List available example instruments'
@@ -161,7 +176,7 @@ TCL_FILES ?= $(BD_TCL) $(wildcard $(PROJECT_PATH)/*.tcl $(PROJECT_PATH)/tcl/*.tc
 
 INSTRUMENT_ZIP := $(TMP_PROJECT_PATH)/$(NAME).zip
 
-ifdef VERBOSE
+ifneq ($(if $(filter-out json,$(FORMAT)),$(VERBOSE)),)
 $(info ------------------------)
 $(info CONFIG_MK = $(CONFIG_MK))
 $(info ------------------------)
@@ -177,7 +192,7 @@ $(info )
 endif
 
 include $(BOARD_MK)
-ifdef VERBOSE
+ifneq ($(if $(filter-out json,$(FORMAT)),$(VERBOSE)),)
 $(info ------------------------)
 $(info BOARD_MK = $(BOARD_MK))
 $(info ------------------------)
@@ -226,7 +241,15 @@ run: $(INSTRUMENT_ZIP) $(KOHERON_PYTHON_STAMP)
 
 .PHONY: test
 test: $(KOHERON_PYTHON_STAMP)
-	HOST=$(HOST) $(VENV)/bin/python3 $(PROJECT_PATH)/test.py
+	@test -n "$(INSTRUMENT_TEST)" || { echo 'No hardware test script found; use make check for local checks.' >&2; exit 1; }
+	HOST=$(HOST) $(VENV)/bin/python3 $(call build_shell_quote,$(INSTRUMENT_TEST))
+
+INSTRUMENT_TEST ?= $(firstword $(wildcard $(PROJECT_PATH)/test.py $(PROJECT_PATH)/python/test.py))
+
+.PHONY: deploy
+deploy:
+	+@$(MAKE) --no-print-directory $(call build_shell_quote,$(INSTRUMENT_ZIP)) >&2
+	@$(SDK_MANAGEMENT_COMMAND) deploy $(call build_shell_quote,$(INSTRUMENT_ZIP)) --name $(call build_shell_quote,$(NAME))
 
 ###############################################################################
 # C++ CLIENT
@@ -268,6 +291,34 @@ WEB_DOCKER_IMAGE ?= koheron-web:node24
 
 endif
 
+SDK_INFO_VARS := SDK_PATH CONFIG_MK NAME VERSION BOARD BOARD_MK PART ZYNQ_TYPE UBUNTU_ARCH \
+  MEMORY_YML BD_TCL DRIVERS WEB_FILES VIVADO_VERSION VIVADO_PATH VITIS_PATH \
+  KOHERON_VERSION GCC_ARCH GCC_VERSION KERNEL_CC UBOOT_CC OS_HOSTCC \
+  LINUX_VERSION UBOOT_VERSION UBUNTU_VERSION DOCKER_IMAGE WEB_DOCKER_IMAGE \
+  MODE FPGA_SYNTH_MODE ENFORCE_TIMING N_CPUS INSTRUMENT_ZIP BOARD_INSTRUMENT_ZIP \
+  BITSTREAM SERVER DRIVERS_JSON_OUT RELEASE_ZIP MANIFEST_TXT INSTRUMENT_TEST
+SDK_INFO_ARGS = $(foreach K,$(SDK_INFO_VARS),$(call build_shell_quote,$(K)=$($(K))))
+SDK_INFO_COMMAND = $(HOST_PYTHON) $(call build_shell_quote,$(SDK_PATH)/python/koheron/sdk_info.py)
+SDK_MANAGEMENT_COMMAND = $(HOST_PYTHON) $(call build_shell_quote,$(SDK_PATH)/python/koheron/management.py) \
+  --host $(call build_shell_quote,$(HOST)) --timeout $(call build_shell_quote,$(TIMEOUT)) \
+  --format $(call build_shell_quote,$(FORMAT))
+
+.PHONY: info
+info:
+	@$(SDK_INFO_COMMAND) --format $(call build_shell_quote,$(FORMAT)) $(SDK_INFO_ARGS)
+
+.PHONY: check
+check:
+	@$(if $(CFG),$(SDK_INFO_COMMAND) --format json $(SDK_INFO_ARGS) |,) $(HOST_PYTHON) $(call build_shell_quote,$(SDK_PATH)/python/koheron/check.py) \
+		--sdk-path $(call build_shell_quote,$(SDK_PATH)) --format $(call build_shell_quote,$(FORMAT)) $(if $(CFG),--settings-stdin,)
+
+.PHONY: status logs
+status:
+	@$(SDK_MANAGEMENT_COMMAND) status
+
+logs:
+	@$(SDK_MANAGEMENT_COMMAND) logs --limit $(call build_shell_quote,$(LOG_LIMIT))
+
 .PHONY: list examples
 list:
 	@python3 "$(SDK_PATH)/python/koheron/list_examples.py" --sdk-path "$(SDK_PATH)"
@@ -281,11 +332,14 @@ copy:
 
 .PHONY: doctor
 doctor:
-	python3 "$(SDK_PATH)/python/koheron/doctor.py" \
+	@$(if $(CFG),$(SDK_INFO_COMMAND) --format json $(SDK_INFO_ARGS) |,) $(HOST_PYTHON) "$(SDK_PATH)/python/koheron/doctor.py" \
 		--sdk-path "$(SDK_PATH)" \
+		--target $(call build_shell_quote,$(TARGET)) --format $(call build_shell_quote,$(FORMAT)) \
+		--python $(call build_shell_quote,$(HOST_PYTHON)) \
+		--docker-image $(call build_shell_quote,$(DOCKER_IMAGE)) --web-image $(call build_shell_quote,$(WEB_DOCKER_IMAGE)) \
 		--xilinx-version "$(VIVADO_VERSION)" \
 		--vivado-path "$(VIVADO_PATH)" \
-		--vitis-path "$(VITIS_PATH)" $(if $(CFG),--cfg "$(CFG)",)
+		--vitis-path "$(VITIS_PATH)" $(if $(CFG),--settings-stdin,)
 
 .PHONY: validate
 validate: $(PYTHON_REQUIREMENTS_STAMP)

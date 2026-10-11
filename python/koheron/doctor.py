@@ -11,6 +11,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+if __package__:
+    from .diagnostics import GENERATOR_MODULES, HOST_TEST_MODULES, Reporter
+    from .sdk_info import load_settings, read_settings
+else:
+    from diagnostics import GENERATOR_MODULES, HOST_TEST_MODULES, Reporter
+    from sdk_info import load_settings, read_settings
+
 
 DEFAULT_XILINX_VERSION = "2025.1"
 REQUIRED_LAYOUT = (
@@ -23,31 +30,6 @@ REQUIRED_LAYOUT = (
     "server",
     "web",
 )
-
-
-class Reporter:
-    def __init__(self, color: bool) -> None:
-        self.color = color
-        self.errors = 0
-
-    def _line(self, level: str, message: str) -> None:
-        colors = {"OK": "\033[1;32m", "WARN": "\033[1;33m", "ERR": "\033[1;31m"}
-        reset = "\033[0m"
-        label = f"[{level}]"
-        if self.color:
-            label = f"{colors[level]}{label}{reset}"
-        print(f"{label} {message}")
-        if level == "ERR":
-            self.errors += 1
-
-    def ok(self, message: str) -> None:
-        self._line("OK", message)
-
-    def warn(self, message: str) -> None:
-        self._line("WARN", message)
-
-    def err(self, message: str) -> None:
-        self._line("ERR", message)
 
 
 def command_output(command: list[str], timeout: float = 5.0) -> tuple[int, str]:
@@ -100,40 +82,47 @@ def check_host_os(reporter: Reporter) -> None:
         reporter.warn(f"Host OS is {name}; Ubuntu 24.04 is preferred")
 
 
-def check_python(reporter: Reporter, sdk_path: Path) -> None:
-    python3 = shutil.which("python3")
+def check_python(reporter: Reporter, sdk_path: Path, python='python3', modules=False) -> None:
+    python3 = shutil.which(python)
     if python3:
         code, version = command_output([python3, "--version"])
-        reporter.ok(f"Python 3 available: {version if code == 0 else python3}")
+        if code == 0:
+            reporter.ok(f"Python available: {version} ({python3})")
+        else:
+            reporter.err(f'Cannot run configured Python: {python3}', 'Run make python_requirements or set HOST_PYTHON.')
     else:
-        reporter.err("python3 executable not found")
+        reporter.err(f'Configured Python executable not found: {python}', 'Run make python_requirements or set HOST_PYTHON.')
 
     venv = sdk_path / ".venv"
     if venv.exists():
         reporter.ok(".venv exists")
     else:
         reporter.warn(".venv is missing; run make setup or make python_requirements")
+    if modules and python3:
+        code, _ = command_output([python3, '-c', 'import ' + ', '.join(GENERATOR_MODULES)])
+        if code:
+            reporter.err('Python generator dependencies are unavailable', 'Run make python_requirements.')
+        else:
+            reporter.ok('Python generator dependencies available')
 
 
-def check_xilinx(reporter: Reporter, vivado: Path, vitis: Path) -> None:
-    required = (
-        vivado / "settings64.sh",
-        vivado / "bin" / "vivado",
-        vivado / "bin" / "bootgen",
-        vivado / "bin" / "xsdb",
-    )
+def check_xilinx(reporter: Reporter, vivado: Path, vitis: Path, boot=False) -> None:
+    required = [vivado / 'settings64.sh', vivado / 'bin/vivado']
+    if boot:
+        required += [vivado / 'bin/bootgen', vivado / 'bin/xsdb']
     for path in required:
         if path.exists():
             reporter.ok(f"Found {path}")
         else:
-            reporter.err(f"Missing {path}")
-    if vitis.exists():
-        reporter.ok(f"Found {vitis}")
-    else:
-        reporter.warn(f"Missing {vitis}; Vitis is recommended")
+            reporter.err(f"Missing {path}", 'Install Xilinx tools separately or set VIVADO_PATH; make setup does not install them.')
+    if boot:
+        if vitis.exists():
+            reporter.ok(f"Found {vitis}")
+        else:
+            reporter.err(f"Missing {vitis}", 'Install Vitis separately or set VITIS_PATH.')
 
 
-def check_docker(reporter: Reporter) -> None:
+def check_docker(reporter: Reporter, image=None, web=False) -> None:
     try:
         import grp
     except ImportError:
@@ -143,7 +132,7 @@ def check_docker(reporter: Reporter) -> None:
     if docker:
         reporter.ok(f"docker executable found: {docker}")
     else:
-        reporter.err("docker executable not found")
+        reporter.err("docker executable not found", 'Run make setup to install Docker and the SDK builders.')
         return
 
     if os.geteuid() == 0:
@@ -167,72 +156,44 @@ def check_docker(reporter: Reporter) -> None:
         reporter.ok("Docker daemon is reachable")
     else:
         detail = output.splitlines()[-1] if output else "docker info failed"
-        reporter.warn(f"Docker daemon is not reachable: {detail}")
+        reporter.err(f"Docker daemon is not reachable: {detail}", 'Start Docker and check access with docker info.')
+        return
+    if image:
+        code, _ = command_output([docker, 'image', 'inspect', image])
+        if code == 0:
+            reporter.ok(f'Docker builder available: {image}')
+        elif web:
+            reporter.warn(f'Web builder missing: {image}; make web builds it automatically.')
+        else:
+            reporter.err(f'Docker builder missing: {image}', 'Run make setup or select an existing DOCKER_IMAGE; see docker/README.md.')
 
 
-def parse_make_vars(config_mk: Path) -> dict[str, str]:
-    variables: dict[str, str] = {}
-    try:
-        for raw_line in config_mk.read_text(encoding="utf-8").splitlines():
-            line = raw_line.split("#", 1)[0].strip()
-            if not line or "=" not in line:
-                continue
-            for operator in (":=", "?=", "+=", "="):
-                if operator in line:
-                    key, value = line.split(operator, 1)
-                    variables[key.strip()] = value.strip()
-                    break
-    except OSError:
-        pass
-    return variables
-
-
-def expand_make_path(value: str, sdk_path: Path, project_path: Path) -> str:
-    replacements = {
-        "$(SDK_PATH)": str(sdk_path),
-        "${SDK_PATH}": str(sdk_path),
-        "$(PROJECT_PATH)": str(project_path),
-        "${PROJECT_PATH}": str(project_path),
-    }
-    for token, replacement in replacements.items():
-        value = value.replace(token, replacement)
-    return value
-
-
-def check_cfg(reporter: Reporter, sdk_path: Path, cfg: str | None) -> None:
-    if not cfg:
+def check_cfg(reporter: Reporter, values) -> None:
+    if not values:
         reporter.ok("CFG not provided; skipping instrument checks")
         return
 
-    config_mk = Path(cfg)
-    if not config_mk.is_absolute():
-        config_mk = sdk_path / config_mk
-    config_mk = config_mk.resolve()
+    config_mk = Path(values['CONFIG_MK'])
     if config_mk.exists():
         reporter.ok(f"CFG config.mk exists: {config_mk}")
     else:
         reporter.err(f"CFG config.mk missing: {config_mk}")
         return
 
-    memory_yml = config_mk.parent / "memory.yml"
+    memory_yml = Path(values['MEMORY_YML'])
     if memory_yml.exists():
         reporter.ok(f"memory.yml exists: {memory_yml}")
     else:
-        reporter.err(f"memory.yml missing next to config.mk: {memory_yml}")
+        reporter.err(f"Selected memory.yml missing: {memory_yml}", 'Restore the file or set MEMORY_YML to a valid memory map.')
 
-    variables = parse_make_vars(config_mk)
-    for name in ("NAME", "VERSION", "BOARD_PATH"):
-        if variables.get(name):
+    for name in ('NAME', 'VERSION', 'BOARD'):
+        if values.get(name):
             reporter.ok(f"{name} is defined")
         else:
             reporter.err(f"{name} is not defined in {config_mk}")
 
-    board_path_value = variables.get("BOARD_PATH")
-    if board_path_value:
-        board_path = Path(expand_make_path(board_path_value, sdk_path, config_mk.parent))
-        if not board_path.is_absolute():
-            board_path = sdk_path / board_path
-        board_mk = board_path / "board.mk"
+    if values.get('BOARD_MK'):
+        board_mk = Path(values['BOARD_MK'])
         if board_mk.exists():
             reporter.ok(f"BOARD_PATH/board.mk exists: {board_mk}")
         else:
@@ -246,25 +207,56 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--xilinx-version", default=os.environ.get("VIVADO_VERSION", DEFAULT_XILINX_VERSION))
     parser.add_argument("--vivado-path", help="Path to the Vivado installation")
     parser.add_argument("--vitis-path", help="Path to the Vitis installation")
+    parser.add_argument('--python', default=sys.executable)
+    parser.add_argument('--docker-image')
+    parser.add_argument('--web-image')
+    parser.add_argument('--target', choices=('all', 'web', 'server', 'fpga', 'image', 'os', 'uboot', 'api', 'check'), default='all')
+    parser.add_argument('--format', choices=('text', 'json'), default='text')
+    parser.add_argument('--settings-stdin', action='store_true')
     parser.add_argument("--no-color", action="store_true", help="Disable colored status labels")
     args = parser.parse_args(argv)
 
-    color = sys.stdout.isatty() and not args.no_color and os.environ.get("NO_COLOR") is None
-    reporter = Reporter(color=color)
+    reporter = Reporter(color=sys.stdout.isatty() and not args.no_color, format=args.format)
     sdk_path = Path(args.sdk_path).resolve()
 
     check_layout(reporter, sdk_path)
+    values = {}
+    try:
+        if args.settings_stdin:
+            values = read_settings(sys.stdin)
+        elif args.cfg:
+            overrides = [f'VIVADO_VERSION={args.xilinx_version}']
+            if args.vivado_path:
+                overrides.append(f'VIVADO_PATH={args.vivado_path}')
+            if args.vitis_path:
+                overrides.append(f'VITIS_PATH={args.vitis_path}')
+            values = load_settings(sdk_path, args.cfg, overrides)
+    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+        reporter.err(f'Cannot resolve configuration: {error}')
+        return reporter.finish(target=args.target)
     check_host_os(reporter)
-    check_python(reporter, sdk_path)
-    xilinx_root = Path("/tools/Xilinx") / args.xilinx_version
-    vivado_path = Path(args.vivado_path).resolve() if args.vivado_path else xilinx_root / "Vivado"
-    vitis_path = Path(args.vitis_path).resolve() if args.vitis_path else xilinx_root / "Vitis"
+    if args.target in ('all', 'server', 'fpga', 'image', 'os', 'check'):
+        check_python(reporter, sdk_path, python=args.python, modules=args.target != 'check')
+    if args.target in ('all', 'fpga', 'image', 'os'):
+        xilinx_root = Path("/tools/Xilinx") / args.xilinx_version
+        vivado_path = Path(args.vivado_path or values.get('VIVADO_PATH') or xilinx_root / 'Vivado').resolve()
+        vitis_path = Path(args.vitis_path or values.get('VITIS_PATH') or xilinx_root / 'Vitis').resolve()
+        check_xilinx(reporter, vivado_path, vitis_path, boot=args.target != 'fpga')
+    if args.target in ('all', 'server', 'image', 'os', 'uboot', 'api', 'web'):
+        if args.target == 'web':
+            image = args.web_image or values.get('WEB_DOCKER_IMAGE') or 'koheron-web:node24'
+        else:
+            image = args.docker_image or values.get('DOCKER_IMAGE') or 'cross-armhf:26.04'
+        check_docker(reporter, image=image, web=args.target == 'web')
+    check_cfg(reporter, values)
+    if args.target == 'check':
+        code, _ = command_output([args.python, '-c', 'import ' + ', '.join(HOST_TEST_MODULES)])
+        if code:
+            reporter.err('Host test dependencies are unavailable', 'Run make python_requirements and make koheron_python.')
+        else:
+            reporter.ok('Host test dependencies available')
 
-    check_xilinx(reporter, vivado_path, vitis_path)
-    check_docker(reporter)
-    check_cfg(reporter, sdk_path, args.cfg)
-
-    return 1 if reporter.errors else 0
+    return reporter.finish(target=args.target, settings=values)
 
 
 if __name__ == "__main__":
