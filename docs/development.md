@@ -133,8 +133,8 @@ The instrument ZIP is `tmp/<project>/<NAME>.zip`, also copied to
 - The original Vivado bitstream (`.bit`) for reference.
 - The compiled server (`serverd`) and driver metadata (`drivers.json`).
 - Built web assets.
-- A `version` file and `instrument.json` identifying board, architecture and
-  runtime requirements for deployment preflight.
+- A `version` file and `instrument.json` identifying board, architecture, SDK
+  commit and runtime requirements for deployment preflight.
 
 ZIP names use letters, digits, dots, underscores and hyphens, without a leading
 or trailing dot or underscore. Deployment checks local identity and metadata
