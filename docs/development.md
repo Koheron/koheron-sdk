@@ -14,14 +14,9 @@ for your board and `HOST` with the board's IP address or hostname.
 - `memory.yml` defines the memory map, registers, Linux mappings and parameters;
   it generates Tcl, C++ and device-tree definitions.
 
-`SDK_PATH` is the SDK root; `PROJECT_PATH` contains `config.mk`. `make info`
-reports actual Make settings, overrides, inputs, toolchains and artifact paths
-without building or creating directories.
-
-```sh
-make info CFG=examples/red-pitaya/fft/config.mk FORMAT=json
-make doctor TARGET=web CFG=examples/red-pitaya/fft/config.mk
-```
+`SDK_PATH` is the SDK root; `PROJECT_PATH` contains `config.mk`.
+`make info CFG=... FORMAT=json` reports resolved settings, inputs and artifact
+paths without building.
 
 Vivado/Vitis default to `/tools/Xilinx/2025.1`. Select another installed release
 with `VIVADO_VERSION=...`, or override `VIVADO_PATH` and `VITIS_PATH`.
@@ -59,8 +54,8 @@ targets; `make list` lists examples.
 | `make copy CFG=... DEST=...` | Copy an instrument's sources and set its name from the destination directory. |
 | `make list` or `make examples` | List example instruments. |
 
-`status` and `logs` need no CFG or build tools. For flashing and board-selected
-builds in `build.sh`, see [OS image builds](../os/README.md#building-and-flashing).
+`status` and `logs` need no CFG or build tools. For image installation and board
+presets, see [OS image builds](../os/README.md#building-and-flashing).
 
 ## Deployment and logs
 
@@ -70,34 +65,29 @@ make status HOST=192.168.1.100 FORMAT=json
 make logs HOST=192.168.1.100
 ```
 
-Deployment uses the V1 management API: validate package identity and board
-compatibility, upload, preflight activation and confirm the running name,
-version and service state. Failures retain rollback details.
+`deploy` builds the package, checks board compatibility, activates it and
+returns after readiness. `run` builds, uploads and starts the instrument, then
+streams logs; Ctrl+C leaves it running. The [board management guide](../os/api/README.md)
+documents the API contracts.
 
 `TIMEOUT=120` is the default upload, activation and readiness budget;
 the preceding build has its own duration. A timeout does not cancel an operation
 already started on the board. Read `make status HOST=...` before retrying.
 Status and logs default to `TIMEOUT=10`; override it on the command line.
 
-`make logs` returns a finite snapshot, with UTC timestamps in text output.
-`LOG_LIMIT` accepts 1–2000 entries. `make run` streams logs over WebSocket,
-reconnects from the last cursor and falls back to HTTP polling when necessary.
-Ctrl+C closes the stream and leaves the instrument running.
+`make logs` returns a finite snapshot with UTC timestamps. `LOG_LIMIT` accepts
+1–2000 entries. `make run` reconnects its log stream from the last cursor and
+falls back to HTTP polling when needed.
 The [Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument)
 also returns after deployment for scripts.
 
-## JSON for scripts and agents
+## Machine-readable output
 
 `info`, `doctor`, `check`, `deploy`, `status` and `logs` accept `FORMAT=json`.
 Successful stdout contains one JSON object with `schema_version: 1`.
 Diagnostics and board commands include `ok` and return nonzero on failure;
 deployment build output goes to stderr. JSON logs retain the original
 microsecond timestamps and other entry fields.
-
-Use `info` to discover resolved inputs and artifact paths, then `doctor` and
-`check` for local validation. Use `deploy` for a bounded board operation and
-`status` to inspect readiness or a timed-out deployment. See
-[AGENTS.md](../AGENTS.md) for working conventions.
 
 ## Diagnostics and tests
 
@@ -107,16 +97,10 @@ Xilinx tools. With CFG, it uses the same resolved settings as `info`, including
 overrides such as `MEMORY_YML`.
 
 `make check` validates all examples and runs Python, packaging, server dependency
-and web build regressions. With CFG, validation uses that configuration;
-regressions use isolated fixtures. Reports include configuration and test counts,
-with per-suite counts and durations in JSON. Checks use SDK sources and existing
-host dependencies without installing packages, synthesizing FPGA designs or
-contacting a board. If dependencies are missing:
-
-```sh
-make python_requirements
-make koheron_python
-```
+and web build regressions. With CFG, it validates that configuration; regressions
+use isolated fixtures. It uses existing host dependencies, without synthesis or
+board access. Install missing Python dependencies with `make python_requirements`
+and `make koheron_python`.
 
 `HOST_PYTHON=...` selects another prepared interpreter for inspection,
 diagnostics, host checks and management commands.
@@ -126,10 +110,7 @@ instrument. `INSTRUMENT_TEST=...` overrides the script. Hardware scripts may
 change acquisition/output settings or open plots. Report host/build checks
 separately from hardware results.
 
-Pull requests and pushes check host workflows/configurations, cached build
-dependencies, C++ logging, the compiled C++23 management runtime and management UI.
-Full server, sanitizer, instrument build, DSP and browser tests remain available
-locally when needed. See [the CI workflow](../.github/workflows/ci.yml) for exact suites.
+See [CI](../.github/workflows/ci.yml) for automated suites.
 
 ## Creating a new instrument
 
@@ -139,11 +120,9 @@ make validate CFG=examples/alpha250/my-instrument/config.mk
 make -j CFG=examples/alpha250/my-instrument/config.mk
 ```
 
-`copy` sets `NAME := my-instrument` for the archive and stored instrument.
-It refuses an existing destination or the source name and skips generated
-metadata and dependency caches. Board settings, `VERSION`, driver names and
-shared SDK references are preserved. The API class remains `FFT`; update
-hard-coded client instrument names such as `connect(host, 'fft')`.
+`copy` sets `NAME := my-instrument` and preserves the board, version, drivers
+and shared references. It does not rewrite the API class or client names such
+as `connect(host, 'fft')`.
 
 ## Instrument packages
 
@@ -160,23 +139,6 @@ The instrument ZIP is `tmp/<project>/<NAME>.zip`, also copied to
 ZIP names use letters, digits, dots, underscores and hyphens, without a leading
 or trailing dot or underscore. Deployment checks local identity and metadata
 size before contacting the board; preflight verifies compatibility and payloads.
-
-## Rebuilds and cached outputs
-
-Driver order determines RPC IDs. Changing the ordered driver list regenerates
-interfaces and metadata together. Python generator edits and complete server
-compiler flags are tracked as build inputs. Web builds use current compiler
-sources and refresh the Docker builder when its inputs change.
-Web source membership is tracked even when a file disappears without a config
-edit. Selecting an older HTML or CSS source with the same filename refreshes
-the copied asset without recompiling unchanged TypeScript. Instrument archives
-and board copies are published atomically. Missing board copies and switches
-between projects with the same name use the selected archive. Version and
-compatibility metadata overrides refresh the package.
-
-See [FPGA builds](../fpga/README.md) for synthesis caching, timing qualification
-and Tcl dependencies, and [OS image builds](../os/README.md#building-and-flashing)
-for image caching.
 
 ## Repository layout
 

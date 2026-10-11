@@ -20,6 +20,8 @@ print_usage() {
   cat <<USAGE
 Usage: $0 <board>|--list|--all
 
+Build board images and configured instruments without writing an SD card.
+
 Examples:
   $0 alpha250
   $0 --all
@@ -82,7 +84,7 @@ build_all_boards() {
 
   for board in "${boards[@]}"; do
     log "Starting build for ${board}"
-    build_board "${board}" false
+    build_board "${board}"
   done
 }
 
@@ -112,7 +114,6 @@ run_make_command() {
 
 build_board() {
   local board="$1"
-  local prompt_flash=${2:-true}
   load_board_config "${board}"
   local build_jobs=${N_CPUS:-$(nproc 2>/dev/null || printf '1')}
   if [[ ! $build_jobs =~ ^[1-9][0-9]*$ ]]; then
@@ -150,20 +151,6 @@ build_board() {
     run_make_command make -j"${build_jobs}" N_CPUS="${build_jobs}" CFG="${IMAGE_CONFIG}" image
   fi
 
-  if [[ ${prompt_flash} == true ]]; then
-    read -r -p $'\nWould you like to burn the SD card image now? [y/N] ' answer
-    answer=${answer,,}
-    if [[ ${answer} == "y" || ${answer} == "yes" ]]; then
-      log "Preparing to flash SD card. Caching sudo credentials..."
-      sudo -v
-      log "Flashing SD card using CFG=${IMAGE_CONFIG}"
-      sudo --preserve-env=PATH make CFG="${IMAGE_CONFIG}" COPY_INSTRUMENTS="${COPY_INSTRUMENTS[*]}" flash
-      success "SD card image flashed successfully."
-    else
-      log "Skipping SD card flashing as requested."
-    fi
-  fi
-
   local duration=${SECONDS}
   trap - ERR
   local minutes=$((duration / 60))
@@ -182,7 +169,7 @@ main() {
       build_all_boards
       exit 0
     fi
-    build_board "${selected_board}" true
+    build_board "${selected_board}"
     exit 0
   fi
 
@@ -200,7 +187,7 @@ main() {
       if [[ $1 == "all" ]]; then
         build_all_boards
       else
-        build_board "$1" true
+        build_board "$1"
       fi
       ;;
   esac
