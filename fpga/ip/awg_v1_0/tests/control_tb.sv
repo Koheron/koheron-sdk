@@ -55,6 +55,33 @@ module control_tb;
         if(checking && phase[B*8 +: P]!==expected) $fatal(1,"Incoherent mailbox got %h expected %h",phase[B*8 +: P],expected);
     end
     reg [31:0] data;
+    localparam [63:0] FULL_TURN = 64'h1 << P;
+    localparam [63:0] LIMIT_MASK = (FULL_TURN << 1)-1;
+    reg [449:0] saved_mailbox;
+    reg [63:0] random_depth, random_duty;
+    integer trial;
+    task automatic check_limits(input [63:0] depth, input [63:0] duty);
+        reg [31:0] status;
+        reg reject;
+        begin
+            write('h40,depth[31:0]);write('h44,depth[63:32]);
+            write('h48,duty[31:0]);write('h4c,duty[63:32]);
+            // The AXI register masks retain the full-turn bit, including the
+            // non-byte-aligned widths. Use the original numerical comparison
+            // as the oracle, independently of the implementation's reductions.
+            reject = (depth & LIMIT_MASK) > FULL_TURN ||
+                     (duty & LIMIT_MASK) > FULL_TURN;
+            saved_mailbox=dut.mailbox;
+            write('h10,1,reject ? 2 : 0);
+            if(reject && dut.mailbox!==saved_mailbox)
+                $fatal(1,"Rejected limits modified mailbox");
+            read('h0c,status);
+            while(status!=0) read('h0c,status);
+            if(!reject && (dut.active[256 +: 64] !== (depth & LIMIT_MASK) ||
+                          dut.active[320 +: 64] !== (duty & LIMIT_MASK)))
+                $fatal(1,"Accepted limits did not reach active settings");
+        end
+    endtask
     initial begin
         repeat(5) @(negedge aclk);resetn=1;
         repeat(10) @(negedge clk);
@@ -77,7 +104,26 @@ module control_tb;
         if(phase[B*8 +: P]!==116) $fatal(1,"Wrong phase packing");
         if(B*8>P && ((phase >> (B*8+P)) & ((1 << (B*8-P))-1))!==0) $fatal(1,"Nonzero padding");
         checking=0;
-        passed=1;$display("PASS: reduced IP, %0d-bit packing, stopped clock and coherent commit",P);$finish;
+        write('h54,0);
+        check_limits(0,0);
+        check_limits(FULL_TURN-1,FULL_TURN-1);
+        check_limits(FULL_TURN,FULL_TURN);
+        check_limits(FULL_TURN+1,0);
+        check_limits(0,FULL_TURN+1);
+        check_limits(LIMIT_MASK,0);
+        check_limits(0,LIMIT_MASK);
+        check_limits(64'hffffffffffffffff,64'hffffffffffffffff);
+        for(trial=0;trial<P;trial=trial+1) begin
+            check_limits(FULL_TURN | (64'h1 << trial),0);
+            check_limits(0,FULL_TURN | (64'h1 << trial));
+        end
+        // Changing settings and writes to reserved high bits must preserve
+        // exactly the original masked range, not just the boundary cases.
+        for(trial=0;trial<64;trial=trial+1) begin
+            random_depth={$random,$random};random_duty={$random,$random};
+            check_limits(random_depth,random_duty);
+        end
+        passed=1;$display("PASS: %0d-bit packing, stopped clock, coherent commit and full-turn limits",P);$finish;
     end
     initial begin #100000; $fatal(1,"Control test timeout");end
 endmodule

@@ -139,7 +139,17 @@ module awg_control #(
     wire [63:0] depth_shadow = {shadow[9], shadow[8]};
     wire [63:0] duty_shadow = {shadow[11], shadow[10]};
     wire [3:0] shape_shadow = shadow[13][11:8];
-    wire invalid_config = depth_shadow > FULL_TURN || duty_shadow > FULL_TURN ||
+    // A full turn is 2**PHASE_WIDTH. Accept that endpoint only when every
+    // lower bit is zero; higher bits always exceed the limit. Reductions avoid
+    // a wide carry-chain comparison on the mailbox's high-fanout enable path.
+    function exceeds_full_turn;
+        input [63:0] value;
+        begin
+            exceeds_full_turn = (|value[63:PHASE_WIDTH+1]) ||
+                (value[PHASE_WIDTH] && (|value[PHASE_WIDTH-1:0]));
+        end
+    endfunction
+    wire invalid_config = exceeds_full_turn(depth_shadow) || exceeds_full_turn(duty_shadow) ||
         shape_shadow > 9 ||
         (shadow[13][1] && !(SOURCE_MASK & (1 << shape_shadow))) ||
         ((shape_shadow == 6 || shape_shadow == 7) && shadow[12] == 0) ||

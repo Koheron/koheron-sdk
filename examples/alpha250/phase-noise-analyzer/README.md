@@ -23,6 +23,10 @@ segments, ring overruns, FFT length, hop length and Welch depth. See the
 
 # ALPHA250 phase-noise analyzer
 
+The 250 MHz settings bank reuses the shared AXI write decoder with
+`PREDECODE_WRITES=1`, preserving register and response timing. See the
+[timing qualification](../../../fpga/ip/awg_v1_0/tests/config-timing-margin.md).
+
 ## Selectable sample clock
 
 Version 1.5.1 provides a **Sample rate** selector for **200 or 250 MS/s** in

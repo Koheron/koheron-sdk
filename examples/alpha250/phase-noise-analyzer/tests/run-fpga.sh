@@ -11,6 +11,16 @@ out="$repo/tmp/tests/alpha250-phase-noise-analyzer/rtl"
 mkdir -p "$out"
 cd "$out"
 
+# Reuse the DPLL's legacy/predecoded AXI equivalence and independent scoreboard
+# at this analyzer's 12-word register-bank size. No additional control latency.
+xvlog --sv "$repo/fpga/cores/axi_ctl_register_v1_0/axi_ctl_register.v" \
+      "$repo/examples/alpha250/dpll/tests/test_control_tb.v" > control-compile.log 2>&1
+xelab work.test_control_tb -generic_top WORDS=12 -s test_pna_control_tb > control-elaborate.log 2>&1
+xsim test_pna_control_tb -runall > control.log 2>&1
+cat control.log
+rg -q 'Control checks passed' control.log
+if rg -q 'Fatal:|ERROR:|FATAL:' control.log; then exit 1; fi
+
 # The 250 MHz history splits the 64-bit sum without dropping ADC samples.
 xvlog --sv "$repo/fpga/cores/phase_unwrapper_v1_0/phase_unwrapper.v" \
       "$repo/examples/alpha250/phase-noise-analyzer/tests/test_phase_history_tb.sv" \

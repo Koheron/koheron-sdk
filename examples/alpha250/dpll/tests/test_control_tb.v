@@ -1,6 +1,5 @@
 `timescale 1 ns / 1 ps
-module test_control_tb;
-    localparam WORDS = 17;
+module test_control_tb #(parameter integer WORDS = 17);
     reg clk = 0, resetn = 0;
     reg [15:0] awaddr = 0, araddr = 0;
     reg [31:0] wdata = 0;
