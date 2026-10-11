@@ -6,6 +6,7 @@ import json
 import math
 from pathlib import Path
 import re
+import socket
 import sys
 from time import monotonic, sleep
 from urllib.parse import quote, urlencode, urlsplit
@@ -77,7 +78,7 @@ class Client:
                     details = {}
                 raise ManagementError(details.pop('code', f'http_{response.status}'),
                                       details.pop('message', details.pop('error', message)), **details)
-        except TimeoutError as error:
+        except (TimeoutError, socket.timeout) as error:
             raise ManagementError('timeout', 'Request timed out; a board operation may still be running. Check status before retrying') from error
         except (OSError, HTTPException) as error:
             raise ManagementError('connection_failed', f'Cannot reach {self.base_url}: {error}') from error
