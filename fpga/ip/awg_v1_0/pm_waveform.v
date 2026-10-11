@@ -20,8 +20,11 @@ module pm_waveform #(
     localparam signed [MOD_WIDTH:0] ONE = (1 << (MOD_WIDTH-1));
     reg [PHASE_WIDTH-1:0] phase;
     wire [PHASE_WIDTH-1:0] sample_phase = (restart ? 0 : phase) + phase_offset;
-    wire [PHASE_WIDTH:0] next_phase = {1'b0, phase} + {1'b0, increment};
-    wire tick = next_phase[PHASE_WIDTH];
+    wire [PHASE_WIDTH-1:0] next_phase = phase + increment;
+    wire tick;
+    pm_phase_wrap #(.WIDTH(PHASE_WIDTH)) wrap_detector (
+        .a(phase), .b(increment), .carry(tick)
+    );
     // Register the 48-bit wrap detector before distributing it to noise/PRBS
     // enables. Predict the pending state below to preserve sample timing.
     (* max_fanout = 16 *) reg tick_pending;
@@ -100,7 +103,7 @@ module pm_waveform #(
     // bounded by +/-3060/4096. Independent deterministic xorshift states.
     wire signed [MOD_WIDTH:0] gaussian_value;
     generate if (SOURCE_MASK & 128) begin : g_gaussian
-        wire [7:0] samples [0:11];
+        reg [7:0] samples [0:11];
         genvar k;
         for (k = 0; k < 12; k = k+1) begin : g_rng
             reg [31:0] state;
@@ -112,26 +115,29 @@ module pm_waveform #(
                 else if (restart) state <= initial_state;
                 else if (tick_pending) state <= random_next(state);
             end
-            assign samples[k] = selected[31:24];
+            // Separate restart/seed selection from the first adder stage.
+            always @(posedge clk) samples[k] <= selected[31:24];
         end
         // Balanced adder tree avoids twelve serial carry chains at 250 MHz.
-        reg [8:0] pairs [0:5];
-        reg [9:0] quads [0:2];
+        // Center each pair before combining it. This moves the final DC
+        // subtraction upstream, keeping the total source latency at five
+        // clocks despite registering the selected noise samples above.
+        reg signed [8:0] pairs [0:5];
+        reg signed [9:0] quads [0:2];
         for (k = 0; k < 6; k = k+1) begin : g_pairs
-            always @(posedge clk) pairs[k] <= {1'b0, samples[2*k]} + {1'b0, samples[2*k+1]};
+            always @(posedge clk) pairs[k] <= $signed({2'b00, samples[2*k]}) +
+                $signed({2'b00, samples[2*k+1]}) - 10'sd255;
         end
         for (k = 0; k < 3; k = k+1) begin : g_quads
-            always @(posedge clk) quads[k] <= {1'b0, pairs[2*k]} + {1'b0, pairs[2*k+1]};
+            always @(posedge clk) quads[k] <= pairs[2*k] + pairs[2*k+1];
         end
-        reg [10:0] sum01;
-        reg [9:0] quad2;
-        reg [11:0] total;
+        reg signed [10:0] sum01;
+        reg signed [9:0] quad2;
         reg signed [13:0] centered;
         always @(posedge clk) begin
-            sum01 <= {1'b0, quads[0]} + {1'b0, quads[1]};
+            sum01 <= quads[0] + quads[1];
             quad2 <= quads[2];
-            total <= {1'b0, sum01} + {2'b00, quad2};
-            centered <= $signed({1'b0, total, 1'b0}) - 14'sd3060;
+            centered <= (sum01 + quad2) <<< 1;
         end
         assign gaussian_value = centered * (1 << (MOD_WIDTH-13));
     end else begin : g_no_gaussian
