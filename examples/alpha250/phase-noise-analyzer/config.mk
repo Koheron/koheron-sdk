@@ -6,6 +6,7 @@ BOARD_PATH := $(SDK_PATH)/boards/alpha250
 
 FPGA_LIB_TCL = $(FPGA_TCL_PNA_SINGLE_STREAM)
 FPGA_IMPL_TCL = $(FPGA_TCL_PNA_ROUTE)
+FPGA_IMPL_TCL += $(PROJECT_PATH)/tcl/replicate_fir_control.tcl
 TCL_EXTRA_FILES += $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
 MEMORY_YML = $(PROJECT_PATH)/memory.yml

@@ -99,5 +99,7 @@ source $sdk_path/fpga/lib/pna_single_stream.tcl
 
 # Repair short DAC paths after routing; refresh reports for strict timing checks.
 set_property STRATEGY Performance_ExplorePostRoutePhysOpt [get_runs impl_1]
+# Place local copies of the existing FIR enable register before routing.
+set_property STEPS.PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] tcl/replicate_fir_control.tcl]] [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST [file normalize [file join [file dirname [info script]] post_route.tcl]] [get_runs impl_1]

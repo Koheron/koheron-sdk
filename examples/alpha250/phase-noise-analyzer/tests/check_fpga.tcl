@@ -9,6 +9,13 @@ if {[get_property CONFIG.CTL_DATA_WIDTH [get_bd_cells ctl/axi_ctl_register]] != 
     error "Update the AXI equivalence test for the analyzer's changed register-bank size"
 }
 puts "PASS: 12-word predecoded AXI settings bank"
+set implementation [get_runs impl_1]
+set fir_hook [file normalize [file join [file dirname [info script]] ../tcl/replicate_fir_control.tcl]]
+if {![get_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED $implementation] ||
+    [get_property STEPS.PHYS_OPT_DESIGN.TCL.POST $implementation] ne $fir_hook} {
+    error "Missing pre-route FIR control replication hook"
+}
+puts "PASS: FIR control replication runs after placement and before routing"
 source [file join [file dirname [info script]] check_extractor.tcl]
 
 proc require_same_net {left right} {

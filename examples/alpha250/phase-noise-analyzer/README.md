@@ -30,6 +30,11 @@ path while preserving data, byte strobes and response timing. The FPGA
 regression reuses the DPLL's cycle-by-cycle comparison and independent register
 scoreboard at this analyzer's 12-word bank size.
 
+After placement, the analyzer replicates the compensation FIR's registered
+control signal near its DSP and register consumers to shorten high-fanout
+routes. This adds no filter stage or sample delay. See the
+[FIR timing qualification](tests/fir-timing.md) for measured margins.
+
 ## Selectable sample clock
 
 Version 1.5.1 provides a **Sample rate** selector for **200 or 250 MS/s** in
