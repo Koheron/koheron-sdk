@@ -28,7 +28,8 @@ class LogStreamTest(unittest.TestCase):
         self.clock.return_value = 0
         self.errors = io.StringIO()
         redirect = patch.object(log_stream.sys, 'stderr', self.errors)
-        redirect.start(); self.addCleanup(redirect.stop)
+        redirect.start()
+        self.addCleanup(redirect.stop)
         self.reads = []
 
         def get(url, **options):

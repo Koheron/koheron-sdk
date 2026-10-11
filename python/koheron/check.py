@@ -9,10 +9,10 @@ import sys
 import time
 
 if __package__:
-    from .diagnostics import Reporter
+    from .diagnostics import HOST_TEST_MODULES, Reporter
     from .sdk_info import read_settings
 else:
-    from diagnostics import Reporter
+    from diagnostics import HOST_TEST_MODULES, Reporter
     from sdk_info import read_settings
 
 
@@ -32,18 +32,18 @@ def run_check(reporter, label, command, sdk_path):
                                 capture_output=True, timeout=120)
         output = (result.stdout + result.stderr).strip()
         if result.returncode:
-            reporter.err(label)
-            reporter.checks[-1]['output'] = output
+            record = reporter.err(label)
+            record['output'] = output
             if reporter.format == 'text':
                 print(output, file=sys.stderr)
         else:
-            reporter.ok(label)
+            record = reporter.ok(label)
         summary = re.search(r'^Ran (\d+) tests? in ', output, re.MULTILINE)
         if summary:
-            reporter.checks[-1]['tests'] = int(summary.group(1))
+            record['tests'] = int(summary.group(1))
     except (OSError, subprocess.TimeoutExpired) as error:
-        reporter.err(f'{label}: {error}')
-    reporter.checks[-1]['seconds'] = round(time.monotonic() - started, 3)
+        record = reporter.err(f'{label}: {error}')
+    record['seconds'] = round(time.monotonic() - started, 3)
 
 
 def main(argv=None):
@@ -54,7 +54,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     sdk_path = args.sdk_path.resolve()
     reporter = Reporter(color=sys.stdout.isatty(), format=args.format)
-    for module in ('yaml', 'jinja2', 'CppHeaderParser', 'numpy', 'requests', 'click', 'websocket'):
+    for module in HOST_TEST_MODULES:
         if importlib.util.find_spec(module) is None:
             reporter.err(f'Missing host test dependency: {module}', 'Run make python_requirements and make koheron_python.')
     if reporter.errors:

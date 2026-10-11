@@ -12,10 +12,10 @@ import sys
 from pathlib import Path
 
 if __package__:
-    from .diagnostics import Reporter
+    from .diagnostics import HOST_TEST_MODULES, Reporter
     from .sdk_info import load_settings, read_settings
 else:
-    from diagnostics import Reporter
+    from diagnostics import HOST_TEST_MODULES, Reporter
     from sdk_info import load_settings, read_settings
 
 
@@ -250,8 +250,7 @@ def main(argv: list[str] | None = None) -> int:
         check_docker(reporter, image=image, web=args.target == 'web')
     check_cfg(reporter, values)
     if args.target == 'check':
-        code, _ = command_output([args.python, '-c',
-            'import yaml, jinja2, CppHeaderParser, numpy, requests, click, websocket'])
+        code, _ = command_output([args.python, '-c', 'import ' + ', '.join(HOST_TEST_MODULES)])
         if code:
             reporter.err('Host test dependencies are unavailable', 'Run make python_requirements and make koheron_python.')
         else:

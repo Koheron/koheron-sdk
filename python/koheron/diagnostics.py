@@ -2,6 +2,8 @@
 import json
 import os
 
+HOST_TEST_MODULES = ('yaml', 'jinja2', 'CppHeaderParser', 'numpy', 'requests', 'click', 'websocket')
+
 
 class Reporter:
     def __init__(self, color=False, format='text'):
@@ -24,15 +26,16 @@ class Reporter:
             print(f'{label} {message}', flush=True)
             if remedy:
                 print(f'      {remedy}', flush=True)
+        return record
 
     def ok(self, message):
-        self._line('OK', message)
+        return self._line('OK', message)
 
     def warn(self, message, remedy=None):
-        self._line('WARN', message, remedy)
+        return self._line('WARN', message, remedy)
 
     def err(self, message, remedy=None):
-        self._line('ERR', message, remedy)
+        return self._line('ERR', message, remedy)
 
     def finish(self, **context):
         if self.format == 'json':

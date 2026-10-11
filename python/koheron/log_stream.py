@@ -9,11 +9,12 @@ from urllib.parse import urlencode
 import requests
 import websocket
 
+REQUEST_TIMEOUT = 10
+
 
 def log_batches(base_url, cursor=None, poll_interval=1.0):
     if not math.isfinite(poll_interval) or poll_interval <= 0:
         raise ValueError('poll_interval must be a finite positive number')
-    params = {'cursor': cursor} if cursor else {}
     # The live stream covers the same service as the legacy instrument route.
     root = base_url.removesuffix('/instrument')
     events_url = root.replace('http:', 'ws:', 1).replace('https:', 'wss:', 1) + '/events'
@@ -21,6 +22,7 @@ def log_batches(base_url, cursor=None, poll_interval=1.0):
     fallback_reported = False
 
     def accept(data):
+        nonlocal cursor
         if (not isinstance(data, dict) or not isinstance(data.get('entries'), list)
                 or any(not isinstance(entry, dict) or not isinstance(entry.get('msg'), str)
                        for entry in data['entries'])
@@ -29,19 +31,19 @@ def log_batches(base_url, cursor=None, poll_interval=1.0):
             raise ValueError('Invalid log batch')
         if data.get('reset'):
             print('[log-stream] Log history reset; resuming from recent entries.', file=sys.stderr)
-            params.clear()
-        elif data.get('cursor') == params.get('cursor'):
+            cursor = None
+        elif data.get('cursor') == cursor:
             data = {**data, 'entries': []}  # Heartbeats and replayed batches.
         if data.get('cursor'):
-            params['cursor'] = data['cursor']
+            cursor = data['cursor']
         return data
 
     with requests.Session() as session:
         while True:
             if time.monotonic() >= retry_at:
                 try:
-                    query = '?' + urlencode(params) if params else ''
-                    with closing(websocket.create_connection(events_url + query, timeout=10)) as connection:
+                    query = '?' + urlencode({'cursor': cursor}) if cursor else ''
+                    with closing(websocket.create_connection(events_url + query, timeout=REQUEST_TIMEOUT)) as connection:
                         fallback_reported = False
                         while True:
                             message = connection.recv()
@@ -57,7 +59,8 @@ def log_batches(base_url, cursor=None, poll_interval=1.0):
                     unsupported = getattr(error, 'status_code', None) in (404, 405, 426)
                     retry_at = math.inf if unsupported else time.monotonic() + 5
             try:
-                response = session.get(base_url + '/incr', params=params, timeout=10)
+                params = {'cursor': cursor} if cursor else {}
+                response = session.get(base_url + '/incr', params=params, timeout=REQUEST_TIMEOUT)
                 response.raise_for_status()
                 yield accept(response.json())
             except (requests.RequestException, ValueError) as error:
