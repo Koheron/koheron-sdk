@@ -6,10 +6,6 @@ Measured with Vivado/Vitis 2026.1 on Ubuntu 24.04, global synthesis and the
 existing implementation directives. No clock constraints or timing exceptions
 were changed.
 
-These results measure the write-predecode implementation in revision
-`7243c0c2199f05c621c8300ed116bf06335e2ad7`, before the subsequent
-[FIR routing improvement](fir-timing.md).
-
 ## Change
 
 Enable the existing shared `axi_ctl_register` option `PREDECODE_WRITES=1`
