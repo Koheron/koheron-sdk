@@ -69,6 +69,20 @@ A five-clock source pipeline accommodates the Gaussian adder tree; phase,
 other sources and settings receive the same delay.
 The carrier DDS carries output enable in TUSER, preserving mute timing.
 
+The modulation oscillator's wrap detector uses `pm_phase_wrap`: independent
+carry generation in blocks of at most 8 bits, followed by block carry lookahead.
+This avoids a carry chain spanning the full phase word before the registered
+wrap signal that advances noise, PRBS and BPSK sources. The detector is
+combinational, preserving phase resolution, sample latency, restart behavior
+and per-sample setting changes. Partial final blocks support every phase width
+from 32 through 48 bits. Phase accumulation and offset addition retain their
+native adders.
+
+The Gaussian source registers its selected random bytes before the adder tree,
+isolating restart/seed selection from arithmetic. Each pair is centered before
+combining it, preserving the exact noise samples and five-clock source latency
+while removing the final DC-subtraction stage.
+
 ## Vivado customization
 
 The packaged subsystem is `koheron:user:awg:1.0`. Its GUI exposes channel count
@@ -263,6 +277,7 @@ g++ -std=c++23 -Wall -Wextra -Werror -fno-exceptions -pthread -I. \
     fpga/ip/awg_v1_0/tests/driver_test.cpp -o /tmp/dds-pm-driver-test
 /tmp/dds-pm-driver-test
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
+vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_phase_accumulator.tcl
 vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_sim.tcl
 vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_control.tcl
 vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/synth.tcl
@@ -277,6 +292,12 @@ full-turn settings, pulse endpoints, AXI channel skew/backpressure, reset and mu
 Reduced-controller tests cover coherent commits while the sample clock is
 stopped and byte-aligned/non-aligned phase widths. Resource reports generated
 by `synth.tcl` cover the controller only, excluding vendor DDSs and board logic.
+The phase-accumulator test compares against ordinary full-width arithmetic at
+every width from 32 through 48 bits, including carry boundaries and 20,000
+changing input pairs. It also checks accumulator, offset, reset/restart, wrap
+and BPSK sample timing against the original accumulator equations. Gaussian
+samples are checked against the original unbalanced sum and five-cycle delay,
+including changing seeds and repeated resets/restarts.
 
 `run_subsystem.tcl` additionally instantiates the actual packaged catalog IP and
 simulates/synthesizes one-channel, two-channel and no-sine profiles. It checks
