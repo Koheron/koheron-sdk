@@ -35,7 +35,6 @@ TMP ?= tmp
 FORMAT ?= text
 TARGET ?= all
 TIMEOUT ?= $(if $(filter deploy,$(MAKECMDGOALS)),120,10)
-FOLLOW ?= 0
 LOG_LIMIT ?= 100
 
 PYTHON_VERSION := 3
@@ -89,7 +88,7 @@ help:
 	@echo ' - run          : Run the instrument'
 	@echo ' - deploy       : Build, upload and wait for readiness, then return (TIMEOUT=120)'
 	@echo ' - status       : Read board and instrument status (HOST=..., TIMEOUT=10)'
-	@echo ' - logs         : Recent server logs; FOLLOW=1 streams until Ctrl+C (TIMEOUT=10)'
+	@echo ' - logs         : Read recent server logs (LOG_LIMIT=100, TIMEOUT=10)'
 	@echo ' - info         : Resolved CFG, board, toolchains and artifact paths; FORMAT=json supported'
 	@echo ' - check        : Validate CFG (or all examples) and run local host regressions'
 	@echo ' - fpga         : Build the FPGA bitstream'
@@ -106,7 +105,7 @@ help:
 	@echo ' - block_design : Build the Vivado block design interactively'
 	@echo ' - open_project : Open the Vivado .xpr project'
 	@echo ' - doctor       : Check requirements for TARGET=all|web|server|fpga|image|os|uboot|api'
-	@echo '                  Or TARGET=deploy|status|logs|check; FORMAT=json supported'
+	@echo '                  Or TARGET=check; FORMAT=json supported'
 	@echo ' - validate     : Validate selected CFG and memory.yml'
 	@echo ' - copy         : Copy selected CFG instrument to DEST and set its NAME'
 	@echo ' - list         : List available example instruments'
@@ -318,7 +317,7 @@ status:
 	@$(SDK_MANAGEMENT_COMMAND) status
 
 logs:
-	@$(SDK_MANAGEMENT_COMMAND) logs --limit $(call build_shell_quote,$(LOG_LIMIT)) $(if $(filter 1,$(FOLLOW)),--follow,)
+	@$(SDK_MANAGEMENT_COMMAND) logs --limit $(call build_shell_quote,$(LOG_LIMIT))
 
 .PHONY: list examples
 list:
@@ -336,7 +335,6 @@ doctor:
 	@$(if $(CFG),$(SDK_INFO_COMMAND) --format json $(SDK_INFO_ARGS) |,) $(HOST_PYTHON) "$(SDK_PATH)/python/koheron/doctor.py" \
 		--sdk-path "$(SDK_PATH)" \
 		--target $(call build_shell_quote,$(TARGET)) --format $(call build_shell_quote,$(FORMAT)) \
-		--host $(call build_shell_quote,$(HOST)) --timeout $(call build_shell_quote,$(TIMEOUT)) \
 		--python $(call build_shell_quote,$(HOST_PYTHON)) \
 		--docker-image $(call build_shell_quote,$(DOCKER_IMAGE)) --web-image $(call build_shell_quote,$(WEB_DOCKER_IMAGE)) \
 		--xilinx-version "$(VIVADO_VERSION)" \

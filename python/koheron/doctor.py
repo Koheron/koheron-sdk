@@ -210,11 +210,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--python', default=sys.executable)
     parser.add_argument('--docker-image')
     parser.add_argument('--web-image')
-    parser.add_argument('--target', choices=('all', 'web', 'server', 'fpga', 'image', 'os', 'uboot', 'api', 'deploy', 'status', 'logs', 'check'), default='all')
+    parser.add_argument('--target', choices=('all', 'web', 'server', 'fpga', 'image', 'os', 'uboot', 'api', 'check'), default='all')
     parser.add_argument('--format', choices=('text', 'json'), default='text')
     parser.add_argument('--settings-stdin', action='store_true')
-    parser.add_argument('--host', default=os.environ.get('HOST', '192.168.1.100'))
-    parser.add_argument('--timeout', type=float, default=10)
     parser.add_argument("--no-color", action="store_true", help="Disable colored status labels")
     args = parser.parse_args(argv)
 
@@ -237,9 +235,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError, subprocess.TimeoutExpired) as error:
         reporter.err(f'Cannot resolve configuration: {error}')
         return reporter.finish(target=args.target)
-    local = args.target not in ('deploy', 'status', 'logs')
-    if local:
-        check_host_os(reporter)
+    check_host_os(reporter)
     if args.target in ('all', 'server', 'fpga', 'image', 'os', 'check'):
         check_python(reporter, sdk_path, python=args.python, modules=args.target != 'check')
     xilinx_root = Path("/tools/Xilinx") / args.xilinx_version
@@ -253,21 +249,6 @@ def main(argv: list[str] | None = None) -> int:
             args.docker_image or values.get('DOCKER_IMAGE') or 'cross-armhf:26.04')
         check_docker(reporter, image=image, web=args.target == 'web')
     check_cfg(reporter, values)
-    if args.target in ('deploy', 'status', 'logs'):
-        if __package__:
-            from .management import Client, ManagementError
-        else:
-            from management import Client, ManagementError
-        try:
-            client = Client(args.host, timeout=args.timeout)
-            client.status()
-            board = client.board()
-            if values.get('BOARD') and board and values['BOARD'] != board:
-                reporter.err(f'Board mismatch: CFG targets {values["BOARD"]}, host reports {board}')
-            else:
-                reporter.ok(f'V1 management API reachable: {client.base_url} (board: {board or "unknown"})')
-        except (ManagementError, ValueError) as error:
-            reporter.err(str(error), 'Check HOST and use a V1 OS image for V1 instruments.')
     if args.target == 'check':
         code, _ = command_output([args.python, '-c',
             'import yaml, jinja2, CppHeaderParser, numpy, requests, click'])

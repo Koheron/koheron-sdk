@@ -146,9 +146,9 @@ class LocalCheckTest(unittest.TestCase):
 
     def test_failed_host_check_preserves_diagnostic_output(self):
         reporter = Reporter(format='json')
-        with patch.dict(os.environ, {'CFG': CFG, 'HOST': 'example.invalid', 'FOLLOW': '1', 'TIMEOUT': '0.01'}):
+        with patch.dict(os.environ, {'CFG': CFG, 'HOST': 'example.invalid', 'TIMEOUT': '0.01'}):
             check.run_check(reporter, 'failing fixture', [sys.executable, '-c',
-                'import os, sys; assert not any(key in os.environ for key in ("CFG", "HOST", "FOLLOW", "TIMEOUT")); '
+                'import os, sys; assert not any(key in os.environ for key in ("CFG", "HOST", "TIMEOUT")); '
                 'print("specific failure", file=sys.stderr); sys.exit(9)'], SDK)
         self.assertEqual(reporter.errors, 1)
         self.assertEqual(reporter.checks[0]['output'], 'specific failure')

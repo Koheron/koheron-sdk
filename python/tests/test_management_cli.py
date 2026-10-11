@@ -16,7 +16,7 @@ import zipfile
 
 from click.testing import CliRunner
 from koheron.cli import cli
-from koheron import doctor, management
+from koheron import management
 
 SDK = Path(__file__).resolve().parents[2]
 
@@ -38,7 +38,6 @@ class ManagementCliTest(unittest.TestCase):
         self.stale_health = 0
         self.delay = 0
         self.upload_error = False
-        self.tail_error = False
         self.response_override = None
         self.drip = 0
         self.body_delay = 0
@@ -79,10 +78,6 @@ class ManagementCliTest(unittest.TestCase):
                         value = {'instrument': 'fft', 'phase': 'succeeded', 'busy': False}
                 elif self.path.startswith('/api/logs/koheron?'):
                     value = {'entries': [{'ts': 123, 'msg': 'ready'}], 'cursor': 's=last', 'reset': False}
-                elif self.path.startswith('/api/logs/koheron/tail?'):
-                    value = {'entries': [], 'cursor': 's=last', 'reset': False}
-                    if fixture.tail_error:
-                        status, value = 503, {'code': 'unavailable', 'message': 'Runtime unavailable'}
                 else:
                     status, value = 404, {'error': 'not found'}
                 if fixture.response_override is not None:
@@ -227,16 +222,6 @@ class ManagementCliTest(unittest.TestCase):
                 self.assertEqual(code, 1)
                 self.assertEqual(result['error']['code'], 'invalid_response')
 
-    def test_click_commands_use_the_same_client_and_require_host(self):
-        runner = CliRunner()
-        for action in ('status', 'logs'):
-            result = runner.invoke(cli, ['--host', self.host, action, '--format', 'json'])
-            self.assertEqual(result.exit_code, 0, result.output)
-            self.assertTrue(json.loads(result.output)['ok'])
-        result = runner.invoke(cli, ['status'], env={'HOST': ''})
-        self.assertEqual(result.exit_code, 2)
-        self.assertIn('Specify --host or set HOST', result.output)
-
     def test_make_status_and_logs_need_no_cfg_build_or_python_install(self):
         for action in ('status', 'logs'):
             result = subprocess.run(['make', '--no-print-directory', action, f'HOST={self.host}',
@@ -258,14 +243,6 @@ class ManagementCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue(json.loads(result.stdout)['deployment']['ready'])
         self.assertIn('adding: version', result.stderr)
-
-    def test_deployment_doctor_reads_board_identity_without_upload(self):
-        stream = io.StringIO()
-        with contextlib.redirect_stdout(stream):
-            code = doctor.main(['--sdk-path', str(SDK), '--target', 'deploy', '--host', self.host, '--format', 'json'])
-        self.assertEqual(code, 0)
-        self.assertTrue(json.loads(stream.getvalue())['ok'])
-        self.assertTrue(all(method == 'GET' for method, _ in self.events))
 
     def test_invalid_options_and_mismatched_name_do_not_contact_board(self):
         for kwargs in ({'timeout': 0}, {'timeout': float('nan')}, {'name': 'other'}):
@@ -330,7 +307,7 @@ class ManagementCliTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(result['logs'], self.response_override)
 
-    def test_make_and_cli_use_consistent_timeout_defaults(self):
+    def test_make_and_management_command_use_consistent_timeout_defaults(self):
         for action, timeout in (('status', 10), ('logs', 10), ('deploy', 120)):
             with self.subTest(action=action):
                 args = ['make', '--no-print-directory', '-n', action, f'HOST={self.host}']
@@ -345,24 +322,6 @@ class ManagementCliTest(unittest.TestCase):
                      contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(management.execute(action, self.host, archive=self.archive, format='json'), 1)
                 client.assert_called_once_with(self.host, timeout)
-
-    def test_follow_resumes_cursor_and_ctrl_c_leaves_instrument_running(self):
-        with patch.object(management, 'sleep', side_effect=[None, KeyboardInterrupt]), \
-             contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(management.execute('logs', self.host, format='json', follow=True), 0)
-        self.assertEqual(self.events[-1], ('GET', '/api/logs/koheron/tail?cursor=s%3Dlast'))
-        self.assertTrue(all(method == 'GET' for method, _ in self.events))
-
-    def test_follow_errors_preserve_the_json_lines_contract(self):
-        self.tail_error = True
-        output = io.StringIO()
-        with patch.object(management, 'sleep'), contextlib.redirect_stdout(output):
-            self.assertEqual(management.execute('logs', self.host, format='json', follow=True), 1)
-        values = [json.loads(line) for line in output.getvalue().splitlines()]
-        self.assertEqual(len(values), 2)
-        self.assertTrue(values[0]['ok'])
-        self.assertEqual(values[1]['error']['code'], 'unavailable')
-
 
 if __name__ == '__main__':
     unittest.main()

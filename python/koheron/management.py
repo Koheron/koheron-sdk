@@ -177,11 +177,8 @@ class Client:
                         'warnings': preflight.get('warnings', []), 'status': status}
             sleep(min(0.25, self.remaining()))
 
-    def logs(self, limit=100, cursor=None):
-        if cursor is None:
-            path = '/api/logs/koheron?' + urlencode({'lines': limit})
-        else:
-            path = '/api/logs/koheron/tail?' + urlencode({'cursor': cursor})
+    def logs(self, limit=100):
+        path = '/api/logs/koheron?' + urlencode({'lines': limit})
         try:
             value = self.request('GET', path)
             entries = value.get('entries')
@@ -194,9 +191,9 @@ class Client:
             raise
 
 
-def emit(result, format='text', follow=False):
+def emit(result, format='text'):
     if format == 'json':
-        print(json.dumps(result, indent=None if follow else 2), flush=True)
+        print(json.dumps(result, indent=2))
     elif not result['ok']:
         error = result['error']
         print(f'{error["code"]}: {error["message"]}', file=sys.stderr)
@@ -219,8 +216,6 @@ def emit(result, format='text', follow=False):
         print(f'Operation: {operation.get("phase", "idle")} {operation.get("message", "")}'.rstrip())
     elif 'logs' in result:
         value = result['logs']
-        if value.get('reset'):
-            print('Log history reset; the previous cursor is unavailable.', file=sys.stderr)
         for entry in value.get('entries', []):
             try:
                 timestamp = datetime.fromtimestamp(entry['ts'] / 1_000_000, timezone.utc)
@@ -228,11 +223,11 @@ def emit(result, format='text', follow=False):
             except (KeyError, TypeError, ValueError, OverflowError, OSError):
                 timestamp = '?'
             print(f'[{timestamp}] {entry.get("msg", "")}', flush=True)
-        if not follow and not value.get('entries'):
+        if not value.get('entries'):
             print('No server logs.')
 
 
-def execute(action, host, timeout=None, format='text', archive=None, name=None, limit=100, follow=False):
+def execute(action, host, timeout=None, format='text', archive=None, name=None, limit=100):
     try:
         if timeout is None:
             timeout = 120 if action == 'deploy' else 10
@@ -246,25 +241,14 @@ def execute(action, host, timeout=None, format='text', archive=None, name=None, 
             if not 1 <= limit <= 2000:
                 raise ValueError('LOG_LIMIT must be between 1 and 2000')
             result['logs'] = client.logs(limit)
-            emit(result, format, follow)
-            if not follow:
-                return 0
-            cursor = result['logs'].get('cursor')
-            while True:
-                sleep(1)
-                client.deadline = monotonic() + client.timeout
-                value = client.logs(limit, cursor)
-                cursor = value.get('cursor') or cursor
-                if value.get('entries') or value.get('reset'):
-                    emit({**result, 'logs': value}, format, follow=True)
         emit(result, format)
         return 0
     except ManagementError as error:
-        emit({'schema_version': 1, 'ok': False, 'error': error.error}, format, follow=follow)
+        emit({'schema_version': 1, 'ok': False, 'error': error.error}, format)
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error:
-        emit({'schema_version': 1, 'ok': False, 'error': {'code': 'invalid_input', 'message': str(error)}}, format, follow=follow)
+        emit({'schema_version': 1, 'ok': False, 'error': {'code': 'invalid_input', 'message': str(error)}}, format)
     except KeyboardInterrupt:
-        return 0 if action == 'logs' else 130
+        return 130
     return 1
 
 
@@ -280,7 +264,6 @@ def main(argv=None):
     commands.add_parser('status', help='Read board status')
     logs = commands.add_parser('logs', help='Recent server logs, across invocations')
     logs.add_argument('--limit', type=int, default=100)
-    logs.add_argument('--follow', action='store_true')
     return execute(**vars(parser.parse_args(argv)))
 
 

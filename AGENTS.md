@@ -7,5 +7,5 @@
 - `make check [CFG=...]` runs local host checks. `make test CFG=... HOST=...` runs an instrument hardware script.
 - Select instruments with `CFG=.../config.mk`; `memory.yml` defines the hardware/software memory map.
 - `make run` keeps streaming logs. Ctrl+C stops the stream, leaving the instrument running.
-- `make deploy CFG=... HOST=...` returns after readiness; `TIMEOUT` bounds board operations. Read `make status HOST=... FORMAT=json` after a timeout before retrying. `make logs HOST=...` returns a snapshot; `FOLLOW=1` streams.
+- `make deploy CFG=... HOST=...` returns after readiness; `TIMEOUT` bounds board operations. Read `make status HOST=... FORMAT=json` after a timeout before retrying. `make logs HOST=...` returns a snapshot.
 - Report build checks and hardware tests separately.
