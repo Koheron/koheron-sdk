@@ -1,8 +1,6 @@
 include $(dir $(lastword $(MAKEFILE_LIST)))../make/dependencies.mk
 TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server
 
-# ensure tmp dir exists early
-$(shell mkdir -p '$(TMP_SERVER_PATH)' >/dev/null 2>&1)
 $(TMP_SERVER_PATH)/: ; @mkdir -p $@
 
 # any object under TMP needs the dir

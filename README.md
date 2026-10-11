@@ -47,6 +47,19 @@ make -j CFG=examples/alpha250/fft/config.mk HOST=192.168.1.100 run
 
 `run` streams logs after starting the instrument. `Ctrl+C` stops the stream and leaves it running. The [Python upload/run API](https://www.koheron.com/software-development-kit/documentation/v1/python-api/#upload-and-run-an-instrument) returns after deployment for scripts and agents. Rebuild the image for OS, kernel, boot, board support or default instrument changes.
 
+Use `make deploy` to build, upload and confirm instrument readiness, then return.
+It uses the V1 management API's preflight and activation routes and checks the
+running name, version and service state. `TIMEOUT=120` sets the upload/activation
+and readiness timeout budget, in seconds; the preceding build has its own duration.
+If deployment times out, use `make status HOST=...` to inspect the board before
+retrying. A timeout does not cancel an operation already started on the board.
+Status, log requests and board diagnostics default to a 10-second timeout.
+Set `TIMEOUT=...` for Make or `--timeout ...` for the CLI to override it.
+Instrument ZIP names use letters, digits, dots, underscores and hyphens, without
+a leading or trailing dot or underscore. Deployment checks local package identity
+and metadata size before contacting the board; the board preflight verifies
+compatibility and payloads before activation.
+
 The default Docker builder uses GCC 15 for the server, Linux kernel and
 U-Boot and the board management runtime. See [compiler settings](docker/README.md)
 for independent selections. The reference host remains Ubuntu 24.04.
@@ -75,15 +88,57 @@ Pass `CFG=.../config.mk` to build and deployment targets. `make help` lists targ
 | `make image` | Produces a bootable SD card image combining OS, boot files and instrument artefacts. |
 | `make flash` | Writes the existing release ZIP to an SD card; requires a previously built image. |
 | `make run` | Builds, uploads and starts the instrument, then streams logs. |
+| `make deploy CFG=... HOST=...` | Builds, uploads, preflights and activates the instrument; returns after confirmed readiness. |
+| `make status HOST=...` | Reads the V1 board's service, instrument and operation status. No CFG or build tools required. |
+| `make logs HOST=...` | Reads the latest server logs across invocations. Set `LOG_LIMIT=100` or `FOLLOW=1`. |
+| `make info CFG=...` | Prints resolved Make settings, selected inputs, toolchains and artifact paths without building. |
+| `make check [CFG=...]` | Validates the selected configuration, or all examples, and runs local host regressions. |
 | `make copy CFG=... DEST=...` | Copies an instrument's sources and sets its package name from the destination directory. |
-| `make doctor` | Checks host tools and an optional `CFG`. |
+| `make doctor TARGET=... [CFG=...]` | Checks requirements for the requested task; the default `all` checks the build environment. |
 | `make list` | Lists example instruments. |
 | `make validate CFG=...` | Validates `config.mk` and `memory.yml`. |
 
-Pull requests and pushes run a one-minute smoke-test job for example
+Inspection, diagnostics, checks and board commands support `FORMAT=json` for
+automation. Successful output is one JSON object with `schema_version: 1`;
+diagnostics and board commands include `ok` and return nonzero on failure.
+Deployment build output goes to stderr. `logs FOLLOW=1 FORMAT=json` emits JSON
+lines for successive log batches; Ctrl+C stops following and leaves the instrument
+running. Text logs show UTC timestamps; JSON retains the original microsecond
+timestamps and log fields. The host CLI provides the same board commands:
+
+```sh
+make info CFG=examples/red-pitaya/fft/config.mk FORMAT=json
+make doctor TARGET=web CFG=examples/red-pitaya/fft/config.mk
+make check CFG=examples/red-pitaya/fft/config.mk
+make deploy CFG=examples/red-pitaya/fft/config.mk HOST=192.168.1.100
+make status HOST=192.168.1.100 FORMAT=json
+koheron --host 192.168.1.100 logs --follow
+```
+
+`doctor` accepts `all`, `web`, `server`, `fpga`, `image`, `os`, `uboot`, `api`,
+`deploy`, `status`, `logs` and `check`. Web/server checks skip Xilinx tools.
+Deployment diagnostics read the board API and compare its board identity with
+the selected CFG; use `TARGET=all` to check build requirements as well.
+With CFG, diagnostics use the same resolved settings as `info`, including
+command-line overrides such as `MEMORY_YML`.
+
+`check` runs Python host tests, instrument packaging, server dependency and web
+build regressions. It uses the SDK sources and existing host Python dependencies,
+without installing packages, synthesizing FPGA designs or contacting a board.
+Run `make python_requirements` and `make koheron_python` if dependencies are
+missing. `HOST_PYTHON=...` selects another prepared Python interpreter.
+The final report includes configuration and test counts, with per-suite counts
+and durations in JSON. A selected CFG applies to configuration validation;
+regressions use their own isolated fixtures.
+`make test CFG=... HOST=...` remains an instrument hardware test; scripts may
+change acquisition/output settings or open plots. `INSTRUMENT_TEST=...` overrides
+the selected script, otherwise `test.py` or `python/test.py` is used.
+
+Pull requests and pushes run a fast smoke-test job for example
 configurations, instrument copying, OS build dependencies and C++ logging.
 A separate Docker job builds and tests the native C++23 management runtime,
-installer and LED helper with GCC 15. Full server, sanitizer,
+installer and LED helper with GCC 15, including SDK deployment readiness and
+rollback against the compiled API. Full server, sanitizer,
 instrument build, DSP and browser tests remain available to run locally when a
 change needs them.
 A build dependency job checks cached driver, compiler, kernel, bootloader and
