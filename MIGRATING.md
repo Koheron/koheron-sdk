@@ -4,15 +4,20 @@ V1 changes the build configuration and FPGA-loading runtime.
 
 ## Runtime compatibility
 
-Boards ship with V0. See the [quick start](./README.md#quick-start) to build and install a V1 image.
+Boards ship with V0. The [quick start](./README.md#quick-start) builds a V1 image;
+the [OS guide](./os/README.md#building-and-flashing) covers installation.
 
-- V1 instruments may still run on some V0 OS images through the legacy `/dev/xdevcfg` path.
-- V1 OS images use Linux FPGA Manager and device-tree overlays to load the programmable logic.
+- V1 instruments may still run on some V0 OS images through the legacy
+  `/dev/xdevcfg` path.
+- V1 OS images use Linux FPGA Manager and device-tree overlays to load the
+  programmable logic.
 - V1 OS images do not support legacy V0 instruments.
 
 ## Move from `/dev/xdevcfg` to FPGA Manager
 
-V1 images use the Linux FPGA Manager overlay interface in place of `/dev/xdevcfg`. Instruments package `pl.dtbo` and `<instrument>.bit.bin` to load the FPGA and configure PL clocks.
+V1 images use the Linux FPGA Manager overlay interface in place of
+`/dev/xdevcfg`. Instruments package `pl.dtbo` and `<instrument>.bit.bin` to load
+the FPGA and configure PL clocks.
 
 Device-tree overrides support Linux drivers such as `/dev/uio*` and `/dev/mem_wc*`.
 
@@ -27,7 +32,8 @@ make CFG=examples/alpha250/fft/config.mk
 ```
 
 - `config.mk`: name, board, cores, drivers and web assets.
-- `memory.yml`: memory map, registers, Linux mappings and parameters; generates `memory.tcl`, `memory.hpp` and `memory.dtsi`.
+- `memory.yml`: memory map, registers, Linux mappings and parameters; generates
+  `memory.tcl`, `memory.hpp` and `memory.dtsi`.
 
 ## Device-tree overlay
 
@@ -66,7 +72,8 @@ memory:
 };
 ```
 
-`dev: /dev/mem_wc` selects `/dev/mem_wc@0x1E000000` for server memory access; the default is `/dev/mem`.
+`dev: /dev/mem_wc` selects `/dev/mem_wc@0x1E000000` for server memory access;
+the default is `/dev/mem`.
 
 ### Example 2: Interrupt access in userspace
 
@@ -89,12 +96,5 @@ memory:
 };
 ```
 
-The override binds the FIFO to `/dev/uio*`. `dev: /dev/uio` selects the device matching the region's offset and range.
-
-## Other V1 changes
-
-Image builds support parallel execution without `sudo`:
-
-```bash
-make CFG=examples/alpha250/fft/config.mk -j image
-```
+The override binds the FIFO to `/dev/uio*`. `dev: /dev/uio` selects the device
+matching the region's offset and range.

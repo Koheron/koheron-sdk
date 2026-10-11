@@ -1,4 +1,4 @@
-"""Check build.sh job limits without invoking FPGA or image builds."""
+"""Check build.sh jobs and build-only behavior without running builds."""
 import json
 import os
 from pathlib import Path
@@ -29,13 +29,16 @@ with pathlib.Path({str(self.calls)!r}).open('a') as stream:
         nproc = self.bin / 'nproc'
         nproc.write_text('#!/bin/sh\nprintf "6\\n"\n')
         nproc.chmod(0o755)
+        sudo = self.bin / 'sudo'
+        sudo.write_text('#!/bin/sh\nexit 99\n')
+        sudo.chmod(0o755)
         self.environment = {k: v for k, v in os.environ.items()
                             if k not in ('N_CPUS', 'MAKEFLAGS', 'MFLAGS')}
         self.environment['PATH'] = str(self.bin) + ':' + os.environ['PATH']
 
     def run_build(self, *args, **environment):
         return subprocess.run(['bash', str(SDK / 'build.sh'), *args], cwd=SDK,
-                              text=True, input='n\n', capture_output=True, timeout=10,
+                              text=True, input='', capture_output=True, timeout=10,
                               env={**self.environment, **environment})
 
     def assert_jobs(self, count):
@@ -54,6 +57,8 @@ with pathlib.Path({str(self.calls)!r}).open('a') as stream:
         self.assertEqual(len(calls), 2)
         self.assertIn('COPY_INSTRUMENTS=phase-noise-analyzer', calls[-1])
         self.assertIn('image', calls[-1])
+        self.assertFalse(any('flash' in args for args in calls))
+        self.assertNotIn('burn the SD card', result.stdout + result.stderr)
 
     def test_override_applies_to_every_board_in_all_mode(self):
         result = self.run_build('--all', N_CPUS='3')
