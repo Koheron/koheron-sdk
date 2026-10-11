@@ -69,15 +69,16 @@ class WebSocketPool {
         this.exiting = false;
 
         for (let i = 0, end = this.poolSize-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
-            var websocket = this._newWebSocket();
+            const websocket = this._newWebSocket();
             this.pool.push(websocket);
 
             websocket.onopen = evt => {
                 return this.waitForConnection(websocket, 100, () => {
                     console.assert(websocket.readyState === 1, 'Websocket not ready');
-                    this.freeSockets.push(this.socketCounter);
-                    if (this.socketCounter === 0) { onOpenCallback(); }
-                    websocket.ID = this.socketCounter;
+                    // Pool IDs follow creation order, even when connections
+                    // open in a different order. Each handler owns its socket.
+                    websocket.ID = i;
+                    this.freeSockets.push(i);
                     websocket.onclose = evt => {
                         if (!this.exiting) {
                             if (this.onDisconnect) { this.onDisconnect(new Error('WebSocket connection lost')); }
@@ -89,7 +90,7 @@ class WebSocketPool {
                         return websocket.close();
                     };
 
-                    return this.socketCounter++;
+                    if (this.socketCounter++ === 0) { onOpenCallback(); }
                 }
                 );
             };
@@ -98,7 +99,8 @@ class WebSocketPool {
 
     _newWebSocket() {
         let websocket;
-        if (typeof window !== 'undefined' && window !== null) {
+        if ((typeof window !== 'undefined' && window !== null) ||
+            typeof globalThis['importScripts'] === 'function') {
             websocket = new WebSocket(this.url);
         } else { // Node
             let clientConfig: any = {};

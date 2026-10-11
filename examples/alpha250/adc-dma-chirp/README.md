@@ -19,7 +19,7 @@ discontinuities. The sine has full digital amplitude between the tapers.
 | `adc_dma.py` / `adc_dma.hpp` | Acquisition, completion/error checks, data transfer |
 | `chirp.py` | Sweep settings, deterministic reference, whole-record FFT ratio |
 | `block_design.tcl` / `memory.yml` | FPGA connections and memory map |
-| `chirp_generator_v1_0/` | Pipelined logarithmic phase generator |
+| `fpga/cores/chirp_generator_v1_0/` | Pipelined logarithmic phase generator |
 | `adc_capture_v1_0/` | DAC tapers, aligned capture, packing and error flags |
 | `tests/` | Offline Python tests and Vivado simulations |
 
