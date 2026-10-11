@@ -4,7 +4,7 @@ add_files [glob $root/*.v]
 add_files -fileset sim_1 $root/tests/control_tb.sv
 set_property top control_tb [get_filesets sim_1]
 set_property xsim.simulate.runtime 0ns [get_filesets sim_1]
-foreach width {32 33 48} {
+for {set width 32} {$width <= 48} {incr width} {
     set_property verilog_define PHASE_TEST_WIDTH=$width [get_filesets sim_1]
     launch_simulation
     run all

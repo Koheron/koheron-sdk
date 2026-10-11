@@ -298,8 +298,10 @@ vivado -mode batch -nolog -nojournal -source fpga/ip/awg_v1_0/tests/run_subsyste
 The controller integration simulation uses the actual Xilinx carrier DDS and
 modulation LUT. It checks every source, stream tags, PM scaling, one-LSB and
 full-turn settings, pulse endpoints, AXI channel skew/backpressure, reset and mute.
-Reduced-controller tests cover coherent commits while the sample clock is
-stopped and byte-aligned/non-aligned phase widths. Resource reports generated
+Reduced-controller tests cover full-turn depth/duty validation at every phase
+width from 32 to 48, including each lower bit above the limit, masked writes,
+random settings and coherent commits while the sample clock is stopped.
+Resource reports generated
 by `synth.tcl` cover the controller only, excluding vendor DDSs and board logic.
 The phase-accumulator test compares against ordinary full-width arithmetic at
 every width from 32 through 48 bits, including carry boundaries and 20,000
