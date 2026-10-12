@@ -29,13 +29,9 @@ import argparse
 from koheron import command, connect
 import matplotlib.pyplot as plt
 import numpy as np
+from dac_upload import DacUpload, N_PTS, N_DESC_MAX
 
-# DMA returns N*N_PTS uint32 words, each packing 2 int16 samples
-N_PTS = 64 * 1024
-N_DESC_MAX = 256
-
-
-class AdcDacDma(object):
+class AdcDacDma(DacUpload):
     def __init__(self, client):
         self.client = client
         self.n = 0
@@ -45,10 +41,6 @@ class AdcDacDma(object):
 
     @command()
     def select_adc_channel(self, channel):
-        pass
-
-    @command()
-    def set_dac_data(self, data):
         pass
 
     def set_dac(self, warning=False):
