@@ -42,12 +42,11 @@ make CFG=examples/alpha250/vco/config.mk
 ## Worked example: ALPHA250 VCO
 
 Compare the [V0 VCO at `d37dd080`](https://github.com/Koheron/koheron-sdk/tree/d37dd08061d0fc7e63d04b327c1fc530e054186c/examples/alpha250/vco)
-with the [V1 example](examples/alpha250/vco/README.md). Both versions use the
-same `block_design.tcl`, Python `test.py` and RPC method bodies. The port
+with the [V1 example](examples/alpha250/vco/README.md). The `block_design.tcl`
+and Python `test.py` files are identical in both versions. The port
 preserves memory addresses, region sizes, register order and parameters.
 
-The input checks and Python cleanup are shared by both versions and are
-independent of V1. The migration changes the build configuration and C++
+The migration changes the build configuration and C++
 memory namespace; the V1 example also uses the preferred constructor shown
 below. Shared board and SDK code has changed, so check FPGA timing and output
 behavior when porting a custom design.
@@ -156,8 +155,8 @@ the V0 context constructor with direct access to the memory service:
 +    hw::Memory<mem::control>& ctl;
 ```
 
-The two RPC method bodies are shared by the polished V0 and V1 examples. V1
-still supports `#include <context.hpp>`, constructors taking `Context&` and
+The `set_dds_freq` and `set_vco_gain` implementations are identical in V0 and V1.
+V1 still supports `#include <context.hpp>`, constructors taking `Context&` and
 `ctx.mm.get<...>()`, although those constructors are deprecated. For an
 incremental port, qualifying the memory types is sufficient; changing the
 constructor is recommended modernization.
@@ -181,7 +180,7 @@ make timing CFG=examples/alpha250/vco/config.mk
 
 `check` validates the configuration and runs host regressions; it does not
 synthesize the FPGA or test a board. The build produces
-`tmp/examples/alpha250/vco/vco.zip`. The polished V1 example sets
+`tmp/examples/alpha250/vco/vco.zip`. The V1 example sets
 `ENFORCE_TIMING := 1`, so builds also fail on routed timing violations.
 `timing` can recheck the routed result separately.
 
