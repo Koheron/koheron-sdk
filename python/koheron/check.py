@@ -27,7 +27,7 @@ def run_check(reporter, label, command, sdk_path):
     # Fixture commands choose their own board, configuration and run options.
     env = {**os.environ, 'PYTHONPATH': str(sdk_path / 'python')}
     for key in ('CFG', 'MEMORY_YML', 'HOST', 'TIMEOUT', 'LOG_LIMIT', 'FORMAT',
-                'TARGET', 'MAKEFLAGS', 'MFLAGS', 'MAKEOVERRIDES'):
+                'TARGET', 'ENFORCE_TIMING', 'MAKEFLAGS', 'MFLAGS', 'MAKEOVERRIDES'):
         env.pop(key, None)
     try:
         result = subprocess.run(command, cwd=sdk_path, env=env, text=True,
