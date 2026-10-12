@@ -2,9 +2,9 @@
 
 V1 changes the build configuration and FPGA-loading runtime. The
 [ALPHA250 VCO example](#worked-example-alpha250-vco) below shows how to port an
-existing instrument with minimal source changes. Feature improvements to other
-reference instruments are described separately in the
-[release notes](RELEASE_NOTES.md#instruments-and-interfaces).
+existing instrument with minimal source changes. See the detailed
+[SDK changelog](RELEASE_NOTES.md) for changes to build tools, driver and client
+APIs, Linux integration and deployment.
 
 ## Runtime compatibility
 

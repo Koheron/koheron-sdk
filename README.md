@@ -45,6 +45,7 @@ board support or default instrument changes.
 
 ## Documentation
 
+- [V0 to V1 SDK changelog](RELEASE_NOTES.md): detailed changes and migration impact.
 - [Development guide](docs/development.md): commands, configuration and tests.
 - [FPGA builds](fpga/README.md): bitstream and timing commands.
 - [OS images](os/README.md): image builds and installation.
