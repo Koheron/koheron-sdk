@@ -11,6 +11,9 @@ if {[get_property CONFIG.TUSER_WIDTH [get_bd_cells phase_fifo]] != 6} {error "Mi
 set split_filter [expr {[llength [get_bd_cells -quiet phase_fixed_decimator]] > 0}]
 pna_dma_net phase_stream_control/filter_resetn phase_range/aresetn
 if {$split_filter} {
+  if {[get_property CONFIG.ASSOCIATED_RESET [get_bd_pins phase_filter_cdc/clk]] ne "resetn"} {
+    error "Filter reset is not associated with its destination clock"
+  }
   pna_dma_net phase_stream_control/filter_resetn phase_fixed_decimator/aresetn
   foreach core {cic fir phase_quantizer} {
     pna_dma_net phase_filter_cdc/resetn $core/aresetn

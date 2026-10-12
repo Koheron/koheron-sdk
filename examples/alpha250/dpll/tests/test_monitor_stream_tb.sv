@@ -51,7 +51,10 @@ module test_monitor_stream_tb;
         end
     end
     always @(posedge slow_clk) begin
-        if (!slow_resetn) begin consumed=0; outputs=0; end
+        // Source reset clears the expected-data queue before the synchronized
+        // destination reset arrives. Any remaining old-epoch output will be
+        // flushed by that reset; resume comparisons only after both release.
+        if (!slow_resetn || !filter_resetn) begin consumed=0; outputs=0; end
         else begin
             if (crossed_valid && crossed_ready) begin
                 if (consumed >= produced || crossed_data !== expected[consumed])

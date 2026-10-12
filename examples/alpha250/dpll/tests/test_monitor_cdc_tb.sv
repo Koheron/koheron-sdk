@@ -16,6 +16,27 @@ module test_monitor_cdc_tb;
         .resetn(resetn), .metadata(metadata), .rate(rate), .packet_status(packet_status));
     integer checks=0;
     reg [31:0] last=0;
+    realtime last_slow_edge=0;
+    always @(posedge slow_clk) last_slow_edge=$realtime;
+    always @(resetn) begin
+        if ($realtime>1 && !$isunknown(resetn) && $realtime!=last_slow_edge)
+            $fatal(1,"Reset changed outside a destination clock edge");
+    end
+    // Vary the input transition phase around the destination rising edge.
+    // Both assertion and release must wait for all three synchronizer stages.
+    task change_reset(input reg value, input realtime offset);
+        begin
+            @(negedge slow_clk); #offset; resetn_in=value;
+            #0.01;
+            if (resetn !== !value) $fatal(1,"Asynchronous reset transition");
+            repeat(2) begin
+                @(posedge slow_clk); #0.01;
+                if (resetn !== !value) $fatal(1,"Reset crossed before three clock edges");
+            end
+            @(posedge slow_clk); #0.01;
+            if (resetn !== value) $fatal(1,"Reset did not cross after three clock edges");
+        end
+    endtask
     // A valid status is a coherent counter plus its bitwise complement.
     always @(posedge fast_clk) begin
         #0.1;
@@ -38,9 +59,19 @@ module test_monitor_cdc_tb;
         metadata_in=6'b111000;
         repeat(6) @(negedge slow_clk);
         if (metadata !== metadata_in) $fatal(1,"Sticky error synchronization");
-        resetn_in=0;
-        #0.1;
-        if (resetn !== 0) $fatal(1,"Asynchronous reset assertion");
+        change_reset(0, 0.25);
+        repeat(32) @(negedge fast_clk);
+        rate_in=8192; metadata_in=6'b001100;
+        repeat(32) @(negedge fast_clk);
+        change_reset(1, 3.3);
+        if (rate !== rate_in || metadata !== metadata_in) $fatal(1,"Configuration unsettled at reset release");
+        change_reset(0, 3.7);
+        repeat(32) @(negedge fast_clk);
+        change_reset(1, 0.25);
+        change_reset(0, 3.3);
+        repeat(32) @(negedge fast_clk);
+        change_reset(1, 3.7);
+        change_reset(0, 0.25);
         repeat(40) @(negedge slow_clk);
         if (packet_status !== packet_in || checks < 20) $fatal(1,"Status did not progress");
         $display("PASS: monitor 250/143 MHz reset, metadata and coherent status (%0d words)",checks);

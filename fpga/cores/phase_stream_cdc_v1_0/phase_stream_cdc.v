@@ -15,10 +15,16 @@ module phase_stream_cdc #(
     output wire [15:0] rate,
     output wire [31:0] packet_status
 );
-    xpm_cdc_async_rst #(
-        .DEST_SYNC_FF(3), .RST_ACTIVE_HIGH(0)
+    // Both reset edges must be synchronous: the CIC's inferred normalization
+    // ROM uses this signal on its enable and synchronous reset pins. FCLK1
+    // keeps running while the ADC stream is stopped; the controller holds
+    // reset for 32 ADC clocks, enough to cross both edges through three stages.
+    wire reset;
+    assign resetn = ~reset;
+    xpm_cdc_sync_rst #(
+        .DEST_SYNC_FF(3), .INIT(1)
     ) reset_sync (
-        .src_arst(resetn_in), .dest_clk(clk), .dest_arst(resetn)
+        .src_rst(~resetn_in), .dest_clk(clk), .dest_rst(reset)
     );
 
     // The stream controller latches this word before its 32-clock reset
