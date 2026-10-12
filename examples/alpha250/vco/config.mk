@@ -1,5 +1,6 @@
 NAME := vco
 VERSION := 0.2.1
+ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
 
