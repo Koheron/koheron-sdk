@@ -2,8 +2,9 @@
 
 V1 is under development. These notes describe the V1 branch as of 11 October
 2026. Boards still ship with V0. Use a V1 OS image for V1 instruments; a V1
-image cannot run a V0 instrument. See the [migration guide](MIGRATING.md) when
-moving an existing instrument.
+image cannot run a V0 instrument. See the
+[VCO migration example](MIGRATING.md#worked-example-alpha250-vco) for a minimal
+port of an existing instrument, including configuration and C++ changes.
 
 ## SDK and deployment
 
@@ -24,6 +25,9 @@ moving an existing instrument.
   commit is recorded in package metadata without forcing a server recompile.
 
 ## Instruments and interfaces
+
+These reference-instrument improvements are separate from the SDK migration
+steps above.
 
 - FFT interfaces gained shared spectrum, spectrogram and density views,
   reusable reference captures, CSV/PNG exports and optional persistence.
