@@ -30,9 +30,17 @@ phase-noise PSD response.
 Configure with the **total** even rate R, 4 through 8192. Each acquisition epoch
 resets every history. The controller drives `filter_resetn` from an ADC-clock
 register: combinational decoding of its binary state can create a brief reset
-pulse during PRIME-to-STREAM and asynchronously reset the destination filter.
+pulse during PRIME-to-STREAM and spuriously reset the destination filter.
 The controller holds the rate word stable during its
-32-ADC-clock reset interval; `phase_stream_cdc` synchronizes the word and reset.
+32-ADC-clock reset interval; `phase_stream_cdc` synchronizes the word and both
+edges of the reset through three FCLK1 stages. FCLK1 runs independently of the
+ADC clock. The destination reset starts asserted after FPGA configuration and
+changes only on FCLK1 rising edges, keeping the slow CIC normalization ROM's
+enable and reset controls synchronous. Reset assertion now reaches the slow
+filter after three FCLK1 edges instead of immediately; reset release keeps the
+same three-stage delay. The IP package associates this reset with FCLK1 for
+block-design validation. The controller's existing 32-ADC-clock hold covers
+the synchronization delay at both 200 and 250 MS/s.
 The slow CIC latches the rate once after reset. Live rate changes require a new
 epoch. The fixed stage reports input readiness only after its downstream FIFO
 leaves reset. Live ADC instants cannot be replayed: a later stall becomes sticky

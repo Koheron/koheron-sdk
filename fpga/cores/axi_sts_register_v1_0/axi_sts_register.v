@@ -67,42 +67,56 @@ module axi_sts_register #
   assign s_axi_bvalid = bvalid;
   assign s_axi_bresp  = 2'b00;
 
-  reg ar_hold, rvalid;
+  // Register the index and full-address bounds check before selecting data.
+  // This adds one read cycle and separates the bounds check from the data mux.
+  localparam integer INDEX_WIDTH = (STS_SIZE > 1) ? clogb2(STS_SIZE) : 1;
+
+  reg ar_hold, select_pending, rvalid;
   reg [AXI_ADDR_WIDTH-1:0] araddr_q;
+  reg [INDEX_WIDTH-1:0] word_index_q;
+  reg word_valid_q;
   reg [AXI_DATA_WIDTH-1:0] rdata_q;
 
-  assign s_axi_arready = ~ar_hold & ~rvalid;
+  assign s_axi_arready = ~ar_hold & ~select_pending & ~rvalid;
   wire ar_fire = s_axi_arvalid & s_axi_arready;
-
-  integer ridx;
 
   always @(posedge aclk) begin
     if (~aresetn) begin
       ar_hold  <= 1'b0;
+      select_pending <= 1'b0;
       rvalid   <= 1'b0;
       araddr_q <= {AXI_ADDR_WIDTH{1'b0}};
-      rdata_q  <= {AXI_DATA_WIDTH{1'b0}};
+      word_index_q <= {INDEX_WIDTH{1'b0}};
+      word_valid_q <= 1'b0;
+      rdata_q <= {AXI_DATA_WIDTH{1'b0}};
     end else begin
       if (ar_fire) begin
-        ar_hold  <= 1'b1;
+        ar_hold <= 1'b1;
         araddr_q <= s_axi_araddr;
       end
-      if (ar_hold & ~rvalid) begin
-        ridx = araddr_q >> ADDR_LSB;
-        if (ridx < STS_SIZE)
-          rdata_q <= sts_data[ridx*AXI_DATA_WIDTH +: AXI_DATA_WIDTH];
+      if (ar_hold) begin
+        word_index_q <= araddr_q >> ADDR_LSB;
+        // Check before truncating the index so high addresses cannot alias.
+        word_valid_q <= (araddr_q >> ADDR_LSB) < STS_SIZE;
+        select_pending <= 1'b1;
+        ar_hold <= 1'b0;
+      end
+      if (select_pending) begin
+        if (word_valid_q)
+          rdata_q <= sts_data[word_index_q*AXI_DATA_WIDTH +: AXI_DATA_WIDTH];
         else
           rdata_q <= {AXI_DATA_WIDTH{1'b0}};
-        rvalid  <= 1'b1;
-        ar_hold <= 1'b0;
-      end else if (rvalid & s_axi_rready) begin
+        rvalid <= 1'b1;
+        select_pending <= 1'b0;
+      end
+      else if (rvalid & s_axi_rready) begin
         rvalid <= 1'b0;
       end
     end
   end
 
-  assign s_axi_rvalid = rvalid;
   assign s_axi_rdata  = rdata_q;
+  assign s_axi_rvalid = rvalid;
   assign s_axi_rresp  = 2'b00;
 
 endmodule

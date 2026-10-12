@@ -20,6 +20,9 @@ for {set channel 0} {$channel < 4} {incr channel} {
     pna_same_net dds$channel/m_axis_data_tvalid cordic$channel/s_axis_tvalid
 }
 puts "PASS: four shared 24-bit Cartesian/phase extractors and legacy demod scaling"
+if {[get_property CONFIG.ASSOCIATED_RESET [get_bd_pins phase_filter_cdc/clk]] ne "resetn"} {
+    error "Filter reset is not associated with its destination clock"
+}
 for {set stream 0} {$stream < 2} {incr stream} {
     pna_same_net adc/adc_clk phase_fixed_decimator$stream/aclk
     pna_same_net adc/adc_clk phase_cic_clock_converter$stream/s_axis_aclk
