@@ -2,7 +2,7 @@ NAME := phase-noise-analyzer
 VERSION := 1.3.2
 ENFORCE_TIMING := 1
 
-BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
+BOARD_PATH ?= $(SDK_PATH)/boards/red-pitaya
 
 FPGA_LIB_TCL = $(FPGA_TCL_PNA_SINGLE_STREAM) $(FPGA_TCL_REDP)
 FPGA_IMPL_TCL = $(FPGA_TCL_PNA_ROUTE)
@@ -25,8 +25,8 @@ CORES += $(SDK_PATH)/fpga/cores/axis_variable_v1_0
 
 CORES += $(SDK_PATH)/fpga/ip/awg_v1_0
 
-DRIVERS += $(BOARD_PATH)/drivers/common.hpp
-DRIVERS += $(BOARD_PATH)/drivers/phase-modulator.hpp
+DRIVERS += $(SDK_PATH)/boards/red-pitaya/drivers/common.hpp
+DRIVERS += $(SDK_PATH)/boards/red-pitaya/drivers/phase-modulator.hpp
 DRIVERS += $(PROJECT_PATH)/dds.hpp
 DRIVERS += $(PROJECT_PATH)/dds.cpp
 DRIVERS += $(PROJECT_PATH)/phase-noise-analyzer.hpp

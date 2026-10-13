@@ -6,6 +6,7 @@
 	fragment@0 {
 		target-path = "/";
 		__overlay__ {
+			model = "STEMlab 125-14";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			usb_phy0: phy@e0002000 {

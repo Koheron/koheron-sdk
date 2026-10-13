@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0+
 #include "zynq-red-pitaya.dts"
 
+/* Inherit the original board's 384 MiB boot RAM limit on 512 MiB boards.
+ * Linux describes the full DDR and reserves the tail separately with no-map.
+ */
+
 &gem0 {
     status = "okay";
     phy-mode = "rgmii-id";

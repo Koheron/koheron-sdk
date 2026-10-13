@@ -1,6 +1,14 @@
 /dts-v1/;
 /plugin/;
 
+#if RED_PITAYA_MEMORY_SIZE == 0x40000000
+#define RED_PITAYA_DMA_NODE dma-buffer@20000000
+#define RED_PITAYA_DMA_SIZE 0x20000000
+#else
+#define RED_PITAYA_DMA_NODE dma-buffer@18000000
+#define RED_PITAYA_DMA_SIZE 0x08000000
+#endif
+
 / {
 
 	fragment@0 {
@@ -36,12 +44,10 @@
 				#size-cells = <1>;
 				ranges;
 
-				cma_pool_ddr: cma@18000000 {
-					compatible = "shared-dma-pool";
-					reg = <0x18000000 0x08000000>;   // 128 MiB SDK DMA pool
-					linux,cma;
-					reusable;
-					alignment = <0x100000>;          // 1 MiB alignment
+				// Fixed DMA windows must be excluded from Linux allocations.
+				dma_buffer: RED_PITAYA_DMA_NODE {
+					reg = <(RED_PITAYA_MEMORY_SIZE - RED_PITAYA_DMA_SIZE) RED_PITAYA_DMA_SIZE>;
+					no-map;
 				};
 			};
 		};

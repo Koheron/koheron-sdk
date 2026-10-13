@@ -2,9 +2,6 @@
 #include "zynq-red-pitaya-gen2-common.dtsi"
 
 / {
-    model = "Red Pitaya STEMlab 125-14 PRO Gen2";
+    model = "STEMlab 125-14 PRO Gen 2";
     compatible = "redpitaya,red-pitaya-pro-gen2", "xlnx,zynq-7000";
-    memory@0 {
-        reg = <0x00000000 0x20000000>;
-    };
 };

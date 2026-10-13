@@ -25,6 +25,14 @@ namespace {
 // offset in LSB
 // pi: Coefficient of the polynomial fit of 1 / H(f)
 
+#if defined(KOHERON_REDPITAYA_NOMINAL_ADC_CALIBRATION)
+// Nominal 14-bit +/-1 V LV input, zero offset and unity frequency response.
+// This is not a measured calibration for the receiving board.
+static constexpr auto nominal_calibration = std::array{
+    8192.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+};
+static constexpr auto cal_coeffs = std::array{nominal_calibration, nominal_calibration};
+#else
 static constexpr auto cal_coeffs = std::array{
     std::array{7.25926074e+03f, -1.25870003e+02f, 3.49261787e-38f,
                -4.39604832e-30f, 1.90004015e-22f, -3.35273936e-15f,
@@ -34,6 +42,7 @@ static constexpr auto cal_coeffs = std::array{
                -5.88647924e-30f, 2.58020095e-22f, -4.58396909e-15f,
                3.54267726e-08f,  9.28313494e-01f}
 };
+#endif
 
 class RedPitayaAdcCalibration
 {

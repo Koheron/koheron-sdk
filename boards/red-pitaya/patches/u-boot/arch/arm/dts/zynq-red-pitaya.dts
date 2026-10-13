@@ -9,7 +9,7 @@
 /dts-v1/;
 #include "zynq-7000.dtsi"
 / {
-  model = "Red Pitaya";
+  model = "STEMlab 125-14";
   compatible = "xlnx,zynq-red-pitaya","xlnx,zynq-7000";
   aliases {
     serial0 = &uart0;

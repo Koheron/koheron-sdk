@@ -38,6 +38,12 @@ def wait_captures(count):
     raise TimeoutError("Analyzer did not publish enough valid captures")
 
 
+def restart_capture():
+    # Reapplying an unchanged rate preserves the epoch, so change it first.
+    analyzer.set_cic_rate(rate + 1 if rate < 8192 else rate - 1)
+    analyzer.set_cic_rate(rate)
+
+
 try:
     analyzer.set_tracking_enabled(False)
     analyzer.set_analyzer_mode(0)
@@ -56,9 +62,15 @@ try:
     generator.configure(carrier_hz=10e6, modulation_hz=tone_hz,
                         deviation=beta * 180 / np.pi, waveform="sine",
                         output_enabled=True, pm_enabled=False, channel=0)
+    # The DAC can initially be muted. Discard phase/filter and averaging
+    # history acquired without a carrier before measuring the baseline.
+    restart_capture()
     wait_captures(12)
     baseline = analyzer.get_phase_noise()
     generator.enable_pm(True, channel=0)
+    # The DMA ring can contain unmodulated data queued before the DAC change.
+    # Begin another epoch so every accepted capture belongs to the PM stimulus.
+    restart_capture()
     wait_captures(12)
     pm = analyzer.get_phase_noise()
     tone_power = np.sum((pm - baseline)[tone_bin-2:tone_bin+3]) * df
