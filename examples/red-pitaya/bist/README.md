@@ -1,105 +1,103 @@
 # BIST
 
 `bist` (built-in self-test) is a compact reference instrument for validating V1
-OS releases and comparing their behaviour and performance. The first target is
-Red Pitaya Gen1 (STEMlab 125-14); ALPHA250 is the next intended target.
+OS releases and comparing their behaviour and performance. Its reference
+platform is Red Pitaya Gen1 (STEMlab 125-14), running a V1 OS image.
 
-**Status: planned instrument.** This README is a design brief; implementation
-details are left to the implementing agent.
+The instrument runs in the normal SDK server, with generated RPC methods and
+the usual instrument packaging, default-at-boot loading and management
+lifecycle. Most measurements execute onboard, so external client performance
+and network throughput do not determine the benchmark results. The client
+handles orchestration and retrieves the instrument's outputs.
 
-## Scope and execution
+## Validation run
 
-- Use one board and one dedicated instrument, with a V1 OS image.
-- Run in the normal SDK server, with generated RPC methods and the usual
-  instrument packaging, default-at-boot loading and management lifecycle.
-- Start the validation with a reboot and finish in less than three minutes.
-  Bound waits and preserve partial results when a test fails or times out.
-- Perform most measurements onboard. The external client handles orchestration
-  and result retrieval; its performance and network throughput must not dominate
-  the benchmark results.
-- Run measurements asynchronously so the server remains responsive. Release
-  resources cleanly when stopping the test or the instrument.
-- Keep OS validation results separate from reference-instrument health checks.
+A validation run begins with a reboot and completes in less than three minutes,
+including report generation. It measures boot time, network readiness and
+server readiness, then runs isolated checks and a combined CPU/DMA/UART
+workload. Checks use bounded waits, with partial results retained on failure or
+timeout.
+
+Measurements run asynchronously while the server remains responsive. A
+controlled instrument stop/start checks overlay reapplication and device
+recovery, with results retained across the restart. Shutdown stops transfers,
+joins worker threads and releases device mappings and resources.
+
+OS validation results and reference-instrument health checks appear separately
+in the report. The physical loopback connections are **DAC0 to ADC0** and
+**DAC1 to ADC1**, using external cables.
 
 ## FPGA workload
 
-Keep the design small and leave substantial FPGA headroom. Reuse datapaths and
-measurement logic, with small BRAMs and FIFOs rather than large capture memories.
-The implementing agent chooses the exact widths, depths and buffer sizes.
-
-Include:
+The FPGA uses small BRAMs and FIFOs, shared datapaths and shared measurement
+logic to leave substantial resource headroom. It contains:
 
 - SDK config/status IP for register integrity and access-performance tests.
-- A small CPU-accessible BRAM for bulk access and integrity tests, also usable
-  for DAC waveform playback.
-- A representative full-duplex scatter-gather DMA path. Exercise descriptors,
-  buffer reuse, interrupts, sustained transfers and exact digital data integrity.
-- Both ADC/DAC channels, assuming **DAC0 is connected to ADC0** and **DAC1 to
-  ADC1** with external cables. Reuse the DMA and playback paths for these checks.
+- A small CPU-accessible BRAM for bulk access, integrity tests and DAC waveform
+  playback.
+- A full-duplex scatter-gather DMA path covering descriptors, buffer reuse,
+  interrupts, sustained transfers and exact digital data integrity.
+- Both ADC/DAC channels, sharing the DMA and playback paths for analog loopback
+  checks.
+- Two custom AXI-Lite UART instances connected inside the PL.
 - Shared timing and diagnostic counters for transfers, discontinuities and
   FIFO errors, with consistent snapshots.
 
 ## UART and UIO workload
 
-Use two instances of a custom AXI-Lite UART core at **460800 baud**, with 8N1
-framing and small TX/RX FIFOs. Cross-connect TX A to RX B and TX B to RX A inside
-the PL. Each instance has its own UIO device and interrupt.
+The two UARTs operate at **460800 baud**, with 8N1 framing and small TX/RX FIFOs.
+TX A connects to RX B and TX B connects to RX A inside the PL. Each instance has
+its own UIO device and interrupt.
 
 A userspace UART driver runs inside the normal instrument server. Two worker
 threads, one per UART, communicate through the serial link and service their
-devices through interrupts. Handle acknowledgement and UIO rearming correctly;
-enable TX interrupts only while there is work to transmit.
+devices through interrupts. Each worker services interrupt causes before
+rearming UIO, with TX interrupts enabled only while transmission work is queued.
 
-Exercise short request/reply exchanges and simultaneous traffic in both
-directions, with deterministic data and sequence checking. Repeat under CPU and
-DMA load. Cover UIO mapping, repeated interrupt delivery, timeouts, shutdown and
-restart. Verify baud timing as well as successful communication between the two
-identical cores.
+The test exchanges short request/reply messages and simultaneous traffic in
+both directions, with deterministic data and sequence checking. It repeats
+under CPU and DMA load and covers UIO mapping, repeated interrupt delivery,
+timeouts, shutdown and restart. Baud timing is checked alongside successful
+communication between the two identical cores.
 
 ## OS and SDK coverage
 
-Cover boot time, network readiness and server readiness, then isolated
-measurements and a combined CPU/DMA/UART workload. Measure representative server
-request handling and reply generation using onboard workloads.
+Onboard workloads measure representative server request handling and reply
+generation, both in isolation and under combined load.
 
-Exercise runtime device-tree overlays, driver binding, UIO, write-combined
-memory, read-only mapping properties and mapping/resource lifetime. Check that
-DMA memory is reserved at boot and excluded from Linux allocations. Report the
-mapping backend actually used: fallback to `/dev/mem` must not silently pass a
-UIO or write-combined-driver check.
-
-Include a controlled instrument stop/start to check overlay reapplication and
-device recovery, preserving the run's results across the restart. Analog
-loopback checks belong in the instrument-health results, separately from the OS
-performance verdict.
+The checks cover runtime device-tree overlays, driver binding, UIO,
+write-combined memory, read-only mapping properties and mapping/resource
+lifetime. DMA memory checks verify its boot reservation and exclusion from
+Linux allocations. The report identifies the mapping backend actually used;
+fallback to `/dev/mem` is recorded as a failed UIO or write-combined-driver
+check.
 
 ## Reports and comparison
 
-For each validation run, the running `bist` instrument must automatically
-generate and store onboard a compact human-readable scorecard, machine-readable
-results and a detailed timestamped log. Report generation is part of the
-instrument's runtime behaviour. The external client retrieves these outputs;
-a successful run is complete only when its report is available.
+For each validation run, `bist` automatically generates and stores onboard a
+compact human-readable scorecard, machine-readable results and a detailed
+timestamped log. These outputs come from the running instrument. A successful
+run is complete when its report is available for retrieval.
 
-The instrument webpage must display live, timestamped validation logs streamed
-by the running instrument over WebSocket. Stream the same instrument-generated
-log retained with the run. Validation and report generation must continue
-independently of browser connections.
+The instrument webpage displays live, timestamped validation logs served by the
+instrument over WebSocket. The live stream contains the same log retained with
+the run. Validation and report generation continue independently of browser
+connections.
 
-Aim for roughly **15–20 headline metrics**, backed by functional pass/fail
-results and per-channel/per-workload detail.
+The scorecard summarizes roughly **15–20 headline metrics** and functional
+pass/fail results. Detailed results include per-channel and per-workload
+measurements.
 
-The metrics should cover startup, register and bulk-memory access, SG DMA
-throughput, UART throughput and latency, UIO interrupt observation latency,
-server performance, and CPU/memory behaviour under load. Include integrity and
-error counts; report latency distributions rather than averages alone.
+The metrics cover startup, register and bulk-memory access, SG DMA throughput,
+UART throughput and latency, UIO interrupt observation latency,
+server performance, and CPU/memory behaviour under load. Results include
+integrity and error counts, plus latency distributions.
 
-Record board identity, OS/kernel/SDK and BIST versions, FPGA identity, test
-parameters, units and relevant operating conditions. Keep the reference FPGA
-and workloads stable for OS comparisons; flag changes that prevent a meaningful
-comparison. Missing measurements must be explicit.
+Each report records board identity, OS/kernel/SDK and BIST versions, FPGA
+identity, test parameters, units and relevant operating conditions. OS
+comparisons use a fixed reference FPGA and fixed workloads, with changes that
+affect comparability and missing measurements identified explicitly.
 
-The log should explain failures with expected/observed results, timings and
-diagnostic counters. Keep logging overhead out of timed measurements and avoid
-large raw captures by default. Choose the final metric names, test sequencing,
-budgets and acceptance thresholds during implementation and hardware validation.
+The detailed log explains failures with expected and observed results, timings
+and diagnostic counters. Logging is decoupled from timed measurements, and raw
+captures are limited to failure diagnostics.
