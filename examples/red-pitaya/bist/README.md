@@ -75,9 +75,14 @@ performance verdict.
 
 ## Reports and comparison
 
-Produce a compact human-readable scorecard, machine-readable results and a
-detailed timestamped log. Aim for roughly **15–20 headline metrics**, backed by
-functional pass/fail results and per-channel/per-workload detail.
+For each validation run, the running `bist` instrument must automatically
+generate and store onboard a compact human-readable scorecard, machine-readable
+results and a detailed timestamped log. Report generation is part of the
+instrument's runtime behaviour. The external client retrieves these outputs;
+a successful run is complete only when its report is available.
+
+Aim for roughly **15–20 headline metrics**, backed by functional pass/fail
+results and per-channel/per-workload detail.
 
 The metrics should cover startup, register and bulk-memory access, SG DMA
 throughput, UART throughput and latency, UIO interrupt observation latency,
