@@ -1,8 +1,8 @@
 # BIST
 
-`bist` (built-in self-test) is a compact reference instrument for validating V1 OS releases and
-comparing their behaviour and performance. The first target is Red Pitaya Gen1
-(STEMlab 125-14); ALPHA250 is the next intended target.
+`bist` (built-in self-test) is a compact reference instrument for validating V1
+OS releases and comparing their behaviour and performance. The first target is
+Red Pitaya Gen1 (STEMlab 125-14); ALPHA250 is the next intended target.
 
 **Status: planned instrument.** This README is a design brief; implementation
 details are left to the implementing agent.
@@ -80,6 +80,11 @@ generate and store onboard a compact human-readable scorecard, machine-readable
 results and a detailed timestamped log. Report generation is part of the
 instrument's runtime behaviour. The external client retrieves these outputs;
 a successful run is complete only when its report is available.
+
+The instrument webpage must display live, timestamped validation logs streamed
+by the running instrument over WebSocket. Stream the same instrument-generated
+log retained with the run. Validation and report generation must continue
+independently of browser connections.
 
 Aim for roughly **15–20 headline metrics**, backed by functional pass/fail
 results and per-channel/per-workload detail.
