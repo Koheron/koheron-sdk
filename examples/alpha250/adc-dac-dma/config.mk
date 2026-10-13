@@ -1,5 +1,5 @@
 NAME := adc-dac-dma
-VERSION := 0.2.2
+VERSION := 0.2.3
 ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250

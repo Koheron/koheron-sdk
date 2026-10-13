@@ -108,10 +108,7 @@ class AdcDacDma
     }
 
     void set_dac_data(const std::vector<uint32_t>& dac_data) {
-        auto& ram_mm2s = hw::get_memory<mem::ram_mm2s>();
-        for (uint32_t i = 0; i < dac_data.size(); i++) {
-            ram_mm2s.write_reg(4*i, dac_data[i]);
-        }
+        (void)set_dac_data_chunk(0, dac_data);
     }
 
     // N in [1..n_desc]
@@ -190,6 +187,20 @@ class AdcDacDma
         if (N < 1) N = 1;
         if (N > n_desc) N = n_desc;
         return ram_s2mm.read_span<uint32_t>(N * n_pts);
+    }
+
+    // Offset and length are in packed uint32_t words. Append new RPCs here to
+    // preserve the operation IDs of existing clients.
+    bool set_dac_data_chunk(uint32_t offset, const std::vector<uint32_t>& dac_data) {
+        constexpr auto capacity = hw::Memory<mem::ram_mm2s>::size / sizeof(uint32_t);
+        if (offset > capacity || dac_data.size() > capacity - offset) {
+            log<ERROR>("DAC upload exceeds reserved waveform RAM\n");
+            return false;
+        }
+        for (uint32_t i = 0; i < dac_data.size(); ++i) {
+            ram_mm2s.write_reg(sizeof(uint32_t) * (offset + i), dac_data[i]);
+        }
+        return true;
     }
 
   private:

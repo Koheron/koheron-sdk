@@ -37,6 +37,13 @@ int Session::run() {
         if (services::require<rt::IExecutor>().execute(cmd) < 0) {
             logf<ERROR>("Failed to execute command [driver = {}, operation = {}]\n",
                         cmd.driver, cmd.operation);
+            // Stream commands have no enclosing frame to skip after a failed
+            // decode. Leave cleanup to SessionManager; unread argument bytes
+            // must never be interpreted as another command. WebSocket frames
+            // already isolate the malformed payload from the next command.
+            if (cmd.decode_failed && (type == TCP || type == UNIX)) {
+                return -1;
+            }
         }
 
         if (status == CLOSED) {
