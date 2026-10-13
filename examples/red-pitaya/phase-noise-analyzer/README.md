@@ -1,5 +1,11 @@
 # Red Pitaya phase-noise analyzer
 
+Build for the original board with
+`make CFG=examples/red-pitaya/phase-noise-analyzer/stemlab-125-14.mk`.
+Gen 2 models select `stemlab-125-14-gen2.mk`, `stemlab-125-14-pro-gen2.mk` or
+`stemlab-125-14-pro-z7020-gen2.mk` in this directory. All four selectors share
+`common.mk`, FPGA logic, C++ drivers and the web interface. Requires a V1 image.
+
 ## Single CIC acquisition
 
 Version 1.3.1 keeps the six-stage programmable CIC, compensation FIR and
@@ -32,7 +38,7 @@ stochastic phase rounding. The legacy radians-per-count scale and
 0–8 extra CIC precision bits are retained. This addresses deterministic phase
 quantization harmonics; hardware PM/noise-floor validation remains necessary.
 
-A two-input analyzer for the 125 MS/s, 14-bit Red Pitaya (Zynq-7010).
+A two-input analyzer for the 125 MS/s, 14-bit Red Pitaya (Zynq-7010 or Zynq-7020).
 It measures one selected ADC at a time with independent 48-bit local oscillators.
 The FPGA uses the improved four-stage mixer prefilter, CORDIC phase extraction,
 phase unwrapping, programmable six-stage CIC and compensation FIR from ALPHA250.
@@ -177,12 +183,17 @@ the relative phase ramp.
 
 ## DMA memory
 
-The boot board overlay must reserve `0x18000000–0x1fffffff` exclusively with
-`no-map`. The analyzer uses a 32 MiB window at `0x1e000000`, mapped through
-`mem_wc`. Its server refuses to start if this window overlaps System RAM.
+The boot board overlay must reserve the DDR tail exclusively with `no-map`:
+`0x18000000–0x1fffffff` on 512 MiB models or `0x20000000–0x3fffffff` on the
+1 GiB PRO Z7020 Gen 2. The analyzer uses a 32 MiB window at `0x1e000000` on
+512 MiB models; the Z7020 selector uses `memory-1g.yml` and moves the same
+window to `0x3e000000`. FPGA address segments, server addresses and the runtime
+overlay are generated from the selected memory map. The window is mapped
+through `mem_wc`; the server refuses to start if it overlaps System RAM.
 Older Red Pitaya images define a reusable CMA pool here; uploading an instrument
-cannot fix that boot-time reservation. Install a boot tree built from the current
-`boards/red-pitaya/stemlab-125-14/config/board.dtso` and reboot before running the analyzer.
+cannot fix that boot-time reservation. Install a boot tree built from the
+selected board's current `boards/red-pitaya/stemlab-*/config/board.dtso` and
+reboot before running the analyzer.
 
 ## DAC0 to ADC0 validation
 

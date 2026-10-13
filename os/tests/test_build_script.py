@@ -75,13 +75,20 @@ with pathlib.Path({str(self.calls)!r}).open('a') as stream:
                        'red-pitaya-pro-z7020-gen2'):
             self.assertEqual(targets.count(target), 1)
         self.assertFalse(self.calls.exists())
-        result = self.run_build('red-pitaya-pro-gen2')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        calls = self.assert_jobs(6)
-        self.assertEqual(len(calls), 2)
-        self.assertIn('CFG=examples/red-pitaya/phase-noise-analyzer/stemlab-125-14-pro-gen2.mk', calls[0])
-        self.assertIn('CFG=examples/red-pitaya/fft/stemlab-125-14-pro-gen2.mk', calls[1])
-        self.assertIn('COPY_INSTRUMENTS=phase-noise-analyzer', calls[1])
+        for target, selector in (
+                ('red-pitaya', 'stemlab-125-14'),
+                ('red-pitaya-gen2', 'stemlab-125-14-gen2'),
+                ('red-pitaya-pro-gen2', 'stemlab-125-14-pro-gen2'),
+                ('red-pitaya-pro-z7020-gen2', 'stemlab-125-14-pro-z7020-gen2')):
+            with self.subTest(target=target):
+                self.calls.unlink(missing_ok=True)
+                result = self.run_build(target)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                calls = self.assert_jobs(6)
+                self.assertEqual(len(calls), 2)
+                self.assertIn(f'CFG=examples/red-pitaya/phase-noise-analyzer/{selector}.mk', calls[0])
+                self.assertIn(f'CFG=examples/red-pitaya/fft/{selector}.mk', calls[1])
+                self.assertIn('COPY_INSTRUMENTS=phase-noise-analyzer', calls[1])
 
     def test_invalid_job_limits_fail_before_building(self):
         for value in ('0', '-1', 'infinite', '1.5'):

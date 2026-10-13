@@ -2,9 +2,11 @@
 
 Build with `make CFG=examples/red-pitaya/fft/stemlab-125-14.mk`. Requires a V1 OS image.
 
-For PRO Gen 2, select `stemlab-125-14-pro-gen2.mk` in this directory. Both board
+For Gen 2 models, select `stemlab-125-14-gen2.mk`, `stemlab-125-14-pro-gen2.mk`
+or `stemlab-125-14-pro-z7020-gen2.mk` in this directory. All four board
 selectors include `common.mk` and share the FPGA, drivers and web interface.
 Each selector has a separate build directory under `tmp/examples/red-pitaya/fft/`.
+Gen 2 selectors use nominal LV-input calibration until the board is calibrated.
 
 The 125 MS/s, 14-bit ADC instrument uses a 2048-point FFT. Its interface shares
 `web/fft` with ALPHA250: the workspace, acquisition controls, plotting, history,

@@ -50,11 +50,14 @@ files through their `BOARD_TARGET` values. Use `./build.sh --list` to list them.
 
 ## Build an image
 
-The PRO Gen 2 package builds FFT as the default instrument and includes PNA in
-the instrument manager:
+All four image presets build FFT as the default instrument and include PNA in
+the instrument manager. Select the board's build target:
 
 ```sh
+./build.sh red-pitaya
+./build.sh red-pitaya-gen2
 ./build.sh red-pitaya-pro-gen2
+./build.sh red-pitaya-pro-z7020-gen2
 ```
 
 Examples are grouped by instrument under `examples/red-pitaya/`. Board selectors
@@ -64,7 +67,9 @@ sit beside the shared implementation:
 examples/red-pitaya/fft/
   common.mk
   stemlab-125-14.mk
+  stemlab-125-14-gen2.mk
   stemlab-125-14-pro-gen2.mk
+  stemlab-125-14-pro-z7020-gen2.mk
   block_design.tcl
   memory.yml
   drivers/
@@ -79,10 +84,13 @@ make CFG=examples/red-pitaya/phase-noise-analyzer/stemlab-125-14-pro-gen2.mk
 ```
 
 Selectors include the instrument's `common.mk`, selecting the board preset
-while sharing FPGA designs,
-memory maps, C++ drivers and web interfaces. See its
+while sharing FPGA designs, C++ drivers and web interfaces. The 512 MiB models
+share PNA's memory map; the 1 GiB model selects `memory-1g.yml` to place its DMA
+buffer in that board's reserved DDR tail. Gen 2 FFT selectors use nominal LV
+input calibration. See the PRO Gen 2
 [package guide](stemlab-125-14-pro-gen2/README.md) for calibration details.
-The other Gen 2 image presets use the shared LED/register bring-up instrument.
+The shared LED/register instrument remains available for bring-up on all four
+boards.
 
 To build that instrument for a specific board:
 
@@ -110,8 +118,9 @@ reservation. U-Boot keeps boot allocations below that reservation:
 | 512 MiB | Last 128 MiB, `0x18000000..0x1fffffff` | First 384 MiB |
 | 1 GiB | Last 512 MiB, `0x20000000..0x3fffffff` | First 512 MiB |
 
-Fixed instrument DMA buffers must lie inside the reserved region. PNA's
-32 MiB buffer at `0x1e000000` is inside the 512 MiB boards' reservation.
+Fixed instrument DMA buffers must lie inside the reserved region. PNA's 32 MiB
+buffer starts at `0x1e000000` on 512 MiB boards and `0x3e000000` on the 1 GiB
+board, within the respective reservation.
 Allowing U-Boot to place boot data in the DMA tail can make Linux reject the
 reservation and prevent PNA from starting.
 

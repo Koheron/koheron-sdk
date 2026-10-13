@@ -6,7 +6,7 @@ FPGA_LIB_TCL = $(FPGA_TCL_PNA_SINGLE_STREAM) $(FPGA_TCL_REDP)
 FPGA_IMPL_TCL = $(FPGA_TCL_PNA_ROUTE)
 TCL_EXTRA_FILES += $(SDK_PATH)/fpga/ip/awg_v1_0/integration.tcl
 
-MEMORY_YML = $(PROJECT_PATH)/memory.yml
+MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 
 XDC += $(SDK_PATH)/boards/red-pitaya/stemlab-125-14/config/ports.xdc
 XDC += $(SDK_PATH)/boards/red-pitaya/stemlab-125-14/config/clocks.xdc
