@@ -268,6 +268,9 @@ inspect_settings:
                     path.touch()
                 self.assertIn("Nothing to be done", run('-n', 'fpga'))
                 board = instrument.split('/')[0]
+                board_directory = f'boards/{board}'
+                if board == 'red-pitaya':
+                    board_directory += '/stemlab-125-14'
                 cases = {
                     'make.py': True,
                     'server/__init__.py': True,
@@ -275,7 +278,7 @@ inspect_settings:
                     'fpga/lib/utilities.tcl': True,
                     'fpga/vivado/block_design.tcl': True,
                     'fpga/lib/dependencies.mk': True,
-                    f'boards/{board}/config/board_preset.tcl': True,
+                    f'{board_directory}/config/board_preset.tcl': True,
                     'fpga/lib/pna_cordic.tcl': kind == 'pna',
                     'fpga/lib/pna_post_route.tcl': 'impl' if kind == 'pna' else False,
                     'fpga/lib/power_spectral_density.tcl': instrument in ('red-pitaya/fft', 'alpha250/fft'),
@@ -286,7 +289,7 @@ inspect_settings:
                     'web/plot-references/references.ts': False,
                 }
                 if board == 'red-pitaya':
-                    cases['boards/red-pitaya/config/ports.tcl'] = True
+                    cases['boards/red-pitaya/stemlab-125-14/config/ports.tcl'] = True
                     cases['fpga/lib/redp_adc_dac.tcl'] = True
                 if kind in ('fft', 'pna') and instrument != 'alpha15/signal-analyzer':
                     cases['fpga/cores/latched_mux_v1_0/latched_mux_tb.v'] = False

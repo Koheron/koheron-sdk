@@ -182,7 +182,7 @@ The boot board overlay must reserve `0x18000000–0x1fffffff` exclusively with
 `mem_wc`. Its server refuses to start if this window overlaps System RAM.
 Older Red Pitaya images define a reusable CMA pool here; uploading an instrument
 cannot fix that boot-time reservation. Install a boot tree built from the current
-`boards/red-pitaya/config/board.dtso` and reboot before running the analyzer.
+`boards/red-pitaya/stemlab-125-14/config/board.dtso` and reboot before running the analyzer.
 
 ## DAC0 to ADC0 validation
 

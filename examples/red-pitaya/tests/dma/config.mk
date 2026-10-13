@@ -1,7 +1,7 @@
 NAME := dma
 VERSION := 0.0.0
 
-BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
+BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14
 
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 

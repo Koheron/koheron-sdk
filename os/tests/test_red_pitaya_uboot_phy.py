@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 SDK = Path(__file__).resolve().parents[2]
-DRIVER = SDK / 'boards/red-pitaya/patches/u-boot/drivers/net/phy/intel_xway.c'
+DRIVER = SDK / 'boards/red-pitaya/stemlab-125-14/patches/u-boot/drivers/net/phy/intel_xway.c'
 
 
 class RedPitayaUBootPhyTest(unittest.TestCase):

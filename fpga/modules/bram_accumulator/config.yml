@@ -1,6 +1,6 @@
 ---
 name: bram_accumulator
-board: boards/red-pitaya
+board: boards/red-pitaya/stemlab-125-14
 
 cores:
   - fpga/cores/comparator_v1_0

@@ -1,4 +1,4 @@
-BOARD_PATH := $(SDK_PATH)/boards/red-pitaya-pro-gen2
+BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14-pro-gen2
 PROJECT_PATH := $(SDK_PATH)/examples/red-pitaya/fft
 include $(PROJECT_PATH)/config.mk
 # Nominal LV input scaling until this board has been calibrated.

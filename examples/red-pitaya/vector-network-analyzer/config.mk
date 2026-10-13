@@ -1,6 +1,6 @@
 NAME := vector-network-analyzer
 VERSION := 0.2.0
-BOARD_PATH := $(SDK_PATH)/boards/red-pitaya
+BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14
 ENFORCE_TIMING := 1
 FPGA_LIB_TCL = $(FPGA_TCL_BASE) $(FPGA_TCL_REDP)
 XDC += $(BOARD_PATH)/config/ports.xdc $(BOARD_PATH)/config/clocks.xdc

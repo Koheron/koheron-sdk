@@ -32,14 +32,26 @@ Set N_CPUS to a positive integer to bound make jobs and tool threads.
 USAGE
 }
 
+list_board_configs() {
+  find "${BOARDS_DIR}" -mindepth 2 -maxdepth 3 -type f -name build_image.conf -print0 \
+    | sort -z
+}
+
+board_target() (
+  local config_file="$1"
+  unset BOARD_TARGET
+  # Nested board packages declare their existing build target explicitly.
+  # shellcheck disable=SC1090
+  source "${config_file}"
+  printf '%s\n' "${BOARD_TARGET:-$(basename "$(dirname "${config_file}")")}"
+)
+
 list_available_boards() {
-  find "${BOARDS_DIR}" -mindepth 1 -maxdepth 1 -type d -print0 \
-    | sort -z \
-    | while IFS= read -r -d '' board_dir; do
-        if [[ -f "${board_dir}/build_image.conf" ]]; then
-          basename "${board_dir}"
-        fi
-      done
+  list_board_configs \
+    | while IFS= read -r -d '' config_file; do
+        board_target "${config_file}"
+      done \
+    | sort
 }
 
 select_board_interactively() {
@@ -90,13 +102,22 @@ build_all_boards() {
 
 load_board_config() {
   local board="$1"
-  local config_file="${BOARDS_DIR}/${board}/build_image.conf"
-  if [[ ! -f "${config_file}" ]]; then
-    printf 'No build_image.conf found for board %s at %s\n' "${board}" "${config_file}" >&2
+  local config_file="" candidate
+  while IFS= read -r -d '' candidate; do
+    if [[ $(board_target "${candidate}") == "${board}" ]]; then
+      if [[ -n "${config_file}" ]]; then
+        printf 'Multiple build_image.conf files declare board %s\n' "${board}" >&2
+        exit 1
+      fi
+      config_file="${candidate}"
+    fi
+  done < <(list_board_configs)
+  if [[ -z "${config_file}" ]]; then
+    printf 'No build_image.conf found for board %s under %s\n' "${board}" "${BOARDS_DIR}" >&2
     exit 1
   fi
 
-  unset BOARD_NAME IMAGE_CONFIG
+  unset BOARD_TARGET BOARD_NAME IMAGE_CONFIG
   INSTRUMENT_CONFIGS=()
   COPY_INSTRUMENTS=()
 

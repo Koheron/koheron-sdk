@@ -38,7 +38,7 @@ class CachePathTest(unittest.TestCase):
             config_dir.mkdir()
             config = config_dir / 'config.mk'
             config.write_text('NAME := external\nVERSION := 0.1\n'
-                              f'BOARD_PATH := {SDK}/boards/red-pitaya\n')
+                              f'BOARD_PATH := {SDK}/boards/red-pitaya/stemlab-125-14\n')
             relative_cfg = os.path.relpath(config, SDK)
             cache = root / 'cache'
             values = json.loads(self.make('info', f'CFG={relative_cfg}',

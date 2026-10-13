@@ -1,6 +1,6 @@
 ---
 name: peak_detector
-board: boards/red-pitaya
+board: boards/red-pitaya/stemlab-125-14
 
 control_registers:
   - peak_address_low
