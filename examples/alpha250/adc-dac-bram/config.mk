@@ -1,5 +1,6 @@
 NAME := adc-dac-bram
-VERSION := 0.2.1
+VERSION := 0.2.2
+ENFORCE_TIMING := 1
 
 BOARD_PATH := $(SDK_PATH)/boards/alpha250
 
