@@ -15,6 +15,9 @@ cell koheron:user:address_counter:1.0 address_counter {
   trig [get_slice_pin [ctl_pin trig] 0 0]
 }
 
+# Status is sampled in the same ADC clock domain as the final BRAM write.
+connect_pins [sts_pin capture_complete] [get_concat_pin [list address_counter/capture_complete [get_constant_pin 0 31]]]
+
 connect_cell blk_mem_gen_adc {
   addrb address_counter/address
   clkb adc_dac/adc_clk

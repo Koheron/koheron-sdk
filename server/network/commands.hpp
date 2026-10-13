@@ -137,6 +137,7 @@ class Command
     Session *session = nullptr;  // Pointer to the session emitting the command
     int socket_type = -1;
     int comm_fd = -1;
+    bool decode_failed = false;
 
     enum Header : uint32_t {
         HEADER_SIZE = header_size,
@@ -324,6 +325,7 @@ class Command
         DecayedArgsTuple args{};
         // A client waiting to finish a request must not hold the driver lock.
         if (!read_arguments(args, IS{})) {
+            decode_failed = true;
             return -1;
         }
 

@@ -108,7 +108,14 @@ template<int Kind> struct Connection {
             check(response.find("101") != std::string::npos, "WebSocket handshake failed");
         }
     }
-    void start() { worker = std::thread([this] { session->run(); }); }
+    void start() {
+        worker = std::thread([this] {
+            session->run();
+            // Production SessionManager shuts down the socket when run exits.
+            // Keep the descriptor owned by this fixture until destruction.
+            ::shutdown(server, SHUT_RDWR);
+        });
+    }
     ~Connection() {
         ::shutdown(client, SHUT_RDWR);
         ::shutdown(server, SHUT_RDWR); // Wake blocked writes even with unread TCP data.
@@ -328,6 +335,54 @@ template<int Kind> void truncated_batch() {
     check(healthy.response(12) == scalar_response(1, 7), "Truncated batch mutated driver");
     check(LockingInstrument::calls == 0, "Truncated batch invoked driver");
 }
+
+template<int Kind> void rejected_dynamic_input(uint32_t length) {
+    Connection<Kind> broken(1, false), healthy(2);
+    auto bytes = command(2);
+    append_be(bytes, length, 4);
+    // A rejected body must never execute these setters. Only send a prefix:
+    // rejection must close promptly, without waiting to drain an arbitrary size.
+    const auto setter = scalar_command(0, 99);
+    bytes.insert(bytes.end(), setter.begin(), setter.end());
+    bytes.insert(bytes.end(), setter.begin(), setter.end());
+    const auto query = command(1);
+    bytes.insert(bytes.end(), query.begin(), query.end());
+    broken.send(bytes);
+    broken.start();
+    pollfd ready{broken.client, POLLIN, 0};
+    check(::poll(&ready, 1, 2000) == 1, "Rejected input did not close connection");
+    unsigned char byte;
+    const auto n = ::recv(broken.client, &byte, 1, 0);
+    check(n == 0 || (n < 0 && errno == ECONNRESET), "Rejected body produced a reply");
+    check(LockingInstrument::calls == 0, "Rejected body executed a driver operation");
+    healthy.send(command(1));
+    check(healthy.response(12) == scalar_response(1, 7), "Rejected client affected another session");
+}
+
+template<int Kind> void maximum_dynamic_input() {
+    Connection<Kind> client(1);
+    auto bytes = command(2);
+    append_be(bytes, net::CMD_PAYLOAD_BUFFER_LEN, 4);
+    bytes.resize(bytes.size() + net::CMD_PAYLOAD_BUFFER_LEN, 0x33);
+    client.send(bytes);
+    client.send(command(1));
+    check(client.response(12) == scalar_response(1, 0x33333333), "Maximum vector rejected");
+    check(LockingInstrument::calls == 1, "Maximum vector not invoked once");
+}
+
+void rejected_websocket_input() {
+    Connection<net::WEBSOCK> client(1);
+    for (uint32_t length : {uint32_t(net::CMD_PAYLOAD_BUFFER_LEN + 4), 3u, 64u}) {
+        auto bytes = command(2);
+        append_be(bytes, length, 4);
+        const auto setter = scalar_command(0, 99);
+        bytes.insert(bytes.end(), setter.begin(), setter.end());
+        client.send(bytes);
+        client.send(command(1));
+        check(client.response(12) == scalar_response(1, 7), "Malformed frame affected next command");
+    }
+    check(LockingInstrument::calls == 0, "Malformed frame invoked driver");
+}
 template<int Kind> void mixed_arguments() {
     Connection<Kind> client(1);
     auto bytes = command(11);
@@ -440,6 +495,13 @@ int main(int argc, char** argv) {
         else if (test == "invalid-driver-ws") invalid_driver<net::WEBSOCK>();
         else if (test == "truncated-tcp-batch") truncated_batch<net::TCP>();
         else if (test == "truncated-ws-batch") truncated_batch<net::WEBSOCK>();
+        else if (test == "oversized-tcp") rejected_dynamic_input<net::TCP>(512 * 1024);
+        else if (test == "oversized-unix") rejected_dynamic_input<net::UNIX>(512 * 1024);
+        else if (test == "misaligned-tcp") rejected_dynamic_input<net::TCP>(3);
+        else if (test == "misaligned-unix") rejected_dynamic_input<net::UNIX>(3);
+        else if (test == "maximum-tcp") maximum_dynamic_input<net::TCP>();
+        else if (test == "maximum-unix") maximum_dynamic_input<net::UNIX>();
+        else if (test == "rejected-ws") rejected_websocket_input();
         else if (test == "mixed-tcp") mixed_arguments<net::TCP>();
         else if (test == "mixed-ws") mixed_arguments<net::WEBSOCK>();
         else if (test == "empty-arrays") empty_fixed_arrays();
