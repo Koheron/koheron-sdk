@@ -56,8 +56,8 @@ make -j6 CFG=examples/alpha250/fft/config.mk \
 
 The other configurations are `examples/alpha250/phase-modulator/config.mk`,
 `examples/alpha250/phase-noise-analyzer/config.mk`,
-`examples/red-pitaya/fft/config.mk` and
-`examples/red-pitaya/phase-noise-analyzer/config.mk`.
+`examples/red-pitaya/fft/stemlab-125-14.mk` and
+`examples/red-pitaya/phase-noise-analyzer/stemlab-125-14.mk`.
 
 ## Simulation and package checks
 

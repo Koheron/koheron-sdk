@@ -67,6 +67,19 @@ class CopyInstrumentTests(unittest.TestCase):
         self.assertEqual(copied_cfg, self.destination / "config.mk")
         self.assertIn("NAME := my-instrument", copied_cfg.read_text())
 
+    def test_copies_a_named_board_selector_with_its_shared_sources(self) -> None:
+        selected = self.source / 'stemlab-125-14.mk'
+        self.cfg.rename(selected)
+        self.cfg = selected
+        (self.source / 'common.mk').write_text('VERSION := 1\n')
+        self.cfg.write_text('NAME := original\nBOARD_PATH := $(SDK_PATH)/boards/board\n'
+                            'include $(PROJECT_PATH)/common.mk\n')
+        copied = self.copy()
+        self.assertEqual(copied, self.destination / selected.name)
+        self.assertIn('NAME := my-instrument', copied.read_text())
+        self.assertEqual((self.destination / 'common.mk').read_text(), 'VERSION := 1\n')
+        self.assertIn('NAME := original', self.cfg.read_text())
+
     def test_skips_generated_dependencies_and_caches(self) -> None:
         for directory in (".git", ".venv", "__pycache__", "node_modules", ".Xil", ".cache", ".pytest_cache"):
             path = self.source / directory
@@ -122,7 +135,7 @@ class CopyInstrumentTests(unittest.TestCase):
     def test_refuses_missing_or_wrong_configuration_file(self) -> None:
         for config in (self.source / "missing/config.mk", self.source / "original.hpp"):
             with self.subTest(config=config):
-                with self.assertRaisesRegex(ValueError, "existing config.mk"):
+                with self.assertRaisesRegex(ValueError, "existing configuration"):
                     copy_module.copy_instrument(self.root, config, self.destination)
                 self.assertFalse(self.destination.exists())
 

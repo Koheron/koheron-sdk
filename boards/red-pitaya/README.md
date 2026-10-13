@@ -44,8 +44,8 @@ configuration that uses them. TI converter variants need separate support.
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14-pro-gen2
 ```
 
-The existing build targets, example directories and device-tree compatibility
-identifiers are retained. `build.sh` discovers the nested `build_image.conf`
+The existing build targets and device-tree compatibility identifiers are
+retained. `build.sh` discovers the nested `build_image.conf`
 files through their `BOARD_TARGET` values. Use `./build.sh --list` to list them.
 
 ## Build an image
@@ -57,8 +57,29 @@ the instrument manager:
 ./build.sh red-pitaya-pro-gen2
 ```
 
-Its thin instrument configs include the existing Red Pitaya FFT and PNA
-configs, selecting the PRO Gen 2 board preset while sharing FPGA designs,
+Examples are grouped by instrument under `examples/red-pitaya/`. Board selectors
+sit beside the shared implementation:
+
+```text
+examples/red-pitaya/fft/
+  common.mk
+  stemlab-125-14.mk
+  stemlab-125-14-pro-gen2.mk
+  block_design.tcl
+  memory.yml
+  drivers/
+  web/
+```
+
+Choose a specific selector when building an instrument:
+
+```sh
+make CFG=examples/red-pitaya/fft/stemlab-125-14-pro-gen2.mk
+make CFG=examples/red-pitaya/phase-noise-analyzer/stemlab-125-14-pro-gen2.mk
+```
+
+Selectors include the instrument's `common.mk`, selecting the board preset
+while sharing FPGA designs,
 memory maps, C++ drivers and web interfaces. See its
 [package guide](stemlab-125-14-pro-gen2/README.md) for calibration details.
 The other Gen 2 image presets use the shared LED/register bring-up instrument.
@@ -66,11 +87,15 @@ The other Gen 2 image presets use the shared LED/register bring-up instrument.
 To build that instrument for a specific board:
 
 ```sh
-make fpga CFG=examples/red-pitaya-gen2/led-blinker/config.mk
-make image CFG=examples/red-pitaya-gen2/led-blinker/config.mk
+make fpga CFG=examples/red-pitaya/led-blinker/stemlab-125-14-gen2.mk
+make image CFG=examples/red-pitaya/led-blinker/stemlab-125-14-gen2.mk
 ```
 
-Select the matching PRO example directory for either PRO model. For Vivado/Vitis
+For either PRO model, select its `stemlab-*.mk` in the same LED instrument
+directory. Generated artifacts are separated by selector under
+`tmp/examples/red-pitaya/<instrument>/<selector>/`. `make list`, `make check`
+and CI discover named selectors as well as the other boards' `config.mk` files.
+For Vivado/Vitis
 2026.1, set `VIVADO_VERSION=2026.1` on make commands or use
 `MAKEFLAGS='VIVADO_VERSION=2026.1' ./build.sh ...`.
 

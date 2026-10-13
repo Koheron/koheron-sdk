@@ -1,7 +1,5 @@
-NAME := led-blinker
 VERSION := 0.1.1
 
-BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14
 
 MEMORY_YML = $(PROJECT_PATH)/memory.yml
 

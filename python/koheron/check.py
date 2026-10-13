@@ -11,9 +11,11 @@ import time
 if __package__:
     from .diagnostics import HOST_TEST_MODULES, Reporter
     from .sdk_info import read_settings
+    from .list_examples import find_configs
 else:
     from diagnostics import HOST_TEST_MODULES, Reporter
     from sdk_info import read_settings
+    from list_examples import find_configs
 
 
 SUITES = (('python/tests', 'test_*.py'), ('make/tests', 'test_*.py'),
@@ -69,7 +71,7 @@ def main(argv=None):
             return reporter.finish(scope='host', hardware_tests=False, configurations=0, tests=0)
         configs = [(values['CONFIG_MK'], values['MEMORY_YML'])]
     else:
-        configs = [(str(path), None) for path in sorted((sdk_path / 'examples').rglob('config.mk'))]
+        configs = [(str(path), None) for path in find_configs(sdk_path)]
         if not configs:
             reporter.err('No example configurations found')
     validator = sdk_path / 'python/koheron/validate_config.py'

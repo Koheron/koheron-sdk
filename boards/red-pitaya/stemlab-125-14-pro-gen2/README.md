@@ -12,7 +12,8 @@ the instrument manager:
 MAKEFLAGS='VIVADO_VERSION=2026.1' N_CPUS=16 ./build.sh red-pitaya-pro-gen2
 ```
 
-The two instrument configs include the existing Red Pitaya configs. They reuse
+The FFT and PNA `stemlab-125-14-pro-gen2.mk` selectors include each instrument's
+shared `common.mk` under `examples/red-pitaya/`. They reuse
 the FPGA designs, memory maps, C++ drivers and web interfaces, while selecting
 the PRO Gen 2 Z7010 preset, pins and boot support. The LED/register instrument
 remains available for bring-up.

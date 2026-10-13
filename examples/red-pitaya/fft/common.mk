@@ -1,8 +1,6 @@
-NAME := fft
 VERSION := 0.3.0
 ENFORCE_TIMING := 1
 
-BOARD_PATH ?= $(SDK_PATH)/boards/red-pitaya/stemlab-125-14
 
 FPGA_LIB_TCL = $(FPGA_TCL_FFT) $(FPGA_TCL_REDP)
 FPGA_IMPL_TCL = $(FPGA_TCL_HOLD_FIX)

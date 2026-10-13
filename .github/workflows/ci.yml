@@ -36,6 +36,6 @@ jobs:
               exit 1
             fi
             count=$((count + 1))
-          done < <(find examples -name config.mk | sort)
+          done < <(python3 python/koheron/list_examples.py --configs)
           test "$count" -gt 0
           echo "Validated $count instrument configurations"

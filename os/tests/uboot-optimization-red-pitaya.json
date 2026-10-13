@@ -22,7 +22,7 @@
     "board_builds": [
       {
         "board": "red-pitaya",
-        "configuration": "examples/red-pitaya/fft/config.mk",
+        "configuration": "examples/red-pitaya/fft/stemlab-125-14.mk",
         "overrides": [],
         "result": "passed",
         "payload": {

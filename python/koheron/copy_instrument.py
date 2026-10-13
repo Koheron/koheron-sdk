@@ -27,8 +27,8 @@ def copy_instrument(sdk_path: Path, cfg: Path, destination: Path) -> Path:
     sdk_path = sdk_path.resolve()
     cfg = sdk_path / cfg
     destination = sdk_path / destination
-    if cfg.name != "config.mk" or not cfg.is_file():
-        raise ValueError(f"CFG must reference an existing config.mk: {cfg}")
+    if cfg.suffix != ".mk" or not cfg.is_file():
+        raise ValueError(f"CFG must reference an existing configuration .mk file: {cfg}")
     if destination.exists() or destination.is_symlink():
         raise ValueError(f"Destination already exists: {destination}")
     name = destination.name
@@ -46,7 +46,7 @@ def copy_instrument(sdk_path: Path, cfg: Path, destination: Path) -> Path:
     config = cfg.read_bytes().decode("utf-8")
     assignments = list(_NAME_ASSIGNMENT_RE.finditer(config))
     if len(assignments) != 1 or len(_NAME_LINE_RE.findall(config)) != 1:
-        raise ValueError("Source config.mk must contain one literal NAME assignment.")
+        raise ValueError("Source configuration must contain one literal NAME assignment.")
     assignment = assignments[0]
     if name == assignment.group(2):
         raise ValueError("Choose a destination name different from the source instrument's NAME.")
@@ -56,7 +56,7 @@ def copy_instrument(sdk_path: Path, cfg: Path, destination: Path) -> Path:
     destination.mkdir()  # Reserve the destination exclusively; never overwrite it.
     try:
         shutil.copytree(source, destination, symlinks=True, ignore=_IGNORE, dirs_exist_ok=True)
-        copied_cfg = destination / "config.mk"
+        copied_cfg = destination / cfg.name
         if copied_cfg.is_symlink():
             copied_cfg.unlink()  # Do not modify the original through a copied symlink.
         copied_cfg.write_bytes(config.encode("utf-8"))
@@ -69,7 +69,7 @@ def copy_instrument(sdk_path: Path, cfg: Path, destination: Path) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sdk-path", default=".", help="Path to the Koheron SDK repository")
-    parser.add_argument("--cfg", required=True, help="Source instrument config.mk, relative to SDK_PATH")
+    parser.add_argument("--cfg", required=True, help="Source instrument configuration .mk file, relative to SDK_PATH")
     parser.add_argument("--destination", required=True, help="New instrument directory, relative to SDK_PATH")
     args = parser.parse_args()
     try:
@@ -78,6 +78,7 @@ def main() -> int:
         print(f"Cannot copy instrument: {error}", file=sys.stderr)
         return 1
     print(f"Copied instrument to {config.parent}")
+    print(f"CFG={config}")
     print(f"NAME := {config.parent.name}")
     return 0
 

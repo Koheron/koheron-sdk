@@ -118,8 +118,8 @@ the spectrum is empty; an existing reference is retained.
 instrument and the phase-noise analyzer. To build and deploy PNA separately:
 
 ```sh
-make CFG=examples/red-pitaya/phase-noise-analyzer/config.mk N_CPUS=4
-make CFG=examples/red-pitaya/phase-noise-analyzer/config.mk run HOST=192.168.1.84
+make CFG=examples/red-pitaya/phase-noise-analyzer/stemlab-125-14.mk N_CPUS=4
+make CFG=examples/red-pitaya/phase-noise-analyzer/stemlab-125-14.mk run HOST=192.168.1.84
 ```
 
 Open the board's instrument page and select ADC0. Set the nominal LO to the
@@ -296,7 +296,7 @@ PNA_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh \
     bash examples/red-pitaya/phase-noise-analyzer/tests/run-fpga.sh
 .venv/bin/python3 examples/alpha250/phase-noise-analyzer/tests/check_cartesian_precision.py
 vivado -mode batch -source examples/red-pitaya/phase-noise-analyzer/tests/check_fpga.tcl \
-    -tclargs tmp/examples/red-pitaya/phase-noise-analyzer/fpga/phase-noise-analyzer.xpr
+    -tclargs tmp/examples/red-pitaya/phase-noise-analyzer/stemlab-125-14/fpga/phase-noise-analyzer.xpr
 ```
 
 ### Live sample coverage

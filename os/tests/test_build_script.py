@@ -79,8 +79,8 @@ with pathlib.Path({str(self.calls)!r}).open('a') as stream:
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = self.assert_jobs(6)
         self.assertEqual(len(calls), 2)
-        self.assertIn('CFG=examples/red-pitaya-pro-gen2/phase-noise-analyzer/config.mk', calls[0])
-        self.assertIn('CFG=examples/red-pitaya-pro-gen2/fft/config.mk', calls[1])
+        self.assertIn('CFG=examples/red-pitaya/phase-noise-analyzer/stemlab-125-14-pro-gen2.mk', calls[0])
+        self.assertIn('CFG=examples/red-pitaya/fft/stemlab-125-14-pro-gen2.mk', calls[1])
         self.assertIn('COPY_INSTRUMENTS=phase-noise-analyzer', calls[1])
 
     def test_invalid_job_limits_fail_before_building(self):

@@ -14,7 +14,7 @@ from koheron import check, doctor
 from koheron.diagnostics import Reporter
 
 SDK = Path(__file__).resolve().parents[2]
-CFG = 'examples/red-pitaya/fft/config.mk'
+CFG = 'examples/red-pitaya/fft/stemlab-125-14.mk'
 
 
 class MakeWorkflowTest(unittest.TestCase):

@@ -28,10 +28,17 @@ def relative_posix(path: Path, root: Path) -> str:
     return path.relative_to(root).as_posix()
 
 
+def find_configs(sdk_path: Path) -> list[Path]:
+    """Discover legacy configs and STEMlab selectors, excluding fragments."""
+    return sorted(path for path in (sdk_path / "examples").rglob("*.mk")
+                  if path.name == "config.mk" or
+                  (path.name.startswith("stemlab-") and "BOARD_PATH" in parse_config(path)))
+
+
 def list_examples(sdk_path: Path) -> None:
-    """Print all example instruments found under examples/*/*/config.mk."""
+    """Print selectable instrument configurations, including board selectors."""
     sdk_path = sdk_path.resolve()
-    config_paths = sorted((sdk_path / "examples").glob("*/*/config.mk"))
+    config_paths = find_configs(sdk_path)
 
     print("Available example instruments:")
     print()
@@ -42,6 +49,8 @@ def list_examples(sdk_path: Path) -> None:
 
     for config_path in config_paths:
         instrument_path = config_path.parent.relative_to(sdk_path / "examples").as_posix()
+        if config_path.name != "config.mk":
+            instrument_path += f" [{config_path.stem}]"
         values = parse_config(config_path)
 
         print(f"  {instrument_path}")
@@ -62,9 +71,15 @@ def main() -> None:
         default=".",
         help="Path to the Koheron SDK repository root (default: current directory).",
     )
+    parser.add_argument("--configs", action="store_true",
+                        help="Print only selectable configuration paths, for checks and CI")
     args = parser.parse_args()
-
-    list_examples(Path(args.sdk_path))
+    sdk_path = Path(args.sdk_path)
+    if args.configs:
+        for path in find_configs(sdk_path):
+            print(path.as_posix())
+    else:
+        list_examples(sdk_path)
 
 
 if __name__ == "__main__":
