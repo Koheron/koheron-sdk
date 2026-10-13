@@ -1,0 +1,9 @@
+# Libmetal owns the SPI mapping. The SDK MemoryManager has no regions to open.
+# These parameters still generate the shared Tcl and C++ hardware description.
+memory: []
+parameters:
+  fclk0: 50000000
+  spi_addr: 0x41E0_0000
+  spi_range: 0x10000
+  spi_fifo_depth: 16
+  spi_clock_ratio: 16
