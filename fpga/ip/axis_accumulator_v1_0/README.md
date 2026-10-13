@@ -247,5 +247,5 @@ To reproduce the strict full FPGA builds with Vivado 2025.1:
 make fpga CFG=examples/alpha250/fft/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
 make fpga CFG=examples/alpha250-4/fft/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
 make fpga CFG=examples/alpha15/signal-analyzer/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
-make fpga CFG=examples/red-pitaya/fft/config.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
+make fpga CFG=examples/red-pitaya/fft/stemlab-125-14.mk VIVADO_VERSION=2025.1 ENFORCE_TIMING=1 N_CPUS=4
 ```

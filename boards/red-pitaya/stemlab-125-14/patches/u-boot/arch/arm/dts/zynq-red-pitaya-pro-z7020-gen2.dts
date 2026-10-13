@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0+
+#include "zynq-red-pitaya-gen2-common.dtsi"
+
+/ {
+    model = "STEMlab 125-14 PRO Z7020 Gen 2";
+    compatible = "redpitaya,red-pitaya-pro-z7020-gen2", "xlnx,zynq-7000";
+    memory@0 {
+        /* Keep boot allocations below the last 512 MiB reserved for DMA. */
+        reg = <0x00000000 0x20000000>;
+    };
+};

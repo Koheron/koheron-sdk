@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0+
+#include "zynq-red-pitaya-gen2-common.dtsi"
+
+/ {
+    model = "STEMlab 125-14 Gen 2";
+    compatible = "redpitaya,red-pitaya-gen2", "xlnx,zynq-7000";
+};

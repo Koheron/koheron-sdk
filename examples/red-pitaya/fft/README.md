@@ -1,6 +1,12 @@
 # Red Pitaya FFT
 
-Build with `make CFG=examples/red-pitaya/fft/config.mk`. Requires a V1 OS image.
+Build with `make CFG=examples/red-pitaya/fft/stemlab-125-14.mk`. Requires a V1 OS image.
+
+For Gen 2 models, select `stemlab-125-14-gen2.mk`, `stemlab-125-14-pro-gen2.mk`
+or `stemlab-125-14-pro-z7020-gen2.mk` in this directory. All four board
+selectors include `common.mk` and share the FPGA, drivers and web interface.
+Each selector has a separate build directory under `tmp/examples/red-pitaya/fft/`.
+Gen 2 selectors use nominal LV-input calibration until the board is calibrated.
 
 The 125 MS/s, 14-bit ADC instrument uses a 2048-point FFT. Its interface shares
 `web/fft` with ALPHA250: the workspace, acquisition controls, plotting, history,
@@ -23,7 +29,7 @@ incomplete, so passing the internal timing check is not full board I/O signoff.
 Build with timing enforcement enabled:
 
 ```sh
-make CFG=examples/red-pitaya/fft/config.mk VIVADO_VERSION=2026.1 ENFORCE_TIMING=1 fpga
+make CFG=examples/red-pitaya/fft/stemlab-125-14.mk VIVADO_VERSION=2026.1 ENFORCE_TIMING=1 fpga
 ```
 
 Two DAC channels use the same DDS/PM IP, board driver and generator widget as

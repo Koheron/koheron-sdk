@@ -247,8 +247,9 @@ inspect_outputs:
 inspect_settings:
 \t@printf '%s\\n' $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(FPGA_TIMING_STAMP) $(CORE_SOURCE_STAMPS)
 ''')
+                selector = 'stemlab-125-14.mk' if instrument.startswith('red-pitaya/') else 'config.mk'
                 cmd = ['make', '--no-print-directory', '-f', 'Makefile', '-f', str(harness),
-                       f'CFG=examples/{instrument}/config.mk', f'TMP={tmp}/build',
+                       f'CFG=examples/{instrument}/{selector}', f'TMP={tmp}/build',
                        f'PYTHON_REQUIREMENTS_STAMP={tmp}/requirements.stamp']
                 env = dict(os.environ, MAKEFLAGS='', MFLAGS='')
                 settings = []
@@ -268,6 +269,9 @@ inspect_settings:
                     path.touch()
                 self.assertIn("Nothing to be done", run('-n', 'fpga'))
                 board = instrument.split('/')[0]
+                board_directory = f'boards/{board}'
+                if board == 'red-pitaya':
+                    board_directory += '/stemlab-125-14'
                 cases = {
                     'make.py': True,
                     'server/__init__.py': True,
@@ -275,7 +279,7 @@ inspect_settings:
                     'fpga/lib/utilities.tcl': True,
                     'fpga/vivado/block_design.tcl': True,
                     'fpga/lib/dependencies.mk': True,
-                    f'boards/{board}/config/board_preset.tcl': True,
+                    f'{board_directory}/config/board_preset.tcl': True,
                     'fpga/lib/pna_cordic.tcl': kind == 'pna',
                     'fpga/lib/pna_post_route.tcl': 'impl' if kind == 'pna' else False,
                     'fpga/lib/power_spectral_density.tcl': instrument in ('red-pitaya/fft', 'alpha250/fft'),
@@ -286,8 +290,10 @@ inspect_settings:
                     'web/plot-references/references.ts': False,
                 }
                 if board == 'red-pitaya':
-                    cases['boards/red-pitaya/config/ports.tcl'] = True
+                    cases['boards/red-pitaya/stemlab-125-14/config/ports.tcl'] = True
                     cases['fpga/lib/redp_adc_dac.tcl'] = True
+                    if kind in ('fft', 'pna'):
+                        cases[f'examples/{instrument}/common.mk'] = True
                 if kind in ('fft', 'pna') and instrument != 'alpha15/signal-analyzer':
                     cases['fpga/cores/latched_mux_v1_0/latched_mux_tb.v'] = False
                     cases['fpga/cores/latched_mux_v1_0/latched_mux.v'] = True

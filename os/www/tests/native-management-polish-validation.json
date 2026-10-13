@@ -34,7 +34,7 @@
   "build_checks": {
     "ui_regressions": 36,
     "typescript_build": "passed",
-    "red_pitaya_management_assets": "make CFG=examples/red-pitaya/fft/config.mk www passed"
+    "red_pitaya_management_assets": "make CFG=examples/red-pitaya/fft/stemlab-125-14.mk www passed"
   },
   "hardware": {
     "board": "red-pitaya",

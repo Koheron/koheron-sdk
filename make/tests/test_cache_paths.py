@@ -21,15 +21,34 @@ class CachePathTest(unittest.TestCase):
     def test_equivalent_relative_config_paths_share_a_safe_cache(self):
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / 'cache'
-            cfg = 'examples/red-pitaya/led-blinker/config.mk'
+            cfg = 'examples/red-pitaya/led-blinker/stemlab-125-14.mk'
             alternate = f'../{SDK.name}/{cfg}'
             paths = []
             for selection in (cfg, alternate, str(SDK / cfg)):
                 values = json.loads(self.make('info', f'CFG={selection}',
                                               f'TMP={cache}', 'FORMAT=json').stdout)['settings']
                 paths.append(values['INSTRUMENT_ZIP'])
-            self.assertEqual(paths, [str(cache / 'examples/red-pitaya/led-blinker/led-blinker.zip')] * 3)
+            self.assertEqual(paths, [str(cache / 'examples/red-pitaya/led-blinker/stemlab-125-14/led-blinker.zip')] * 3)
             self.assertFalse(cache.exists())
+
+    def test_board_selectors_have_separate_artifacts_and_clean_targets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / 'cache'
+            selections = [f'examples/red-pitaya/fft/{board}.mk'
+                          for board in ('stemlab-125-14', 'stemlab-125-14-pro-gen2')]
+            values = [json.loads(self.make('info', f'CFG={cfg}', f'TMP={cache}',
+                                          'FORMAT=json').stdout)['settings'] for cfg in selections]
+            self.assertEqual([value['BOARD'] for value in values], ['red-pitaya', 'red-pitaya-pro-gen2'])
+            self.assertEqual(values[0]['MEMORY_YML'], values[1]['MEMORY_YML'])
+            for artifact in ('BITSTREAM', 'SERVER', 'INSTRUMENT_ZIP', 'RELEASE_ZIP'):
+                self.assertNotEqual(values[0][artifact], values[1][artifact])
+            paths = [Path(value['INSTRUMENT_ZIP']) for value in values]
+            for path in paths:
+                path.parent.mkdir(parents=True)
+                path.write_text('cached')
+            self.make('clean', f'CFG={selections[0]}', f'TMP={cache}')
+            self.assertFalse(paths[0].exists())
+            self.assertEqual(paths[1].read_text(), 'cached')
 
     def test_external_config_clean_stays_within_cache_and_rejects_override_escape(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -38,7 +57,7 @@ class CachePathTest(unittest.TestCase):
             config_dir.mkdir()
             config = config_dir / 'config.mk'
             config.write_text('NAME := external\nVERSION := 0.1\n'
-                              f'BOARD_PATH := {SDK}/boards/red-pitaya\n')
+                              f'BOARD_PATH := {SDK}/boards/red-pitaya/stemlab-125-14\n')
             relative_cfg = os.path.relpath(config, SDK)
             cache = root / 'cache'
             values = json.loads(self.make('info', f'CFG={relative_cfg}',

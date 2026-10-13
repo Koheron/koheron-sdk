@@ -65,7 +65,7 @@ presets, see [OS image builds](../os/README.md#building-and-flashing).
 ## Deployment and logs
 
 ```sh
-make deploy CFG=examples/red-pitaya/fft/config.mk HOST=192.168.1.100
+make deploy CFG=examples/red-pitaya/fft/stemlab-125-14.mk HOST=192.168.1.100
 make status HOST=192.168.1.100 FORMAT=json
 make logs HOST=192.168.1.100
 ```

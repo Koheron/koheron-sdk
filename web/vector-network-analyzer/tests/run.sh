@@ -16,8 +16,8 @@ docker run --rm -v "$PWD:/work" -w /work koheron-web:node24 \
     node --test "web/vector-network-analyzer/tests/test_model.cjs" "web/vector-network-analyzer/tests/test_processor.cjs" \
     "web/tests/test_websocket_pool.cjs"
 if [[ ${1:-} == --red-pitaya ]]; then
-    make "${make_args[@]}" CFG=examples/red-pitaya/vector-network-analyzer/config.mk web
-    red_output=tmp/examples/red-pitaya/vector-network-analyzer
+    make "${make_args[@]}" CFG=examples/red-pitaya/vector-network-analyzer/stemlab-125-14.mk web
+    red_output=tmp/examples/red-pitaya/vector-network-analyzer/stemlab-125-14
     "$output/test-plan" 500 55000000 .25 -6 125000000 > "$red_output/test-plan.json"
     "$output/test-plan" 500 55000000 .1 -6 125000000 > "$red_output/test-plan-short.json"
     "$output/test-plan" 1000000 5500000 .02 -6 125000000 > "$red_output/test-plan-narrow.json"

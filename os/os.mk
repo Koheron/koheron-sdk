@@ -92,15 +92,19 @@ $(UBOOT_SELECTION_STAMP): compiler-settings-force
 	@mkdir -p "$(@D)"
 	@selection_tmp=$$(mktemp "$@.tmp.XXXXXX"); \
 	trap 'rm -f "$$selection_tmp"' EXIT; \
-	printf '%s\n' 'TAG=$(UBOOT_TAG)' 'PATH=$(UBOOT_PATH)' 'CONFIG=$(UBOOT_CONFIG)' > "$$selection_tmp"; \
+	printf '%s\n' 'TAG=$(UBOOT_TAG)' 'PATH=$(UBOOT_PATH)' 'CONFIG=$(UBOOT_CONFIG)' 'FRAGMENTS=$(UBOOT_CONFIG_FRAGMENTS)' > "$$selection_tmp"; \
 	if ! cmp -s "$$selection_tmp" "$@"; then mv -f "$$selection_tmp" "$@"; fi
 
-$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE) $(UBOOT_COMPILER_STAMP) $(UBOOT_SELECTION_STAMP) $(OS_PATH)/scripts/patch_uboot.sh
+$(UBOOT_CONFIG_STAMP): $(UBOOT_PATH)/.unpacked $(UBOOT_PATCH_FILES) $(UBOOT_CONFIG_FILE) $(UBOOT_CONFIG_FRAGMENTS) $(UBOOT_COMPILER_STAMP) $(UBOOT_SELECTION_STAMP) $(OS_PATH)/scripts/patch_uboot.sh
 	cp -a $(PATCHES)/${UBOOT_CONFIG} $(UBOOT_PATH)/ 2>/dev/null || true
 	cp -a $(PATCHES)/u-boot/. $(UBOOT_PATH)/ 2>/dev/null || true
 	bash $(OS_PATH)/scripts/patch_uboot.sh $(UBOOT_PATH)
 	$(DOCKER) make -C $(UBOOT_PATH) mrproper
 	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) $(UBOOT_TOOLCHAIN_FLAGS) $(UBOOT_CONFIG)
+ifneq ($(strip $(UBOOT_CONFIG_FRAGMENTS)),)
+	cd $(UBOOT_PATH) && scripts/kconfig/merge_config.sh -m .config $(abspath $(UBOOT_CONFIG_FRAGMENTS))
+	$(DOCKER) make -C $(UBOOT_PATH) ARCH=$(UBOOT_ARCH) $(UBOOT_TOOLCHAIN_FLAGS) olddefconfig
+endif
 	@touch $@
 	$(call ok,$@)
 
@@ -284,7 +288,7 @@ $(eval $(call build_settings_stamp,$(LINUX_SELECTION_STAMP),\
     $$(call build_shell_quote,KERNEL=$$(KERNEL_BIN)) \
     $$(call build_shell_quote,OVERLAY=$$(BOARD_DTSO))))
 
-$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) $(LINUX_SELECTION_STAMP) | $(TMP_OS_PATH)/board-overlay/
+$(TMP_OS_PATH)/board-overlay/board.dtso: $(BOARD_DTSO) $(BOARD_DTSO_DEPS) $(LINUX_SELECTION_STAMP) | $(TMP_OS_PATH)/board-overlay/
 	cp $< $@
 	$(call ok,$@)
 
@@ -300,6 +304,7 @@ endif
 $(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP) $(LINUX_SELECTION_STAMP)
 	# Preprocess so #include <dt-bindings/...> works
 	$(DOCKER) $(OS_HOSTCC) -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
+	  -I $(SDK_PATH) \
 	  -I $(LINUX_PATH)/include \
 	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts \
 	  -I $(LINUX_PATH)/arch/$(ARCH)/boot/dts/xilinx \

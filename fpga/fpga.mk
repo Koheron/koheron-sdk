@@ -102,7 +102,7 @@ export XDC
 export VENV
 export BD_TCL
 
-$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(MEMORY_TCL) $(PROJECT_TCL_FILES) $(PROJECT_HDL_FILES) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK) $(BOARD_MK) $(FPGA_PATH)/lib/dependencies.mk $(FPGA_PATH)/vivado/block_design.tcl $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
+$(TMP_FPGA_PATH)/$(NAME).xpr.stamp: $(FPGA_PROJECT_STAMP) $(FPGA_TOOL_STAMP) $(MEMORY_TCL) $(PROJECT_TCL_FILES) $(PROJECT_HDL_FILES) $(CORES_COMPONENT_XML) $(XDC) $(CONFIG_MK_DEPS) $(BOARD_MK) $(FPGA_PATH)/lib/dependencies.mk $(FPGA_PATH)/vivado/block_design.tcl $(FPGA_PATH)/vivado/project.tcl | $(TMP_FPGA_PATH)/
 	$(VIVADO_BATCH) -source $(FPGA_PATH)/vivado/project.tcl 2>&1 | $(VIVADO_FILTER)
 	touch $@
 	$(call ok,$@)

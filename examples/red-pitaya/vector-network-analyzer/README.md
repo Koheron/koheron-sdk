@@ -25,15 +25,15 @@ tradeoffs and timing readouts.
 Build from the SDK root:
 
 ```sh
-make doctor validate CFG=examples/red-pitaya/vector-network-analyzer/config.mk
-make -j8 CFG=examples/red-pitaya/vector-network-analyzer/config.mk N_CPUS=8
-make CFG=examples/red-pitaya/vector-network-analyzer/config.mk HOST=192.168.1.84 run
+make doctor validate CFG=examples/red-pitaya/vector-network-analyzer/stemlab-125-14.mk
+make -j8 CFG=examples/red-pitaya/vector-network-analyzer/stemlab-125-14.mk N_CPUS=8
+make CFG=examples/red-pitaya/vector-network-analyzer/stemlab-125-14.mk HOST=192.168.1.84 run
 ```
 
 Select `VIVADO_VERSION=2026.1` when using the development host's installed tools.
 `make run` streams logs; Ctrl+C leaves the instrument running. The board needs a
 V1 OS image with the 128 MiB DMA reservation at `0x18000000` marked `no-map`.
-The package is `tmp/examples/red-pitaya/vector-network-analyzer/vector-network-analyzer.zip`.
+The package is `tmp/examples/red-pitaya/vector-network-analyzer/stemlab-125-14/vector-network-analyzer.zip`.
 
 Open the board's root page for live operation. `?demo=1` explicitly selects
 synthetic data. Sessions, calibrations and reference files are kept separate

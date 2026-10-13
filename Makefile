@@ -156,6 +156,10 @@ PROJECT_CACHE_PATH := $(patsubst $(SDK_FULL_PATH)/%,%,$(PROJECT_CANONICAL_PATH))
 else
 PROJECT_CACHE_PATH := .external/$(shell printf '%s' $(call build_shell_quote,$(PROJECT_CANONICAL_PATH)) | sha256sum | cut -d' ' -f1)
 endif
+ifneq ($(notdir $(CONFIG_MK)),config.mk)
+# Board selectors share sources but must keep generated hardware/software apart.
+PROJECT_CACHE_PATH := $(PROJECT_CACHE_PATH)/$(basename $(notdir $(CONFIG_MK)))
+endif
 TMP_PROJECT_PATH := $(TMP)/$(PROJECT_CACHE_PATH)
 TMP_OS_PATH := $(TMP_PROJECT_PATH)/os
 
@@ -176,6 +180,8 @@ SERVER := $(TMP_PROJECT_PATH)/serverd
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
 include $(CONFIG_MK)
+# Shared instrument fragments participate in FPGA project rebuilds.
+CONFIG_MK_DEPS := $(MAKEFILE_LIST)
 
 MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl

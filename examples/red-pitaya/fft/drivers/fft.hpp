@@ -3,7 +3,7 @@
 #include "fft-board.hpp"
 #include "server/drivers/fft/core.hpp"
 #include <tuple>
-#include "boards/red-pitaya/drivers/phase-modulator.hpp"
+#include "boards/red-pitaya/stemlab-125-14/drivers/phase-modulator.hpp"
 
 // Keep the public method order and response shapes stable for existing clients.
 class FFT {

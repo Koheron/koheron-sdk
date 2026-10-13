@@ -236,7 +236,7 @@ class ManagementCliTest(unittest.TestCase):
         version.write_text('0.3.0\n')
         manifest.write_text(json.dumps({'board': 'red-pitaya'}))
         result = subprocess.run(['make', '--no-print-directory', 'deploy',
-            'CFG=examples/red-pitaya/fft/config.mk', f'HOST={self.host}', 'FORMAT=json',
+            'CFG=examples/red-pitaya/fft/stemlab-125-14.mk', f'HOST={self.host}', 'FORMAT=json',
             f'TMP={self.archive.parent}/cache', f'INSTRUMENT_ZIP={self.archive}',
             f'INSTRUMENT_FILES={version} {manifest}'],
             cwd=SDK, text=True, capture_output=True, timeout=10)
@@ -312,7 +312,7 @@ class ManagementCliTest(unittest.TestCase):
             with self.subTest(action=action):
                 args = ['make', '--no-print-directory', '-n', action, f'HOST={self.host}']
                 if action == 'deploy':
-                    args += ['CFG=examples/red-pitaya/fft/config.mk', f'INSTRUMENT_ZIP={self.archive}',
+                    args += ['CFG=examples/red-pitaya/fft/stemlab-125-14.mk', f'INSTRUMENT_ZIP={self.archive}',
                              f'TMP={self.archive.parent}/cache', 'INSTRUMENT_FILES=']
                 env = {key: value for key, value in os.environ.items() if key not in ('TIMEOUT', 'MAKEFLAGS', 'MFLAGS')}
                 result = subprocess.run(args, cwd=SDK, env=env, text=True, capture_output=True, timeout=10)

@@ -14,7 +14,7 @@ from koheron import check, doctor
 from koheron.diagnostics import Reporter
 
 SDK = Path(__file__).resolve().parents[2]
-CFG = 'examples/red-pitaya/fft/config.mk'
+CFG = 'examples/red-pitaya/fft/stemlab-125-14.mk'
 
 
 class MakeWorkflowTest(unittest.TestCase):
@@ -147,9 +147,10 @@ class LocalCheckTest(unittest.TestCase):
     def test_failed_host_check_preserves_diagnostic_output(self):
         reporter = Reporter(format='json')
         with patch.dict(os.environ, {'CFG': CFG, 'HOST': 'example.invalid', 'TIMEOUT': '0.01',
-                                     'ENFORCE_TIMING': '1'}):
+                                     'ENFORCE_TIMING': '1', 'BOARD_PATH': '/selected/board',
+                                     'VIVADO_VERSION': '2026.1'}):
             check.run_check(reporter, 'failing fixture', [sys.executable, '-c',
-                'import os, sys; assert not any(key in os.environ for key in ("CFG", "HOST", "TIMEOUT", "ENFORCE_TIMING")); '
+                'import os, sys; assert not any(key in os.environ for key in ("CFG", "BOARD_PATH", "VIVADO_VERSION", "HOST", "TIMEOUT", "ENFORCE_TIMING")); '
                 'print("specific failure", file=sys.stderr); sys.exit(9)'], SDK)
         self.assertEqual(reporter.errors, 1)
         self.assertEqual(reporter.checks[0]['output'], 'specific failure')

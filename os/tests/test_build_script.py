@@ -64,8 +64,31 @@ with pathlib.Path({str(self.calls)!r}).open('a') as stream:
         result = self.run_build('--all', N_CPUS='3')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = self.assert_jobs(3)
-        expected = len(list((SDK / 'boards').glob('*/build_image.conf')))
+        expected = len(list((SDK / 'boards').rglob('build_image.conf')))
         self.assertEqual(sum('image' in args for args in calls), expected)
+
+    def test_nested_red_pitaya_targets_remain_available(self):
+        result = self.run_build('--list')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        targets = result.stdout.splitlines()
+        for target in ('red-pitaya', 'red-pitaya-gen2', 'red-pitaya-pro-gen2',
+                       'red-pitaya-pro-z7020-gen2'):
+            self.assertEqual(targets.count(target), 1)
+        self.assertFalse(self.calls.exists())
+        for target, selector in (
+                ('red-pitaya', 'stemlab-125-14'),
+                ('red-pitaya-gen2', 'stemlab-125-14-gen2'),
+                ('red-pitaya-pro-gen2', 'stemlab-125-14-pro-gen2'),
+                ('red-pitaya-pro-z7020-gen2', 'stemlab-125-14-pro-z7020-gen2')):
+            with self.subTest(target=target):
+                self.calls.unlink(missing_ok=True)
+                result = self.run_build(target)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                calls = self.assert_jobs(6)
+                self.assertEqual(len(calls), 2)
+                self.assertIn(f'CFG=examples/red-pitaya/phase-noise-analyzer/{selector}.mk', calls[0])
+                self.assertIn(f'CFG=examples/red-pitaya/fft/{selector}.mk', calls[1])
+                self.assertIn('COPY_INSTRUMENTS=phase-noise-analyzer', calls[1])
 
     def test_invalid_job_limits_fail_before_building(self):
         for value in ('0', '-1', 'infinite', '1.5'):

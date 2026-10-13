@@ -1,0 +1,16 @@
+VERSION := 0.1.1
+
+
+MEMORY_YML = $(PROJECT_PATH)/memory.yml
+
+XDC += $(PROJECT_PATH)/constraints.xdc
+
+CORES += $(SDK_PATH)/fpga/cores/axi_ctl_register_v1_0
+CORES += $(SDK_PATH)/fpga/cores/axi_sts_register_v1_0
+
+DRIVERS += $(SDK_PATH)/boards/red-pitaya/stemlab-125-14/drivers/common.hpp
+DRIVERS += $(PROJECT_PATH)/led_blinker.hpp
+
+WEB_FILES += $(SDK_PATH)/web/led-blinker.ts
+WEB_FILES += $(PROJECT_PATH)/web/index.html
+WEB_FILES += $(PROJECT_PATH)/web/app.ts
