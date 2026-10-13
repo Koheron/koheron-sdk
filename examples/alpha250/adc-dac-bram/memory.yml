@@ -18,6 +18,7 @@ memory:
     range: 4K
     registers:
     - adc[n_adc]
+    - capture_complete
   - name: ps_status
     offset: 0x5400_0000
     range: 4K

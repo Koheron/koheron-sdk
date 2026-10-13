@@ -2,8 +2,8 @@
 
 // Simple counter for BRAM addressing
 //
-// Write enable is set to 1 for one cycle
-// after a rising edge is detected on the trigger
+// A trigger queues one complete buffer, starting at the next address wrap.
+// capture_complete toggles on the clock edge that writes the final sample.
 
 module address_counter #
 (
@@ -14,7 +14,8 @@ module address_counter #
   input  wire trig, // Trigger
   input  wire clk,
   output wire [31:0] address,
-  output wire [3:0] wen // Write enable
+  output wire [3:0] wen, // Write enable
+  output reg capture_complete
 );
 
   localparam count_max = (1 << COUNT_WIDTH) - 1;
@@ -26,15 +27,17 @@ module address_counter #
   reg [COUNT_WIDTH-1:0] count;
 
   initial count = 0;
+  initial trig_reg = 0;
   initial trig_detected = 0;
   initial wen_reg = 0;
+  initial capture_complete = 0;
 
   always @(posedge clk) begin
     trig_reg <= trig;
     // Rising edge detection
     if (trig & ~trig_reg) begin
         trig_detected <= 1;
-    end else if (count == count_max) begin
+    end else if (clken && count == count_max) begin
         trig_detected <= 0;
     end
   end
@@ -62,11 +65,12 @@ module address_counter #
 
   always @(posedge clk) begin
     if (clken && count == count_max) begin
+      if (wen_reg) capture_complete <= ~capture_complete;
       wen_reg <= trig_detected;
     end
   end
 
   assign address = count << 2;
-  assign wen = {4{wen_reg}};
+  assign wen = {4{wen_reg && clken}};
 
 endmodule
