@@ -176,6 +176,8 @@ SERVER := $(TMP_PROJECT_PATH)/serverd
 VERSION_FILE := $(TMP_PROJECT_PATH)/version
 
 include $(CONFIG_MK)
+# Shared instrument fragments participate in FPGA project rebuilds.
+CONFIG_MK_DEPS := $(MAKEFILE_LIST)
 
 MEMORY_YML ?= $(PROJECT_PATH)/memory.yml
 BD_TCL ?= $(PROJECT_PATH)/block_design.tcl

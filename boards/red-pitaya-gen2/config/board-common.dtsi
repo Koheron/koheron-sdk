@@ -1,0 +1,111 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			model = RED_PITAYA_MODEL;
+			compatible = RED_PITAYA_COMPATIBLE, "xlnx,zynq-7000";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			usb_phy0: phy@e0002000 {
+				#phy-cells = <0>;
+				compatible = "ulpi-phy";
+				reg = <0xe0002000 0x1000>;
+				view-port = <0x0170>;
+				drv-vbus;
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			memory@0 {
+				device_type = "memory";
+				reg = <0x00000000 RED_PITAYA_MEMORY_SIZE>;
+			};
+
+			reserved-memory {
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges;
+
+				cma_pool_ddr: cma@18000000 {
+					compatible = "shared-dma-pool";
+					reg = <0x18000000 0x08000000>;   // 128 MiB SDK DMA pool
+					linux,cma;
+					reusable;
+					alignment = <0x100000>;          // 1 MiB alignment
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&i2c0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			eeprom@50 {
+				compatible = "atmel,24c64", "at24";
+				size = <8192>;
+				pagesize = <32>;
+				reg = <0x50>;
+			};
+		};
+	};
+
+	fragment@3 {
+		target = <&spi0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			spidev@0 {
+				compatible = "rohm,dh2228fv";
+				reg = <0x0>;
+				spi-max-frequency = <10000000>;
+			};
+		};
+	};
+
+	fragment@4 {
+		target = <&spi1>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			spidev@0 {
+				compatible = "rohm,dh2228fv";
+				reg = <0x0>;
+				spi-max-frequency = <10000000>;
+			};
+		};
+	};
+
+	fragment@5 {
+		target = <&gem0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			phy-handle = <&ethernet_phy>;
+			ethernet_phy: ethernet-phy@1 {
+				reg = <1>;
+			};
+		};
+	};
+
+	fragment@6 {
+		target = <&usb0>;
+		__overlay__ {
+			dr_mode = "host";
+			usb-phy = <&usb_phy0>;
+			xlnx,phy-reset-gpio = <&gpio0 48 0>;
+		};
+	};
+
+};

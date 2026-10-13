@@ -50,6 +50,7 @@ board support or default instrument changes.
 - [FPGA builds](fpga/README.md): bitstream and timing commands.
 - [OS images](os/README.md): image builds and installation.
 - [Board management](os/api/README.md): runtime API, status, logs and web interface.
+- [Red Pitaya Gen2 boards](boards/red-pitaya-gen2/README.md): board variants and bring-up.
 - [Build compilers](docker/README.md): Docker builders and compiler settings.
 
 ## Staying on 0.x

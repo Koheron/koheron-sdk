@@ -356,7 +356,15 @@ def main(argv: list[str] | None = None) -> int:
     cfg = MakeConfig(sdk_path, config_mk)
     cfg.parse()
     validate_config(reporter, cfg)
-    validate_memory(reporter, args.memory_yml or config_mk.parent / 'memory.yml')
+    if args.memory_yml is not None:
+        validate_memory(reporter, args.memory_yml)
+    else:
+        memory_value = cfg.variables.get('MEMORY_YML', str(config_mk.parent / 'memory.yml'))
+        memory_yml = cfg.resolve_path(memory_value)
+        if memory_yml is None:
+            reporter.err(f'Cannot resolve MEMORY_YML: {memory_value}')
+        else:
+            validate_memory(reporter, memory_yml)
     return 1 if reporter.errors else 0
 
 
