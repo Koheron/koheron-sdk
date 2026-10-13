@@ -1,5 +1,17 @@
 source ${board_path}/starting_point.tcl
 
+# Keep the first sample delay on the ADC clock and move the second to the DAC
+# clock. Cross between fabric registers, before the tighter output pin register,
+# while preserving the existing two-cycle delay.
+current_bd_instance adc_dac
+for {set channel 0} {$channel < 2} {incr channel} {
+    delete_bd_objs [get_bd_cells Q_d2_noce_dac$channel]
+    set adc_stage [get_Q_pin dac$channel 1 noce mmcm/clk_out1 dac_delay_adc$channel]
+    set dac_stage [get_Q_pin $adc_stage 1 noce mmcm/clk_out2 dac_delay_dac$channel]
+    connect_pins selectio_dac$channel/data_out_from_device $dac_stage
+}
+current_bd_instance /
+
 # Register PS transactions before the AXI address decoder. The direct
 # PS-to-crossbar decode path does not meet the 200 MHz fabric clock.
 set_property CONFIG.S00_HAS_REGSLICE 1 [get_bd_cells axi_mem_intercon_0]
