@@ -1,0 +1,40 @@
+&uart_a {
+    compatible = "generic-uio";
+    linux,uio-name = "bist-uart-a";
+    linux,driver-override = "uio_pdrv_genirq";
+    interrupt-parent = <&intc>;
+    interrupts = <0 29 4>;
+};
+&uart_b {
+    compatible = "generic-uio";
+    linux,uio-name = "bist-uart-b";
+    linux,driver-override = "uio_pdrv_genirq";
+    interrupt-parent = <&intc>;
+    interrupts = <0 30 4>;
+};
+&dma {
+    compatible = "generic-uio";
+    linux,uio-name = "bist-dma";
+    interrupt-parent = <&intc>;
+    interrupts = <0 31 4>;
+    /delete-property/ interrupt-names;
+    linux,driver-override = "uio_pdrv_genirq";
+    /delete-node/ dma-channel@40400000;
+    /delete-node/ dma-channel@40400030;
+};
+
+&ctl_axi_ctl_register {
+    compatible = "generic-uio";
+    linux,uio-name = "bist-control";
+    linux,driver-override = "uio_pdrv_genirq";
+};
+&sts_axi_sts_register_0 {
+    compatible = "generic-uio";
+    linux,uio-name = "bist-status";
+    linux,driver-override = "uio_pdrv_genirq";
+};
+&xadc {
+    compatible = "generic-uio";
+    linux,uio-name = "bist-xadc";
+    linux,driver-override = "uio_pdrv_genirq";
+};

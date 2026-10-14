@@ -306,6 +306,26 @@ class Command
         }
     }
 
+    // Value replies can release the driver before a potentially blocked send.
+    // Borrowed views, references and unknown wrappers retain the lock.
+    template<class T>
+    static constexpr bool owns_reply_storage() {
+        using U = std::remove_cv_t<T>;
+        if constexpr (std::is_reference_v<T>) {
+            return false;
+        } else if constexpr (ut::ScalarLike<U> || std::is_same_v<U, std::string>) {
+            return true;
+        } else if constexpr (is_std_vector_v<U> || is_std_array_v<U>) {
+            return ut::ScalarLike<typename U::value_type>;
+        } else if constexpr (is_std_tuple_v<U>) {
+            return []<std::size_t... I>(std::index_sequence<I...>) {
+                return (owns_reply_storage<std::tuple_element_t<I, U>>() && ...);
+            }(std::make_index_sequence<std::tuple_size_v<U>>{});
+        } else {
+            return false;
+        }
+    }
+
     template<class Obj, class PMF>
     int op_invoke_impl(Obj&& obj, PMF pmf, std::mutex* mutex) {
         using traits     = pmf_traits<PMF>;
@@ -343,9 +363,12 @@ class Command
             invoke();
             return 0;
         } else {
-            // Keep borrowed return storage protected until transmission finishes.
-            // This preserves direct payload sends without a reply-sized snapshot.
             decltype(auto) r = invoke();
+            if constexpr (owns_reply_storage<Ret>()) {
+                if (lock.owns_lock()) { lock.unlock(); }
+            }
+            // Keep borrowed return storage protected until transmission finishes.
+            // Owned values stay alive here without blocking other driver calls.
             if constexpr (std::is_reference_v<Ret> &&
                           is_std_tuple_v<std::remove_cvref_t<Ret>>) {
                 // Even an rvalue-reference return refers to external storage.

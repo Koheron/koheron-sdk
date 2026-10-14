@@ -34,6 +34,8 @@ struct LockingInstrument {
         ++readers;
         return std::tuple{uint16_t{0xbeef}, std::vector<uint32_t>(data.begin(), data.begin() + 32768), uint32_t{0xabcdef01}};
     }
+    std::string get_owned_string() const { ++readers; return std::string(32768 * sizeof(uint32_t), char(0x33)); }
+    std::vector<uint32_t> get_owned_vector() const { ++readers; return data; }
     std::span<const uint32_t> get_span() const { ++readers; return data; }
     const std::array<uint32_t, 4>& get_array() const { return array; }
     std::span<const uint32_t, 4> get_fixed_span() const { return array; }
