@@ -1,17 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import numpy as np
-import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 import os
-import time
 
 from decimator import Decimator
 from koheron import connect
 
-host = os.getenv('HOST', '192.168.1.7')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'decimator')
 driver = Decimator(client)
 

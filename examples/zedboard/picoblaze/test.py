@@ -1,11 +1,10 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 from koheron import connect, command
 import os
 import subprocess
 
-class Picoblaze(object):
+class Picoblaze:
     def __init__(self, client):
         self.client = client
 
@@ -25,7 +24,7 @@ class Picoblaze(object):
     def get_output(self):
         return self.client.recv_uint32()
 
-host = os.getenv('HOST','192.168.1.23')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, name='picoblaze')
 driver = Picoblaze(client)
 
@@ -49,6 +48,5 @@ for i in range(100):
             driver.write_ram(4*j, (int(line, 16)))
 
     driver.set_input(2)
-    #driver.reset() # Restart picoblaze
     print(i, driver.get_output())
     assert(driver.get_output() == 2 + i)

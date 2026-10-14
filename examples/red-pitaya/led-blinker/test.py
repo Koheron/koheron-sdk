@@ -1,12 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 from koheron import connect
 import os
 import time
 from led_blinker import LedBlinker
 
-host = os.getenv('HOST','192.168.1.100')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, name='led-blinker')
 driver = LedBlinker(client)
 

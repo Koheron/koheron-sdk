@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 '''
 Measure the harmonic distortion (HD2 and HD3) of the DAC and ADC combined.
@@ -13,7 +12,7 @@ import matplotlib.pyplot as plt
 from fft import FFT
 from koheron import connect
 
-host = os.getenv('HOST', '192.168.1.16')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'fft', restart=False)
 driver = FFT(client)
 

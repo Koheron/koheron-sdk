@@ -1,14 +1,9 @@
-import numpy as np
-from scipy import signal
-import matplotlib
-# matplotlib.use('GTKAgg')
 from matplotlib import pyplot as plt
 import os
-import time
-from koheron import connect, command
+from koheron import connect
 from phase_noise_analyzer import PhaseNoiseAnalyzer
 
-host = os.getenv('HOST','192.168.1.42')
+host = os.getenv('HOST', '192.168.1.100')
 freq = 10e6
 cic_rate = 20
 channel = 1
@@ -25,7 +20,6 @@ ax = plt.subplot(111)
 ax.semilogx(f, psd_freq, linewidth=2)
 ax.set_xlabel("FREQUENCY (Hz)")
 ax.set_ylabel(u"PHASE NOISE (dBc/Hz)")
-# ax.set_ylim(30, 100)
 ax.set_xlim(1.0, 1E7)
 ax.grid(True, which='major', linestyle='-', linewidth=1.5, color='0.35')
 ax.grid(True, which='minor', linestyle='-', color='0.35')

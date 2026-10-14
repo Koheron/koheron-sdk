@@ -1,18 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import numpy as np
 import os
-import time
 from adc_dac_bram import AdcDacBram
 from koheron import connect
 
-import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-host = os.getenv('HOST', '192.168.1.43')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'adc-dac-bram', restart=False)
 driver = AdcDacBram(client)
 
@@ -46,7 +42,6 @@ ax.legend()
 fig.canvas.draw()
 
 i = 0
-
 
 
 while True:

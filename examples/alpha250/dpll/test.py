@@ -1,13 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import os
-import time
 from koheron import command, connect
-import matplotlib.pyplot as plt
-import numpy as np
 
-class Dpll(object):
+class Dpll:
     def __init__(self, client):
         self.client = client
 
@@ -53,23 +49,10 @@ class Dpll(object):
         pass
 
 
-
 if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.20')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, name='dpll')
     driver = Dpll(client)
 
-    #driver.set_reference_clock(2)
-    #driver.set_tcxo_clock(117)
-
     driver.set_reference_clock(0)
     # Keep the sampling frequency selected by the instrument.
-
-    #driver.set_dds_freq(0, 30e6)
-
-    #driver.set_p_gain(0, 0)
-    #driver.set_pi_gain(0, 0)
-    #driver.set_i2_gain(0, 0)
-    #driver.set_i3_gain(0, 0)
-
-    #driver.set_dds_freq(1, 30.00e6)
