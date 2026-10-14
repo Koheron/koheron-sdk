@@ -21,6 +21,7 @@ class Bist
     std::vector<uint32_t> benchmark_reply(uint32_t words);
     bool record_startup(double network_seconds, double server_seconds, double boot_seconds);
     bool record_lifecycle(double restart_seconds, bool recovered);
+    std::string get_boot_id();
 
   private:
     struct Impl;

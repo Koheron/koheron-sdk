@@ -10,8 +10,8 @@ and network throughput. The client orchestrates the run and retrieves results.
 
 ## Validation run
 
-A run begins with a reboot and ends with its report ready for retrieval in less
-than three minutes. It measures boot time, network readiness and server
+A run begins with a reboot and ends with its report ready for retrieval within
+30 seconds. It measures boot time, network readiness and server
 readiness, then runs isolated checks and a combined CPU/DMA/UART workload.
 Checks have bounded waits and retain partial results on failure or timeout.
 
@@ -104,23 +104,35 @@ make deploy CFG=examples/red-pitaya/bist/stemlab-125-14.mk HOST=192.168.1.84
 The client sets BIST as the boot instrument, reboots, waits for network and RPC
 readiness, runs the suite, then stops and starts the normal instrument service.
 The recovered server retains the report and verifies both UARTs and DMA again.
+The client verifies the new boot ID over RPC, so SSH is needed only to request
+the reboot. Completed measurements are downloaded before the service restart,
+so a later lifecycle failure still leaves the suite's report on the host.
 `BIST_SSH_PASSWORD` overrides the image's default root password; SSH keys also
 work. `--ssh-known-hosts FILE` selects a host-key file. Use `--no-reboot` for
 iteration without startup measurements. `--analog-mask` declares the connected
 cables: `1` for DAC0/ADC0, `2` for DAC1/ADC1, `3` for both, or `0` for neither.
 Unconnected channels record input noise and an explicit skipped result.
 
-Open `http://192.168.1.84/` for the scorecard and live log. The webpage uses the
+Open `http://192.168.1.84/` for run metadata, the scorecard and live log. The webpage uses the
 normal server's generated RPC methods over WebSocket. Closing it does not stop
 validation. Reports are stored at `/var/lib/koheron/bist/<run-id>/` as
 `report.json`, `scorecard.txt` and `log.txt`; the `latest` file identifies the
 most recent run. The client downloads the same files to `tmp/bist-results/`.
+The scorecard identifies the instrument and SDK versions, Ubuntu release,
+kernel, Koheron OS image/build/source and reference digests. JSON metadata
+includes structured `os`, `os_image` and `os_manifest` objects, with the raw
+OS release and instrument manifest retained. The webpage also exposes SDK
+source, boot ID, FPGA identity/DNA and build digests. These describe the saved
+run and remain available after a restart; absent fields display as unavailable.
 Every measurement is persisted after completion; an interrupted worker leaves
 its completed measurements available after service recovery.
 
 Use `--compare previous/report.json` to compare OS runs. Comparison rejects
 changed FPGA/server digests, BIST source identities, workload versions,
-parameters or cable declarations and lists missing measurements. Startup
+parameters or cable declarations and lists missing measurements. Comparisons
+also reject absent identities, even when both reports omit the
+same field. Null or non-finite measurement values are identified explicitly
+and have no ratio; zero reference values also have no ratio. Startup
 values identify their clock and origin; network readiness uses ICMP
 independently of HTTP or RPC. Network/server readiness includes reboot shutdown
 time, while boot readiness uses Linux monotonic uptime. DMA MB/s is payload
@@ -158,8 +170,16 @@ The isolated suite runs register/BRAM, DMA, UART, and generated RPC checks.
 The combined workload runs one 8 MiB CPU/memory worker concurrently with DMA,
 both UART workers and localhost RPC. Timed regions do not write report logs;
 combined-workload file writes wait until all timed workers finish.
-Request/reply uses persistent workers and one
-outstanding 32-byte frame.
+Request/reply uses persistent workers and one outstanding 32-byte frame.
+
+Workload version 2 uses 0.5 s for isolated DMA, 0.3 s for each isolated RPC
+benchmark, 1.0 s for combined DMA/load and 0.5 s for combined RPC. Payload sizes,
+descriptor counts and UART traffic are unchanged. Every DMA benchmark must
+complete at least two verified buffer generations. RPC I/O has a one-second
+bound and reports the failing protocol stage when communication fails. These
+fixed timings are recorded in report parameters; version-1 runs are identified
+as incompatible references.
+
 Cancellation is bounded by short IRQ waits; shutdown joins workers before
 releasing mappings. The instrument uses UIO and the OS write-combined driver;
 actual `/proc/self/maps` paths are reported, so SDK `/dev/mem` fallback fails
@@ -173,6 +193,8 @@ make check CFG=examples/red-pitaya/bist/stemlab-125-14.mk
 .venv/bin/python -m pytest -q examples/red-pitaya/bist/tests python/tests/test_client_timeout.py
 g++ -std=c++17 -Wall -Wextra -Werror examples/red-pitaya/bist/tests/test_measurements.cpp -o /tmp/bist-measurements
 /tmp/bist-measurements
+g++ -std=c++17 -Wall -Wextra -Werror examples/red-pitaya/bist/tests/test_metadata.cpp -o /tmp/bist-metadata
+/tmp/bist-metadata
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
 vivado -mode batch -source examples/red-pitaya/bist/tests/run_sim.tcl -tclargs tmp/bist-rtl
 .venv/bin/python examples/red-pitaya/bist/tests/hardware_checks.py --host 192.168.1.84
@@ -185,6 +207,24 @@ FPGA timing is enforced by the instrument configuration.
 
 ## Measured validation
 
+BIST 1.1.0 / workload 2 completed a full reboot validation on 2026-10-14 in
+28.325 s, including report download and service recovery. The onboard suite
+took 3.494 s. Isolated DMA completed seven verified buffer generations at
+493.0 MB/s; combined DMA completed four at 474.5 MB/s. The isolated RPC checks
+verified 1992 ping replies and 1582 bulk replies. Duplex UART measured
+91.586/91.583 kB/s aggregate, and DAC0/ADC0 measured a 52.12 dB
+tone-to-residual ratio. All 31 measurements were present, with no failed checks.
+The FPGA digest matches the original validated design.
+
+Five additional live runs passed with a maximum responsive ping of 45.3 ms.
+Missing-cable detection and shutdown during active transfers passed; stopping
+took 0.964 s and retained the partial report. Local checks passed 149 host
+tests, 52 BIST/Python checks and both C++ helper checks. Run metadata identifies
+instrument `bist` 1.1.0, SDK 1.0, Ubuntu 26.04.1 LTS, kernel `6.18.0-xilinx`
+and OS image build `20261010.144242.dc0ae370d0f7`.
+
+The original BIST 1.0.0 / workload-1 evidence below is retained for reference;
+comparison explicitly rejects it as a workload-2 baseline.
 On 2026-10-14, board `192.168.1.84` (STEMlab 125-14 Gen1, Ubuntu 26.04.1,
 Linux `6.18.0-xilinx`) completed run `1791936459949861` with all required
 measurements present, 18 headline metrics and no failed checks. DAC0 was

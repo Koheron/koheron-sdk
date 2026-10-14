@@ -22,6 +22,15 @@
         $("cancel").disabled = report.state !== "running";
         $("download").disabled = !report.run_id;
         $("summary").textContent = report.run_id ? `Run ${report.run_id} · ${report.metrics.length} measurements · reports stored onboard` : "Ready to run";
+        const metadata = window.bistMetadata.rows(report.metadata);
+        for (const [id, rows] of [["metadata", metadata.summary], ["metadata-details", metadata.details]]) {
+            const list = $(id); list.replaceChildren();
+            for (const [label, value] of rows) {
+                const entry = document.createElement("div"), term = document.createElement("dt"), definition = document.createElement("dd");
+                term.textContent = label; definition.textContent = value;
+                entry.append(term, definition); list.append(entry);
+            }
+        }
         $("metrics").replaceChildren();
         report.metrics.forEach(row => {
             const tr = document.createElement("tr"), status = row.status === "skipped" ? "SKIP" : row.pass ? "PASS" : "FAIL";

@@ -1,5 +1,6 @@
 #include "bist.hpp"
 #include "hardware.hpp"
+#include "metadata.hpp"
 #include "uart.hpp"
 #include <drivers_json.hpp>
 #include <atomic>
@@ -18,11 +19,16 @@
 #include <unistd.h>
 #include <ctime>
 #include <cstdio>
+#include <cerrno>
+#include <cstring>
 
 namespace
 {
 using namespace bist;
 constexpr auto root = "/var/lib/koheron/bist";
+constexpr unsigned workload_version = 2;
+constexpr double dma_isolated_seconds = 0.5, rpc_isolated_seconds = 0.3, combined_dma_seconds = 1.0,
+                 rpc_combined_seconds = 0.5;
 struct Metric
 {
     std::string name, domain, unit, detail, extra;
@@ -73,6 +79,8 @@ bool socket_io(int fd, void* data, size_t size, bool write)
         const auto done = write ? ::send(fd, p, size, MSG_NOSIGNAL) : ::recv(fd, p, size, 0);
         if (done < 0 && errno == EINTR)
             continue;
+        if (done == 0)
+            errno = write ? EPIPE : ECONNRESET;
         if (done <= 0)
             return false;
         p += done;
@@ -85,6 +93,7 @@ struct RpcResult
     uint64_t calls = 0, errors = 0, bytes = 0;
     double elapsed = 0;
     std::vector<double> us;
+    std::string diagnostic;
 };
 RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel)
 {
@@ -93,9 +102,10 @@ RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel)
     if (fd < 0)
     {
         result.errors = 1;
+        result.diagnostic = "TCP socket: " + std::string(std::strerror(errno));
         return result;
     }
-    timeval timeout{0, 500000};
+    timeval timeout{1, 0};
     int one = 1;
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
@@ -106,8 +116,9 @@ RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel)
     address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     if (::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0)
     {
-        ::close(fd);
         result.errors = 1;
+        result.diagnostic = "TCP connect: " + std::string(std::strerror(errno));
+        ::close(fd);
         return result;
     }
     // Resolve IDs from the generated adapter's operation metadata.
@@ -135,20 +146,28 @@ RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel)
     {
         const auto call_start = Clock::now();
         std::array<uint32_t, 3> header{};
-        if (!socket_io(fd, request.data(), 12, true) ||
-            !socket_io(fd, header.data(), bulk ? 12 : 8, false))
+        if (!socket_io(fd, request.data(), 12, true))
         {
             ++result.errors;
+            result.diagnostic = "RPC request send: " + std::string(std::strerror(errno));
+            break;
+        }
+        if (!socket_io(fd, header.data(), bulk ? 12 : 8, false))
+        {
+            ++result.errors;
+            result.diagnostic = "RPC reply header: " + std::string(std::strerror(errno));
             break;
         }
         if (header[0] != 0 || ntohl(header[1]) != operation || (bulk && ntohl(header[2]) != 4096))
         {
             ++result.errors;
+            result.diagnostic = "RPC reply header identity or payload length mismatch";
             break;
         }
         if (!socket_io(fd, response.data(), response.size() * 4, false))
         {
             ++result.errors;
+            result.diagnostic = "RPC reply payload: " + std::string(std::strerror(errno));
             break;
         }
         if (bulk)
@@ -158,6 +177,8 @@ RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel)
         }
         else
             result.errors += ntohl(response[0]) != (0x13579bdfU ^ 0x42495354U);
+        if (result.errors != 0)
+            result.diagnostic = "RPC reply data mismatch";
         ++result.calls;
         result.bytes += response.size() * 4;
         if (result.us.size() < 8192)
@@ -179,7 +200,8 @@ struct Bist::Impl
     std::atomic<bool> cancelled{false}, active{false};
     std::thread worker;
     std::mutex mutex;
-    std::string run_id, prefix, metrics = "[]", metadata = "{}", state = "idle", log_text;
+    std::string run_id, prefix, metrics = "[]", metadata = "{}", state = "idle", log_text,
+                                metadata_text;
     std::vector<Metric> values;
     bool storage_ok = true;
     bool defer_io = false;
@@ -194,6 +216,7 @@ struct Bist::Impl
             prefix = std::string(root) + "/" + run_id;
             metrics = read_file(prefix + "/metrics.json");
             metadata = read_file(prefix + "/metadata.json");
+            metadata_text = read_file(prefix + "/metadata.txt");
             state = read_file(prefix + "/state");
             log_text = read_file(prefix + "/log.txt");
             if (metrics.empty())
@@ -285,11 +308,13 @@ struct Bist::Impl
             return;
         write_file(prefix + "/metrics.json", metrics);
         write_file(prefix + "/metadata.json", metadata);
+        write_file(prefix + "/metadata.txt", metadata_text);
         write_file(prefix + "/state", state);
         write_file(prefix + "/log.txt", log_text);
         write_file(prefix + "/report.json", report_unlocked());
         std::ostringstream card;
-        card << "Red Pitaya BIST 1.0.0 | run " << run_id << " | " << state << "\n"
+        card << "Red Pitaya BIST | run " << run_id << " | " << state << "\n"
+             << metadata_text
              << "OS validation and reference instrument health are separate domains.\n";
         for (const auto& value : values)
             card << (value.pass ? "PASS " : "FAIL ") << value.domain << " | " << value.name << " | "
@@ -302,7 +327,7 @@ struct Bist::Impl
         {
             const auto previous = read_file(prefix + "/scorecard.txt");
             const auto newline = previous.find('\n');
-            const std::string title = "Red Pitaya BIST 1.0.0 | run " + run_id + " | " + state;
+            const std::string title = "Red Pitaya BIST | run " + run_id + " | " + state;
             write_file(prefix + "/scorecard.txt",
                        title + (newline == std::string::npos ? "\n" : previous.substr(newline)));
         }
@@ -514,7 +539,7 @@ struct Bist::Impl
             ++errors;
         add("dma_" + workload,
             transfer_seconds > 0 ? double(transferred) / transfer_seconds / 1e6 : 0, "MB/s",
-            errors == 0 && iterations > 0,
+            errors == 0 && iterations >= 2,
             "2 MiB full duplex SG, 32 x 64 KiB descriptors, exact pattern and descriptor lengths; "
             "buffers reused",
             "os",
@@ -618,7 +643,9 @@ struct Bist::Impl
     }
     void rpc_test(const std::string& workload, bool bulk = false)
     {
-        const auto result = rpc_benchmark(bulk, .5, cancelled);
+        const auto result = rpc_benchmark(
+            bulk, bulk || workload == "isolated" ? rpc_isolated_seconds : rpc_combined_seconds,
+            cancelled);
         add("rpc_" + (bulk ? std::string("bulk") : workload),
             result.elapsed > 0
                 ? (bulk ? double(result.bytes) / 1e6 : double(result.calls)) / result.elapsed
@@ -629,7 +656,8 @@ struct Bist::Impl
                    "outstanding",
             "os",
             "\"errors\":" + std::to_string(result.errors) + ",\"calls\":" +
-                std::to_string(result.calls) + ",\"latency_us\":" + distribution(result.us));
+                std::to_string(result.calls) + ",\"latency_us\":" + distribution(result.us) +
+                ",\"diagnostic\":" + quote(result.diagnostic));
     }
     void analog(unsigned mask)
     {
@@ -703,7 +731,7 @@ struct Bist::Impl
         // The previous run and shutdown leave the shared path in reset.
         ctl.write<reg::mode>(0);
         barrier();
-        log("Validation started. Fixed workload v1: bounded waits; timed regions exclude report "
+        log("Validation started. Fixed workload v2: bounded waits; timed regions exclude report "
             "writes.");
         mappings();
         if (!cancelled)
@@ -712,7 +740,7 @@ struct Bist::Impl
         add("dma_uio_interrupt_binding", ready ? 1 : 0, "bool", ready,
             "DMA must expose UIO interrupt and register map", "os", "", false);
         if (ready && !cancelled)
-            dma_test("isolated", 1.0);
+            dma_test("isolated", dma_isolated_seconds);
         if (!cancelled)
             serial_test("isolated");
         if (!cancelled)
@@ -752,7 +780,7 @@ struct Bist::Impl
             const auto combined_start = Clock::now();
             std::thread serial([&] { serial_test("combined"); });
             std::thread rpc([&] { rpc_test("combined"); });
-            dma_test("combined", 1.5);
+            dma_test("combined", combined_dma_seconds);
             serial.join();
             rpc.join();
             burn_done = true;
@@ -781,8 +809,8 @@ struct Bist::Impl
                     ",\"meminfo\":" + quote(read_file("/proc/meminfo")));
         }
         dma.stop();
-        add("suite_duration", seconds(beginning), "s", seconds(beginning) < 120 && !cancelled,
-            "onboard suite must finish within 120 s; client validation including reboot within 180 "
+        add("suite_duration", seconds(beginning), "s", seconds(beginning) < 30 && !cancelled,
+            "onboard suite must finish within 30 s; client validation including reboot within 30 "
             "s",
             "os", "", false);
         {
@@ -821,11 +849,39 @@ bool Bist::start(uint32_t analog_mask)
     impl->state = "running";
     utsname system{};
     uname(&system);
+    auto version = read_file("/tmp/live-instrument/version");
+    version.erase(version.find_last_not_of("\r\n") + 1);
+    if (version.empty())
+        version = "unavailable";
+    const auto os_release = read_file("/etc/os-release");
+    const auto os = release_fields(os_release);
+    const auto image = release_fields(read_file("/etc/koheron-release"));
+    const auto manifest = release_fields(read_file("/usr/local/share/koheron/manifest.txt"));
+    const auto fpga_digest = digest("/tmp/live-instrument/bist.bit.bin");
+    const auto server_digest = digest("/proc/" + std::to_string(getpid()) + "/exe");
+    std::ostringstream summary;
+    summary << "Instrument: " << INSTRUMENT_NAME << ' ' << version << '\n'
+            << "SDK: " << KOHERON_VERSION << '\n'
+            << "OS: " << field(os, "PRETTY_NAME") << '\n'
+            << "Kernel: " << system.release << '\n'
+            << "OS image: " << field(image, "RELEASE") << " | build " << field(image, "BUILD_ID")
+            << '\n'
+            << "OS source: " << field(image, "GIT_DESCRIBE") << '\n'
+            << "Board: STEMlab 125-14 Gen1\n"
+            << "FPGA SHA256: " << fpga_digest << '\n'
+            << "Server SHA256: " << server_digest << '\n'
+            << "BIST source SHA256: " << BIST_BUILD_ID << '\n'
+            << "Workload: " << workload_version << " | analog cable mask: " << analog_mask << '\n';
+    impl->metadata_text = summary.str();
     impl->metadata =
-        "{\"bist_version\":\"1.0.0\",\"workload_version\":1,\"sdk_version\":" +
-        quote(KOHERON_VERSION) + ",\"bist_build_id\":" + quote(BIST_BUILD_ID) +
-        ",\"started_utc\":" + quote(timestamp()) + ",\"kernel\":" + quote(system.release) +
-        ",\"os_release\":" + quote(read_file("/etc/os-release")) +
+        "{\"bist_version\":" + quote(version) + ",\"instrument_name\":" + quote(INSTRUMENT_NAME) +
+        ",\"instrument_version\":" + quote(version) +
+        ",\"workload_version\":" + std::to_string(workload_version) +
+        ",\"sdk_version\":" + quote(KOHERON_VERSION) +
+        ",\"bist_build_id\":" + quote(BIST_BUILD_ID) + ",\"started_utc\":" + quote(timestamp()) +
+        ",\"kernel\":" + quote(system.release) + ",\"os_release\":" + quote(os_release) +
+        ",\"os\":" + fields_json(os) + ",\"os_image\":" + fields_json(image) +
+        ",\"os_manifest\":" + fields_json(manifest) +
         ",\"cpuinfo\":" + quote(read_file("/proc/cpuinfo")) +
         ",\"kernel_cmdline\":" + quote(read_file("/proc/cmdline")) +
         ",\"boot_id\":" + quote(read_file("/proc/sys/kernel/random/boot_id")) +
@@ -833,15 +889,20 @@ bool Bist::start(uint32_t analog_mask)
         std::to_string(impl->sts.read<reg::identity>()) + ",\"fpga_dna\":" +
         quote(std::to_string(impl->sts.read<reg::dna0>() |
                              (uint64_t(impl->sts.read<reg::dna1>()) << 32))) +
-        ",\"fpga_sha256\":" + quote(digest("/tmp/live-instrument/bist.bit.bin")) +
-        ",\"server_sha256\":" + quote(digest("/proc/" + std::to_string(getpid()) + "/exe")) +
+        ",\"fpga_sha256\":" + quote(fpga_digest) + ",\"server_sha256\":" + quote(server_digest) +
         ",\"instrument_manifest\":" + quote(read_file("/tmp/live-instrument/instrument.json")) +
         ",\"parameters\":{\"analog_mask\":" + std::to_string(analog_mask) +
         ",\"adc_clock_hz\":125000000,\"capture_decimation\":8,\"baud\":460800,\"framing\":\"8N1\","
         "\"dma_bytes\":2097152,\"dma_descriptors\":32,\"dma_chunk_bytes\":65536,\"uart_bytes_per_"
         "direction\":32768,\"uart_fifo_bytes\":64,\"uart_scheduler\":\"SCHED_FIFO\",\"uart_"
-        "priority\":1,\"uart_worker_cpus\":[0,1]},\"comparability\":\"Require matching FPGA "
-        "SHA256, workload version, "
+        "priority\":1,\"uart_worker_cpus\":[0,1],\"dma_min_iterations\":2,"
+        "\"rpc_io_timeout_seconds\":1,\"dma_isolated_seconds\":" +
+        number(dma_isolated_seconds) + ",\"rpc_isolated_seconds\":" + number(rpc_isolated_seconds) +
+        ",\"combined_dma_seconds\":" + number(combined_dma_seconds) +
+        ",\"rpc_combined_seconds\":" + number(rpc_combined_seconds) +
+        "},\"comparability\":\"Require matching FPGA and "
+        "server "
+        "SHA256, BIST source identity, workload version, "
         "parameters and wiring; absent analog cables are skipped\"}";
     impl->write_file(std::string(root) + "/latest", impl->run_id);
     impl->persist();
@@ -851,19 +912,19 @@ bool Bist::start(uint32_t analog_mask)
     impl->worker = std::thread([this, analog_mask] { impl->run(analog_mask); });
     return true;
 }
-void Bist::cancel()
-{
-    impl->cancelled = true;
-}
-bool Bist::running()
-{
-    return impl->active;
-}
+void Bist::cancel() { impl->cancelled = true; }
+bool Bist::running() { return impl->active; }
 double Bist::get_boot_seconds()
 {
     timespec now{};
     clock_gettime(CLOCK_BOOTTIME, &now);
     return double(now.tv_sec) + double(now.tv_nsec) / 1e9;
+}
+std::string Bist::get_boot_id()
+{
+    auto id = read_file("/proc/sys/kernel/random/boot_id");
+    id.erase(id.find_last_not_of("\r\n") + 1);
+    return id;
 }
 std::string Bist::get_report()
 {
@@ -884,10 +945,7 @@ std::string Bist::get_log(uint32_t cursor)
            ",\"state\":" + quote(impl->state) +
            ",\"text\":" + quote(std::string_view(impl->log_text).substr(begin, end - begin)) + "}";
 }
-uint32_t Bist::ping(uint32_t value)
-{
-    return value ^ 0x42495354U;
-}
+uint32_t Bist::ping(uint32_t value) { return value ^ 0x42495354U; }
 std::vector<uint32_t> Bist::benchmark_reply(uint32_t words)
 {
     std::vector<uint32_t> result(std::min(words, 16384U));
