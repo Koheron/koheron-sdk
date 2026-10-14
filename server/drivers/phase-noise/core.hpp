@@ -7,7 +7,6 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/services.hpp"
 #include "server/runtime/config_manager.hpp"
-#include "server/drivers/phase-noise/cyclic-phase-dma.hpp"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -40,6 +39,7 @@ namespace phase_noise {
 template<class Board>
 class Core
 {
+    using Dma = typename Board::Dma;
     static constexpr bool passive_monitor = [] {
         if constexpr (requires { Board::passive_monitor; }) return Board::passive_monitor;
         else return false;
@@ -57,9 +57,14 @@ class Core
 
     static constexpr uint32_t fft_size = 32768;
     static constexpr uint32_t data_size = 2 * fft_size;
+    static_assert(Dma::samples_per_chunk > 0 && (fft_size / 2) % Dma::samples_per_chunk == 0,
+                  "DMA chunks must divide the FFT hop exactly");
+    static_assert(Dma::ring_chunks > 3 + data_size / Dma::samples_per_chunk,
+                  "DMA ring must retain a complete phase window and guard chunks");
 
     using PhaseDataArray = std::array<Phase, data_size>;
     using RawPhaseDataArray = std::array<int32_t, data_size>;
+    using PhaseCapture = typename Dma::template Snapshot<data_size>;
     using PhaseNoiseDensityVector = std::vector<PhaseNoiseDensity>;
 
   public:
@@ -140,9 +145,9 @@ class Core
     auto get_stream_performance() {
         std::shared_lock lk(data_mtx);
         const auto completed = dma.completed_chunks();
-        const double chunk_ms = 1000.0 * CyclicPhaseDma::samples_per_chunk / double(fs.eval());
+        const double chunk_ms = 1000.0 * Dma::samples_per_chunk / double(fs.eval());
         return performance.status(completed > consumed_chunks ? (completed - consumed_chunks) * chunk_ms : 0.0,
-            (CyclicPhaseDma::ring_chunks - 3 - data_size / CyclicPhaseDma::samples_per_chunk) * chunk_ms,
+            (Dma::ring_chunks - 3 - data_size / Dma::samples_per_chunk) * chunk_ms,
             double(fs.eval()) / (fft_size / 2));
     }
     auto get_fft_performance() const {
@@ -219,7 +224,7 @@ class Core
   private:
     Board board;
     rt::ConfigManager& cfg;
-    CyclicPhaseDma dma;
+    Dma dma;
     uint64_t consumed_chunks = 0;
     typename Board::Oscillator& dds;
     hw::Memory<mem::control>& ctl;
@@ -252,8 +257,8 @@ class Core
 
     // Phase clients read the published buffer under data_mtx; the worker fills
     // the other buffer and transfers ownership only after accepting its epoch.
-    std::unique_ptr<CyclicPhaseDma::Snapshot<data_size>> phase_capture =
-        std::make_unique<CyclicPhaseDma::Snapshot<data_size>>();
+    std::unique_ptr<PhaseCapture> phase_capture =
+        std::make_unique<PhaseCapture>();
     Phase snapshot_scale{};
 
     // Spectrum analyzer
@@ -959,7 +964,7 @@ bool Core<Board>::synchronize_monitor() {
 
 template<class Board>
 void Core<Board>::acquisition_thread() {
-    auto capture = std::make_unique<CyclicPhaseDma::Snapshot<data_size>>();
+    auto capture = std::make_unique<PhaseCapture>();
     {
         std::unique_lock dma_lk(dma_mtx);
         dma.start_acquisition();
@@ -979,7 +984,7 @@ void Core<Board>::acquisition_thread() {
         // Polling never holds the settings/processing locks. A slow window at
         // high decimation is cancellable and does not delay a rate/LO request.
         auto* snapshot = dma.read_into(*capture, consumed_chunks, acquisition_started,
-            (fft_size / 2) / CyclicPhaseDma::samples_per_chunk, stream_initialized.load()) ? capture.get() : nullptr;
+            (fft_size / 2) / Dma::samples_per_chunk, stream_initialized.load()) ? capture.get() : nullptr;
         std::unique_lock dma_lk(dma_mtx);
         std::unique_lock lk(data_mtx);
         if (!acquisition_started.load(std::memory_order_acquire)) break;
@@ -1040,7 +1045,7 @@ void Core<Board>::acquisition_thread() {
             phase_capture.swap(capture);
             snapshot_scale = phase_conversion_factor;
             coverage.append(snapshot->end_chunk,
-                (seed ? data_size : fft_size) / CyclicPhaseDma::samples_per_chunk);
+                (seed ? data_size : fft_size) / Dma::samples_per_chunk);
             ++accepted_captures;
             capture_state = Valid;
             if (publication.ready()) {

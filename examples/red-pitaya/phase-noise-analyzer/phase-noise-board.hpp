@@ -1,4 +1,5 @@
 #pragma once
+#include "server/drivers/phase-noise/cyclic-phase-dma.hpp"
 #include "dds.hpp"
 #include "server/hardware/memory_manager.hpp"
 
@@ -11,6 +12,7 @@ struct RedPitayaPhaseNoiseBoard {
         auto& status = hw::get_memory<mem::status>();
         return channel == 0 ? status.read<reg::demod0>() : status.read<reg::demod1>();
     }
+    using Dma = CyclicPhaseDma;
     using Oscillator = Dds;
     static constexpr uint32_t max_phase_precision = 8;
     static constexpr uint32_t cic_rate_step = 1;
