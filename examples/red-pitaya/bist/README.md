@@ -253,6 +253,95 @@ actual `/proc/self/maps` paths are reported, so SDK `/dev/mem` fallback fails
 those checks. DMA exclusion is verified against both the boot device tree's
 `no-map` reservation and `/proc/iomem`.
 
+## Controlled SDK comparison
+
+BIST 1.3.0 adds a `comparison` profile (workload 4) alongside the existing
+workload-3 health, benchmark and diagnostic profiles. Use it to compare SDK
+request latency while holding the offered background load constant. The
+saturation benchmark remains useful for maximum throughput; its combined
+latency also depends on how much CPU/memory work the other workers achieve.
+
+Each selected case runs for two seconds at **600 verified RPC requests/s**, with
+one outstanding request. Cases are idle, memory, DMA, and mixed memory/DMA.
+Memory performs 16 MiB/s of logical reads+writes in 16 KiB batches over an 8 MiB
+working set. DMA transfers and verifies 1 MiB/s of payload in 4 KiB duplex
+transactions (payload counts one direction). UART stays idle. CPU affinity
+matches the saturation test: memory on CPU1; DMA and the loopback TCP RPC client
+on CPU0; normal SDK server scheduling. These are modest, fixed loads, not peak
+bandwidth tests or measurements of physical DRAM traffic.
+
+Releases use absolute times. Expired slots are skipped rather than replayed in
+a burst. Reports retain requested, started, completed and missed counts, errors,
+affinity failures, and three distributions: client wall RTT, release lateness,
+and time from planned release through reply validation. This makes scheduling
+delay visible even when an RPC starts late. Percentile sample minimums remain
+100 for p95 and 1000 for p99. A request that finishes after the window is sampled
+but excluded from completed load. This sequential probe cannot measure queued,
+open-loop overload; missed slots make unmet demand explicit.
+
+A case has valid comparison quality only with zero integrity/affinity errors,
+at least 98% of each active worker's requested operations completed, and zero
+BIST report/log/status observer calls during measurement. The webpage pauses
+polling during this profile; the Python comparison client also stays quiet.
+An old cached webpage or another observer makes the affected run inconclusive.
+Other applications and unrelated SDK traffic still need to be controlled by
+the operator. Functional integrity and comparison quality are separate results.
+
+Run all four cases from the webpage's **RPC comparison · controlled load**
+profile, or without rebooting:
+
+```sh
+.venv/bin/python examples/red-pitaya/bist/client.py --host 192.168.1.84 \
+  --no-reboot --profile comparison --output tmp/bist-controlled
+```
+
+To automate an SDK comparison, build the FPGA once with the normal configuration,
+then supply two SDK Git revisions. The command builds the **same current BIST
+source** against each revision in temporary detached worktrees, reusing the
+validated FPGA outputs. It builds software only, saves both packages, and
+removes its own build worktrees. Build logs and resolved revisions are retained.
+
+```sh
+.venv/bin/python examples/red-pitaya/bist/compare_sdk.py --host 192.168.1.84 \
+  --baseline-ref e941c90f --candidate-ref origin/V1 \
+  --output tmp/bist-sdk-comparison
+```
+
+`--fpga-cache PATH` selects another validated output directory containing
+`bist.bit`, `bist.bit.bin`, `pl.dtbo` and `fpga/bist.xsa`. Both builds require the
+normal SDK cross-compilation environment. For fast reruns, use
+`--baseline PATH/bist.zip --candidate PATH/bist.zip` with the saved packages.
+Either side can independently use a revision or a prebuilt package.
+
+The default is five pairs of idle and mixed cases, alternating A/B then B/A.
+`--cases idle memory dma mixed` selects all cases. The command prints
+**provisional results after the first pair**, saves each raw report immediately,
+and updates `comparison.json` after each pair. It verifies the deployed server
+and FPGA hashes against the intended package. Packages must share BIST source,
+FPGA, workload, parameters, board identity, boot, OS image and kernel; SDK/server
+identity may differ. Existing OS-baseline comparisons retain their stricter
+server-identity requirement.
+
+Each valid pair must also achieve loads within 2% of each other. The result
+reports paired median candidate/reference ratios and descriptive 95% bootstrap
+intervals (10,000 resamples, fixed seed), conservatively expanded for histogram
+resolution. The unexpanded bootstrap interval is retained separately. At least
+five valid pairs are required
+for a verdict. An interval entirely below/above the default ±5% band indicates
+improvement/regression; an interval contained inside the band is within
+tolerance; overlapping intervals remain inconclusive. Missing percentiles stay
+visible as inconclusive. These per-metric intervals do not adjust for multiple
+comparisons; repeat important findings with more pairs before attribution.
+
+The command **restores the baseline package in `finally`**, including on failure
+or interruption. Use `--restore-package PATH/bist.zip` to restore a different
+known package. Raw results survive measurement or restoration failure; a failed
+restoration additionally writes `restore-error.json`. Keep the chosen restore
+archive before starting. The command does not reboot the board, set the default
+instrument, or run service-recovery checks inside measured windows. Exit 2 means
+incompatible, invalid or insufficient paired runs; valid runs may still have
+statistically inconclusive individual metrics.
+
 ## Local verification
 
 ```sh
@@ -264,6 +353,8 @@ g++ -std=c++23 -Wall -Wextra -Werror examples/red-pitaya/bist/tests/test_metadat
 /tmp/bist-metadata
 g++ -std=c++23 -Wall -Wextra -Werror -pthread examples/red-pitaya/bist/tests/test_checkpoint.cpp -o /tmp/bist-checkpoint
 /tmp/bist-checkpoint
+g++ -std=c++23 -Wall -Wextra -Werror -pthread examples/red-pitaya/bist/tests/test_pacing.cpp -o /tmp/bist-pacing
+/tmp/bist-pacing
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
 vivado -mode batch -source examples/red-pitaya/bist/tests/run_sim.tcl -tclargs tmp/bist-rtl
 .venv/bin/python examples/red-pitaya/bist/tests/hardware_checks.py --host 192.168.1.84
@@ -276,6 +367,41 @@ upload addressing, atomic snapshots and capture overflow diagnostics. Routed
 FPGA timing is enforced by the instrument configuration.
 
 ## Measured validation
+
+BIST 1.3.0 / controlled workload 4 was measured on `192.168.1.84` on
+2026-10-15 (Europe/Paris), on the same Ubuntu 26.04.1 / Linux 6.18.0-xilinx image
+and unchanged FPGA as the workload-3 validation below. The four-case browser
+run completed in **9.625 s** onboard, with 1200/1200 verified RPCs in each case,
+1024/1024 memory batches and 512/512 DMA transactions where enabled, and zero
+observer calls. The browser JSON matched the client report exactly. A service
+restart retained the entire report unchanged. Invalid masks and concurrent
+starts were rejected; cancellation during a mixed window completed in **63 ms**.
+The existing health profile passed in 3.433 s onboard and 4.429 s through client
+report retrieval and service recovery.
+
+Five alternating pairs compared SDK `e941c90f` (rate tracking) with `40bd5150`
+(rate tracking removed), using identical workload-4 source and FPGA. All loads
+were valid; each idle+mixed suite took 5.570–5.585 s onboard.
+
+| Controlled RPC RTT | Rate tracking | Removed | Paired median change | ±5% verdict |
+| --- | ---: | ---: | ---: | --- |
+| Idle p50 | 147 us | 137 us | −6.8% | Inconclusive |
+| Mixed p50 | 173 us | 163 us | −5.8% | Inconclusive |
+
+The resolution-expanded 95% ratio intervals were 0.918–0.960 and 0.917–0.957,
+respectively. Both suggest lower median latency, while still crossing the 0.95
+boundary for claiming a reduction beyond the configured 5% tolerance. p95/p99
+RTT verdicts were also inconclusive. These controlled results do not reproduce
+the apparent median-latency increase in the older saturation comparison.
+
+A separate five-pair comparison of the **same package against itself** produced
+0.0% paired median change in both cases, with both p50s within tolerance and no
+improvement/regression verdicts among the 18 reported comparisons. Prebuilt
+packages produced the first provisional pair after **16.6 s**; all five paired
+measurements finished after **84.9 s**, before final restoration. Local
+verification passed 151 host checks, 85 BIST/Python checks and four C++ helper
+checks. Production ARM builds passed with warnings as errors. FPGA SHA256 remains
+`6384e43ad9c4382d7ff485726805455dadedce0487f50d7bad8af6cea3229e86`.
 
 BIST 1.2.0 / workload 3 was measured on `192.168.1.84` on 2026-10-14, with
 DAC0/ADC0 connected and channel 1 unconnected. Two final cold-boot validations

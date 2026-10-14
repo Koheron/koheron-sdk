@@ -32,6 +32,10 @@ class BistClient:
         return self.client.recv_bool()
 
     @command(classname="Bist")
+    def start_comparison(self, case_mask):
+        return self.client.recv_bool()
+
+    @command(classname="Bist")
     def record_performance(self, run_id, status, comparison_json):
         return self.client.recv_bool()
 
@@ -122,6 +126,18 @@ def collect(client, deadline):
     raise TimeoutError("BIST suite deadline exceeded; partial report remains onboard")
 
 
+def collect_comparison(client, case_mask, deadline):
+    """Leave timed windows alone, including lightweight RPC polling."""
+    quiet_seconds = 1.5 + 2 * case_mask.bit_count() + 1
+    time.sleep(min(quiet_seconds, max(0, deadline - time.monotonic())))
+    while time.monotonic() < deadline:
+        if not client.running():
+            return client.get_report()
+        time.sleep(.1)
+    client.cancel()
+    raise TimeoutError("Controlled comparison deadline exceeded; partial report remains onboard")
+
+
 def compare(reference, current):
     a, b = reference["metadata"], current["metadata"]
     reasons = []
@@ -195,7 +211,7 @@ def download(client, output):
 
 def validate(args):
     started = time.monotonic()
-    budget = 60 if getattr(args, "profile", "health") == "benchmark" else 30
+    budget = 60 if getattr(args, "profile", "health") in ("benchmark", "comparison") else 30
     deadline = started + budget
     startup = None
     if not args.no_reboot:
@@ -232,10 +248,13 @@ def validate(args):
         client = connect(args.host, deadline)
     profile = getattr(args, "profile", "health")
     accepted = client.start(args.analog_mask) if profile == "health" else client.start_profile(
-        args.analog_mask, {"benchmark": 1, "diagnostic": 2}[profile])
+        args.analog_mask, {"benchmark": 1, "diagnostic": 2, "comparison": 3}[profile])
     if not accepted:
         raise RuntimeError("BIST start rejected (already active, invalid mask, or report storage unavailable)")
-    collect(client, deadline)
+    if profile == "comparison":
+        collect_comparison(client, 15, deadline)
+    else:
+        collect(client, deadline)
     if startup and not client.record_startup(*startup):
         raise RuntimeError("Startup results were not stored")
     # Preserve the completed suite before a potentially failed service restart.
@@ -284,7 +303,7 @@ def main():
     parser.add_argument("--ssh-known-hosts", help="SSH host-key file, checked on reboot connection")
     parser.add_argument("--output", type=Path, default=Path("tmp/bist-results"))
     parser.add_argument("--compare", type=Path, help="Previous runtime report for OS comparison")
-    parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic"), default="health")
+    parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic", "comparison"), default="health")
     parser.add_argument("--baseline", type=Path, help="Evaluate against a repeated-run baseline model")
     parser.add_argument("--save-baseline", type=Path, help="Save a baseline using this run and reference reports")
     parser.add_argument("--reference-report", type=Path, action="append", default=[])
