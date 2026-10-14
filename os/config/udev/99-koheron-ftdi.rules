@@ -1,0 +1,2 @@
+# Reduce receive latency for FTDI serial ports that expose a latency timer.
+ACTION=="add|bind", SUBSYSTEM=="usb-serial", DRIVER=="ftdi_sio", ATTR{latency_timer}=="?*", ATTR{latency_timer}="1"
