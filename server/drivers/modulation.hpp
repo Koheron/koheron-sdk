@@ -5,21 +5,16 @@
 #ifndef __DRIVERS_MODULATION_HPP__
 #define __DRIVERS_MODULATION_HPP__
 
-#include "memory.hpp"
+#include "server/hardware/memory_manager.hpp"
 
+#include <array>
 #include <atomic>
 #include <cmath>
-#include <context.hpp>
+#include <tuple>
 
 class Modulation
 {
   public:
-    Modulation(Context& ctx_)
-    :ctx(ctx_)
-    , dac_map(ctx.mm.get<mem::dac>())
-    {
-    }
-
     // Modulation
 
     auto get_modulation_status() {
@@ -112,9 +107,6 @@ class Modulation
 
   private:
 
-    bool avg_on;
-    uint32_t n_avg_min;
-    uint32_t num_average;
     uint32_t waveform_type[2] = {0,0};
     float dac_amplitude[2] = {0,0};
     float dac_frequency[2] = {0,0};
@@ -122,8 +114,7 @@ class Modulation
 
     std::array<std::atomic<bool>,2> modulation_changed;
 
-    Context& ctx;
-    hw::Memory<mem::dac>& dac_map;
+    hw::Memory<mem::dac>& dac_map = hw::get_memory<mem::dac>();
 
 };
 

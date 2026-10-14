@@ -10,6 +10,8 @@
 class LedBlinker
 {
   public:
+    // Intentionally retain the V0-style constructor: building this example
+    // checks that the runtime still supports drivers taking Context&.
     LedBlinker(Context& ctx)
     : ctl(ctx.mm.get<mem::control>())
     , sts(ctx.mm.get<mem::status>())

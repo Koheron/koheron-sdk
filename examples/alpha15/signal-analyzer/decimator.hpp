@@ -9,8 +9,6 @@
 
 #include <cstdint>
 
-class Context;
-
 class Decimator
 {
   public:

@@ -5,18 +5,14 @@
 #ifndef __DRIVERS_CLUSTER_HPP__
 #define __DRIVERS_CLUSTER_HPP__
 
-#include <context.hpp>
+#include "server/hardware/memory_manager.hpp"
+#include "server/runtime/syslog.hpp"
+
+#include <tuple>
 
 class Cluster
 {
   public:
-    Cluster(Context& ctx_)
-    : ctx(ctx_)
-    , ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , ctl_clk(ctx.mm.get<mem::ctl_clk>())
-    {}
-
     void phase_shift(uint32_t incdec) {
         ctl_clk.write_mask<0, (1 << 2) + (1 << 3)>((1 << 2) + (incdec << 3));
         ctl_clk.clear_bit<0, 2>();
@@ -57,7 +53,7 @@ class Cluster
     void set_freq(double freq_hz) {
         constexpr double factor = (uint64_t(1) << 48) / double(prm::adc_clk);
         set_phase_increment(uint64_t(factor * freq_hz));
-        ctx.log<INFO>("Frequency set to %f Hz/n", freq_hz);
+        log<INFO>("Frequency set to %f Hz/n", freq_hz);
     }
 
     auto get_adc() {
@@ -68,10 +64,9 @@ class Cluster
     }
 
   private:
-    Context& ctx;
-    hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
-    hw::Memory<mem::ctl_clk>& ctl_clk;
+    hw::Memory<mem::control>& ctl = hw::get_memory<mem::control>();
+    hw::Memory<mem::status>& sts = hw::get_memory<mem::status>();
+    hw::Memory<mem::ctl_clk>& ctl_clk = hw::get_memory<mem::ctl_clk>();
 };
 
 #endif // __DRIVERS_CLUSTER_HPP__
