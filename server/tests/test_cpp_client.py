@@ -2,6 +2,7 @@
 import http.server
 import json
 import os
+import shlex
 from pathlib import Path
 import socketserver
 import struct
@@ -68,30 +69,55 @@ class StatusHandler(http.server.BaseHTTPRequestHandler):
         pass
 
 
+class MissingContextHandler(socketserver.BaseRequestHandler):
+    def handle(self):
+        self.request.recv(8)
+
+
 class CppClientTest(unittest.TestCase):
-    def test_client(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp = Path(tmp)
-            (tmp / "operations.hpp").write_text(OPERATIONS)
-            binary = tmp / "cpp-client-test"
+    @classmethod
+    def setUpClass(cls):
+        directory = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(directory.cleanup)
+        tmp = Path(directory.name)
+        (tmp / "operations.hpp").write_text(OPERATIONS)
+        cls.binaries = {}
+        for name in ('cpp_client', 'cpp_client_lifecycle'):
+            binary = tmp / name
             subprocess.run([
                 os.environ.get("CXX", "g++"), "-std=c++20", "-Wall", "-Wuseless-cast",
                 "-Werror", "-pthread", "-I", str(tmp), "-I", str(ROOT),
-                str(ROOT / "server/tests/cpp_client.cpp"), "-o", str(binary),
-            ], check=True)
-            with socketserver.ThreadingTCPServer(("127.0.0.1", 0), CommandHandler) as tcp, \
-                    http.server.ThreadingHTTPServer(("127.0.0.1", 0), StatusHandler) as http_srv:
-                threads = [threading.Thread(target=s.serve_forever) for s in (tcp, http_srv)]
+                *shlex.split(os.environ.get('CXXFLAGS', '')),
+                str(ROOT / f"server/tests/{name}.cpp"), "-o", str(binary),
+            ], check=True, timeout=90)
+            cls.binaries[name] = binary
+
+    def run_client(self, case=None, handler=CommandHandler):
+        with socketserver.ThreadingTCPServer(("127.0.0.1", 0), handler) as tcp, \
+                http.server.ThreadingHTTPServer(("127.0.0.1", 0), StatusHandler) as http_srv:
+            threads = [threading.Thread(target=s.serve_forever) for s in (tcp, http_srv)]
+            for thread in threads:
+                thread.start()
+            try:
+                name = 'cpp_client_lifecycle' if case else 'cpp_client'
+                argument = case or str(http_srv.server_address[1])
+                result = subprocess.run([str(self.binaries[name]), str(tcp.server_address[1]), argument],
+                                        capture_output=True, text=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            finally:
+                tcp.shutdown()
+                http_srv.shutdown()
                 for thread in threads:
-                    thread.start()
-                try:
-                    subprocess.run([str(binary), str(tcp.server_address[1]),
-                                    str(http_srv.server_address[1])], check=True, timeout=15)
-                finally:
-                    tcp.shutdown()
-                    http_srv.shutdown()
-                    for thread in threads:
-                        thread.join()
+                    thread.join()
+
+    def test_client(self): self.run_client()
+    def test_repeated_close_and_descriptor_reuse(self): self.run_client('close')
+    def test_descriptor_zero_is_owned(self): self.run_client('zero')
+    def test_move_preserves_connection_and_metadata(self): self.run_client('move')
+    def test_move_assignment_releases_old_connection(self): self.run_client('assign')
+    def test_reconnect_releases_old_connection(self): self.run_client('reconnect')
+    def test_failed_connection_preserves_error_and_can_retry(self): self.run_client('refused')
+    def test_failed_metadata_releases_connection(self): self.run_client('context', MissingContextHandler)
 
 
 if __name__ == "__main__":
