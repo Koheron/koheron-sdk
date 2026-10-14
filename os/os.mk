@@ -43,8 +43,11 @@ $(TMP_OS_PATH)/hard/$(NAME).xsa: $(TMP_FPGA_PATH)/$(NAME).xsa | $(TMP_OS_PATH)/h
 	cp $< $@
 	$(call ok,$@)
 
-$(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_OS_PATH)/hard/$(NAME).xsa | $(TMP_OS_PATH)/fsbl/
-	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE)
+FSBL_SETTINGS_STAMP := $(TMP_OS_PATH)/.fsbl-settings
+$(eval $(call build_settings_stamp,$(FSBL_SETTINGS_STAMP),$$(call build_shell_quote,STDIO=$$(FSBL_STDIO))))
+
+$(TMP_OS_PATH)/fsbl/Makefile:  $(TMP_OS_PATH)/hard/$(NAME).xsa $(FPGA_PATH)/hsi/fsbl.tcl $(FSBL_SETTINGS_STAMP) | $(TMP_OS_PATH)/fsbl/
+	$(HSI) $(FPGA_PATH)/hsi/fsbl.tcl $(NAME) $(PROC) $(TMP_OS_PATH)/hard $(@D) $< $(ZYNQ_TYPE) $(FSBL_STDIO)
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/fsbl/executable.elf: $(TMP_OS_PATH)/fsbl/Makefile $(FSBL_FILES)
