@@ -211,7 +211,7 @@ def download(client, output):
 
 def validate(args):
     started = time.monotonic()
-    budget = 60 if getattr(args, "profile", "health") in ("benchmark", "comparison") else 30
+    budget = 60 if getattr(args, "profile", "health") in ("benchmark", "comparison", "upload") else 30
     deadline = started + budget
     startup = None
     if not args.no_reboot:
@@ -248,11 +248,11 @@ def validate(args):
         client = connect(args.host, deadline)
     profile = getattr(args, "profile", "health")
     accepted = client.start(args.analog_mask) if profile == "health" else client.start_profile(
-        args.analog_mask, {"benchmark": 1, "diagnostic": 2, "comparison": 3}[profile])
+        args.analog_mask, {"benchmark": 1, "diagnostic": 2, "comparison": 3, "upload": 4}[profile])
     if not accepted:
         raise RuntimeError("BIST start rejected (already active, invalid mask, or report storage unavailable)")
-    if profile == "comparison":
-        collect_comparison(client, 15, deadline)
+    if profile in ("comparison", "upload"):
+        collect_comparison(client, 48 if profile == "upload" else 15, deadline)
     else:
         collect(client, deadline)
     if startup and not client.record_startup(*startup):
@@ -303,7 +303,7 @@ def main():
     parser.add_argument("--ssh-known-hosts", help="SSH host-key file, checked on reboot connection")
     parser.add_argument("--output", type=Path, default=Path("tmp/bist-results"))
     parser.add_argument("--compare", type=Path, help="Previous runtime report for OS comparison")
-    parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic", "comparison"), default="health")
+    parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic", "comparison", "upload"), default="health")
     parser.add_argument("--baseline", type=Path, help="Evaluate against a repeated-run baseline model")
     parser.add_argument("--save-baseline", type=Path, help="Save a baseline using this run and reference reports")
     parser.add_argument("--reference-report", type=Path, action="append", default=[])

@@ -19,7 +19,7 @@ from koheron.management import Client as ManagementClient, ManagementError
 ROOT = Path(__file__).resolve().parents[3]
 CFG = "examples/red-pitaya/bist/stemlab-125-14.mk"
 ARTIFACTS = Path("tmp/examples/red-pitaya/bist/stemlab-125-14")
-CASES = ("idle", "memory", "dma", "mixed")
+CASES = ("idle", "memory", "dma", "mixed", "upload_value", "upload_reference")
 IDENTITY = ("bist_build_id", "workload_version", "parameters", "board", "fpga_dna",
             "fpga_sha256", "kernel", "os", "os_image", "os_manifest", "boot_id", "kernel_cmdline")
 

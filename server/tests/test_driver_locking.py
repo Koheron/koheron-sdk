@@ -24,7 +24,7 @@ using driver_list = std::tuple<LockingInstrument>;
         (build / 'drivers.hpp').write_text('#include "driver_locking_instrument.hpp"\n')
         methods = ('set', 'get', 'set_vector', 'get_vector', 'get_span', 'get_array',
                    'get_fixed_span', 'get_views', 'busy', 'set_scalars', 'fixed_types',
-                   'mixed_types', 'empty_arrays', 'large_arrays', 'get_mixed', 'get_owned_vector', 'get_owned_string')
+                   'mixed_types', 'empty_arrays', 'large_arrays', 'get_mixed', 'get_owned_vector', 'get_owned_string', 'argument_ownership', 'retained_arguments')
         ops = ','.join(f'Op<&LockingInstrument::{method}>' for method in methods)
         (build / 'interface_drivers.hpp').write_text(f'''
 #include "server/executor/driver_adapter.hpp"
@@ -60,6 +60,10 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
         result = subprocess.run([str(self.binary), case], capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_value_arguments_move_and_references_survive_tcp(self): self.run_case('argument-ownership-tcp')
+    def test_value_arguments_move_and_references_survive_unix(self): self.run_case('argument-ownership-unix')
+    def test_value_arguments_move_and_references_survive_websocket(self): self.run_case('argument-ownership-ws')
+    def test_empty_value_and_reference_arguments(self): self.run_case('argument-ownership-empty')
     def test_checked_decode_and_string_boundaries(self): self.run_case('checked-decode')
     def test_stalled_scalar_tcp(self): self.run_case('tcp-input')
     def test_stalled_scalar_unix(self): self.run_case('unix-input')
