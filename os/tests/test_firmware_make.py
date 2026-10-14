@@ -1,5 +1,6 @@
 """Check shared hardware staging and vendor BSP concurrency without Xilinx tools."""
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 import unittest
@@ -9,6 +10,46 @@ SDK = Path(__file__).resolve().parents[2]
 
 
 class FirmwareMakeTest(unittest.TestCase):
+    def test_fsbl_console_overrides_vendor_template_after_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bsp = root / 'zynqmp_fsbl_bsp'
+            bsp.mkdir()
+            (bsp / 'system.mss').touch()
+            harness = '''
+namespace eval hsi {
+    proc open_hw_design {args} {}
+    proc create_sw_design {args} {}
+    proc add_library {args} {}
+    proc generate_app {args} { set ::selected_console vendor_default }
+    proc open_sw_design {path} { set ::opened $path }
+    proc get_os {} { return os }
+    proc generate_bsp {args} { set ::regenerated $::selected_console }
+    proc current_hw_design {} { return hw }
+    proc close_hw_design {args} {}
+}
+namespace eval common {
+    proc set_property {name value object} {
+        if {$name eq "CONFIG.STDOUT"} { set ::selected_console $value }
+    }
+}
+set argv [list test cpu HARD OUTPUT hardware.xsa zynqmp]
+if {[info exists env(TEST_CONSOLE)] && $env(TEST_CONSOLE) ne ""} {
+    lappend argv $env(TEST_CONSOLE)
+}
+source SCRIPT
+puts "console=$::selected_console"
+if {[info exists ::regenerated]} { puts "bsp=$::regenerated" }
+'''.replace('OUTPUT', str(root)).replace('SCRIPT', str(SDK / 'fpga/hsi/fsbl.tcl'))
+            for console in ('', 'psu_uart_1'):
+                result = subprocess.run(['tclsh'], input=harness, text=True,
+                    capture_output=True, timeout=10,
+                    env={**os.environ, 'TEST_CONSOLE': console})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stderr, '')
+                self.assertIn('console=' + (console or 'vendor_default'), result.stdout)
+                self.assertEqual('bsp=psu_uart_1' in result.stdout, bool(console))
+
     def test_atf_compiler_change_discards_cached_objects(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -79,6 +120,8 @@ if script.endswith('pmufw.tcl'):
     destination, hardware = args[2:4]
 else:
     destination, hardware = args[3:5]
+    with open({str(root / 'fsbl-consoles')!r}, 'a') as log:
+        log.write((args[6] if len(args) > 6 else 'default') + '\\n')
 assert hardware == {str(staged)!r}, hardware
 assert Path(hardware).read_text() == 'hardware handoff\\n'
 Path(destination, 'Makefile').touch()
@@ -106,6 +149,15 @@ include {SDK}/os/os.mk
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(staged.read_bytes(), source.read_bytes())
             self.assertEqual(result.stdout.count(f'cp {source} {staged}'), 1)
+            self.assertEqual((root / 'fsbl-consoles').read_text(), 'default\n')
+            for console in ('psu_uart_1', 'psu_uart_1', 'psu_uart_0'):
+                result = subprocess.run(
+                    ['make', '--no-print-directory', '-f', '-',
+                     str(root / 'os/fsbl/Makefile'), f'FSBL_STDIO={console}'],
+                    input=harness, text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual((root / 'fsbl-consoles').read_text(),
+                             'default\npsu_uart_1\npsu_uart_0\n')
 
 
 if __name__ == '__main__':
