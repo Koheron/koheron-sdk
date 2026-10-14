@@ -17,6 +17,7 @@ class ConfigFilesTest(unittest.TestCase):
         cls.binary = Path(build.name) / 'config-files'
         command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
                    '-Wextra', '-Werror', '-Wpedantic', '-fno-exceptions',
+                   '-DINSTRUMENT_NAME="config-test"',
                    '-I', str(ROOT)]
         command += shlex.split(os.environ.get('CXXFLAGS', ''))
         subprocess.run(command + [str(ROOT / 'server/tests/config_files.cpp'),
@@ -33,6 +34,7 @@ class ConfigFilesTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0 if success else 1, result.stderr)
         if not success:
             self.assertRegex(result.stderr, r'^(generic|system|iostream):[1-9][0-9]*:')
+        return result
 
     def test_round_trip_and_replacement(self):
         path = self.root / 'nested/config.ini'
@@ -80,6 +82,44 @@ class ConfigFilesTest(unittest.TestCase):
         (path / 'keep').write_text('preserve')
         self.run_config('save', path, success=False)
         self.assertEqual((path / 'keep').read_text(), 'preserve')
+
+    def test_manager_checked_save_round_trip_and_retry(self):
+        path = self.root / 'nested/config.ini'
+        self.run_config('manager-save', path)
+        self.run_config('load', path)
+        original = path.read_bytes()
+        temporary = path.with_suffix('.ini.tmp')
+        temporary.mkdir()
+        self.run_config('manager-save', path, success=False)
+        self.assertEqual(path.read_bytes(), original)
+        temporary.rmdir()
+        self.run_config('manager-save', path)
+        self.run_config('load', path)
+        self.assertFalse(temporary.exists())
+
+    def test_manager_checked_save_reports_directory_flush_and_rename_failures(self):
+        parent = self.root / 'parent'
+        parent.write_text('preserve')
+        self.run_config('manager-save', parent / 'config.ini', success=False)
+        self.assertEqual(parent.read_text(), 'preserve')
+        path = self.root / 'config.ini'
+        path.write_text('preserve')
+        path.with_suffix('.ini.tmp').symlink_to('/dev/full')
+        self.run_config('manager-save', path, success=False)
+        self.assertEqual(path.read_text(), 'preserve')
+        destination = self.root / 'destination'
+        destination.mkdir()
+        (destination / 'keep').write_text('preserve')
+        self.run_config('manager-save', destination, success=False)
+        self.assertEqual((destination / 'keep').read_text(), 'preserve')
+
+    def test_manager_legacy_save_logs_failure(self):
+        path = self.root / 'config.ini'
+        path.write_text('preserve')
+        path.with_suffix('.ini.tmp').mkdir()
+        result = self.run_config('manager-legacy', path)
+        self.assertIn('Configuration save failed', result.stderr)
+        self.assertEqual(path.read_text(), 'preserve')
 
 
 if __name__ == '__main__':

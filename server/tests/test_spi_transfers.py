@@ -20,7 +20,8 @@ class SpiTransfersTest(unittest.TestCase):
         command += [str(ROOT / 'server/tests/spi_transfers.cpp'),
                     str(ROOT / 'server/hardware/spi_manager.cpp'),
                     '-Wl,--wrap=open', '-Wl,--wrap=open64', '-Wl,--wrap=ioctl',
-                    '-Wl,--wrap=__ioctl_time64',
+                    '-Wl,--wrap=__ioctl_time64', '-Wl,--wrap=close',
+                    '-Wl,--wrap=read', '-Wl,--wrap=write',
                     '-o', str(cls.binary)]
         subprocess.run(command, check=True, timeout=90)
 
@@ -46,6 +47,30 @@ class SpiTransfersTest(unittest.TestCase):
 
     def test_oversized_raw_requests_are_rejected(self):
         self.run_case('length')
+
+    def test_checked_initialization_retains_errors_after_cleanup(self):
+        self.run_case('checked-init')
+
+    def test_checked_operations_reject_invalid_descriptors(self):
+        self.run_case('checked-invalid-device')
+
+    def test_checked_transfer_results_and_short_messages(self):
+        self.run_case('checked-transfer')
+
+    def test_checked_settings_preserve_errors_and_transfer_state(self):
+        self.run_case('checked-settings')
+
+    def test_checked_byte_io_counts_native_bytes_and_empty_buffers(self):
+        self.run_case('checked-byte-counts')
+
+    def test_short_byte_io_is_not_replayed(self):
+        self.run_case('checked-byte-short')
+
+    def test_checked_byte_io_errors_and_interruptions(self):
+        self.run_case('checked-byte-errors')
+
+    def test_checked_byte_io_bounds_and_overflow(self):
+        self.run_case('checked-byte-bounds')
 
 if __name__ == '__main__':
     unittest.main()

@@ -103,6 +103,11 @@ int main() {
     assert(std::abs(std::get<5>(parameters) - (10e6 + 0.637)) <= lsb / 2);
     analyzer.save_config();
     assert(cfg.get<double>("PhaseNoiseAnalyzer", "dds_freq[0]") == std::get<5>(parameters));
+    cfg.save_error = std::make_error_code(std::errc::no_space_on_device);
+    assert(!analyzer.save_config_checked());
+    assert(cfg.get<double>("PhaseNoiseAnalyzer", "dds_freq[0]") == std::get<5>(parameters));
+    cfg.save_error.clear();
+    assert(analyzer.save_config_checked());
 
     // Snapshot readers must finish while DMA remains blocked.
     auto readers = std::async(std::launch::async, [&] {

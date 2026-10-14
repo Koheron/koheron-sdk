@@ -21,21 +21,29 @@ template<size_t N, MemID... ids>
 class MemoryManagerImpl<N, std::index_sequence<ids...>>
 {
   public:
-    MemoryManagerImpl()
-    : failed_maps(0)
-    {}
+    using OpenResult = std::expected<void, std::vector<MemoryOpenError>>;
+
+    MemoryManagerImpl() = default;
 
     int open() {
-        failed_maps.clear();
+        const auto result = open_checked();
+        if (result) { return 0; }
+        for (const auto& error : result.error()) { report_memory_open_error(error); }
+        errno = memory_error_errno(result.error().front());
+        return -1;
+    }
+
+    [[nodiscard]] OpenResult open_checked() {
+        std::vector<MemoryOpenError> failures;
         // Expand over all ids...
         ( [&]{
-            if (std::get<ids>(mem_maps).open() < 0) {
-                logf<ERROR>("MemoryManager: Can't open memory map id = {}\n", ids);
-                failed_maps.push_back(ids);
+            if (const auto result = std::get<ids>(mem_maps).open_checked(); !result) {
+                failures.push_back(result.error());
             }
         }(), ... );
 
-        return failed_maps.empty() ? 0 : -1;
+        if (!failures.empty()) { return std::unexpected(std::move(failures)); }
+        return {};
     }
 
     template<MemID id>
@@ -44,7 +52,6 @@ class MemoryManagerImpl<N, std::index_sequence<ids...>>
     }
 
   private:
-    std::vector<MemID> failed_maps;
     std::tuple<Memory<ids>...> mem_maps;
 };
 

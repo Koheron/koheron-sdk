@@ -29,6 +29,12 @@ class PrecisionAdcLifetimeTest(unittest.TestCase):
     def test_missing_spi_does_not_start_worker(self):
         self.run_case('unavailable')
 
+    def test_failed_spi_initialization_does_not_start_worker(self):
+        self.run_case('init-error')
+
+    def test_each_failed_setup_write_stops_initialization(self):
+        self.run_case('setup-errors')
+
     def test_samples_and_configuration_are_preserved(self):
         self.run_case('samples')
 

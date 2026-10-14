@@ -1,12 +1,24 @@
 // Exercise expected-based configuration errors with exceptions disabled.
 #include "server/runtime/config_ini.hpp"
+#include "server/runtime/config_manager.hpp"
 #include <iostream>
 
 int main(int argc, char** argv) {
     if (argc != 3) { return 2; }
     rt::cfg::ini config;
     rt::cfg::Result result;
-    if (std::string_view(argv[1]) == "save") {
+    const std::string_view action{argv[1]};
+    if (action == "manager-save" || action == "manager-legacy") {
+        rt::ConfigManager manager{argv[2]};
+        manager.set("instrument", "enabled", true);
+        manager.set("instrument", "rate", 125000000);
+        if (action == "manager-legacy") { manager.save(); }
+        else { result = manager.save_checked(); }
+        if (!manager.get<bool>("instrument", "enabled") ||
+            manager.get<int>("instrument", "rate") != 125000000) {
+            return 3;
+        }
+    } else if (action == "save") {
         rt::cfg::set(config, "instrument", "enabled", true);
         rt::cfg::set(config, "instrument", "rate", 125000000);
         result = rt::cfg::save_ini(argv[2], config);

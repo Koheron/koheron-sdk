@@ -103,6 +103,11 @@ int main(int argc, char**) {
     assert(analyzer.set_sampling_frequency(200000000));
     analyzer.save_config();
     assert(cfg.get<uint32_t>("PhaseNoiseAnalyzer", "sampling_frequency") == 200000000);
+    cfg.save_error = std::make_error_code(std::errc::permission_denied);
+    assert(!analyzer.save_config_checked());
+    assert(analyzer.get_sampling_frequency() == 200000000);
+    cfg.save_error.clear();
+    assert(analyzer.save_config_checked());
 
     const auto changed_epoch=hw::simulated_epoch.load();
     analyzer.set_cic_rate(20);

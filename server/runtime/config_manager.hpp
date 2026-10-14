@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <string>
+#include <utility>
 
 namespace rt {
 
@@ -14,10 +15,14 @@ namespace fs = std::filesystem;
 class ConfigManager {
     using Path = fs::path;
   public:
+    ConfigManager() = default;
+    explicit ConfigManager(Path path)
+    : config_dir(path.parent_path()), config_path(std::move(path)) {}
+
     int init() {
         std::error_code ec;
 
-        fs::create_directories(config_dir, ec);
+        if (!config_dir.empty()) { fs::create_directories(config_dir, ec); }
         if (ec) {
             return report_error("create directory", ec);
         }
@@ -49,9 +54,13 @@ class ConfigManager {
     }
 
     void save() {
-        if (const auto result = cfg::save_ini(config_path, cfg_); !result) {
+        if (const auto result = save_checked(); !result) {
             report_error("save", result.error());
         }
+    }
+
+    [[nodiscard]] cfg::Result save_checked() {
+        return cfg::save_ini(config_path, cfg_);
     }
 
     bool has(const std::string& sect, const std::string& key) {

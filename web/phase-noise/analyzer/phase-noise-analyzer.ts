@@ -148,7 +148,10 @@ class PhaseNoiseAnalyzer {
     this.client.send(Command(this.id, this.cmds['set_interferometer_delay'], delay_s));
   }
 
-  saveConfig(): void {
+  async saveConfig(): Promise<boolean | void> {
+    if (this.cmds['save_config_checked']) {
+      return await this.client.readBool(Command(this.id, this.cmds['save_config_checked']));
+    }
     this.client.send(Command(this.id, this.cmds['save_config']));
   }
 }

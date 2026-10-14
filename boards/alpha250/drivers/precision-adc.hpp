@@ -33,11 +33,11 @@ class PrecisionAdc
 
     void adc_acquisition_thread(std::stop_token stop);
     uint32_t read(uint32_t address, uint32_t len);
-    void write(uint32_t address, uint32_t value, uint32_t len);
-    void set_channels(int32_t setup_idx);
-    void set_adc_control();
-    void set_configuration(int32_t setup_idx);
-    void set_filter(int32_t setup_idx);
+    bool write(uint32_t address, uint32_t value, uint32_t len);
+    bool set_channels(int32_t setup_idx);
+    bool set_adc_control();
+    bool set_configuration(int32_t setup_idx);
+    bool set_filter(int32_t setup_idx);
 }; // class PrecisionAdc
 
 #endif // __ALPHA250_DRIVERS_PRECISION_ADC_HPP__

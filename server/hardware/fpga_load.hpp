@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <expected>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -37,6 +38,19 @@ inline bool fpga_attribute_is(const std::filesystem::path& path,
     std::ifstream input(path);
     std::string value;
     return std::getline(input, value) && value == expected;
+}
+
+inline std::expected<void, std::error_code> check_fpga_attribute(
+    const std::filesystem::path& path, std::string_view expected) {
+    std::ifstream input(path);
+    std::string value;
+    if (!std::getline(input, value)) {
+        return std::unexpected(std::make_error_code(std::io_errc::stream));
+    }
+    if (value != expected) {
+        return std::unexpected(std::make_error_code(std::errc::io_error));
+    }
+    return {};
 }
 
 inline bool fpga_overlay_applied(const std::filesystem::path& overlay,

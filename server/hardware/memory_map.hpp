@@ -20,6 +20,8 @@
 #include <string_view>
 #include <optional>
 #include <fstream>
+#include <expected>
+#include <system_error>
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -28,10 +30,56 @@
 
 namespace hw {
 
+enum class MemoryOperation { reservation, open, map };
+
+struct MemoryFailure {
+    std::string_view device;
+    MemoryOperation operation;
+    std::error_code code;
+};
+
+struct MemoryOpenError {
+    MemID id;
+    MemoryFailure failure;
+    std::optional<MemoryFailure> fallback_from;
+};
+
+inline std::string_view memory_operation_name(MemoryOperation operation) {
+    switch (operation) {
+        case MemoryOperation::reservation: return "check DMA reservation";
+        case MemoryOperation::open: return "open";
+        case MemoryOperation::map: return "mmap";
+        default: return "unknown operation";
+    }
+}
+
+inline void report_memory_open_error(const MemoryOpenError& error) {
+    const auto& failure = error.failure;
+    logf<ERROR>("Memory[{}] (id={}): {} {} failed: {}\n", mem::get_name(error.id), error.id,
+                memory_operation_name(failure.operation), failure.device, failure.code.message());
+    if (error.fallback_from) {
+        const auto& original = *error.fallback_from;
+        logf<ERROR>("Memory[{}]: fallback followed {} {} failure: {}\n", mem::get_name(error.id),
+                    memory_operation_name(original.operation), original.device, original.code.message());
+    }
+    if (failure.operation == MemoryOperation::reservation) {
+        logf<ERROR>("Memory[{}]: Cannot verify fixed DMA window exclusion from System RAM. "
+                    "Check /proc/iomem and the exclusive no-map boot reservation.\n", mem::get_name(error.id));
+    }
+}
+
+inline int memory_error_errno(const MemoryOpenError& error) {
+    const auto& code = error.failure.code;
+    return code.category() == std::generic_category() || code.category() == std::system_category()
+        ? code.value() : EIO;
+}
+
 template<MemID id>
 class Memory
 {
   public:
+    using OpenResult = std::expected<int, MemoryOpenError>;
+
     static_assert(id < mem::count, "Invalid ID");
 
     static constexpr uintptr_t phys_addr = mem::get_base_addr(id);
@@ -64,37 +112,51 @@ class Memory
     }
 
     int open() {
+        const auto result = open_checked();
+        if (!result) {
+            report_memory_open_error(result.error());
+            errno = memory_error_errno(result.error());
+            return -1;
+        }
+        return *result;
+    }
+
+    [[nodiscard]] OpenResult open_checked() {
         // Keep existing pointers and mappings valid when initialization is retried.
         if (is_opened) { return dev_fd; }
         logf("Memory[{}]: Opening {}\n", name, device);
 
         if constexpr (device.starts_with("/dev/mem_wc")) {
             std::ifstream iomem{"/proc/iomem"};
+            if (!iomem) {
+                return open_error(MemoryOperation::reservation, "/proc/iomem",
+                                  std::make_error_code(std::io_errc::stream));
+            }
             if (!outside_system_ram(iomem, phys_addr, size)) {
-                logf<ERROR>("Memory[{}]: Fixed DMA window is not excluded from System RAM. "
-                            "Install a boot device tree with an exclusive no-map reservation.\n", name);
-                return -1;
+                return open_error(MemoryOperation::reservation, device, iomem.bad()
+                    ? std::make_error_code(std::io_errc::stream)
+                    : std::make_error_code(std::errc::operation_not_permitted));
             }
         }
 
         if constexpr (is_uio) {
             uio_.emplace();
 
-            if (uio_->open() < 0) {
+            if (const auto result = uio_->open_checked(); !result) {
+                const MemoryFailure original{device, MemoryOperation::open, result.error()};
                 uio_.reset();
-                return open_via_devmem_fallback();
+                return open_via_devmem_fallback(original);
             }
 
-            void* p = uio_->mmap();
-
-            if (!p) {
-                logf<ERROR>("Memory[{}]: UIO mmap failed\n", name);
+            const auto result = uio_->mmap_checked();
+            if (!result) {
+                const auto error = open_error(MemoryOperation::map, device, result.error());
                 uio_.reset();
-                return -1;
+                return error;
             }
 
-            mapped_base = p;
-            base_address = reinterpret_cast<uintptr_t>(p);
+            mapped_base = *result;
+            base_address = reinterpret_cast<uintptr_t>(*result);
             is_opened = true;
             dev_fd = uio_->fd();
             return dev_fd;
@@ -102,15 +164,15 @@ class Memory
             const auto fd = ::open(device.data(), O_RDWR | O_SYNC | O_CLOEXEC);
 
             if (fd == -1) {
-                logf<ERROR>("Memory[{}]: Can't open {}\n", name, device);
+                const std::error_code error{errno, std::generic_category()};
                 if constexpr (!is_devmem) {
-                    return open_via_devmem_fallback();
+                    return open_via_devmem_fallback({device, MemoryOperation::open, error});
                 } else {
-                    return -1;
+                    return open_error(MemoryOperation::open, device, error);
                 }
             }
 
-            return map_memory<is_devmem>(fd);
+            return map_memory<is_devmem>(fd, device);
         }
     }
 
@@ -396,8 +458,13 @@ class Memory
 
     std::optional<Uio<id>> uio_; // only used when device == "/dev/uio"
 
+    static std::unexpected<MemoryOpenError> open_error(MemoryOperation operation,
+                                                      std::string_view backend, std::error_code code) {
+        return std::unexpected(MemoryOpenError{id, {backend, operation, code}, std::nullopt});
+    }
+
     template<bool is_devmem>
-    int map_memory(int fd) {
+    OpenResult map_memory(int fd, std::string_view backend) {
         const size_t pg = page_size();
         off_t off = 0;
         size_t delta = 0;
@@ -411,10 +478,9 @@ class Memory
         void* p = ::mmap(nullptr, len, protection, MAP_SHARED, fd, off);
 
         if (p == MAP_FAILED) {
-            const int error = errno;
+            const std::error_code error{errno, std::generic_category()};
             ::close(fd);
-            errno = error;
-            return -1;
+            return open_error(MemoryOperation::map, backend, error);
         }
 
         mapped_base = p;
@@ -425,15 +491,19 @@ class Memory
         return fd;
     }
 
-    int open_via_devmem_fallback() {
-        logf("Memory[{}]: Fallback to /dev/mem\n", name);
+    OpenResult open_via_devmem_fallback(const MemoryFailure& original) {
+        logf("Memory[{}]: Fallback to /dev/mem after {} {} failed: {}\n", name,
+             memory_operation_name(original.operation), original.device, original.code.message());
         const int fdm = ::open("/dev/mem", O_RDWR | O_SYNC | O_CLOEXEC);
 
         if (fdm < 0) {
-            return -1;
+            return std::unexpected(MemoryOpenError{id,
+                {"/dev/mem", MemoryOperation::open, {errno, std::generic_category()}}, original});
         }
 
-        return map_memory<true>(fdm);
+        auto result = map_memory<true>(fdm, "/dev/mem");
+        if (!result) { result.error().fallback_from = original; }
+        return result;
     }
 
     void wc_flush_(std::size_t off, std::size_t len) const {

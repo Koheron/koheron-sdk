@@ -13,6 +13,7 @@ std::map<void*, std::size_t> mappings;
 unsigned opens = 0, maps = 0;
 unsigned failed_maps = 0;
 bool fail_open = false, fail_custom = false;
+int devmem_error = EACCES;
 std::string uio_path;
 void* last_mapping = nullptr;
 std::size_t last_length = 0;
@@ -51,9 +52,27 @@ template<MemID ID> void reopen() {
     const int fd = *descriptors.begin();
     const auto old_opens = opens, old_maps = maps;
     check(memory.open() == fd, "reopen changed descriptor");
+    check(memory.open_checked() == fd, "checked reopen changed descriptor");
     check(memory.base_addr() == address, "reopen invalidated pointers");
     check(opens == old_opens && maps == old_maps, "reopen allocated resources");
     check(memory.template read<0>() == 0x12345678u, "reopen lost register contents");
+}
+template<MemID ID> void checked_mapping(std::string_view backend, bool fallback) {
+    hw::Memory<ID> memory;
+    failed_maps = 1;
+    const auto result = memory.open_checked();
+    check(!result, "checked mmap failure accepted");
+    const auto& error = result.error();
+    check(error.id == ID && error.failure.device == backend
+          && error.failure.operation == hw::MemoryOperation::map
+          && error.failure.code == std::errc::not_enough_memory, "checked mapping context lost");
+    check(error.fallback_from.has_value() == fallback, "mapping fallback context lost");
+    check(errno == EBUSY, "cleanup did not overwrite errno");
+    check(!memory.is_open() && memory.base_addr() == 0, "failed checked map published address");
+    clean();
+    check(memory.open_checked().has_value(), "checked map retry failed");
+    opened(memory);
+    check(error.failure.code == std::errc::not_enough_memory, "retry changed saved error");
 }
 }
 
@@ -63,10 +82,13 @@ extern "C" void* __real_mmap64(void*, std::size_t, int, int, int, off64_t);
 extern "C" int __real_munmap(void*, std::size_t);
 extern "C" int __wrap_open(const char* path, int flags, ...) {
     const std::string_view name{path};
-    check(name == "/dev/mem" || name == "/fixture/custom" || name == uio_path,
+    check(name == "/dev/mem" || name == "/dev/mem_wc" || name == "/fixture/custom" || name == uio_path,
           "unexpected device open");
     ++opens;
-    if (fail_open || (fail_custom && name == "/fixture/custom")) { errno = EACCES; return -1; }
+    if (fail_open || (fail_custom && name == "/fixture/custom")) {
+        errno = name == "/dev/mem" ? devmem_error : EACCES;
+        return -1;
+    }
     const int fd = __real_open("/dev/null", flags);
     check(fd >= 0, "cannot open synthetic device");
     descriptors.insert(fd);
@@ -77,7 +99,9 @@ extern "C" int __wrap_open64(const char* path, int flags, ...) {
 }
 extern "C" int __wrap_close(int fd) {
     check(descriptors.erase(fd) == 1, "closed an unowned descriptor");
-    return __real_close(fd);
+    const auto result = __real_close(fd);
+    errno = EBUSY; // Simulate cleanup changing the original mapping error.
+    return result;
 }
 extern "C" void* __wrap_mmap64(void*, std::size_t length, int protection, int flags, int fd, off64_t offset) {
     check(descriptors.contains(fd), "mapped an unowned descriptor");
@@ -105,7 +129,99 @@ int main(int argc, char** argv) {
     check(argc == 3, "fixture root and case required");
     uio_path = std::string(argv[1]) + "/dev/uio0";
     const std::string_view test{argv[2]};
-    if (test == "devmem") {
+    if (test == "checked_mapping") {
+        checked_mapping<0>("/dev/mem", false); clean();
+        checked_mapping<1>("/fixture/custom", false); clean();
+        checked_mapping<2>("/dev/uio", false); clean();
+        checked_mapping<3>("/dev/mem", true); clean();
+        fail_custom = true;
+        checked_mapping<1>("/dev/mem", true);
+    } else if (test == "checked_open") {
+        fail_open = true;
+        hw::Memory<0> memory;
+        const auto direct = memory.open_checked();
+        check(!direct && direct.error().id == 0
+              && direct.error().failure.operation == hw::MemoryOperation::open
+              && direct.error().failure.device == "/dev/mem"
+              && direct.error().failure.code == std::errc::permission_denied
+              && !direct.error().fallback_from, "direct open failure context");
+        check(memory.open() == -1 && errno == EACCES, "legacy open error not restored");
+        devmem_error = ENODEV;
+        hw::Memory<1> custom;
+        hw::Memory<2> uio;
+        hw::Memory<3> missing;
+        for (const auto& result : {custom.open_checked(), uio.open_checked(), missing.open_checked()}) {
+            check(!result && result.error().failure.operation == hw::MemoryOperation::open
+                  && result.error().failure.device == "/dev/mem"
+                  && result.error().failure.code == std::errc::no_such_device,
+                  "fallback open error context");
+            check(result.error().fallback_from.has_value(), "original open error omitted");
+            const auto& original = *result.error().fallback_from;
+            check(original.operation == hw::MemoryOperation::open
+                  && original.device == mem::get_device_driver(result.error().id)
+                  && original.code == (result.error().id == 3 ? std::errc::no_such_device
+                                                            : std::errc::permission_denied),
+                  "original and fallback errors conflated");
+        }
+        clean();
+        fail_open = false;
+        opened(memory); opened(custom); opened(uio); opened(missing);
+    } else if (test == "checked_manager") {
+        hw::MemoryManager manager;
+        failed_maps = 2;
+        const auto result = manager.open_checked();
+        check(!result && result.error().size() == 2, "manager did not collect all failures");
+        for (size_t i = 0; i < result.error().size(); ++i) {
+            check(result.error()[i].id == i
+                  && result.error()[i].failure.operation == hw::MemoryOperation::map
+                  && result.error()[i].failure.code == std::errc::not_enough_memory,
+                  "manager lost mapping failure details");
+        }
+        check(descriptors.size() == 2 && mappings.size() == 2, "checked partial init leaked resources");
+        const auto address = manager.get<2>().base_addr();
+        const auto old_maps = maps;
+        check(manager.open_checked().has_value(), "checked manager retained stale failures");
+        check(maps == old_maps + 2 && manager.get<2>().base_addr() == address,
+              "checked retry remapped successful memory");
+    } else if (test == "checked_uio") {
+        Uio<2> uio;
+        const auto invalid = uio.mmap_checked();
+        check(!invalid && invalid.error() == std::errc::bad_file_descriptor, "UIO invalid mapping error");
+        const auto root = std::filesystem::path(argv[1]);
+        std::filesystem::rename(root / "sys", root / "sys-backup");
+        const auto missing = uio.open_checked();
+        std::ofstream(root / "sys") << "not a directory";
+        const auto not_directory = uio.open_checked();
+        std::filesystem::remove(root / "sys");
+        std::filesystem::rename(root / "sys-backup", root / "sys");
+        check(!missing && missing.error() == std::errc::no_such_file_or_directory, "UIO missing root error");
+        check(!not_directory && not_directory.error() == std::errc::not_a_directory, "UIO root type error");
+        check(uio.open_checked().has_value() && uio.mmap_checked().has_value(), "checked UIO retry failed");
+    } else if (test == "checked_reservation") {
+        const auto iomem = std::filesystem::path(argv[1]) / "iomem";
+        hw::Memory<0> memory;
+        const auto missing = memory.open_checked();
+        check(!missing && missing.error().failure.operation == hw::MemoryOperation::reservation
+              && missing.error().failure.code == std::make_error_code(std::io_errc::stream),
+              "reservation read error lost");
+        for (const auto contents : {"00000000-00002fff : System RAM\n",
+                                    "00000000-00000000 : System RAM\n",
+                                    "00000000-nope : System RAM\n"}) {
+            std::ofstream(iomem) << contents;
+            const auto result = memory.open_checked();
+            check(!result && result.error().failure.operation == hw::MemoryOperation::reservation
+                  && result.error().failure.device == "/dev/mem_wc"
+                  && result.error().failure.code == std::errc::operation_not_permitted
+                  && !result.error().fallback_from, "unsafe reservation accepted or misreported");
+            check(memory.open() == -1 && errno == EPERM, "legacy reservation error not restored");
+        }
+        check(opens == 0 && maps == 0 && !memory.is_open() && memory.base_addr() == 0,
+              "failed reservation touched device or exposed memory");
+        clean();
+        std::ofstream(iomem) << "00000000-00000fff : System RAM\n";
+        check(memory.open_checked().has_value(), "reserved DMA window rejected");
+        opened(memory);
+    } else if (test == "devmem") {
         hw::Memory<0> memory;
         opened(memory);
         check(last_offset == 0x1000 && last_length == 8192, "unaligned physical mapping geometry");

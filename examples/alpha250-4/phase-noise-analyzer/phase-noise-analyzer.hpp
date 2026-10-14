@@ -202,6 +202,8 @@ class PhaseNoiseAnalyzer
         return performance.fft_status();
     }
 
+    bool save_config_checked();
+
   private:
     rt::ConfigManager& cfg;
     Ltc2157& ltc2157;
