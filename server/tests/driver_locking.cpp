@@ -15,14 +15,21 @@ using Bytes = std::vector<unsigned char>;
 
 // Count real server read calls for a fully queued body. Client reads use recv().
 std::atomic<int> measured_fd{-1};
-std::atomic<unsigned> reads4{0}, reads16{0};
+std::atomic<unsigned> reads4{0}, reads16{0}, reads_buffer{0};
+std::atomic<bool> interrupt_read{false};
 extern "C" ssize_t __real_read(int fd, void* buffer, size_t count);
 extern "C" ssize_t __wrap_read(int fd, void* buffer, size_t count) {
-    if (fd == measured_fd.load()) {
+    if (fd == measured_fd.load() && interrupt_read.exchange(false)) {
+        errno = EINTR;
+        return -1;
+    }
+    const auto result = __real_read(fd, buffer, count);
+    if (result > 0 && fd == measured_fd.load()) {
+        if (count == 4096) ++reads_buffer;
         if (count == 4) ++reads4;
         if (count == 16) ++reads16;
     }
-    return __real_read(fd, buffer, count);
+    return result;
 }
 
 void check(bool ok, const char* message) {
@@ -268,13 +275,18 @@ Bytes four_scalars() {
 template<int Kind> void batched_read_calls() {
     Connection<Kind> client(1, false);
     // Preload the complete command to exclude network fragmentation from the count.
-    client.send(four_scalars());
+    auto queued = four_scalars();
+    const auto next = command(1);
+    queued.insert(queued.end(), next.begin(), next.end());
+    client.send(queued);
     measured_fd = client.server;
     client.start();
     check(client.response(12) == scalar_response(9, 30), "Scalar argument order changed");
+    check(client.response(12) == scalar_response(1, 30), "Prefetched next command was lost");
     measured_fd = -1;
-    std::cout << "body reads: 16-byte=" << reads16 << ", 4-byte=" << reads4 << '\n';
-    check(reads16 == 1 && reads4 == 0, "Fixed arguments were read separately");
+    std::cout << "buffer reads=" << reads_buffer << ", body reads: 16-byte=" << reads16 << ", 4-byte=" << reads4 << '\n';
+    check(reads_buffer == 1 && reads16 == 0 && reads4 == 0,
+          "Queued command header and arguments required separate reads");
     check(LockingInstrument::calls == 1, "Scalar command invocation count");
 }
 Bytes fixed_command() {
@@ -475,13 +487,42 @@ void checked_decode() {
     check(!result && result.error()==Error::disconnected && out.empty(),"partial string published");
 }
 
+void buffered_stream_boundaries() {
+    Connection<net::UNIX> connection(1, false);
+    net::BufferedStreamReader reader;
+    Bytes expected(20000);
+    for (size_t i = 0; i < expected.size(); ++i) expected[i] = i % 251;
+    connection.send(expected);
+    measured_fd = connection.server;
+    interrupt_read = true;
+    Bytes received(expected.size());
+    auto destination = std::as_writable_bytes(std::span{received});
+    check(reader.read_exact(connection.server, destination.first(8)) == 8,
+          "Interrupted header read did not retry");
+    // Consume a buffered prefix, then bypass the buffer for the large body.
+    check(reader.read_exact(connection.server, destination.subspan(8, 18000)) == 18000,
+          "Large body read failed");
+    check(reader.read_exact(connection.server, destination.subspan(18008)) == 1992,
+          "Trailing bytes lost across buffer boundary");
+    check(received == expected, "Buffered/direct reads changed the byte stream");
+    measured_fd = -1;
+    check(reader.read_exact(-1, {}) == 0, "Empty read touched the descriptor");
+    check(reader.read_exact(-1, destination.first(1)) == -1 && errno == EBADF,
+          "Read error was lost");
+    connection.send(Bytes{1, 2, 3});
+    ::shutdown(connection.client, SHUT_WR);
+    check(reader.read_exact(connection.server, destination.first(8)) == 0,
+          "Partial EOF published an incomplete result");
+}
+
 int main(int argc, char** argv) {
     try {
         check(argc == 2, "Expected test case");
         services::provide<rt::DriverManager>();
         services::provide<rt::IExecutor>(std::make_shared<koheron::Executor>());
         const std::string test = argv[1];
-        if (test == "checked-decode") checked_decode();
+        if (test == "buffered-stream") buffered_stream_boundaries();
+        else if (test == "checked-decode") checked_decode();
         else if (test == "tcp-input") stalled_input<net::TCP>(false);
         else if (test == "unix-input") stalled_input<net::UNIX>(false);
         else if (test == "dynamic-input") stalled_input<net::TCP>(true);

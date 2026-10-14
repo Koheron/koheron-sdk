@@ -21,36 +21,8 @@
 #include <span>
 #include <mutex>
 #include <expected>
-#include <cerrno>
-#include <unistd.h>
 
 namespace net {
-
-// Reads until span is filled, returns bytes read (0 = EOF), or -1 on error.
-inline ssize_t read_exact(int fd, std::span<std::byte> buf) {
-    size_t done = 0;
-    while (done < buf.size()) {
-        ssize_t n = ::read(fd, buf.data() + done, buf.size() - done);
-
-        if (n == 0) {
-            log("TCPSocket: Connection closed by client\n");
-            return 0;
-        }
-
-        if (n < 0) {
-            if (errno == EINTR) { // interrupted -> retry
-                continue;
-            }
-
-            logf<ERROR>("TCPSocket: Can't receive data (errno={})\n", errno);
-            return -1;
-        }
-
-        done += static_cast<size_t>(n);
-    }
-
-    return static_cast<ssize_t>(done);
-}
 
 // ---- detect dynamic-size args (vector/string) ----
 template<class T> struct is_dynamic_arg : std::false_type {};
@@ -139,6 +111,10 @@ class Command
     int comm_fd = -1;
     bool decode_failed = false;
 
+    ssize_t read_stream(std::span<std::byte> bytes) {
+        return session->read_bytes(comm_fd, bytes);
+    }
+
     enum Header : uint32_t {
         HEADER_SIZE = header_size,
         HEADER_START = 4  // First 4 bytes are reserved
@@ -157,8 +133,7 @@ class Command
 
         if (socket_type == TCP || socket_type == UNIX) {
             Buffer<pack_len> buff;
-            const auto err = read_exact(
-                comm_fd,
+            const auto err = read_stream(
                 std::as_writable_bytes(std::span{buff.data(), pack_len})
             );
             if (err != static_cast<ssize_t>(pack_len)) {
@@ -181,8 +156,7 @@ class Command
 
     std::expected<uint32_t, DecodeError> get_pack_length() {
         Buffer<sizeof(uint64_t)> buff;
-        const auto err = read_exact(
-            comm_fd,
+        const auto err = read_stream(
             std::as_writable_bytes(std::span{buff.data(), sizeof(uint32_t)})
         );
 
@@ -197,7 +171,7 @@ class Command
     template<ut::resizableContiguousRange R>
     std::expected<std::size_t, DecodeError> recv(R& c) {
         if (socket_type == TCP || socket_type == UNIX) {
-            // Read data directly from socket
+            // Consume the shared stream, bypassing its buffer for large bodies
             using T = R::value_type;
 
             const auto size = get_pack_length();
@@ -219,13 +193,13 @@ class Command
             ssize_t nbytes_read;
             if constexpr (std::same_as<R, std::string>) {
                 c.resize_and_overwrite(static_cast<std::size_t>(length), [&](char* data, std::size_t) {
-                    nbytes_read = read_exact(comm_fd, std::as_writable_bytes(
+                    nbytes_read = read_stream(std::as_writable_bytes(
                         std::span{data, static_cast<std::size_t>(length)}));
                     return nbytes_read > 0 ? static_cast<std::size_t>(nbytes_read) : 0;
                 });
             } else {
                 c.resize(static_cast<std::size_t>(length));
-                nbytes_read = read_exact(comm_fd, std::as_writable_bytes(
+                nbytes_read = read_stream(std::as_writable_bytes(
                     std::span{c.data(), static_cast<std::size_t>(length)}));
             }
 

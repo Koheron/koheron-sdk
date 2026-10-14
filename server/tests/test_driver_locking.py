@@ -60,6 +60,7 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
         result = subprocess.run([str(self.binary), case], capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_buffered_stream_boundaries_and_errors(self): self.run_case('buffered-stream')
     def test_checked_decode_and_string_boundaries(self): self.run_case('checked-decode')
     def test_stalled_scalar_tcp(self): self.run_case('tcp-input')
     def test_stalled_scalar_unix(self): self.run_case('unix-input')
