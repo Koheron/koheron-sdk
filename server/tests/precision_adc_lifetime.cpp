@@ -10,6 +10,8 @@ using namespace std::chrono_literals;
 
 namespace {
 bool available = true;
+bool fail_init = false;
+unsigned fail_setup_write = 0;
 std::atomic<bool> block_read{false}, entered{false}, fail_read{false};
 std::atomic<unsigned> reads{0};
 std::atomic<unsigned> active_readers{0};
@@ -39,30 +41,46 @@ void check_stopped() {
 // Fake only the hardware boundary; compile the production ADC implementation.
 namespace hw {
 SpiDev::~SpiDev() = default;
-int SpiDev::init(uint8_t, uint32_t, uint8_t) { fd = 123; return 0; }
-int SpiDev::set_mode(uint8_t mode_) { check(mode_ == SPI_MODE_3, "SPI mode changed"); return 0; }
-int SpiDev::set_speed(uint32_t speed_) { check(speed_ == 10000000, "SPI speed changed"); return 0; }
-SpiManager::SpiManager() { if (available) { empty_spidev.init(0, 0, 0); } }
-SpiDev& SpiManager::get(std::string_view name, uint8_t, uint32_t, uint8_t) {
+SpiDev::Result SpiDev::init_checked(uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
+    check(mode_ == SPI_MODE_3, "SPI mode changed");
+    check(speed_ == 10000000, "SPI speed changed");
+    check(word_length_ == 8, "SPI word length changed");
+    if (fail_init) {
+        return std::unexpected(std::make_error_code(std::errc::permission_denied));
+    }
+    fd = 123;
+    return {};
+}
+SpiManager::SpiManager() = default;
+SpiDev& SpiManager::get(std::string_view name, uint8_t mode_, uint32_t speed_, uint8_t word_length_) {
     check(name == "spidev1.0", "SPI device changed");
+    if (available) {
+        const auto result = empty_spidev.init_checked(mode_, speed_, word_length_);
+        check(result.has_value() != fail_init, "initialization fixture");
+    }
     return empty_spidev;
 }
-int SpiDev::transfer(std::span<const uint8_t> tx, std::span<uint8_t> rx) {
+SpiDev::Result SpiDev::transfer_checked(std::span<const uint8_t> tx, std::span<uint8_t> rx) {
     check(tx.size() == rx.size(), "SPI sizes");
-    if (tx[0] == 0x45) { rx[1] = 0xA5; return 2; }
-    if (tx[0] != 0x42) { ++setup_writes; return static_cast<int>(tx.size()); }
+    if (tx[0] == 0x45) { rx[1] = 0xA5; return {}; }
+    if (tx[0] != 0x42) {
+        if (++setup_writes == fail_setup_write) {
+            return std::unexpected(std::make_error_code(std::errc::io_error));
+        }
+        return {};
+    }
     check(tx.size() == 5, "ADC frame size changed");
     // Its destructor runs on worker exit, before an owner's join returns.
     static thread_local ReaderLifetime lifetime;
     entered = true;
     block_read.wait(true);
     const auto sample = reads.fetch_add(1);
-    if (fail_read) { return -1; }
+    if (fail_read) { return std::unexpected(std::make_error_code(std::errc::io_error)); }
     const auto channel = sample % 8;
     rx[1] = static_cast<uint8_t>(0x80 + channel);
     rx[2] = rx[3] = 0;
     rx[4] = static_cast<uint8_t>(channel);
-    return 5;
+    return {};
 }
 }
 
@@ -70,11 +88,21 @@ int main(int argc, char** argv) {
     check(argc == 2, "test case required");
     const std::string_view test{argv[1]};
     available = test != "unavailable";
+    fail_init = test == "init-error";
     auto spi = services::provide<hw::SpiManager>();
-    if (test == "unavailable") {
+    if (test == "unavailable" || test == "init-error") {
         PrecisionAdc adc;
         for (auto value : adc.get_adc_values()) { check(value == 0.0f, "initial data"); }
         check(active_readers == 0 && reads == 0 && setup_writes == 0, "worker without SPI");
+    } else if (test == "setup-errors") {
+        for (unsigned failed_write = 1; failed_write <= 11; ++failed_write) {
+            setup_writes = 0;
+            fail_setup_write = failed_write;
+            PrecisionAdc adc;
+            check(setup_writes == failed_write, "setup continued after failed write");
+            check(active_readers == 0 && reads == 0, "worker started after failed setup");
+            for (auto value : adc.get_adc_values()) { check(value == 0.0f, "failed setup data"); }
+        }
     } else if (test == "samples") {
         {
             PrecisionAdc adc;

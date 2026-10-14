@@ -77,6 +77,7 @@ class Core
     // while its own driver retains ownership of references and feedback state.
     void reset_average();
     void save_config();
+    bool save_config_checked();
     void set_local_oscillator(uint32_t channel, double freq_hz);
     void set_cic_rate(uint32_t rate);
     void set_channel(uint32_t chan);
@@ -380,6 +381,11 @@ Core<Board>::~Core() {
 
 template<class Board>
 void Core<Board>::save_config() {
+    (void)save_config_checked();
+}
+
+template<class Board>
+bool Core<Board>::save_config_checked() {
     std::unique_lock lk(data_mtx);
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
@@ -396,7 +402,11 @@ void Core<Board>::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "tracking_bandwidth", tracking_bandwidth);
     cfg.set("PhaseNoiseAnalyzer", "tracking_max_step", tracking_max_step);
     cfg.set("PhaseNoiseAnalyzer", "tracking_max_correction", tracking_max_correction);
-    cfg.save();
+    const auto result = cfg.save_checked();
+    if (!result) {
+        logf<ERROR>("PhaseNoiseAnalyzer: saving settings failed: {}\n", result.error().message());
+    }
+    return result.has_value();
 }
 
 template<class Board>

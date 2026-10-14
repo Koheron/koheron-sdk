@@ -142,10 +142,12 @@ test('all four nominal LO fields commit in Hz, reject invalid integers and show 
   app.setSampleRate(250e6);
   for (let channel=0;channel<4;++channel)
     assert.equal(w.document.querySelector('.dds-input'+channel).getAttribute('aria-valuemax'),'125000000');
-  driver.saveConfig = () => calls.push(['save']);
+  driver.saveConfig = async () => {calls.push(['save']); return true;};
   const save = w.document.querySelector('.save-cfg');
   save.click(); assert.deepEqual(calls.at(-1), ['save']);
-  assert.equal(save.textContent, 'Save requested');
+  assert.equal(save.textContent, 'Saving…');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(save.textContent, 'Saved');
   driver.setChannel = value => calls.push(['channel', value]);
   driver.setTrackingEnabled = value => calls.push(['tracking', value]);
   driver.resetCumulativeAverager = () => calls.push(['reset']);

@@ -137,6 +137,11 @@ class SingleChannelPhaseNoiseAnalyzer:
         pass
 
     @command()
+    def save_config_checked(self):
+        """Return whether the server saved settings; requires a checked-save RPC."""
+        return self.client.recv_bool()
+
+    @command()
     def set_analyzer_mode(self, mode):
         pass
 

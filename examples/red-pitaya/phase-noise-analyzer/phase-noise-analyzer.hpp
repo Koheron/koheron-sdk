@@ -39,6 +39,8 @@ class PhaseNoiseAnalyzer {
     auto get_stream_performance() { return core.get_stream_performance(); }
     auto get_fft_performance() const { return core.get_fft_performance(); }
 
+    bool save_config_checked() { return core.save_config_checked(); }
+
  private:
     phase_noise::Core<RedPitayaPhaseNoiseBoard> core;
 };

@@ -253,3 +253,20 @@ The shared header shows queued sample time beside coverage. Amber warns when
 estimated capacity is below the required half-window rate or the queue exceeds
 half its retained buffer. The tooltip exposes capacity and stage timings, so a
 queue building behind an initial 100% coverage reading is visible before loss.
+
+## Saving settings
+
+`save_config_checked()` returns true after the configuration file has been
+written, closed and replaced, or false if saving fails. The server logs the error
+and retains the active settings for retry. The existing void `save_config()` RPC
+remains available.
+
+The browser shows **Saving…** while awaiting the checked reply, then **Saved** or
+**Save failed**. A file-save failure leaves the connection available. With older
+servers, the browser sends the original RPC and shows **Save requested**.
+Single-channel Python clients can check the result explicitly:
+
+```python
+if not analyzer.save_config_checked():
+    raise RuntimeError("Analyzer settings could not be saved; check instrument logs")
+```

@@ -65,7 +65,11 @@ PhaseNoiseAnalyzer::~PhaseNoiseAnalyzer() {
 }
 
 void PhaseNoiseAnalyzer::save_config() {
-    std::shared_lock lk(data_mtx);
+    (void)save_config_checked();
+}
+
+bool PhaseNoiseAnalyzer::save_config_checked() {
+    std::unique_lock lk(data_mtx);
     cfg.set("PhaseNoiseAnalyzer", "channel", channel);
     cfg.set("PhaseNoiseAnalyzer", "fft_navg", fft_navg);
     cfg.set("PhaseNoiseAnalyzer", "cic_rate", cic_rate);
@@ -79,7 +83,11 @@ void PhaseNoiseAnalyzer::save_config() {
     cfg.set("PhaseNoiseAnalyzer", "tracking_bandwidth", tracking_bandwidth.eval());
     cfg.set("PhaseNoiseAnalyzer", "tracking_max_correction", tracking_max_correction.eval());
     cfg.set("PhaseNoiseAnalyzer", "tracking_max_step", tracking_max_step.eval());
-    cfg.save();
+    const auto result = cfg.save_checked();
+    if (!result) {
+        logf<ERROR>("PhaseNoiseAnalyzer: saving settings failed: {}\n", result.error().message());
+    }
+    return result.has_value();
 }
 
 void PhaseNoiseAnalyzer::set_local_oscillator(uint32_t channel, double freq_hz) {

@@ -42,6 +42,8 @@ class PhaseNoiseAnalyzer {
     bool set_sampling_frequency(uint32_t rate_hz) { return core.set_sampling_frequency(rate_hz); }
     uint32_t get_sampling_frequency() const { return core.get_sampling_frequency(); }
 
+    bool save_config_checked() { return core.save_config_checked(); }
+
  private:
     phase_noise::Core<Alpha250PhaseNoiseBoard> core;
 };

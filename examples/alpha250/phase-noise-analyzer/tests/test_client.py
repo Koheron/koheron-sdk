@@ -96,6 +96,14 @@ class ClientTests(unittest.TestCase):
         self.assertTrue(snapshot[3])
         np.testing.assert_array_equal(snapshot[4], np.arange(65536, dtype=np.float32))
 
+    def test_checked_save_returns_server_status(self):
+        self.assertTrue(self.driver.save_config_checked())
+        self.client.recv_bool = lambda: False
+        self.assertFalse(self.driver.save_config_checked())
+        self.driver.get_average_status()
+        self.assertEqual([cmd[1] for cmd in self.client.commands],
+                         ['save_config_checked', 'save_config_checked', 'get_average_status'])
+
     def test_compatibility_dds_setter_uses_analyzer_invalidation(self):
         self.driver.set_dds_freq(1, 10e6 + .637)
         self.assertEqual(self.client.commands, [(1, "set_local_oscillator", (1, 10e6 + .637))])

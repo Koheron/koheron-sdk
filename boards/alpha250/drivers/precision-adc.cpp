@@ -9,20 +9,17 @@
 #include <span>
 
 PrecisionAdc::PrecisionAdc()
-: spi(services::require<hw::SpiManager>().get("spidev1.0"))
+: spi(services::require<hw::SpiManager>().get("spidev1.0", SPI_MODE_3, 10000000, 8))
 {
     if (! spi.is_ok()) {
         return;
     }
 
-    spi.set_mode(SPI_MODE_3);
-    spi.set_speed(10000000);
-
     constexpr int32_t setup_idx = 0; // All channels on Setup 0
-    set_channels(setup_idx);
-    set_configuration(setup_idx);
-    set_filter(setup_idx);
-    set_adc_control();
+    if (!set_channels(setup_idx) || !set_configuration(setup_idx) ||
+        !set_filter(setup_idx) || !set_adc_control()) {
+        return;
+    }
 
     adc_read_thread = std::jthread([this](std::stop_token stop) {
         adc_acquisition_thread(stop);
@@ -39,7 +36,8 @@ uint32_t PrecisionAdc::read(uint32_t address, uint32_t len) {
 
     tx[0] = static_cast<uint8_t>((0u << 7) | (1u << 6) | (address & 0x3Fu));
 
-    if (spi.transfer(tx, rx, len + 1) < 0) {
+    if (const auto result = spi.transfer_checked(tx, rx, len + 1); !result) {
+        logf<ERROR>("PrecisionAdc: read register {} failed: {}\n", address, result.error().message());
         return 0;
     }
 
@@ -47,31 +45,38 @@ uint32_t PrecisionAdc::read(uint32_t address, uint32_t len) {
     return ut::from_big_endian_bytes<std::uint32_t>(payload, len);
 }
 
-void PrecisionAdc::write(uint32_t address, uint32_t value, uint32_t len) {
+bool PrecisionAdc::write(uint32_t address, uint32_t value, uint32_t len) {
     if (len == 0 || len > 3) {
         log<ERROR>("PrecisionAdc: write invalid length");
-        return;
+        return false;
     }
 
     std::array<uint8_t, 4> tx{};  // [cmd, b1, b2, b3]
     std::array<uint8_t, 4> rx{};
     tx[0] = static_cast<uint8_t>((0u << 7) | (0u << 6) | (address & 0x3Fu));
     ut::to_big_endian_bytes(value, tx, static_cast<std::size_t>(len), 1);
-    spi.transfer(tx, rx, len + 1);
+    if (const auto result = spi.transfer_checked(tx, rx, len + 1); !result) {
+        logf<ERROR>("PrecisionAdc: write register {} failed: {}\n", address, result.error().message());
+        return false;
+    }
+    return true;
 }
 
-void PrecisionAdc::set_channels(int32_t setup_idx) {
+bool PrecisionAdc::set_channels(int32_t setup_idx) {
     constexpr uint32_t CHANNEL_EN = 1;
 
     for (uint32_t i = 0; i < channel_num; i++) {
         // Acquisition pairs are (1,2), (3,4), ..., (2i, 2i+1)
         uint32_t AINP = 2 * i;
         uint32_t AINM = 2 * i + 1;
-        write(0x09 + i, (CHANNEL_EN << 15) + (setup_idx << 12) + (AINP << 5) + AINM, 2);
+        if (!write(0x09 + i, (CHANNEL_EN << 15) + (setup_idx << 12) + (AINP << 5) + AINM, 2)) {
+            return false;
+        }
     }
+    return true;
 }
 
-void PrecisionAdc::set_adc_control() {
+bool PrecisionAdc::set_adc_control() {
     constexpr uint32_t DOUT_RDY_DEL = 0;
     constexpr uint32_t CONT_READ    = 0;
     constexpr uint32_t DATA_STATUS  = 1; // Status register is transferred with the data
@@ -81,11 +86,11 @@ void PrecisionAdc::set_adc_control() {
     constexpr uint32_t Mode         = 0; // 0: Continuous conversion mode
     constexpr uint32_t CLK_SEL      = 0; // Internal clock not available on CLK
 
-    write(0x01, (DOUT_RDY_DEL << 12) + (CONT_READ << 11) + (DATA_STATUS << 10) + (CS_EN << 9)
+    return write(0x01, (DOUT_RDY_DEL << 12) + (CONT_READ << 11) + (DATA_STATUS << 10) + (CS_EN << 9)
             + (REF_EN << 8) + (POWER_MODE << 6) + (Mode << 2) + (CLK_SEL << 0), 2);
 }
 
-void PrecisionAdc::set_configuration(int32_t setup_idx) {
+bool PrecisionAdc::set_configuration(int32_t setup_idx) {
     constexpr uint32_t Bipolar  = 1; // Bipolar operation
     constexpr uint32_t REF_BUFP = 1; // Positive reference buffered
     constexpr uint32_t REF_BUFM = 1; // Negative reference buffered
@@ -94,18 +99,18 @@ void PrecisionAdc::set_configuration(int32_t setup_idx) {
     constexpr uint32_t REF_SEL  = 0; // 0: External reference
     constexpr uint32_t PGA      = 0; // PGA gain
 
-    write(0x19 + setup_idx, (Bipolar << 11) + (REF_BUFP << 8) + (REF_BUFM << 7) + (AIN_BUFP << 6)
+    return write(0x19 + setup_idx, (Bipolar << 11) + (REF_BUFP << 8) + (REF_BUFM << 7) + (AIN_BUFP << 6)
             + (AIN_BUFM << 5) + (REF_SEL << 3) + (PGA << 0), 2);
 }
 
-void PrecisionAdc::set_filter(int32_t setup_idx) {
+bool PrecisionAdc::set_filter(int32_t setup_idx) {
     constexpr uint32_t Filter       = 0;
     constexpr uint32_t REJ60        = 0;
     constexpr uint32_t POST_FILTER  = 0b000;
     constexpr uint32_t SINGLE_CYCLE = 0;
     constexpr uint32_t FS           = 60;
 
-    write(0x21 + setup_idx, (Filter << 21) + (REJ60 << 20) + (POST_FILTER << 17)
+    return write(0x21 + setup_idx, (Filter << 21) + (REJ60 << 20) + (POST_FILTER << 17)
             + (SINGLE_CYCLE << 16) + (0 << 11) + (FS << 0), 3);
 }
 
@@ -118,8 +123,8 @@ void PrecisionAdc::adc_acquisition_thread(std::stop_token stop) {
         std::array<uint8_t, 5> rx{};  // [dmy, b1,  b2,  b3,  ch ]
         tx[0] = cmd_byte;
 
-        if (spi.transfer(tx, rx) < 0) {
-            log<WARNING>("PrecisionAdc: An error occured during read\n");
+        if (const auto result = spi.transfer_checked(tx, rx); !result) {
+            logf<WARNING>("PrecisionAdc: acquisition read failed: {}\n", result.error().message());
             std::this_thread::sleep_for(10ms);
             continue;
         }

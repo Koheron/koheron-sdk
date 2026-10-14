@@ -19,6 +19,7 @@
 #include <chrono>
 #include <utility>
 #include <string_view>
+#include <expected>
 
 #include <sys/mman.h>
 #include <sys/eventfd.h>
@@ -60,34 +61,41 @@ class Uio
     }
 
     int open() {
+        const auto result = open_checked();
+        if (!result) {
+            logf<ERROR>("Uio: opening {} at {:#x} failed: {}\n", mem_name, phys_addr, result.error().message());
+            errno = result.error().value();
+            return -1;
+        }
+        return *result;
+    }
+
+    [[nodiscard]] std::expected<int, std::error_code> open_checked() {
         namespace fs = std::filesystem;
         const fs::path uio_root{"/sys/class/uio"};
         std::error_code ec;
 
-        if (!fs::exists(uio_root, ec) || !fs::is_directory(uio_root, ec)) {
-            logf<ERROR>("Uio: Cannot open {} [{}]\n",
-                uio_root, ec ? ec.message().c_str() : std::strerror(errno));
-            return -1;
+        if (!fs::exists(uio_root, ec)) {
+            return std::unexpected(ec ? ec : std::make_error_code(std::errc::no_such_file_or_directory));
+        }
+        if (!fs::is_directory(uio_root, ec)) {
+            return std::unexpected(ec ? ec : std::make_error_code(std::errc::not_a_directory));
         }
 
-        int new_fd = -1;
-
-        for (const auto& entry : fs::directory_iterator(uio_root, ec)) {
-            if (ec) {
-                logf<ERROR>("Uio: directory_iterator error: {}\n", ec.message());
-                break;
-            }
-
-            if (!entry.is_directory()) {
+        fs::directory_iterator entry{uio_root, ec}, end;
+        if (ec) { return std::unexpected(ec); }
+        for (; entry != end; entry.increment(ec)) {
+            if (!entry->is_directory(ec)) {
+                if (ec) { return std::unexpected(ec); }
                 continue;
             }
 
-            const auto name = entry.path().filename().string();
+            const auto name = entry->path().filename().string();
             if (!name.starts_with("uio")) {
                 continue;
             }
 
-            const auto addr_path = entry.path() / "maps/map0/addr";
+            const auto addr_path = entry->path() / "maps/map0/addr";
             std::ifstream f(addr_path);
             if (!f) {
                 continue;
@@ -100,29 +108,22 @@ class Uio
 
             if (addr == phys_addr) {
                 const auto dev_path = fs::path("/dev") / name;
-                new_fd = ::open(dev_path.c_str(), O_RDWR | O_CLOEXEC);
+                const int new_fd = ::open(dev_path.c_str(), O_RDWR | O_CLOEXEC);
 
                 if (new_fd < 0) {
-                    logf<ERROR>("Uio: Cannot open {}: {}\n",
-                                              dev_path, std::strerror(errno));
-                } else {
-                    logf("Uio: {} @ {} ready\n", mem_name, dev_path);
+                    return std::unexpected(std::error_code(errno, std::generic_category()));
                 }
 
-                break;
+                unlisten();
+                unmap();
+                close_fd();
+                fd_ = new_fd;
+                logf("Uio: {} @ {} ready\n", mem_name, dev_path);
+                return fd_;
             }
         }
-
-        if (new_fd < 0) {
-            logf<ERROR>("Uio: No device with base {:#x}\n", phys_addr);
-            return -1;
-        }
-
-        unlisten();
-        unmap();
-        close_fd();
-        fd_ = new_fd;
-        return fd_;
+        if (ec) { return std::unexpected(ec); }
+        return std::unexpected(std::make_error_code(std::errc::no_such_device));
     }
 
     int fd() const noexcept { return fd_; }
@@ -267,9 +268,18 @@ class Uio
     // ------------------------------------------------------------------------
 
     void* mmap() {
-        if (fd_ < 0) {
-            logf<ERROR>("Uio: mmap on invalid fd\n");
+        const auto result = mmap_checked();
+        if (!result) {
+            logf<ERROR>("Uio: mapping {} failed: {}\n", mem_name, result.error().message());
+            errno = result.error().value();
             return nullptr;
+        }
+        return *result;
+    }
+
+    [[nodiscard]] std::expected<void*, std::error_code> mmap_checked() {
+        if (fd_ < 0) {
+            return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
         }
 
         // If already mapped, unmap first
@@ -284,9 +294,7 @@ class Uio
         void* p = ::mmap(nullptr, len, protection, MAP_SHARED, fd_, off);
 
         if (p == MAP_FAILED) {
-            logf<ERROR>("Uio: mmap({}, len={:#x}) failed: {}\n",
-                        mem_name, len, std::strerror(errno));
-            return nullptr;
+            return std::unexpected(std::error_code(errno, std::generic_category()));
         } else {
             logf("Uio: {} memory mapped\n", mem_name);
         }

@@ -184,10 +184,12 @@ test('average progress distinguishes waiting, initial fill and a full rolling wi
 for (const board of ['alpha250', 'red-pitaya']) {
     test(`${board} analyzer mounts and disposes the shared save action`, async t => {
         const h = await fixture(t, board); let saves = 0;
-        h.driver.saveConfig = () => saves++;
+        h.driver.saveConfig = async () => {saves++; return true;};
         const button = h.w.document.querySelector('.save-cfg');
         button.click(); assert.equal(saves, 1);
-        assert.equal(button.textContent, 'Save requested');
+        assert.equal(button.textContent, 'Saving…');
+        await settle();
+        assert.equal(button.textContent, 'Saved');
         h.app.dispose(); button.click(); assert.equal(saves, 1);
     });
 }
