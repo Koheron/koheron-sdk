@@ -271,8 +271,12 @@ $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt: $(MANIFEST_TXT) | $(OVERLAY
 	# ensure parents exist and copy
 	install -D -m0644 $< $@
 
-# Stage WWW
-$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | www $(OVERLAY_DIR)/
+# Stage WWW. Retire old pages even when the overlay stamp is already current.
+.PHONY: www_stage_cleanup
+www_stage_cleanup:
+	rm -f "$(OVERLAY_DIR)/usr/local/www/logs_rate.html"
+
+$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | www www_stage_cleanup $(OVERLAY_DIR)/
 	# ensure destination exists, then stage
 	mkdir -p $(OVERLAY_DIR)/usr/local/www
 	rsync -a --delete $(TMP_WWW_PATH)/ $(OVERLAY_DIR)/usr/local/www/
