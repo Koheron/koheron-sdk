@@ -1,12 +1,14 @@
 #ifndef KOHERON_BIST_MEASUREMENTS_HPP
 #define KOHERON_BIST_MEASUREMENTS_HPP
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -63,15 +65,96 @@ inline std::string distribution(std::vector<double> values)
     if (values.empty())
         return "null";
     std::sort(values.begin(), values.end());
-    auto at = [&](double p) { return values[static_cast<size_t>(p * double(values.size() - 1))]; };
+    auto at = [&](double p)
+    { return values[static_cast<size_t>(std::ceil(p * double(values.size()))) - 1]; };
     return "{\"count\":" + std::to_string(values.size()) + ",\"min\":" + number(values.front()) +
-           ",\"p50\":" + number(at(.5)) + ",\"p95\":" + number(at(.95)) +
-           ",\"p99\":" + number(at(.99)) + ",\"max\":" + number(values.back()) + "}";
+           ",\"p50\":" + number(at(.5)) +
+           ",\"p95\":" + (values.size() >= 100 ? number(at(.95)) : "null") +
+           ",\"p99\":" + (values.size() >= 1000 ? number(at(.99)) : "null") +
+           ",\"max\":" + number(values.back()) + "}";
 }
-inline uint32_t pattern(uint32_t index, uint32_t seed)
+
+// Bounded storage covering every observation, rather than truncating the run.
+// Bins below 16 us are 0.25 us wide. Above that, 64 bins per octave bound
+// midpoint error to 0.78125%. Min/max always retain the exact observations.
+class LatencyHistogram
 {
-    return (index * 0x9e3779b9U) ^ seed;
-}
+  public:
+    void add(double value)
+    {
+        if (!std::isfinite(value) || value < 0 || value >= std::ldexp(32.0, octaves - 1))
+        {
+            ++invalid;
+            return;
+        }
+        if (count == 0)
+            minimum = maximum = value;
+        minimum = std::min(minimum, value);
+        maximum = std::max(maximum, value);
+        ++count;
+        size_t octave = 0;
+        double scaled = value;
+        while (scaled >= 32 && octave < octaves - 1)
+        {
+            scaled *= .5;
+            ++octave;
+        }
+        const size_t index = value < 16
+                                 ? size_t(value * 4)
+                                 : 64 + octave * 64 + size_t(std::min((scaled - 16) * 4, 63.0));
+        ++bins[index];
+    }
+    void merge(const LatencyHistogram& other)
+    {
+        if (other.count != 0)
+        {
+            minimum = count == 0 ? other.minimum : std::min(minimum, other.minimum);
+            maximum = count == 0 ? other.maximum : std::max(maximum, other.maximum);
+        }
+        count += other.count;
+        invalid += other.invalid;
+        for (size_t i = 0; i < bins.size(); ++i)
+            bins[i] += other.bins[i];
+    }
+    double percentile(double p) const
+    {
+        if (count == 0)
+            return std::numeric_limits<double>::quiet_NaN();
+        const auto rank = std::max(uint64_t(1), uint64_t(std::ceil(p * double(count))));
+        uint64_t accumulated = 0;
+        for (size_t i = 0; i < bins.size(); ++i)
+        {
+            accumulated += bins[i];
+            if (accumulated >= rank)
+            {
+                const double midpoint = i < 64 ? (double(i) + .5) / 4
+                                               : (16 + (double((i - 64) % 64) + .5) / 4) *
+                                                     std::ldexp(1.0, int((i - 64) / 64));
+                return std::clamp(midpoint, minimum, maximum);
+            }
+        }
+        return maximum;
+    }
+    std::string json() const
+    {
+        if (count == 0)
+            return "null";
+        return "{\"count\":" + std::to_string(count) + ",\"min\":" + number(minimum) +
+               ",\"p50\":" + number(percentile(.5)) +
+               ",\"p95\":" + (count >= 100 ? number(percentile(.95)) : "null") +
+               ",\"p99\":" + (count >= 1000 ? number(percentile(.99)) : "null") +
+               ",\"max\":" + number(maximum) + ",\"invalid\":" + std::to_string(invalid) +
+               ",\"method\":\"log_linear_histogram\",\"relative_error_max\":0.0078125,"
+               "\"minimum_bin_us\":0.25}";
+    }
+    uint64_t count = 0, invalid = 0;
+    double minimum = 0, maximum = 0;
+
+  private:
+    static constexpr size_t octaves = 24;
+    std::array<uint64_t, 64 + 64 * octaves> bins{};
+};
+inline uint32_t pattern(uint32_t index, uint32_t seed) { return (index * 0x9e3779b9U) ^ seed; }
 inline uint8_t serial_pattern(size_t index, unsigned endpoint)
 {
     return static_cast<uint8_t>((index * 73 + (index >> 8) * 29 + endpoint * 101) ^ (index >> 3));

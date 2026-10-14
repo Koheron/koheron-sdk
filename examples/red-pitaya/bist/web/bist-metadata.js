@@ -21,7 +21,8 @@
                 ["Operating system", available(os.PRETTY_NAME)],
                 ["Kernel", available(metadata.kernel)],
                 ["OS image", available(image.RELEASE)],
-                ["Board", available(metadata.board)]
+                ["Board", available(metadata.board)],
+                ["Profile", available(metadata.parameters?.profile)]
             ],
             details: [
                 ["Run started (UTC)", available(metadata.started_utc)],

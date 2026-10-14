@@ -1,5 +1,5 @@
 NAME := bist
-VERSION := 1.1.0
+VERSION := 1.2.0
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14
 ENFORCE_TIMING := 1
 MEMORY_YML := $(PROJECT_PATH)/memory.yml

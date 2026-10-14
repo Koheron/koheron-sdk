@@ -12,6 +12,8 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python"))
 from koheron import KoheronClient, command
 import requests
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from performance import build_baseline, evaluate
 
 
 class BistClient:
@@ -23,6 +25,14 @@ class BistClient:
 
     @command(classname="Bist")
     def start(self, analog_mask):
+        return self.client.recv_bool()
+
+    @command(classname="Bist")
+    def start_profile(self, analog_mask, profile):
+        return self.client.recv_bool()
+
+    @command(classname="Bist")
+    def record_performance(self, run_id, status, comparison_json):
         return self.client.recv_bool()
 
     @command(classname="Bist")
@@ -185,7 +195,8 @@ def download(client, output):
 
 def validate(args):
     started = time.monotonic()
-    deadline = started + 30
+    budget = 60 if getattr(args, "profile", "health") == "benchmark" else 30
+    deadline = started + budget
     startup = None
     if not args.no_reboot:
         api(args.host, "instruments/default/bist", True)
@@ -219,7 +230,10 @@ def validate(args):
         startup = (network, server, float(boot))
     else:
         client = connect(args.host, deadline)
-    if not client.start(args.analog_mask):
+    profile = getattr(args, "profile", "health")
+    accepted = client.start(args.analog_mask) if profile == "health" else client.start_profile(
+        args.analog_mask, {"benchmark": 1, "diagnostic": 2}[profile])
+    if not accepted:
         raise RuntimeError("BIST start rejected (already active, invalid mask, or report storage unavailable)")
     collect(client, deadline)
     if startup and not client.record_startup(*startup):
@@ -235,6 +249,17 @@ def validate(args):
     identical = recovered["run_id"] == retained["run_id"] and recovered["metrics"] == retained["metrics"]
     lifecycle_ok = client.record_lifecycle(time.monotonic() - restart, identical)
     report = download(client, args.output)
+    if getattr(args, "save_baseline", None):
+        references = [json.loads(path.read_text()) for path in args.reference_report] + [report]
+        model = build_baseline(references, args.tolerance)
+        args.save_baseline.write_text(json.dumps(model, indent=2, allow_nan=False) + "\n")
+    performance = None
+    if getattr(args, "baseline", None):
+        performance = evaluate(json.loads(args.baseline.read_text()), report)
+        if not client.record_performance(report["run_id"], performance["status"], json.dumps(performance, allow_nan=False)):
+            raise RuntimeError("Performance comparison was not stored")
+        report = download(client, args.output)
+        (args.output / "performance.json").write_text(json.dumps(performance, indent=2) + "\n")
     client.close()
     if args.compare:
         comparison = compare(json.loads(args.compare.read_text()), report)
@@ -242,7 +267,11 @@ def validate(args):
     elapsed = time.monotonic() - started
     failures = [row["name"] for row in report["metrics"] if not row["pass"]]
     print(f"Report ready in {elapsed:.3f} s: {args.output / 'report.json'}")
-    if failures or not lifecycle_ok or not report["storage_ok"] or report["state"] != "complete" or elapsed >= 30:
+    if performance:
+        print(f"Functional: {report['functional_status']}; performance: {performance['status']}")
+    if performance and performance["status"] == "regression":
+        raise RuntimeError("Performance regression detected; functional results remain separate")
+    if failures or not lifecycle_ok or not report["storage_ok"] or report["state"] != "complete" or elapsed >= budget:
         raise RuntimeError(f"Validation failed: {failures}, state={report['state']}, storage_ok={report['storage_ok']}")
 
 
@@ -255,6 +284,11 @@ def main():
     parser.add_argument("--ssh-known-hosts", help="SSH host-key file, checked on reboot connection")
     parser.add_argument("--output", type=Path, default=Path("tmp/bist-results"))
     parser.add_argument("--compare", type=Path, help="Previous runtime report for OS comparison")
+    parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic"), default="health")
+    parser.add_argument("--baseline", type=Path, help="Evaluate against a repeated-run baseline model")
+    parser.add_argument("--save-baseline", type=Path, help="Save a baseline using this run and reference reports")
+    parser.add_argument("--reference-report", type=Path, action="append", default=[])
+    parser.add_argument("--tolerance", type=float, default=.10)
     args = parser.parse_args()
     try:
         validate(args)

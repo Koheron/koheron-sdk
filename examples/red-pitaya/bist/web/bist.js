@@ -21,6 +21,7 @@
         $("start").disabled = report.state === "running";
         $("cancel").disabled = report.state !== "running";
         $("download").disabled = !report.run_id;
+        $("outcomes").textContent = `Functional: ${report.functional_status || "unavailable"} · Performance: ${(report.performance?.status || "not evaluated").replaceAll("_", " ")}`;
         $("summary").textContent = report.run_id ? `Run ${report.run_id} · ${report.metrics.length} measurements · reports stored onboard` : "Ready to run";
         const metadata = window.bistMetadata.rows(report.metadata);
         for (const [id, rows] of [["metadata", metadata.summary], ["metadata-details", metadata.details]]) {
@@ -31,9 +32,21 @@
                 entry.append(term, definition); list.append(entry);
             }
         }
+        $("performance-metrics").replaceChildren();
+        let comparison = {};
+        try { comparison = JSON.parse(report.performance?.comparison_json || "{}"); } catch (_) { /* Invalid saved comparison. */ }
+        $("performance-details").hidden = !comparison.metrics?.length;
+        (comparison.metrics || []).forEach(row => {
+            const tr = document.createElement("tr");
+            [row.name.replaceAll("_", " "), row.status, row.value === undefined ? "Unavailable" : `${Number(row.value).toFixed(3)} ${row.unit}`,
+                row.threshold === undefined ? "Unavailable" : Number(row.threshold).toFixed(3)].forEach(text => {
+                const td = document.createElement("td"); td.textContent = text; tr.append(td);
+            });
+            $("performance-metrics").append(tr);
+        });
         $("metrics").replaceChildren();
         report.metrics.forEach(row => {
-            const tr = document.createElement("tr"), status = row.status === "skipped" ? "SKIP" : row.pass ? "PASS" : "FAIL";
+            const tr = document.createElement("tr"), status = row.status === "skipped" ? "SKIP" : row.status === "incomplete" ? "INCOMPLETE" : row.pass ? "PASS" : "FAIL";
             [status, row.domain === "os" ? "OS validation" : "Instrument health", row.name.replaceAll("_", " "),
                 row.value === null ? "Unavailable" : `${Number(row.value).toLocaleString(undefined, {maximumFractionDigits: 3})} ${row.unit}`].forEach((text, index) => {
                 const td = document.createElement("td"); td.textContent = text;
@@ -105,7 +118,7 @@
     }
     $("start").onclick = async () => {
         $("start").disabled = true;
-        try { if (!await control("start", [Number($("mask").value)])) $("state").textContent = "Run could not start"; }
+        try { if (!await control("start_profile", [Number($("mask").value), Number($("profile").value)])) $("state").textContent = "Run could not start"; }
         catch (error) { $("state").textContent = error.message; }
     };
     $("cancel").onclick = () => control("cancel", []).catch(error => { $("state").textContent = error.message; });

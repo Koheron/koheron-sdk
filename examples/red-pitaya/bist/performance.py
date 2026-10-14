@@ -1,0 +1,131 @@
+"""Repeatable performance comparisons, independent of functional health."""
+import math
+from statistics import median
+
+IDENTITY = ("fpga_sha256", "server_sha256", "bist_build_id", "workload_version", "parameters",
+            "board", "fpga_dna")
+DIRECTIONS = {"register_read": "lower", "register_write": "lower", "bram_write": "higher",
+              "bram_read": "higher", "dma_isolated": "higher", "dma_combined": "higher",
+              "uart_isolated": "higher", "uart_combined": "higher",
+              "uart_roundtrip_isolated": "lower", "uart_roundtrip_combined": "lower",
+              "uio_observation": "lower", "rpc_isolated": "higher", "rpc_bulk": "higher",
+              "rpc_combined": "higher", "cpu_memory_load": "higher"}
+
+
+def finite(value):
+    return type(value) in (int, float) and math.isfinite(value)
+
+
+def identity(metadata):
+    result = {}
+    for key in IDENTITY:
+        value = metadata.get(key)
+        if value is None or value == "unavailable" or value == "":
+            raise ValueError(f"Missing baseline identity: {key}")
+        result[key] = value
+    return result
+
+
+def healthy(report):
+    if report.get("state") != "complete" or not report.get("storage_ok"):
+        raise ValueError("Baseline requires complete reports with healthy storage")
+    if report.get("functional_status") != "pass" or any(not row["pass"] for row in report["metrics"]):
+        raise ValueError("Baseline requires functional PASS")
+    missing = set(report.get("missing_measurements", [])) - {
+        "network_readiness", "server_readiness", "boot_readiness"}
+    if missing:
+        raise ValueError(f"Baseline has missing measurements: {sorted(missing)}")
+
+
+def measurements(report):
+    result = {}
+    for row in report["metrics"]:
+        if row["name"] not in DIRECTIONS:
+            continue
+        if finite(row.get("value")):
+            result[row["name"]] = (row["value"], row["unit"], DIRECTIONS[row["name"]])
+        for field, unit in (("latency_us", "us"), ("latency_ms", "ms")):
+            distribution = row.get(field)
+            if not isinstance(distribution, dict):
+                continue
+            for percentile in ("p50", "p95", "p99"):
+                value = distribution.get(percentile)
+                if finite(value):
+                    result[f"{row['name']}.{percentile}"] = (value, unit, "lower")
+    return result
+
+
+def build_baseline(reports, tolerance=.10):
+    if not 0 < tolerance < 1 or not reports:
+        raise ValueError("Provide reports and a tolerance between zero and one")
+    expected = identity(reports[0]["metadata"])
+    samples = {}
+    seen = set()
+    for report in reports:
+        healthy(report)
+        if identity(report["metadata"]) != expected:
+            raise ValueError("Baseline reports have different reference identities or parameters")
+        run_id = report.get("run_id")
+        if not run_id or run_id in seen:
+            raise ValueError("Baseline requires distinct run IDs")
+        seen.add(run_id)
+        for name, sample in measurements(report).items():
+            samples.setdefault(name, []).append(sample)
+    rows = []
+    for name, values in samples.items():
+        units = {item[1] for item in values}
+        if len(units) != 1:
+            raise ValueError(f"Different units for {name}")
+        center = median(item[0] for item in values)
+        mad = median(abs(item[0] - center) for item in values)
+        noise = 3 * 1.4826 * mad
+        status = "ready"
+        if len(values) < 5 or center <= 0:
+            status = "insufficient"
+        elif noise > center * tolerance:
+            status = "noisy"
+        rows.append({"name": name, "unit": values[0][1], "direction": values[0][2],
+                     "count": len(values), "median": center, "mad": mad,
+                     "margin": max(center * tolerance, noise), "status": status})
+    return {"schema_version": 1, "identity": expected, "tolerance": tolerance,
+            "minimum_runs": 5, "runs": sorted(seen), "metrics": rows,
+            "conditions": [{"run_id": r["run_id"], "os": r["metadata"].get("os"),
+                            "kernel": r["metadata"].get("kernel"),
+                            "environment": r["metadata"].get("environment")} for r in reports]}
+
+
+def evaluate(baseline, report):
+    if baseline.get("schema_version") != 1:
+        raise ValueError("Unsupported baseline schema")
+    if identity(report["metadata"]) != baseline["identity"]:
+        return {"status": "incompatible", "reason": "Different reference identities or parameters", "metrics": []}
+    try:
+        healthy(report)
+    except ValueError as error:
+        return {"status": "inconclusive", "reason": str(error), "metrics": []}
+    current = measurements(report)
+    rows = []
+    for reference in baseline["metrics"]:
+        row = {"name": reference["name"], "status": reference["status"]}
+        measurement = current.get(reference["name"])
+        if reference["status"] not in ("ready", "noisy", "insufficient"):
+            raise ValueError("Invalid baseline metric status")
+        if reference["status"] == "ready" and (reference["count"] < 5 or len(set(baseline["runs"])) < 5):
+            row["status"] = "insufficient"
+        elif not measurement or measurement[1] != reference["unit"]:
+            row["status"] = "unavailable"
+        elif reference["status"] == "ready":
+            value = measurement[0]
+            center, margin = reference["median"], reference["margin"]
+            if not finite(center) or not finite(margin) or center <= 0 or margin < 0:
+                raise ValueError("Invalid baseline limits")
+            if reference["direction"] not in ("higher", "lower"):
+                raise ValueError("Invalid baseline direction")
+            threshold = center - margin if reference["direction"] == "higher" else center + margin
+            regressed = value < threshold if reference["direction"] == "higher" else value > threshold
+            row.update(status="regression" if regressed else "pass", value=value,
+                       median=center, threshold=threshold, unit=reference["unit"])
+        rows.append(row)
+    status = "regression" if any(r["status"] == "regression" for r in rows) else \
+             "pass" if rows and all(r["status"] == "pass" for r in rows) else "inconclusive"
+    return {"status": status, "baseline_runs": baseline["runs"], "metrics": rows}

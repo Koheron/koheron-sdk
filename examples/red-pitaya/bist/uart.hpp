@@ -2,7 +2,7 @@
 #define KOHERON_BIST_UART_HPP
 #include "hardware.hpp"
 #include <pthread.h>
-#include <barrier>
+#include "workload.hpp"
 #include <sched.h>
 #include <cstring>
 namespace bist
@@ -17,7 +17,9 @@ struct SerialResult
     std::vector<std::string> diagnostics;
     std::vector<double> roundtrip_us;
     int scheduling_error = 0;
-    std::vector<double> observation_us;
+    LatencyHistogram observation_us, window_observation_us;
+    size_t window_received = 0;
+    double start_offset_us = 0;
 };
 template <MemID Id> class SerialEndpoint
 {
@@ -41,12 +43,14 @@ template <MemID Id> class SerialEndpoint
     // Each endpoint owns its UIO FD and runs on exactly one worker thread.
     // Optional response gating implements a request/reply exchange through PL.
     SerialResult exchange(size_t bytes, unsigned endpoint, bool request_reply = false,
-                          std::barrier<>* ready = nullptr)
+                          StartGate* ready = nullptr, CombinedLoad* load = nullptr)
     {
         SerialResult result;
+        if (request_reply)
+            result.roundtrip_us.reserve(bytes / 32);
         // A 64-byte RX FIFO provides 1389 us of service time at this baud.
         // Keep IRQ workers ahead of the normal CPU/DMA load threads. Each
-        // worker blocks on UIO between causes and has a fixed three-second bound.
+        // worker blocks on UIO between causes and has a fixed five-second bound.
         cpu_set_t cpus;
         CPU_ZERO(&cpus);
         CPU_SET(endpoint, &cpus);
@@ -70,13 +74,16 @@ template <MemID Id> class SerialEndpoint
         // either transmitter to fill its FIFO. Synchronizing thread entry alone
         // leaves a normal-priority peer vulnerable during CPU load.
         if (ready != nullptr)
-            ready->arrive_and_wait();
+            ready->wait();
         Clock::time_point frame_start;
-        const auto start = Clock::now(), deadline = start + std::chrono::seconds(3);
+        const auto start = Clock::now(), deadline = start + std::chrono::seconds(5);
+        if (load)
+            result.start_offset_us = bist::seconds(load->ready.start()) * 1e6;
         while (!cancelled && Clock::now() < deadline)
         {
             uint32_t status = port.read_reg(4);
             unsigned pending = status & 255;
+            const bool in_window = load && Clock::now() <= load->window_end();
             while (pending-- != 0)
             {
                 const auto value = static_cast<uint8_t>(port.read_reg(0));
@@ -91,6 +98,8 @@ template <MemID Id> class SerialEndpoint
                             " observed=" + std::to_string(value));
                 }
                 ++result.received;
+                if (in_window)
+                    ++result.window_received;
                 if (request_reply && endpoint == 0 && result.received % 32 == 0)
                     result.roundtrip_us.push_back(bist::seconds(frame_start) * 1e6);
             }
@@ -121,6 +130,10 @@ template <MemID Id> class SerialEndpoint
             // TX demand interrupts are only enabled for unsent work.
             port.write_reg(8, 1U | (result.transmitted < limit ? 2U : 0U));
             barrier();
+            // RX asserts on every byte. A fixed service pause lets normal
+            // workers run even when AXI service costs exceed the byte period.
+            // 100 us is well below the 1389 us FIFO service budget.
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
             if (!irq.arm_irq())
             {
                 ++result.errors;
@@ -138,8 +151,10 @@ template <MemID Id> class SerialEndpoint
                 // Time from the PL's level-IRQ assertion to this register read.
                 // Includes scheduler, UIO delivery and AXI read overhead.
                 const uint32_t asserted = port.read_reg(36), now = port.read_reg(32);
-                if (result.observation_us.size() < 8192)
-                    result.observation_us.push_back(double(now - asserted) / 125.0);
+                const double latency = double(now - asserted) / 125.0;
+                result.observation_us.add(latency);
+                if (load && Clock::now() <= load->window_end())
+                    result.window_observation_us.add(latency);
             }
             else
                 ++result.timeouts;

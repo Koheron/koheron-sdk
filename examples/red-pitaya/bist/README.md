@@ -135,9 +135,13 @@ same field. Null or non-finite measurement values are identified explicitly
 and have no ratio; zero reference values also have no ratio. Startup
 values identify their clock and origin; network readiness uses ICMP
 independently of HTTP or RPC. Network/server readiness includes reboot shutdown
-time, while boot readiness uses Linux monotonic uptime. DMA MB/s is payload
+time, while boot readiness uses Linux monotonic uptime. Isolated DMA MB/s is payload
 bytes divided by onboard transfer completion time, excluding pattern
-preparation and verification.
+preparation and verification. Combined DMA reports verified payload completed
+inside the shared window divided by that window. Its `engine_MB_s` field
+retains transfer-only throughput across all completed transfers. The combined
+rate therefore includes software preparation, verification and scheduling;
+these two rates measure different parts of the workload.
 UART throughput is the aggregate of both directions; baud is independently
 checked using the PL frame counter and the converter clock is checked against
 the onboard monotonic clock. UIO observation latency includes AXI register-read
@@ -163,8 +167,9 @@ causes before rearming level-sensitive UIO interrupts, and enable TX demand
 interrupts only while unsent work remains. UART workers use `SCHED_FIFO` priority
 1 to meet the 1.389 ms service budget of the 64-byte FIFOs; CPU, DMA and RPC work
 uses normal scheduling. UART A/B workers are pinned to CPU 0/1 and begin traffic
-only after both workers are ready. This fixed operating condition is recorded
-in reports. Fractional 16x baud enables avoid integer-divider drift.
+after worker initialization. Each service batch pauses for 100 us to give
+normal workers CPU time while staying within the FIFO service budget. This
+fixed operating condition is recorded in reports. Fractional 16x baud enables avoid integer-divider drift.
 
 The isolated suite runs register/BRAM, DMA, UART, and generated RPC checks.
 The combined workload runs one 8 MiB CPU/memory worker concurrently with DMA,
@@ -172,13 +177,71 @@ both UART workers and localhost RPC. Timed regions do not write report logs;
 combined-workload file writes wait until all timed workers finish.
 Request/reply uses persistent workers and one outstanding 32-byte frame.
 
-Workload version 2 uses 0.5 s for isolated DMA, 0.3 s for each isolated RPC
-benchmark, 1.0 s for combined DMA/load and 0.5 s for combined RPC. Payload sizes,
-descriptor counts and UART traffic are unchanged. Every DMA benchmark must
-complete at least two verified buffer generations. RPC I/O has a one-second
-bound and reports the failing protocol stage when communication fails. These
-fixed timings are recorded in report parameters; version-1 runs are identified
-as incompatible references.
+Workload version 3 prepares memory, UART scheduling and RPC dispatch before a
+shared start gate. CPU, DMA, RPC and both UART workers use one epoch and a
+common measurement window. CPU/DMA/RPC load continues while UART traffic and
+request/reply verification drain; this extra time is reported separately.
+CPU load is pinned to CPU 1; DMA and the RPC client use CPU 0. SDK dispatch
+workers and kernel interrupt routing retain their normal policies. The report
+records start offsets, preparation failures and external report-read traffic.
+
+Combined throughput counts work completed within the common window. RPC
+latency includes the full completion time of every call started inside that
+window, including late replies. Latencies cover the whole observation
+population using bounded histograms, with exact min/max, 0.25 us bins below
+16 us and a maximum 0.78125% midpoint error above it. DMA and UART request/reply
+samples remain exact. All distributions use nearest-rank percentiles: p95
+requires 100 observations, p99 requires 1000; unavailable tails are `null`.
+
+Snapshot acknowledgement is mandatory. Capture DMA, descriptor lengths and
+FIFO loss are checked independently of cable declarations. Every row has a
+`pass`, `fail`, `skipped` or `incomplete` status. Cancelled benchmark values are
+`null`, with completed counts retained. Logs include both UTC and a monotonic
+`steady_ms` timestamp, interpreted with the saved boot ID.
+
+Checkpoint generations contain all report fields together, with bounded
+lengths and a CRC. Atomic replacement preserves a previous generation;
+terminal checkpoints are synced to disk. Restart restores one validated
+checkpoint, marks an unfinished run interrupted, and reports failed storage
+when it must fall back. Two invalid generations yield an explicit corrupt
+report. JSON, scorecard and log files are derived exports.
+
+## Profiles and performance baselines
+
+The default `health` profile uses 0.5 s isolated DMA, 0.3 s for each isolated
+RPC benchmark, 32768 bytes per UART direction, and a 0.5 s common window. It
+keeps the original 30-second full validation budget. `benchmark` explicitly
+uses a 60-second client budget: 2 s isolated DMA and common windows, 1 s per
+isolated RPC check, and 131072 UART bytes per direction. It collects more
+samples for performance comparisons. `diagnostic` adds bounded payload
+corruption, a zero-length DMA descriptor, a stalled stream, a masked UIO IRQ,
+and a missing snapshot acknowledgement; every injected failure must be
+detected and followed by verified recovery.
+
+```sh
+.venv/bin/python examples/red-pitaya/bist/client.py --no-reboot --profile diagnostic
+for run in 1 2 3 4; do
+  .venv/bin/python examples/red-pitaya/bist/client.py --no-reboot --profile benchmark --output tmp/bist-ref-$run
+done
+.venv/bin/python examples/red-pitaya/bist/client.py --no-reboot --profile benchmark \
+  --output tmp/bist-ref-5 --save-baseline tmp/bist-baseline.json \
+  --reference-report tmp/bist-ref-1/report.json --reference-report tmp/bist-ref-2/report.json \
+  --reference-report tmp/bist-ref-3/report.json --reference-report tmp/bist-ref-4/report.json
+.venv/bin/python examples/red-pitaya/bist/client.py --no-reboot --profile benchmark \
+  --baseline tmp/bist-baseline.json --output tmp/bist-comparison
+```
+
+Functional integrity and performance regression are separate outcomes.
+Baselines require distinct, complete, functionally healthy reports with matching
+reference identities, parameters, board and FPGA DNA. A metric needs at least
+five runs. Limits use its median and the larger of the configured tolerance
+(default 10%) or three scaled MADs (`3 × 1.4826 × MAD`). Excessively noisy or
+insufficient baselines remain inconclusive. Throughput regressions fall below
+the limit; latency regressions exceed it. Missing values and incompatible
+identities never pass. OS/kernel/environment provenance is retained for each
+reference run. The saved report and webpage show the separate performance
+outcome and individual comparisons. `--compare` remains a descriptive ratio
+comparison with one previous report, without a regression verdict.
 
 Cancellation is bounded by short IRQ waits; shutdown joins workers before
 releasing mappings. The instrument uses UIO and the OS write-combined driver;
@@ -191,13 +254,16 @@ those checks. DMA exclusion is verified against both the boot device tree's
 ```sh
 make check CFG=examples/red-pitaya/bist/stemlab-125-14.mk
 .venv/bin/python -m pytest -q examples/red-pitaya/bist/tests python/tests/test_client_timeout.py
-g++ -std=c++17 -Wall -Wextra -Werror examples/red-pitaya/bist/tests/test_measurements.cpp -o /tmp/bist-measurements
+g++ -std=c++23 -Wall -Wextra -Werror examples/red-pitaya/bist/tests/test_measurements.cpp -o /tmp/bist-measurements
 /tmp/bist-measurements
-g++ -std=c++17 -Wall -Wextra -Werror examples/red-pitaya/bist/tests/test_metadata.cpp -o /tmp/bist-metadata
+g++ -std=c++23 -Wall -Wextra -Werror examples/red-pitaya/bist/tests/test_metadata.cpp -o /tmp/bist-metadata
 /tmp/bist-metadata
+g++ -std=c++23 -Wall -Wextra -Werror -pthread examples/red-pitaya/bist/tests/test_checkpoint.cpp -o /tmp/bist-checkpoint
+/tmp/bist-checkpoint
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
 vivado -mode batch -source examples/red-pitaya/bist/tests/run_sim.tcl -tclargs tmp/bist-rtl
 .venv/bin/python examples/red-pitaya/bist/tests/hardware_checks.py --host 192.168.1.84
+.venv/bin/python examples/red-pitaya/bist/tests/recovery_checks.py --host 192.168.1.84
 ```
 
 The RTL simulations check FIFO framing/data, baud timing, skewed AXI channel
@@ -207,7 +273,7 @@ FPGA timing is enforced by the instrument configuration.
 
 ## Measured validation
 
-BIST 1.1.0 / workload 2 completed a full reboot validation on 2026-10-14 in
+The earlier BIST 1.1.0 / workload 2 completed a full reboot validation on 2026-10-14 in
 28.325 s, including report download and service recovery. The onboard suite
 took 3.494 s. Isolated DMA completed seven verified buffer generations at
 493.0 MB/s; combined DMA completed four at 474.5 MB/s. The isolated RPC checks
