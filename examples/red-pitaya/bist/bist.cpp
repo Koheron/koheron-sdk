@@ -3,6 +3,8 @@
 #include "metadata.hpp"
 #include "uart.hpp"
 #include "checkpoint.hpp"
+#include "pacing.hpp"
+#include <charconv>
 #include <drivers_json.hpp>
 #include <atomic>
 #include <barrier>
@@ -89,6 +91,27 @@ bool socket_io(int fd, void* data, size_t size, bool write)
     }
     return true;
 }
+uint32_t rpc_operation(bool bulk)
+{
+    // Resolve IDs from the generated adapter's operation metadata.
+    using Adapter = koheron::adapter_meta<koheron::BistAdapter>;
+    uint32_t ping_id = 0, bulk_id = 0;
+    [&]<size_t... I>(std::index_sequence<I...>)
+    {
+        ((
+             [&]
+             {
+                 using Operation = std::tuple_element_t<I, typename Adapter::ops_tuple>;
+                 const auto name = koheron::op_name<koheron::op_meta<Operation>::pmf>();
+                 if (name == "ping")
+                     ping_id = uint32_t(I);
+                 if (name == "benchmark_reply")
+                     bulk_id = uint32_t(I);
+             }()),
+         ...);
+    }(std::make_index_sequence<std::tuple_size_v<typename Adapter::ops_tuple>>{});
+    return (uint32_t(Adapter::id) << 16) | (bulk ? bulk_id : ping_id);
+}
 struct RpcResult
 {
     uint64_t calls = 0, errors = 0, bytes = 0;
@@ -131,24 +154,7 @@ RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel,
         ::close(fd);
         return result;
     }
-    // Resolve IDs from the generated adapter's operation metadata.
-    using Adapter = koheron::adapter_meta<koheron::BistAdapter>;
-    uint32_t ping_id = 0, bulk_id = 0;
-    [&]<size_t... I>(std::index_sequence<I...>)
-    {
-        ((
-             [&]
-             {
-                 using Operation = std::tuple_element_t<I, typename Adapter::ops_tuple>;
-                 const auto name = koheron::op_name<koheron::op_meta<Operation>::pmf>();
-                 if (name == "ping")
-                     ping_id = uint32_t(I);
-                 if (name == "benchmark_reply")
-                     bulk_id = uint32_t(I);
-             }()),
-         ...);
-    }(std::make_index_sequence<std::tuple_size_v<typename Adapter::ops_tuple>>{});
-    const uint32_t operation = (uint32_t(Adapter::id) << 16) | (bulk ? bulk_id : ping_id);
+    const uint32_t operation = rpc_operation(bulk);
     std::array<uint32_t, 3> request{0, htonl(operation), htonl(bulk ? 1024U : 0x13579bdfU)};
     std::vector<uint32_t> response(bulk ? 1024 : 1);
     if (load)
@@ -226,6 +232,49 @@ RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel,
     ::close(fd);
     return result;
 }
+// Separate probe so the established saturation workload retains its timing.
+PacedResult controlled_rpc(StartGate& gate, std::atomic<bool>& cancelled)
+{
+    PacedResult result;
+    result.affinity_error = pin_worker(0);
+    const int fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    timeval timeout{1, 0};
+    int one = 1;
+    if (fd >= 0)
+    {
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+    }
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_port = htons(36000);
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    const uint32_t operation = rpc_operation(false);
+    uint32_t nonce = 0x13579bdf;
+    auto call = [&]
+    {
+        std::array<uint32_t, 3> request{0, htonl(operation), htonl(++nonce)}, reply{};
+        return socket_io(fd, request.data(), sizeof(request), true) &&
+               socket_io(fd, reply.data(), 8, false) && socket_io(fd, reply.data() + 2, 4, false) &&
+               reply[0] == 0 && ntohl(reply[1]) == operation &&
+               ntohl(reply[2]) == (nonce ^ 0x42495354U);
+    };
+    if (fd < 0 || ::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0 ||
+        !call())
+    {
+        result.errors = 1;
+        gate.drop();
+    }
+    else
+    {
+        gate.wait();
+        paced(result, gate.start(), comparison_rpc_rate, comparison_seconds, cancelled, call);
+    }
+    if (fd >= 0)
+        ::close(fd);
+    return result;
+}
 } // namespace
 
 struct Bist::Impl
@@ -244,6 +293,8 @@ struct Bist::Impl
     bool storage_ok = true;
     bool defer_io = false;
     Profile profile;
+    unsigned comparison_mask = 15;
+    std::atomic<bool> measuring{false};
     std::atomic<uint64_t> observer_requests{0};
     std::string functional = "unavailable", performance_status = "not_evaluated", performance;
     std::string scorecard;
@@ -267,6 +318,14 @@ struct Bist::Impl
             {
                 metrics = saved[0];
                 metadata = saved[1];
+                if (metadata.find("\"profile\":\"comparison\"") != std::string::npos)
+                {
+                    profile.id = 3;
+                    const auto key = metadata.find("\"case_mask\":");
+                    if (key != std::string::npos)
+                        std::from_chars(metadata.data() + key + 12,
+                                        metadata.data() + metadata.size(), comparison_mask);
+                }
                 metadata_text = saved[2];
                 state = saved[3];
                 log_text = saved[4];
@@ -350,7 +409,18 @@ struct Bist::Impl
                                                             "boot_readiness",
                                                             "instrument_restart"};
         std::string missing = "[";
-        for (const auto name : required)
+        std::vector<std::string> expected;
+        if (profile.id == 3)
+        {
+            for (unsigned i = 0; i < comparison_cases.size(); ++i)
+                if (comparison_mask & (1U << i))
+                    expected.push_back("rpc_controlled_" + std::string(comparison_cases[i]));
+            expected.push_back("suite_duration");
+        }
+        else
+            for (const auto name : required)
+                expected.emplace_back(name);
+        for (const auto& name : expected)
         {
             if (metrics.find("\"name\":" + quote(name)) != std::string::npos)
                 continue;
@@ -413,7 +483,8 @@ struct Bist::Impl
                 storage_ok = false;
             if (!error && state != "running")
             {
-                // Terminal reports survive a later reboot; timed regions never sync files.
+                // Terminal reports survive a later reboot; timed regions never sync
+                // files.
                 const int file = ::open((prefix + "/checkpoint").c_str(), O_RDONLY | O_CLOEXEC);
                 const int directory = ::open(prefix.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
                 if (file < 0 || directory < 0)
@@ -545,10 +616,12 @@ struct Bist::Impl
             std::filesystem::exists(reservation + "/no-map", tree_error) && tree.size() == 8 &&
             mem::buffers_addr >= reserved_base &&
             mem::buffers_addr + mem::buffers_range <= reserved_base + reserved_size;
-        // /proc/iomem proves exclusion; the boot DT's no-map reservation is checked by the host
-        // too.
+        // /proc/iomem proves exclusion; the boot DT's no-map reservation is checked
+        // by the host too.
         add("dma_reservation", reserved ? 1 : 0, "bool", reserved && boot_reservation,
-            "boot no-map reservation and fixed 8 MiB buffer must not intersect System RAM", "os",
+            "boot no-map reservation and fixed 8 MiB buffer must not intersect "
+            "System RAM",
+            "os",
             "\"iomem\":" + quote(read_file("/proc/iomem")) +
                 ",\"reservation_reg_bytes\":" + std::to_string(tree.size()),
             false);
@@ -565,7 +638,8 @@ struct Bist::Impl
             "Hz",
             first_snapshot && second_snapshot && measured_clock > 123750000 &&
                 measured_clock < 126250000,
-            "PL cycle counter against onboard monotonic clock, expected 125 MHz within 1%",
+            "PL cycle counter against onboard monotonic clock, expected 125 MHz "
+            "within 1%",
             "instrument", "", false);
         const auto before = resource_count("/proc/self/fd");
         bool lifetime = true;
@@ -704,7 +778,8 @@ struct Bist::Impl
             : transfer_seconds > 0 ? double(transferred) / transfer_seconds / 1e6
                                    : unavailable,
             "MB/s", errors == 0 && iterations >= 2,
-            "2 MiB full duplex SG, 32 x 64 KiB descriptors, exact pattern and descriptor lengths; "
+            "2 MiB full duplex SG, 32 x 64 KiB descriptors, exact pattern and "
+            "descriptor lengths; "
             "buffers reused",
             "os",
             "\"errors\":" + std::to_string(errors) + ",\"interrupts\":" +
@@ -800,7 +875,9 @@ struct Bist::Impl
             : elapsed > 0 ? double(bytes) / elapsed / 1000
                           : unavailable,
             "kB/s aggregate", errors == 0 && interrupts > 4,
-            "deterministic bytes each way at 460800 baud 8N1; sequence checked byte for byte", "os",
+            "deterministic bytes each way at 460800 baud 8N1; sequence checked "
+            "byte for byte",
+            "os",
             "\"channels\":" + endpoints.str() + ",\"errors\":" + std::to_string(errors) +
                 ",\"full_elapsed_seconds\":" + number(elapsed) +
                 ",\"window_bytes\":" + std::to_string(window_bytes));
@@ -811,7 +888,8 @@ struct Bist::Impl
             std::sort(rtt.begin(), rtt.end());
             add("uart_roundtrip_" + workload, rtt.empty() ? 0 : rtt[rtt.size() / 2], "us",
                 roundtrip_errors == 0 && rtt.size() == 24,
-                "24 request/reply frames, 32 bytes each, persistent UIO workers; idle IRQ timeout "
+                "24 request/reply frames, 32 bytes each, persistent UIO workers; "
+                "idle IRQ timeout "
                 "before traffic",
                 "os", "\"latency_us\":" + distribution(rtt), workload == "isolated");
         }
@@ -821,10 +899,12 @@ struct Bist::Impl
                                  result[1].frame_cycles >= 2712 && result[1].frame_cycles <= 2713;
             add("uart_baud", result[0].frame_cycles ? 1250000000.0 / result[0].frame_cycles : 0,
                 "baud", baud_ok,
-                "independent PL frame counter: ten bit-times must take 2712 or 2713 ADC-clock "
+                "independent PL frame counter: ten bit-times must take 2712 or 2713 "
+                "ADC-clock "
                 "cycles");
             add("uio_observation", observation.percentile(.5), "us", observation.count > 0,
-                "PL IRQ assertion to userspace clock-register read; includes AXI read overhead",
+                "PL IRQ assertion to userspace clock-register read; includes AXI "
+                "read overhead",
                 "os", "\"latency_us\":" + observation.json());
         }
     }
@@ -837,8 +917,10 @@ struct Bist::Impl
                 ? (bulk ? double(result.bytes) / 1e6 : double(result.calls)) / result.elapsed
                 : 0,
             bulk ? "MB/s" : "requests/s", result.errors == 0 && result.calls > 0,
-            bulk ? "onboard TCP RPC: 1024-word generated vector reply, exact payload checked"
-                 : "onboard TCP RPC: generated ping decode, dispatch and reply; one request "
+            bulk ? "onboard TCP RPC: 1024-word generated vector reply, exact "
+                   "payload checked"
+                 : "onboard TCP RPC: generated ping decode, dispatch and reply; "
+                   "one request "
                    "outstanding",
             "os",
             "\"errors\":" + std::to_string(result.errors) + ",\"calls\":" +
@@ -868,7 +950,8 @@ struct Bist::Impl
         for (unsigned i = 0; i < 1024; ++i)
             errors += bram.read_reg(i * 4) != ram.read_reg(Dma::tx_data + i * 4);
         add("waveform_upload", double(errors), "errors", upload.ok && errors == 0,
-            "SG DMA upload into the CPU-accessible BRAM must match all 1024 packed DAC words",
+            "SG DMA upload into the CPU-accessible BRAM must match all 1024 packed "
+            "DAC words",
             "instrument", "", false);
         ctl.write<reg::mode>(2);
         ctl.write<reg::samples>(16384);
@@ -877,7 +960,8 @@ struct Bist::Impl
         const bool counters_ok = snapshot();
         const bool capture_ok = capture.ok && counters_ok && sts.read<reg::overflow>() == 0;
         add("adc_capture", capture_ok ? 16384 : unavailable, "samples/channel", capture_ok,
-            "packed ADC DMA, descriptor lengths, snapshot acknowledgement and no FIFO loss; "
+            "packed ADC DMA, descriptor lengths, snapshot acknowledgement and no "
+            "FIFO loss; "
             "independent of cables",
             "instrument",
             "\"dma_ok\":" + std::string(capture.ok ? "true" : "false") +
@@ -898,9 +982,11 @@ struct Bist::Impl
                                  snr > 30 && tone.clipping < 1 && sts.read<reg::overflow>() == 0;
             add("analog_" + std::to_string(channel), capture_ok ? tone.amplitude : unavailable,
                 "ADC codes peak", connected ? healthy : capture_ok,
-                connected ? "DAC to ADC cable; coherent 3.90625 MHz tone, 15.625 MS/s capture; "
+                connected ? "DAC to ADC cable; coherent 3.90625 MHz tone, 15.625 "
+                            "MS/s capture; "
                             "gain is uncalibrated"
-                          : "external cable absent; analog validation skipped, input noise still "
+                          : "external cable absent; analog validation skipped, input "
+                            "noise still "
                             "measured",
                 "instrument",
                 "\"mean_codes\":" + number(capture_ok ? tone.mean : unavailable) +
@@ -931,14 +1017,16 @@ struct Bist::Impl
     }
     void diagnostics()
     {
-        log("Diagnostic profile: bounded fault detection followed by verified recovery.");
+        log("Diagnostic profile: bounded fault detection followed by verified "
+            "recovery.");
         bool good = recovered_dma();
         ram.write_reg(Dma::rx_data + 128, ram.read_reg(Dma::rx_data + 128) ^ 1U);
         barrier();
         const bool detected = dma.verify(65536, 0xabc) == 1;
         const bool recovered = recovered_dma();
         add("fault_corrupt_payload", detected ? 1 : 0, "bool", good && detected && recovered,
-            "flip one completed RX word; detect exact mismatch; reset and verify fresh transfer",
+            "flip one completed RX word; detect exact mismatch; reset and verify "
+            "fresh transfer",
             "instrument", "", false);
         for (const auto [fault, name] :
              std::array{std::pair{DmaFault::bad_descriptor, "fault_bad_descriptor"},
@@ -956,7 +1044,8 @@ struct Bist::Impl
             const bool recovered_fault = recovered_dma();
             add(name, result.seconds, "s",
                 good && detected_fault && recovered_fault && result.seconds < .25,
-                "injected fault must fail within 150 ms plus IRQ wait; reset must recover exact "
+                "injected fault must fail within 150 ms plus IRQ wait; reset must "
+                "recover exact "
                 "DMA data",
                 "instrument",
                 "\"tx_status\":" + std::to_string(result.tx_status) +
@@ -972,12 +1061,117 @@ struct Bist::Impl
         barrier();
         const bool snapshot_recovered = snapshot();
         add("fault_snapshot_ack", timed_out ? 1 : 0, "bool", timed_out && snapshot_recovered,
-            "hold path in reset; require snapshot timeout; release reset and require new "
+            "hold path in reset; require snapshot timeout; release reset and "
+            "require new "
             "acknowledgement",
             "instrument", "", false);
     }
+    void controlled()
+    {
+        log("Controlled RPC comparison v4: fixed offered load, no UART, no report "
+            "writes in windows.");
+        const bool dma_ready = (comparison_mask & 12) == 0 || dma.open();
+        // Let an already-open webpage discover comparison_active before
+        // measurement.
+        for (unsigned i = 0; i < 150 && !cancelled; ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        for (unsigned index = 0; index < comparison_cases.size() && !cancelled; ++index)
+        {
+            if (!(comparison_mask & (1U << index)))
+                continue;
+            const bool memory_on = index == 1 || index == 3, dma_on = index >= 2;
+            std::vector<uint64_t> memory(memory_on ? 1024 * 1024 : 0, 0x42495354);
+            PacedResult rpc, cpu, transfer;
+            uint64_t checksum = 0;
+            uint32_t seed = 0;
+            StartGate gate(3);
+            {
+                std::lock_guard lock(mutex);
+                defer_io = true;
+            }
+            observer_requests = 0;
+            measuring = true;
+            std::thread cpu_worker(
+                [&]
+                {
+                    cpu.affinity_error = pin_worker(1);
+                    size_t offset = 0;
+                    gate.wait();
+                    if (memory_on)
+                        paced(cpu, gate.start(), comparison_memory_rate, comparison_seconds,
+                              cancelled,
+                              [&]
+                              {
+                                  constexpr size_t words =
+                                      comparison_memory_bytes / sizeof(uint64_t);
+                                  for (size_t i = 0; i < words; ++i)
+                                  {
+                                      auto& word = memory[offset + i];
+                                      word = (word + checksum) * 1664525U + 1013904223U;
+                                      checksum ^= word;
+                                  }
+                                  offset = (offset + words) % memory.size();
+                                  return true;
+                              });
+                });
+            std::thread rpc_worker([&] { rpc = controlled_rpc(gate, cancelled); });
+            transfer.affinity_error = pin_worker(0);
+            const bool ready = !dma_on || (dma_ready && dma.reset());
+            if (!ready)
+            {
+                transfer.errors = 1;
+                gate.drop();
+            }
+            else
+            {
+                gate.wait();
+                if (dma_on)
+                    paced(transfer, gate.start(), comparison_dma_rate, comparison_seconds,
+                          cancelled,
+                          [&]
+                          {
+                              if (!dma.reset())
+                                  return false;
+                              dma.fill(comparison_dma_bytes, ++seed);
+                              const auto result = dma.transfer(comparison_dma_bytes, true, true,
+                                                               false, DmaFault::none, 100);
+                              return result.ok && dma.verify(comparison_dma_bytes, seed) == 0;
+                          });
+            }
+            rpc_worker.join();
+            cpu_worker.join();
+            measuring = false;
+            const auto observers = observer_requests.load();
+            const bool integrity = !cancelled && rpc.errors == 0 && transfer.errors == 0 &&
+                                   cpu.affinity_error == 0 && rpc.affinity_error == 0 &&
+                                   transfer.affinity_error == 0 && rpc.completed != 0;
+            const bool valid = integrity && rpc.valid() && (!memory_on || cpu.valid()) &&
+                               (!dma_on || transfer.valid()) && observers == 0 &&
+                               gate.failures() == 0;
+            {
+                std::lock_guard lock(mutex);
+                defer_io = false;
+            }
+            add("rpc_controlled_" + std::string(comparison_cases[index]),
+                rpc.latency.percentile(.5), "us", integrity,
+                "client wall RTT includes dispatch, reply and scheduling; valid load "
+                "requires "
+                "98% completed slots and zero observer requests",
+                "os",
+                "\"comparison_quality\":" + quote(valid ? "valid" : "inconclusive") +
+                    ",\"observer_requests\":" + std::to_string(observers) + ",\"rpc\":" +
+                    rpc.json() + ",\"memory\":" + cpu.json() + ",\"dma\":" + transfer.json() +
+                    ",\"memory_checksum\":" + quote(std::to_string(checksum)));
+        }
+    }
     void run(unsigned mask)
     {
+        if (profile.id == 3)
+        {
+            controlled();
+            finish();
+            return;
+        }
         // The previous run and shutdown leave the shared path in reset.
         ctl.write<reg::mode>(0);
         barrier();
@@ -1079,9 +1273,9 @@ struct Bist::Impl
                 "one CPU/memory worker over 8 MiB during concurrent DMA/UART/RPC; server RSS and "
                 "scheduling recorded",
                 "os",
-                "\"checksum\":" + quote(std::to_string(burn_checksum)) + ",\"process_cpu_seconds\":" +
-                    number(cpu) + ",\"elapsed_seconds\":" + number(elapsed) +
-                    ",\"max_rss_kib\":" + std::to_string(after.ru_maxrss) +
+                "\"checksum\":" + quote(std::to_string(burn_checksum)) +
+                    ",\"process_cpu_seconds\":" + number(cpu) + ",\"elapsed_seconds\":" +
+                    number(elapsed) + ",\"max_rss_kib\":" + std::to_string(after.ru_maxrss) +
                     ",\"major_faults\":" + std::to_string(after.ru_majflt - before.ru_majflt) +
                     ",\"involuntary_switches\":" +
                     std::to_string(after.ru_nivcsw - before.ru_nivcsw) +
@@ -1089,6 +1283,10 @@ struct Bist::Impl
         }
         if (profile.id == 2 && ready && !cancelled)
             diagnostics();
+        finish();
+    }
+    void finish()
+    {
         dma.stop();
         add("suite_duration", seconds(beginning), "s",
             seconds(beginning) < (profile.id == 1 ? 60 : 30) && !cancelled,
@@ -1110,7 +1308,18 @@ Bist::~Bist() = default;
 bool Bist::start(uint32_t analog_mask) { return start_profile(analog_mask, 0); }
 bool Bist::start_profile(uint32_t analog_mask, uint32_t profile)
 {
-    if (analog_mask > 3 || profile > 2 || impl->active)
+    return start_impl(analog_mask, profile, 15);
+}
+bool Bist::start_comparison(uint32_t case_mask) { return start_impl(0, 3, case_mask); }
+bool Bist::comparison_active()
+{
+    if (impl->measuring)
+        ++impl->observer_requests;
+    return impl->active && impl->profile.id == 3;
+}
+bool Bist::start_impl(uint32_t analog_mask, uint32_t profile, uint32_t case_mask)
+{
+    if (analog_mask > 3 || profile > 3 || case_mask == 0 || case_mask > 15 || impl->active)
         return false;
     if (impl->worker.joinable())
         impl->worker.join();
@@ -1127,6 +1336,8 @@ bool Bist::start_profile(uint32_t analog_mask, uint32_t profile)
     if (error)
         return false;
     impl->profile.id = profile;
+    impl->comparison_mask = case_mask;
+    const unsigned version_id = profile == 3 ? 4 : workload_version;
     impl->functional = "pass";
     impl->performance_status = "not_evaluated";
     impl->performance.clear();
@@ -1160,13 +1371,13 @@ bool Bist::start_profile(uint32_t analog_mask, uint32_t profile)
             << "FPGA SHA256: " << fpga_digest << '\n'
             << "Server SHA256: " << server_digest << '\n'
             << "BIST source SHA256: " << BIST_BUILD_ID << '\n'
-            << "Workload: " << workload_version << " | analog cable mask: " << analog_mask << '\n';
+            << "Workload: " << version_id << " | analog cable mask: " << analog_mask << '\n';
     impl->metadata_text = summary.str();
     const auto parameters = impl->profile;
     impl->metadata =
         "{\"bist_version\":" + quote(version) + ",\"instrument_name\":" + quote(INSTRUMENT_NAME) +
         ",\"instrument_version\":" + quote(version) +
-        ",\"workload_version\":" + std::to_string(workload_version) +
+        ",\"workload_version\":" + std::to_string(version_id) +
         ",\"sdk_version\":" + quote(KOHERON_VERSION) +
         ",\"bist_build_id\":" + quote(BIST_BUILD_ID) + ",\"started_utc\":" + quote(timestamp()) +
         ",\"kernel\":" + quote(system.release) + ",\"os_release\":" + quote(os_release) +
@@ -1188,20 +1399,26 @@ bool Bist::start_profile(uint32_t analog_mask, uint32_t profile)
         ",\"cpu0_frequency_khz\":" +
         quote(read_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq")) +
         "},\"parameters\":{\"analog_mask\":" + std::to_string(analog_mask) +
-        ",\"adc_clock_hz\":125000000,\"capture_decimation\":8,\"baud\":460800,\"framing\":\"8N1\","
-        "\"dma_bytes\":2097152,\"dma_descriptors\":32,\"dma_chunk_bytes\":65536,\"uart_bytes_per_"
+        ",\"adc_clock_hz\":125000000,\"capture_decimation\":8,\"baud\":460800,"
+        "\"framing\":\"8N1\","
+        "\"dma_bytes\":2097152,\"dma_descriptors\":32,\"dma_chunk_bytes\":65536,"
+        "\"uart_bytes_per_"
         "direction\":" +
         std::to_string(parameters.uart_bytes()) +
         ",\"uart_fifo_bytes\":64,\"uart_scheduler\":\"SCHED_FIFO\",\"uart_"
-        "priority\":1,\"uart_service_pause_us\":100,\"uart_worker_cpus\":[0,1],\"dma_min_"
+        "priority\":1,\"uart_service_pause_us\":100,\"uart_worker_cpus\":[0,1],"
+        "\"dma_min_"
         "iterations\":2,"
         "\"rpc_io_timeout_seconds\":1,\"dma_isolated_seconds\":" +
         number(parameters.dma_seconds()) +
         ",\"rpc_isolated_seconds\":" + number(parameters.rpc_seconds()) +
         ",\"combined_window_seconds\":" + number(parameters.window_seconds()) +
         ",\"profile\":" + quote(parameters.name()) +
-        ",\"load_worker_cpus\":{\"cpu\":1,\"dma\":0,\"rpc_client\":0},\"percentile_min_samples\":{"
-        "\"p95\":100,\"p99\":1000},\"statistics\":\"whole_population_histogram_v1\"" +
+        ",\"load_worker_cpus\":{\"cpu\":1,\"dma\":0,\"rpc_client\":0},"
+        "\"percentile_min_samples\":{"
+        "\"p95\":100,\"p99\":1000},\"statistics\":\"whole_population_histogram_"
+        "v1\"" +
+        (profile == 3 ? ",\"controlled\":" + comparison_parameters(case_mask) : "") +
         "},\"comparability\":\"Require matching FPGA and "
         "server "
         "SHA256, BIST source identity, workload version, "
@@ -1215,7 +1432,12 @@ bool Bist::start_profile(uint32_t analog_mask, uint32_t profile)
     return true;
 }
 void Bist::cancel() { impl->cancelled = true; }
-bool Bist::running() { return impl->active; }
+bool Bist::running()
+{
+    if (impl->measuring)
+        ++impl->observer_requests;
+    return impl->active;
+}
 double Bist::get_boot_seconds()
 {
     timespec now{};
@@ -1265,9 +1487,11 @@ bool Bist::record_startup(double network_seconds, double server_seconds, double 
         server_seconds < network_seconds || boot_seconds < 0)
         return false;
     impl->add("network_readiness", network_seconds, "s", true,
-              "host monotonic time from reboot request to first new-boot ICMP echo reply");
+              "host monotonic time from reboot request to first new-boot ICMP "
+              "echo reply");
     impl->add("server_readiness", server_seconds, "s", true,
-              "host monotonic time from reboot request to generated BIST RPC readiness");
+              "host monotonic time from reboot request to generated BIST RPC "
+              "readiness");
     impl->add("boot_readiness", boot_seconds, "s", boot_seconds < 60,
               "Linux monotonic uptime at first BIST RPC readiness");
     return impl->storage_ok;
@@ -1290,7 +1514,8 @@ bool Bist::record_lifecycle(double restart_seconds, bool recovered)
     const bool healthy = dma_ok && serial[0].errors == 0 && serial[1].errors == 0;
     impl->dma.stop();
     impl->add("instrument_restart", restart_seconds, "s", recovered && healthy,
-              "report retained across stop/start; overlay reapplied; DMA and both UARTs recover",
+              "report retained across stop/start; overlay reapplied; DMA and "
+              "both UARTs recover",
               "os",
               "\"report_retained\":" + std::string(recovered ? "true" : "false") +
                   ",\"dma_ok\":" + (dma_ok ? "true" : "false") +

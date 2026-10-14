@@ -4,7 +4,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-// RPC facade. Hardware and measurement implementation stays out of generated code.
+// RPC facade. Hardware and measurement implementation stays out of generated
+// code.
 class Bist
 {
   public:
@@ -25,7 +26,11 @@ class Bist
     bool start_profile(uint32_t analog_mask, uint32_t profile);
     bool record_performance(std::string run_id, std::string status, std::string comparison_json);
 
+    bool start_comparison(uint32_t case_mask);
+    bool comparison_active();
+
   private:
+    bool start_impl(uint32_t analog_mask, uint32_t profile, uint32_t case_mask);
     struct Impl;
     std::unique_ptr<Impl> impl;
 };

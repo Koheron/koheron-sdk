@@ -16,7 +16,10 @@ struct Profile
     double rpc_seconds() const { return id == 1 ? 1.0 : .3; }
     double window_seconds() const { return id == 1 ? 2.0 : .5; }
     size_t uart_bytes() const { return id == 1 ? 131072 : 32768; }
-    const char* name() const { return id == 1 ? "benchmark" : id == 2 ? "diagnostic" : "health"; }
+    const char* name() const
+    {
+        return id == 3 ? "comparison" : id == 1 ? "benchmark" : id == 2 ? "diagnostic" : "health";
+    }
 };
 
 class StartGate

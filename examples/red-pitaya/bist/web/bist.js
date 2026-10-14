@@ -53,12 +53,28 @@
                 if (index === 0) td.className = status === "SKIP" ? "skipped" : row.pass ? "pass" : "fail";
                 tr.append(td);
             });
-            tr.title = row.detail; $("metrics").append(tr);
+            if (row.comparison_quality) {
+                const td = tr.lastChild;
+                td.textContent += ` · load ${row.comparison_quality}`;
+                tr.title = `${row.detail}; RTT p95 ${row.rpc.latency_us?.p95 ?? "unavailable"} us; ` +
+                    `scheduled-response p95 ${row.rpc.response_us?.p95 ?? "unavailable"} us; ` +
+                    `${row.rpc.completed}/${row.rpc.requested} requests; ${row.observer_requests} observer calls`;
+            } else tr.title = row.detail;
+            $("metrics").append(tr);
         });
     }
     async function poll(token) {
         if (token !== generation) return;
         try {
+            // Stop report/log traffic before the controlled measurement starts.
+            // Older instrument packages retain the existing polling behavior.
+            if (commands.comparison_active && await rpc("comparison_active")) {
+                $("state").textContent = "Controlled comparison running · updates paused during measurement";
+                $("start").disabled = true; $("cancel").disabled = false; $("download").disabled = true;
+                $("summary").textContent = "Showing the previous report until the controlled comparison finishes";
+                setTimeout(() => poll(token), 11000);
+                return;
+            }
             let batch = JSON.parse(await rpc("get_log", [cursor]));
             if (batch.run_id !== runId) {
                 runId = batch.run_id; cursor = 0; $("log").textContent = "";
