@@ -301,7 +301,7 @@ $(BOARD_DTSO): | $(LINUX_PATH)/.unpacked
 $(TMP_OS_PATH)/board-overlay/board.dtso: $(LINUX_PATH)/.unpacked
 endif
 
-$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(LINUX_BUILD_STAMP) $(LINUX_SELECTION_STAMP)
+$(TMP_OS_PATH)/board-overlay/board.dtbo: $(TMP_OS_PATH)/board-overlay/board.dtso $(DTC_BIN) $(LINUX_SELECTION_STAMP)
 	# Preprocess so #include <dt-bindings/...> works
 	$(DOCKER) $(OS_HOSTCC) -E -P -x assembler-with-cpp -nostdinc -undef -D__DTS__ \
 	  -I $(SDK_PATH) \
