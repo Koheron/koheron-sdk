@@ -319,7 +319,7 @@ FORCE:
 include $(OS_PATH)/rootfs.mk
 """)
             output = root / 'out/www'
-            pages = ('index.html', 'instrument_summary.html', 'logs_rate.html')
+            pages = ('index.html', 'instrument_summary.html')
             assets = ('instruments.js', 'main.css', 'instrument.css', 'system.css')
 
             def make(*args):

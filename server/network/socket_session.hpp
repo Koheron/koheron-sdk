@@ -180,7 +180,6 @@ int SocketSession<socket_type>::read_command(Command& cmd) {
     logf<DEBUG>("WebSocket: Receive command for driver {}, operation {}\n",
             cmd.driver, cmd.operation);
 
-    rx_tracker.update(Command::header_size);
     return Command::header_size;
 }
 

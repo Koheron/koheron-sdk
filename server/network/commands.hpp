@@ -166,7 +166,6 @@ class Command
                 return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>{});
             }
 
-            session->rx_tracker.update(err);
             return std::tuple_cat(std::tuple{err}, buff.template deserialize<Tp...>());
         } else if (socket_type == WEBSOCK) {
             if (pack_len > payload.remaining(payload_valid_bytes)) {
@@ -174,7 +173,6 @@ class Command
                 return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>{});
             }
 
-            session->rx_tracker.update(pack_len);
             return std::tuple_cat(std::tuple{0}, payload.deserialize<Tp...>());
         } else {
             return std::tuple_cat(std::tuple{-1}, std::tuple<Tp...>());
@@ -249,7 +247,6 @@ class Command
                 return std::unexpected(DecodeError::truncated);
             }
 
-            session->rx_tracker.update(nbytes_read + sizeof(uint32_t));
             logf<DEBUG>("TCPSocket: Received a container of {} bytes\n", nbytes_read);
 
             return nbytes_read;
@@ -281,7 +278,6 @@ class Command
             }
 
             payload.to_container(c, length);
-            session->rx_tracker.update(length);
             return 0;
         } else {
             return std::unexpected(DecodeError::invalid_transport);

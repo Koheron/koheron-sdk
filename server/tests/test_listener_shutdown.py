@@ -42,8 +42,7 @@ class ListenerShutdownTest(unittest.TestCase):
         sources = ('tests/listener_shutdown.cpp', 'network/listener_manager.cpp',
                    'network/listening_channel.cpp', 'network/session_manager.cpp',
                    'network/session.cpp', 'network/sockets.cpp', 'network/websocket.cpp',
-                   'network/sha1.cpp', 'network/base64.cpp', 'runtime/runtime_executor.cpp',
-                   'utilities/rate_tracker.cpp')
+                   'network/sha1.cpp', 'network/base64.cpp', 'runtime/runtime_executor.cpp')
         command += [str(ROOT / 'server' / source) for source in sources]
         subprocess.run(command + ['-o', str(cls.binary)], check=True, timeout=120)
 

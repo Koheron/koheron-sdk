@@ -8,7 +8,6 @@
 #include "server/network/mixed_reply.hpp"
 #include "server/network/fixed_reply.hpp"
 #include "server/network/configs/config.hpp"
-#include "server/utilities/rate_tracker.hpp"
 #include "server/utilities/metadata.hpp"
 #include "server/utilities/meta_utils.hpp"
 
@@ -58,7 +57,6 @@ class Session
             // synchronously, including WebSocket framing.
             const auto bytes = detail::fixed_reply(class_id, func_id, args...);
             const int n = write_bytes(std::as_bytes(std::span{bytes}));
-            tx_tracker.update(n);
             if (n == 0) status = CLOSED;
             return n;
         }
@@ -104,7 +102,6 @@ class Session
                 builder.push(std::forward<Args>(args)...);
                 n = write_bytes(std::as_bytes(std::span{send_buffer}));
             }
-            tx_tracker.update(n);
 
             if (n == 0) {
                 status = CLOSED;
@@ -130,19 +127,6 @@ class Session
     void log_infos() {
         log("Session infos:\n");
         infos.log("    ");
-    }
-
-    // Data rates
-    auto rates() {
-        return std::array{
-            rx_tracker.snapshot(),
-            tx_tracker.snapshot()
-        };
-    }
-
-    void log_rates() {
-        rx_tracker.log_snapshot("RX Rates");
-        tx_tracker.log_snapshot("TX Rates");
     }
 
   protected:
@@ -182,18 +166,12 @@ class Session
     std::pmr::vector<unsigned char> send_buffer{ &pool };
     CommandBuilder builder;
 
-    ut::RateTracker rx_tracker{5, 64, 1.5}; // 5s window, keep 64s history, 1.5s EWMA half-life
-    ut::RateTracker tx_tracker{5, 64, 1.5};
-
     friend class Command;
 
     template<class T, std::size_t Extent>
     int send_payload(std::span<T, Extent> payload, int flags) {
         auto header = std::as_bytes(std::span{send_buffer});
-        const auto t0 = ut::RateTracker::clock::now();
         int n = send_iov(header, std::as_bytes(payload), flags);
-        const auto completed = ut::RateTracker::clock::now();
-        const auto dur = completed - t0;
 
         if (n <= 0) {
             if (n == 0) {
@@ -212,7 +190,6 @@ class Session
             return n;
         }
 
-        tx_tracker.update_over_duration(n, dur, completed);
         return n;
     }
 };

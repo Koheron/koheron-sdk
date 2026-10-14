@@ -58,7 +58,6 @@ WWW_ASSETS := \
   $(TMP_WWW_PATH)/instruments.js \
   $(TMP_WWW_PATH)/index.html \
   $(TMP_WWW_PATH)/instrument_summary.html \
-  $(TMP_WWW_PATH)/logs_rate.html \
   $(TMP_WWW_PATH)/main.css \
   $(TMP_WWW_PATH)/instrument.css \
   $(TMP_WWW_PATH)/system.css \
@@ -78,10 +77,13 @@ WWW_ASSETS := \
 
 .PHONY: www
 www : $(WWW_ASSETS)
+	# Retire the cached page when upgrading an existing dashboard build.
+	rm -f "$(TMP_WWW_PATH)/logs_rate.html"
 
 .PHONY: www_sync
 www_sync: www
 	sshpass -e rsync -avz -e "ssh -i /ssh-private-key" "$(TMP_WWW_PATH)/." "root@$(HOST):/usr/local/www/"
+	sshpass -e ssh -i /ssh-private-key "root@$(HOST)" "rm -f /usr/local/www/logs_rate.html"
 
 .PHONY: clean_www
 clean_www:
@@ -96,9 +98,8 @@ WWW_TS_FILES += $(WWW_PATH)/instrument_summary.ts
 WWW_TS_FILES += $(WWW_PATH)/koheron_server_log.ts
 WWW_TS_FILES += $(WWW_PATH)/koheron_system.ts
 WWW_TS_FILES += $(WWW_PATH)/system_info_widget.ts
-WWW_TS_FILES += $(WWW_PATH)/logs_rate.ts
 
-$(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES) $(WEB_COMPILER_INPUTS)
+$(TMP_WWW_PATH)/instruments.js: $(WWW_TS_FILES) $(WEB_COMPILER_INPUTS) $(OS_PATH)/rootfs.mk
 	mkdir -p $(@D)
 	$(WEB_COMPILE) --output "$@" $(WWW_TS_FILES)
 
@@ -108,7 +109,7 @@ $(TMP_WWW_PATH)/koheron.css: $(WWW_ASSET_DOWNLOADER)
 	mkdir -p $(@D)
 	bash "$(WWW_ASSET_DOWNLOADER)" "$@" "https://assets.koheron.com/css/main.css"
 
-WWW_PAGES := $(addprefix $(TMP_WWW_PATH)/,index.html instrument_summary.html logs_rate.html)
+WWW_PAGES := $(addprefix $(TMP_WWW_PATH)/,index.html instrument_summary.html)
 WWW_PAGE_ASSETS := $(addprefix $(TMP_WWW_PATH)/,instruments.js main.css instrument.css system.css)
 WWW_ASSET_VERSIONER := $(WEB_PATH)/version_assets.py
 
@@ -271,7 +272,7 @@ $(OVERLAY_DIR)/usr/local/share/koheron/manifest.txt: $(MANIFEST_TXT) | $(OVERLAY
 	install -D -m0644 $< $@
 
 # Stage WWW
-$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | $(OVERLAY_DIR)/
+$(OVERLAY_DIR)/usr/local/www/.stamp: $(WWW_ASSETS) | www $(OVERLAY_DIR)/
 	# ensure destination exists, then stage
 	mkdir -p $(OVERLAY_DIR)/usr/local/www
 	rsync -a --delete $(TMP_WWW_PATH)/ $(OVERLAY_DIR)/usr/local/www/

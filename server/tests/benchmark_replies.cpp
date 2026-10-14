@@ -1,4 +1,4 @@
-// Standalone CPU benchmark: production packing/accounting, no socket I/O.
+// Standalone CPU benchmark: production packing, no socket I/O.
 // The opaque send hooks keep byte construction observable to the optimizer.
 #include "server/network/session.hpp"
 #include <chrono>
