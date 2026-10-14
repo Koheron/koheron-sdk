@@ -20,9 +20,11 @@ def identity(metadata):
     result = {}
     for key in IDENTITY:
         value = metadata.get(key)
-        if value is None or value == "unavailable" or value == "":
+        if not value or value == "unavailable":
             raise ValueError(f"Missing baseline identity: {key}")
         result[key] = value
+    if not isinstance(result["parameters"], dict):
+        raise ValueError("Baseline parameters must be an object")
     return result
 
 
@@ -79,14 +81,23 @@ def build_baseline(reports, tolerance=.10):
         center = median(item[0] for item in values)
         mad = median(abs(item[0] - center) for item in values)
         noise = 3 * 1.4826 * mad
+        parameters = expected["parameters"]
+        window = parameters.get("combined_window_seconds", 0)
+        resolution = 0
+        if finite(window) and window > 0:
+            if name == "dma_combined":
+                resolution = parameters.get("dma_bytes", 0) / window / 1e6
+            elif name == "cpu_memory_load":
+                resolution = 2 * 8 * 1024 * 1024 / window / 1e6
         status = "ready"
-        if len(values) < 5 or center <= 0:
+        if len(values) < 5 or center <= 0 or resolution >= center:
             status = "insufficient"
         elif noise > center * tolerance:
             status = "noisy"
         rows.append({"name": name, "unit": values[0][1], "direction": values[0][2],
                      "count": len(values), "median": center, "mad": mad,
-                     "margin": max(center * tolerance, noise), "status": status})
+                     "margin": max(center * tolerance, noise, resolution),
+                     "resolution": resolution, "status": status})
     return {"schema_version": 1, "identity": expected, "tolerance": tolerance,
             "minimum_runs": 5, "runs": sorted(seen), "metrics": rows,
             "conditions": [{"run_id": r["run_id"], "os": r["metadata"].get("os"),
@@ -108,6 +119,9 @@ def evaluate(baseline, report):
     for reference in baseline["metrics"]:
         row = {"name": reference["name"], "status": reference["status"]}
         measurement = current.get(reference["name"])
+        if measurement and measurement[1] == reference["unit"]:
+            row.update(value=measurement[0], unit=measurement[1], median=reference["median"],
+                       resolution=reference.get("resolution", 0))
         if reference["status"] not in ("ready", "noisy", "insufficient"):
             raise ValueError("Invalid baseline metric status")
         if reference["status"] == "ready" and (reference["count"] < 5 or len(set(baseline["runs"])) < 5):
@@ -122,7 +136,8 @@ def evaluate(baseline, report):
             if reference["direction"] not in ("higher", "lower"):
                 raise ValueError("Invalid baseline direction")
             threshold = center - margin if reference["direction"] == "higher" else center + margin
-            regressed = value < threshold if reference["direction"] == "higher" else value > threshold
+            regressed = (value < threshold if reference["direction"] == "higher" else value > threshold)
+            regressed = regressed and not math.isclose(value, threshold, rel_tol=1e-12)
             row.update(status="regression" if regressed else "pass", value=value,
                        median=center, threshold=threshold, unit=reference["unit"])
         rows.append(row)

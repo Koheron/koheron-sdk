@@ -69,3 +69,24 @@ def test_unavailable_tails_do_not_seed_samples():
         r["metrics"][0]["latency_ms"] = {"count": 5, "p50": 4, "p95": None, "p99": None}
     model = p.build_baseline(reports)
     assert {row["name"] for row in model["metrics"]} == {"dma_combined", "dma_combined.p50"}
+
+
+@pytest.mark.parametrize("value", [None, "", "unavailable", {}, 0, False])
+def test_missing_baseline_identity_is_rejected(value):
+    bad = report()
+    bad["metadata"]["parameters"] = value
+    with pytest.raises(ValueError):
+        p.build_baseline([bad])
+
+
+def test_batch_resolution_prevents_false_dma_regression():
+    reports = [report(i, 5.24288) for i in range(5)]
+    for r in reports:
+        r["metadata"]["parameters"].update(combined_window_seconds=2, dma_bytes=2097152)
+    model = p.build_baseline(reports)
+    current = copy.deepcopy(reports[0])
+    current["metrics"][0]["value"] = 4.194304
+    assert p.evaluate(model, current)["status"] == "pass"
+    current["metrics"][0]["value"] = 3.145728
+    assert p.evaluate(model, current)["status"] == "regression"
+    assert model["metrics"][0]["resolution"] == pytest.approx(1.048576)

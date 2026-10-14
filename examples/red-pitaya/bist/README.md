@@ -235,12 +235,16 @@ Functional integrity and performance regression are separate outcomes.
 Baselines require distinct, complete, functionally healthy reports with matching
 reference identities, parameters, board and FPGA DNA. A metric needs at least
 five runs. Limits use its median and the larger of the configured tolerance
-(default 10%) or three scaled MADs (`3 × 1.4826 × MAD`). Excessively noisy or
+(default 10%) or three scaled MADs (`3 × 1.4826 × MAD`), with a floor of one completed
+batch for combined DMA and CPU throughput. This accounts for the resolution
+of counting fixed-size batches inside a window. Excessively noisy or
 insufficient baselines remain inconclusive. Throughput regressions fall below
 the limit; latency regressions exceed it. Missing values and incompatible
 identities never pass. OS/kernel/environment provenance is retained for each
 reference run. The saved report and webpage show the separate performance
-outcome and individual comparisons. `--compare` remains a descriptive ratio
+outcome and individual comparisons. A crossed limit identifies slower
+measurements against the reference; repeat the comparison before attributing
+that difference to an OS change. `--compare` remains a descriptive ratio
 comparison with one previous report, without a regression verdict.
 
 Cancellation is bounded by short IRQ waits; shutdown joins workers before
@@ -272,6 +276,39 @@ upload addressing, atomic snapshots and capture overflow diagnostics. Routed
 FPGA timing is enforced by the instrument configuration.
 
 ## Measured validation
+
+BIST 1.2.0 / workload 3 was measured on `192.168.1.84` on 2026-10-14, with
+DAC0/ADC0 connected and channel 1 unconnected. Two final cold-boot validations
+of the committed instrument passed in **27.689 s** and **28.553 s**, including
+report downloads and service recovery. The onboard suites took **3.431 s** and
+**3.383 s**. Both reports contained all 33 required measurements, 18 headline
+metrics, functional PASS and healthy storage. Their reference comparison was
+compatible. The validated FPGA image is unchanged.
+
+Five benchmark runs took 10.567–10.717 s onboard. Isolated DMA measured
+494.1–495.0 MB/s; combined verified payload measured 5.243 MB/s including
+preparation, verification and scheduling. Combined RPC measured 1829.5–2117.5
+requests/s. UART retained approximately 91.58 kB/s aggregate with no integrity
+errors. A sixth same-OS comparison crossed the combined RPC p95/p99 limits;
+CPU throughput was classified noisy. Functional checks still passed. The DMA
+comparison accounts for one-transfer resolution, so a single batch at the
+window boundary does not become a regression. These results illustrate why
+performance alerts are separate and should be repeated before diagnosing an
+OS change.
+
+The diagnostic profile passed all five injected failures and verified recovery,
+taking 3.829 s onboard. SIGKILL during the combined workload restored an
+interrupted report and recovered DMA/UART after overlay reload. Truncated
+checkpoint fallback and rejection of two corrupt generations passed. Five
+additional health runs passed with a maximum responsive ping of 3.73 ms;
+incorrect channel-1 cable declaration failed only that analog check. Active
+shutdown took 0.353 s and retained incomplete results.
+
+Local verification passed 150 host checks, 67 BIST/Python checks and all three
+C++23 helper checks. The instrument was built with GCC 15 and warnings as
+errors. Browser verification covered metadata, profiles, separate performance
+results and a JSON download exactly matching the client report, including the
+64-bit checksum stored as a string.
 
 The earlier BIST 1.1.0 / workload 2 completed a full reboot validation on 2026-10-14 in
 28.325 s, including report download and service recovery. The onboard suite
