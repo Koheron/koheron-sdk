@@ -41,4 +41,8 @@ Vivado/Vitis 2025.1. Select other releases with `LINUX_VERSION`,
 `UBOOT_VERSION`, or `VIVADO_VERSION`. Set `PASSWORD` and `TIMEZONE` in the
 environment to override the image defaults.
 
+FTDI USB serial ports use a 1 ms receive latency timer by default, applied at
+boot and on connection by `/etc/udev/rules.d/99-koheron-ftdi.rules` when the
+device supports it. Rebuild the OS image to include this default.
+
 The [board management guide](api/README.md) covers the API and web interface.

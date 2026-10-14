@@ -299,6 +299,10 @@ $(OVERLAY_DIR)/etc/systemd/system.conf.d/60-koheron-watchdog.conf: $(OS_PATH)/co
 	@rm -f -- $@.tmp
 	@chmod 0644 $@
 
+# FTDI receive latency (boot enumeration and hotplug)
+$(OVERLAY_DIR)/etc/udev/rules.d/99-koheron-ftdi.rules: $(OS_PATH)/config/udev/99-koheron-ftdi.rules
+	install -D -m0644 $< $@
+
 # Login banner customization
 $(OVERLAY_DIR)/etc/update-motd.d/10-help-text: $(OS_PATH)/config/update-motd.d/10-help-text
 	install -D -m0755 $< $@
@@ -369,6 +373,7 @@ OVERLAY_FILES := \
   $(OVERLAY_DIR)/etc/systemd/system/ssh-host-keys.service \
   $(OVERLAY_DIR)/etc/systemd/system/ssh.service.d/host-keys.conf \
   $(OVERLAY_DIR)/etc/systemd/system.conf.d/60-koheron-watchdog.conf \
+  $(OVERLAY_DIR)/etc/udev/rules.d/99-koheron-ftdi.rules \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-api.service \
   $(OVERLAY_DIR)/etc/systemd/system/koheron-api.socket \
   $(OVERLAY_DIR)/usr/local/sbin/grow-rootfs-once \
