@@ -1,39 +1,20 @@
 """WebSocket unmasking regressions; the same C++ harness runs on ARM hardware."""
-import os
-from pathlib import Path
-import shlex
-import subprocess
-import tempfile
 import unittest
-
-ROOT = Path(__file__).resolve().parents[2]
+from cpp_fixture import compile_cpp, run_cpp, NETWORK_INCLUDES, WEBSOCKET_SOURCES
 
 
 class WebSocketMaskTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        build = tempfile.TemporaryDirectory()
-        cls.addClassCleanup(build.cleanup)
-        cls.binary = Path(build.name) / 'websocket-mask'
-        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
-                   '-Wextra', '-Werror', '-pthread', '-Wl,--wrap=read', '-I', str(ROOT),
-                   '-I', str(ROOT / 'server/external_libs'),
-                   '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]
-        command += shlex.split(os.environ.get('CXXFLAGS', ''))
-        command += [str(ROOT / 'server' / source) for source in
-                    ('tests/websocket_mask.cpp', 'network/websocket.cpp',
-                     'network/sha1.cpp', 'network/base64.cpp')]
-        subprocess.run(command + ['-o', str(cls.binary)], check=True, timeout=120)
+        cls.binary = compile_cpp(cls, 'server/tests/websocket_mask.cpp', *WEBSOCKET_SOURCES,
+            flags=('-pthread', '-Wl,--wrap=read'), includes=NETWORK_INCLUDES)
 
-    def run_case(self, case):
-        result = subprocess.run([str(self.binary), case], capture_output=True,
-                                text=True, timeout=60)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_lengths_alignments_phases_and_in_place(self): self.run_case('boundaries')
-    def test_no_reads_or_writes_past_buffer_end(self): self.run_case('guard-pages')
-    def test_wire_frames_and_header_payload_split(self): self.run_case('receive')
-    def test_eof_at_frame_header_and_payload_boundaries(self): self.run_case('receive-eof')
+    def test_cases(self):
+        for case in (
+            'receive-eof', 'boundaries', 'guard-pages', 'receive',
+        ):
+            with self.subTest(case=case):
+                run_cpp(self, self.binary, case, timeout=60)
 
 
 if __name__ == '__main__':

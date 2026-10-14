@@ -3,16 +3,16 @@ import http.server
 import json
 import os
 import shlex
+import subprocess
 from pathlib import Path
 import socketserver
 import struct
-import subprocess
 import tempfile
 import threading
 import unittest
+from cpp_fixture import ROOT, run_cpp
 
 
-ROOT = Path(__file__).resolve().parents[2]
 CONTEXT = json.dumps([
     {"class": "KServer", "id": 1, "functions": [
         {"name": "get_version", "id": 0, "args": [], "ret_type": "const char *"},
@@ -101,9 +101,7 @@ class CppClientTest(unittest.TestCase):
             try:
                 name = 'cpp_client_lifecycle' if case else 'cpp_client'
                 argument = case or str(http_srv.server_address[1])
-                result = subprocess.run([str(self.binaries[name]), str(tcp.server_address[1]), argument],
-                                        capture_output=True, text=True, timeout=15)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                run_cpp(self, self.binaries[name], tcp.server_address[1], argument, timeout=15)
             finally:
                 tcp.shutdown()
                 http_srv.shutdown()

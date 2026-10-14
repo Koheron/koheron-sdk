@@ -1,12 +1,9 @@
 """Check formatter execution and output for both compile-time logging modes."""
-import os
 from pathlib import Path
-import shlex
-import subprocess
 import tempfile
 import unittest
+from cpp_fixture import ROOT, compile_cpp, run_cpp
 
-ROOT = Path(__file__).resolve().parents[2]
 
 SOURCE = r'''
 #include "server/runtime/syslog.hpp"
@@ -53,18 +50,11 @@ class SyslogTest(unittest.TestCase):
             # Exercise the enabled mode without changing the production setting.
             variant.write_text(header.replace('constexpr bool verbose = false;',
                                                f'constexpr bool verbose = {str(verbose).lower()};'))
-            binary = include_dir / 'syslog'
-            command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2',
-                       '-Wall', '-Wextra', '-Werror', '-I', str(include_dir)]
-            command += shlex.split(os.environ.get('CXXFLAGS', ''))
-            subprocess.run(command + [str(source), '-o', str(binary)],
-                           check=True, timeout=60)
-            cls.binaries[verbose] = binary
+            cls.binaries[verbose] = compile_cpp(cls, source, includes=(include_dir,),
+                                              output=include_dir / 'syslog')
 
     def check_mode(self, verbose, expected_stdout):
-        result = subprocess.run([str(self.binaries[verbose])], capture_output=True,
-                                text=True, timeout=5)
-        self.assertEqual(result.returncode, 0, 'Unexpected number of formatter calls')
+        result = run_cpp(self, self.binaries[verbose], timeout=5)
         self.assertEqual(result.stdout, expected_stdout)
         self.assertEqual(result.stderr, 'WARNING: warning 4\n')
 
