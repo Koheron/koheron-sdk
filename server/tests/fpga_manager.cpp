@@ -19,7 +19,8 @@ std::map<int, fs::path> descriptors;
 std::map<fs::path, unsigned> writes;
 unsigned mounts = 0, removals = 0, nodes = 0;
 bool fail_mount = false, busy_old = false, fail_cleanup = false;
-bool bad_state = false, missing_state = false, false_applied = false, bad_overlay_status = false;
+bool missing_state = false, false_applied = false, bad_overlay_status = false;
+std::string_view programmed_state = "operating\n";
 int write_error = ENOSPC;
 void check(bool ok, const char* message) {
     if (!ok) { std::cerr << message << '\n'; std::abort(); }
@@ -69,7 +70,7 @@ extern "C" ssize_t __wrap_write(int fd, const void* data, size_t size) {
     if (written < 0) return written;
     if (path == firmware_path) {
         if (missing_state) fs::remove(state_path);
-        else put(state_path, bad_state ? "write error\n" : "operating\n");
+        else put(state_path, programmed_state);
     }
     if (path == overlay_path / "path") {
         put(overlay_path / "status", bad_overlay_status ? "unapplied\n" : "applied\n");
@@ -208,11 +209,13 @@ int main(int argc, char** argv) {
         } else if (test == "overlay-program-close") failed_close_path = firmware_path;
         else failed_write_path = firmware_path;
         if (test == "overlay-cleanup-error") fail_cleanup = true;
-    } else if (test == "overlay-state-error" || test == "overlay-state-missing") {
-        bad_state = test == "overlay-state-error"; missing_state = !bad_state;
+    } else if (test.starts_with("overlay-state-")) {
+        missing_state = test == "overlay-state-missing";
+        programmed_state = test == "overlay-state-prefix" ? "operating: 0x1\n"
+                         : test == "overlay-state-empty" ? "" : "write error\n";
         stage = "verify programming"; failure_path = state_path;
-        expected_code = bad_state ? std::make_error_code(std::errc::io_error)
-                                 : std::make_error_code(std::io_errc::stream);
+        expected_code = missing_state || programmed_state.empty() ? std::make_error_code(std::io_errc::stream)
+                                                                  : std::make_error_code(std::errc::io_error);
     } else if (test == "overlay-apply-error") {
         failed_write_path = overlay_path / "path";
         stage = "apply overlay"; failure_path = failed_write_path;

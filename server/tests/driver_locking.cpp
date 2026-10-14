@@ -434,6 +434,19 @@ int read_header(net::Session& session, net::Command& cmd) {
     return (session.*&SessionReader::read_command)(cmd);
 }
 void checked_decode() {
+    // Scalars use network byte order; array elements retain native bytes.
+    static_assert(std::endian::native == std::endian::little);
+    const unsigned char wire[] = {0x12, 0x34, 0x56, 0x78,
+                                 0x34, 0x12, 0xcd, 0xab, 0xff, 0x7f, 0x00, 0x80};
+    auto [scalar, words] = net::deserialize<0, uint32_t, std::array<uint32_t, 2>>(
+        reinterpret_cast<const std::byte*>(wire));
+    check(scalar == 0x12345678u && words[0] == 0xabcd1234u && words[1] == 0x80007fffu,
+          "scalar/array byte order changed");
+    const std::array<float, 3> coeffs{1.0f, -2.5f, 0.125f};
+    check(net::extract<std::array<float, 3>>(reinterpret_cast<const std::byte*>(coeffs.data())) == coeffs,
+          "float array bytes changed");
+    check(net::extract<std::array<uint32_t, 0>>(nullptr).empty(), "empty array decode");
+
     using Error = net::Command::DecodeError;
     net::Command unattached;
     std::string value;

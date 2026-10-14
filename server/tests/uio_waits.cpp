@@ -108,6 +108,32 @@ int main(int argc, char** argv) {
         wait_until([&] { return calls == 1; });
         uio.unlisten();
         check(calls == 1, "cancellation delivered an extra callback");
+    } else if (test == "callbacks") {
+        struct Owned {
+            std::atomic<int>& destroyed;
+            ~Owned() { ++destroyed; }
+        };
+        std::atomic<int> destroyed{0};
+        Uio<0> uio;
+        check(uio.open() >= 0, "open");
+        check(!uio.listen(std::move_only_function<void(int)>{}, 1ms), "empty callback accepted");
+        check(!uio.listen(std::function<void(int)>{}, 1ms), "empty legacy callback accepted");
+        // Restart a completed worker before explicitly joining it.
+        for (int i = 0; i < 3; ++i) {
+            check(uio.listen([&, owner = std::make_unique<Owned>(destroyed)](int rc) {
+                check(owner != nullptr && rc == 0, "timeout callback"); ++calls;
+            }, 5ms), "move-only callback");
+            device.arm_word();
+            wait_until([&] { return !uio.is_running(); });
+        }
+        uio.unlisten();
+        check(calls == 3 && destroyed == 3, "callback resource lifetime");
+        check(uio.listen([&](int rc) {
+            check(rc == 7, "IRQ counter"); uio.unlisten(); ++calls;
+        }, 500ms), "IRQ listen");
+        device.arm_word(); device.interrupt(7);
+        wait_until([&] { return calls == 4; });
+        uio.unlisten();
     } else if (test == "finite" || test == "infinite") {
         Uio<0> uio;
         check(uio.open() >= 0, "open");

@@ -22,11 +22,9 @@ class UioWaitsTest(unittest.TestCase):
                    '-Wextra', '-Werror', '-fno-exceptions', '-pthread',
                    '-I', str(cls.root), '-I', str(ROOT)]
         command += shlex.split(os.environ.get('CXXFLAGS', ''))
-        command += [str(ROOT / 'server/tests/uio_waits.cpp'), '-Wl,--wrap=eventfd',
-                    '-Wl,--wrap=write', '-Wl,--wrap=poll',
-                    '-Wl,--wrap=__poll_chk',
-                    '-o', str(cls.binary)]
-        subprocess.run(command, check=True, timeout=90)
+        subprocess.run(command + [str(ROOT / 'server/tests/uio_waits.cpp'),
+                       '-Wl,--wrap=eventfd', '-Wl,--wrap=write', '-Wl,--wrap=poll',
+                       '-Wl,--wrap=__poll_chk', '-o', str(cls.binary)], check=True, timeout=90)
 
     def run_case(self, case):
         result = subprocess.run([str(self.binary), str(self.root), case],
@@ -62,6 +60,9 @@ class UioWaitsTest(unittest.TestCase):
 
     def test_eventfd_failure_is_retryable(self):
         self.run_case('eventfd_failure')
+
+    def test_move_only_callback_lifetime(self):
+        self.run_case('callbacks')
 
 if __name__ == '__main__':
     unittest.main()

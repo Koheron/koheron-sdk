@@ -51,7 +51,10 @@ class FpgaManagerTest(unittest.TestCase):
     def test_program_write_failure(self): self.run_case('overlay-program-error')
     def test_program_short_write_not_replayed(self): self.run_case('overlay-program-short')
     def test_program_close_failure(self): self.run_case('overlay-program-close')
-    def test_failed_programming_state(self): self.run_case('overlay-state-error')
+    def test_failed_programming_state(self):
+        for state in ('error', 'prefix', 'empty'):
+            with self.subTest(state=state):
+                self.run_case('overlay-state-' + state)
     def test_unreadable_programming_state(self): self.run_case('overlay-state-missing')
     def test_overlay_apply_write_failure(self): self.run_case('overlay-apply-error')
     def test_false_applied_overlay_rejected(self): self.run_case('overlay-false-applied')

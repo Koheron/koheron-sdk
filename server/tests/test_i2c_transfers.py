@@ -32,6 +32,9 @@ class I2cTransfersTest(unittest.TestCase):
     def test_short_read_is_not_replayed(self):
         self.run_case('short_read')
 
+    def test_device_path_lifetime_and_failed_open_retry(self):
+        self.run_case('initialization')
+
     def test_short_write_fails_without_replay(self):
         self.run_case('short_write')
 
