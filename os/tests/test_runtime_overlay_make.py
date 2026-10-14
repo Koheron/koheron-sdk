@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -12,6 +13,52 @@ SDK = Path(__file__).resolve().parents[2]
 @unittest.skipUnless(all(shutil.which(t) for t in ('dtc', 'fdtget', 'fdtoverlay')),
                      'requires device-tree-compiler')
 class RuntimeOverlayMakeTest(unittest.TestCase):
+    def test_board_overlay_uses_dtc_without_building_kernel(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'board.dtso'
+            source.write_text('/dts-v1/; /plugin/; &{/} { model = "Probe board"; };\n')
+            preprocessor = root / 'preprocessor.py'
+            preprocessor.write_text('''import pathlib, shutil, sys
+args = sys.argv[1:]
+shutil.copyfile(args[-1], args[args.index('-o') + 1])
+''')
+            target = root / 'os/board-overlay/board.dtbo'
+            kernel = root / 'linux/.built_all'
+            harness = f'''\
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+NAME := test
+OS_PATH := {SDK}/os
+FPGA_PATH := {SDK}/fpga
+SDK_PATH := {SDK}
+TMP_OS_PATH := {root}/os
+TMP := {root}
+LINUX_PATH := {root}/linux
+LINUX_BUILD_STAMP := {kernel}
+BOARD_DTSO := {source}
+DTC_BIN := {shutil.which('dtc')}
+%/:
+\tmkdir -p $@
+.PHONY: FORCE
+FORCE:
+include {SDK}/os/os.mk
+OS_HOSTCC := {sys.executable} {preprocessor}
+{kernel}:
+\t@echo 'Board overlay must not trigger a full kernel build' >&2; exit 1
+'''
+            for attempt in range(2):
+                result = subprocess.run(['make', '--no-print-directory', '-f', '-', str(target)],
+                                        input=harness, text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse(kernel.exists())
+                if attempt == 0: timestamp = target.stat().st_mtime_ns
+                else: self.assertEqual(target.stat().st_mtime_ns, timestamp)
+            model = subprocess.check_output(['fdtget', str(target),
+                                             '/fragment@0/__overlay__', 'model'], text=True)
+            self.assertEqual(model.strip(), 'Probe board')
+
     def test_device_overlay_avoids_permanent_properties_and_keeps_fixups(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

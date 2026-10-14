@@ -134,6 +134,23 @@ include {SDK}/server/server.mk
         self.assertNotIn(str(obj), json.loads(server.read_text()))
         self.assertEqual((self.root / 'compiles').read_text().count(str(obj)), before.count(str(obj)))
 
+    def test_metadata_dump_runs_from_absolute_and_relative_artifact_paths(self):
+        compiler = self.root / 'metadata-compiler.py'
+        compiler.write_text('''import pathlib, sys
+args = sys.argv[1:]
+output = pathlib.Path(args[args.index('-o') + 1])
+output.parent.mkdir(parents=True, exist_ok=True)
+output.write_text('#!/bin/sh\\nprintf \\'%s\\' \\'{"instrument":"probe"}\\'\\n')
+output.chmod(0o755)
+''')
+        for project in (str(self.root / 'absolute'), 'relative'):
+            with self.subTest(project=project):
+                target = Path(project) / 'server/drivers.json'
+                self.make(f'TMP_PROJECT_PATH={project}', 'GEN_HEADERS=', 'DOCKER=',
+                          f'JSON_CXX={sys.executable} {compiler}', target)
+                self.assertEqual(json.loads((self.root / target).read_text()),
+                                 {'instrument': 'probe'})
+
 
 class AlternateServerBuildMakeTest(unittest.TestCase):
     def test_flags_and_source_removal_refresh_cached_server(self):

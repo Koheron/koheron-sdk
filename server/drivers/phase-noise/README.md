@@ -1,5 +1,34 @@
 # Shared PNA processing
 
+## Board-selected acquisition
+
+The single-stream `Core<Board>` takes its acquisition backend from the board
+adapter's explicit `Dma` type. The adapter includes that driver's header;
+the shared core does not include a platform-specific DMA driver. For example,
+the ALPHA250 and Red Pitaya adapters select `CyclicPhaseDma`, while another
+board can select its own native engine without copying the PNA core.
+
+```cpp
+struct InstrumentBoard {
+    using Dma = NativePhaseDma;
+    using Oscillator = ReferenceGenerator;
+    // Board control, sampling settings and calibration methods.
+};
+```
+
+The DMA backend supplies `samples_per_chunk`, `ring_chunks`, `Snapshot<N>`,
+`configure_sampling`, `start_acquisition`, `read_into`, and the completed-chunk,
+generation and overrun counters. Its snapshot retains sample and precision
+metadata, epoch/chunk positions, gap/overflow checks and `matches_precision`.
+Chunk size must divide the 16384-sample FFT hop exactly; the ring must hold
+a complete 65536-sample phase window plus more than three guard chunks.
+The native engine owns platform-specific MMIO, barriers and memory access;
+the shared core owns processing, settings epochs, tracking and publication.
+Existing board adapters explicitly select their current DMA implementation.
+The instrument RPC methods and wire formats are unchanged.
+
+## Spectrum processing
+
 ALPHA250, ALPHA250-4 and Red Pitaya use `streaming-welch.hpp`: a 32768-point
 symmetric Hann FFT advanced by 16384 samples. Each segment is detrended in raw
 integer counts before conversion to radians. Auto spectra publish the mean of

@@ -1,7 +1,28 @@
 // Exercise the production PNA core's passive policy with controlled DMA epochs.
+#include "server/drivers/phase-noise/cyclic-phase-dma.hpp"
 #include "server/drivers/phase-noise/core.hpp"
 #include <cassert>
 #include <iostream>
+
+// A board-selected backend with a distinct snapshot type must drive every
+// acquisition and settings transition in the shared core.
+struct MonitorDma : CyclicPhaseDma {
+    static constexpr uint32_t ring_chunks = 64;
+    inline static std::atomic<unsigned> constructed{0}, destroyed{0}, configured{0}, reads{0};
+    MonitorDma() { ++constructed; }
+    ~MonitorDma() { ++destroyed; }
+    template<uint32_t N> struct Snapshot : CyclicPhaseDma::Snapshot<N> {};
+    template<class Frequency, class Apply> void configure_sampling(Frequency frequency, Apply&& apply) {
+        ++configured;
+        CyclicPhaseDma::configure_sampling(frequency, std::forward<Apply>(apply));
+    }
+    template<uint32_t N> bool read_into(Snapshot<N>& output, uint64_t consumed,
+                                      const std::atomic<bool>& running, uint32_t hop = 0,
+                                      bool initialized = false) {
+        ++reads;
+        return CyclicPhaseDma::read_into<N>(output, consumed, running, hop, initialized);
+    }
+};
 
 struct References {
     inline static std::atomic<unsigned> writes{0};
@@ -9,6 +30,7 @@ struct References {
     void set_dds_freq(uint32_t, double) { ++writes; }
 };
 struct MonitorBoard {
+    using Dma = MonitorDma;
     using Oscillator = References;
     static constexpr bool passive_monitor = true;
     static constexpr uint32_t max_phase_precision = 8;
@@ -38,6 +60,7 @@ int main() {
     ctl.words[reg::cordic / 4] = 2;
     {
         phase_noise::Core<MonitorBoard> monitor;
+        assert(MonitorDma::constructed == 1);
         unsigned waits = 1;
         engine.wait_until(waits);
         auto capture = [&](bool success = true) {
@@ -53,6 +76,10 @@ int main() {
         assert(References::writes == 0);
         assert((ctl.words[reg::cordic / 4] & 3) == 2);
         assert(std::get<1>(monitor.get_parameters()).eval() == 6250000.f);
+        // This backend retains 53 available 8192-sample chunks, rather than
+        // the platform driver's default 512-chunk ring.
+        assert(std::abs(std::get<6>(monitor.get_stream_performance()) -
+                        53.0 * 8192 * 1000 / 6250000) < 1e-9);
         monitor.set_cic_rate(21);
         assert(std::get<3>(monitor.get_parameters()) == 20);
         valid();
@@ -115,7 +142,9 @@ int main() {
         assert(!monitor.set_phase_precision(9));
         assert(References::writes == 0);
         assert((ctl.words[reg::cordic / 4] & 3) == 2);
+        assert(MonitorDma::configured > 1 && MonitorDma::reads > 1);
         engine.cancel();
     }
+    assert(MonitorDma::destroyed == 1);
     std::cout << "PASS: passive PNA monitor epochs, calibration, gaps and feedback ownership\n";
 }

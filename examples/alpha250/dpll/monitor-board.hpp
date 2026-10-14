@@ -1,4 +1,5 @@
 #pragma once
+#include "server/drivers/phase-noise/cyclic-phase-dma.hpp"
 #include "dpll.hpp"
 #include "boards/alpha250/drivers/ltc2157.hpp"
 #include <scicpp/polynomials.hpp>
@@ -6,6 +7,7 @@
 // Policy adapter for the standard PNA core. Its initialization and channel
 // selection address only the independent monitor hardware.
 struct DpllMonitorBoard {
+    using Dma = CyclicPhaseDma;
     using Oscillator = Dpll;
     static constexpr bool passive_monitor = true;
     static constexpr uint32_t max_phase_precision = 8;
