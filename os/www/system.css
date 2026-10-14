@@ -141,31 +141,3 @@ html { scrollbar-gutter: stable; }
   .system-workspace .row-actions > a, .system-workspace #open-instrument { display: inline-flex; align-items: center; min-height: 36px; }
   .system-workspace .app-header nav a { display: inline-flex; align-items: center; min-height: 36px; }
 }
-
-/* Data-rate monitor: one compact chart and a horizontally scrollable table. */
-.system-workspace .rate-readouts { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 8px 0 12px; border-bottom: 1px solid var(--border-light); color: var(--muted); }
-.system-workspace .rate-readouts strong { display: inline-block; margin-left: 6px; color: #333; font-weight: 400; font-variant-numeric: tabular-nums; }
-.system-workspace .rate-readouts[data-stale="true"] strong { color: var(--muted); }
-.system-workspace .rate-rx { color: #1f77b4; }
-.system-workspace .rate-tx { color: #a86217; }
-.system-workspace .rate-plot { margin: 12px 0 18px; }
-.system-workspace #logs-rate-chart { display: block; width: 100%; height: 260px; }
-.system-workspace .rate-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-bottom: 4px; font-size: 11px; }
-.system-workspace .rate-legend > span { display: inline-flex; align-items: center; gap: 6px; }
-.system-workspace .rate-legend > .muted { margin-left: auto; }
-.system-workspace .rate-swatch { width: 14px; height: 2px; background: #1f77b4; }
-.system-workspace .rate-swatch.tx { background: #cf791d; }
-.system-workspace .rate-sessions h2 { margin-bottom: 8px; }
-.system-workspace #logs-rate-table th, .system-workspace #logs-rate-table td { white-space: nowrap; text-align: right; }
-.system-workspace #logs-rate-table th:first-child, .system-workspace #logs-rate-table td:first-child,
-.system-workspace #logs-rate-table th:nth-child(2), .system-workspace #logs-rate-table td:nth-child(2) { text-align: left; }
-.system-workspace #logs-rate-table thead tr:first-child th[colspan] { text-align: center; }
-.system-workspace #logs-rate-table thead tr:nth-child(2) th { text-align: right; padding-left: 8px; padding-right: 8px; }
-.system-workspace #logs-rate-table thead tr:first-child th:last-child,
-.system-workspace #logs-rate-table thead tr:nth-child(2) th:nth-last-child(4), .system-workspace #logs-rate-table td:nth-last-child(4) { border-left: 1px solid var(--border-light); }
-.system-workspace #logs-rate-table .rate-empty { padding: 18px; text-align: center; color: var(--muted); }
-@media (max-width: 540px) {
-  .system-workspace .rate-readouts { gap: 6px 16px; }
-  .system-workspace .rate-legend > .muted { margin-left: 0; }
-  .system-workspace #logs-rate-chart { height: 220px; }
-}

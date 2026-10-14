@@ -19,7 +19,6 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
-#include <filesystem>
 #include <unistd.h>
 
 namespace net {
@@ -105,15 +104,7 @@ void listening_thread_call(ListeningChannel<socket_type>* listener, ListenerMana
 // -----------------------------------------------------------------------------
 
 inline int run_server(std::string_view on_ready_msg="server ready\n") {
-    using clock = std::chrono::steady_clock;
     using namespace std::chrono_literals;
-    namespace fs = std::filesystem;
-
-    // Config periodic rates dump
-    constexpr auto dump_period = 1s; // adjust cadence
-    auto next_dump = clock::now() + dump_period;
-    fs::path dump_path = "/run/koheron/rates/sessions.json";
-
     auto signal_handler = rt::SignalHandler();
 
     if (signal_handler.init() < 0) {
@@ -127,7 +118,6 @@ inline int run_server(std::string_view on_ready_msg="server ready\n") {
     }
 
     bool ready_notified = false;
-    auto& sm = services::require<net::SessionManager>();
 
     while (true) {
         if (!ready_notified && lm.is_ready()) {
@@ -146,23 +136,7 @@ inline int run_server(std::string_view on_ready_msg="server ready\n") {
             return EXIT_SUCCESS;
         }
 
-        // Periodic dump of session rate
-        const auto now = clock::now();
-
-        if (now >= next_dump) {
-            do {
-                if (!sm.dump_rates(dump_path)) {
-                    logf<WARNING>("dump_rates: failed to write '{}'\n", dump_path);
-                }
-
-                next_dump += dump_period;
-            } while (now >= next_dump);
-        }
-
-        // Sleep until sooner of: next dump or 50 ms tick
-        constexpr auto tick = 50ms;
-        const auto until_next_dump = std::max(std::chrono::duration_cast<std::chrono::milliseconds>(next_dump - now), 0ms);
-        std::this_thread::sleep_for(std::min(tick, until_next_dump));
+        std::this_thread::sleep_for(50ms);
     }
 
     return EXIT_SUCCESS;

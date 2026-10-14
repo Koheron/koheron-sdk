@@ -58,7 +58,6 @@ void fixed_replies() {
         check(session.send(0xbeef, 0x1234, reply) == static_cast<int>(expected.size()), "fixed reply length");
         check(session.bytes == Bytes(expected.begin(), expected.end()), "fixed reply wire bytes");
         check(session.staging_bytes() == (fixed ? 0 : expected.size()), "fixed reply size boundary");
-        check(session.rates()[1].total_bytes == static_cast<int64_t>(expected.size()), "fixed reply TX accounting");
     };
     compare_fixed(uint32_t{0x12345678});
     compare_fixed(std::tuple{true, false, int8_t{-128}, uint8_t{255}, int16_t{-32768},
@@ -93,17 +92,7 @@ void fixed_replies() {
     failed.result = 0;
     check(failed.send(1, 2, uint32_t{3}) == 0 && failed.closed(), "fixed reply closed status");
 
-    // A transport can reuse its completion timestamp for duration accounting.
-    // Both the explicit-time and legacy two-argument APIs retain byte totals.
-    ut::RateTracker rates;
-    rates.update_over_duration(300, std::chrono::seconds{3}, ut::RateTracker::clock::now());
-    auto snapshot = rates.snapshot();
-    check(snapshot.total_bytes == 300 && snapshot.window_bps == 480., "completion-time rate accounting");
-    rates.update_over_duration(200, std::chrono::milliseconds{500});
-    rates.update_over_duration(-1, std::chrono::seconds{1});
-    rates.update_over_duration(10, std::chrono::seconds{0});
-    snapshot = rates.snapshot();
-    check(snapshot.total_bytes == 500 && snapshot.window_bps == 800., "legacy duration rate accounting");
+
 }
 
 template<class T>

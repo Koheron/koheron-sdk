@@ -4,7 +4,6 @@
 
 #include "server/network/session_manager.hpp"
 #include "server/network/socket_session.hpp"
-#include "server/utilities/rate_tracker.hpp"
 
 #include <cassert>
 #include <thread>
@@ -110,34 +109,4 @@ void SessionManager::exit_comm() {
     }
 }
 
-// ------------------------------------------------
-// Dump data rates to JSON
-
-bool SessionManager::dump_rates(const std::filesystem::path& path) {
-    std::vector<ut::RateRow> rows;
-
-    {
-        std::lock_guard lock(mutex);
-        rows.reserve(session_pool.size());
-
-        for (const auto& [sid, session] : session_pool) {
-            auto [rx, tx] = session->rates();
-
-            rows.emplace_back(ut::RateRow{
-                .id       = sid,
-                .name     = listen_channel_desc[session->type],
-                .total_rx = rx.total_bytes,
-                .total_tx = tx.total_bytes,
-                .rx_mean  = rx.mean_bps, .rx_win  = rx.window_bps, .rx_inst = rx.inst_bps,
-                .rx_ewma  = rx.ewma_bps, .rx_max  = rx.max_bps,
-                .tx_mean  = tx.mean_bps, .tx_win  = tx.window_bps, .tx_inst = tx.inst_bps,
-                .tx_ewma  = tx.ewma_bps, .tx_max  = tx.max_bps
-            });
-        }
-    }
-
-    return ut::dump_rates_to_json(path, "sessions", rows);
-}
-
 } // namespace net
-

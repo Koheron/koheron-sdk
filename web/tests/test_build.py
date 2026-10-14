@@ -319,7 +319,7 @@ FORCE:
 include $(OS_PATH)/rootfs.mk
 """)
             output = root / 'out/www'
-            pages = ('index.html', 'instrument_summary.html', 'logs_rate.html')
+            pages = ('index.html', 'instrument_summary.html')
             assets = ('instruments.js', 'main.css', 'instrument.css', 'system.css')
 
             def make(*args):
@@ -362,6 +362,33 @@ include $(OS_PATH)/rootfs.mk
             make()
             self.assertEqual({name: (output / name).stat().st_mtime_ns for name in pages},
                              cached_times)
+
+    def test_retired_dashboard_page_removed_from_cached_and_staged_assets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'out/www'
+            staged = root / 'os/rootfs_overlay/usr/local/www'
+            for destination in (output, staged):
+                destination.mkdir(parents=True)
+                (destination / 'logs_rate.html').write_text('Retired dashboard')
+                (destination / 'index.html').write_text('Current dashboard')
+                (destination / 'custom.txt').write_text('Keep unrelated files')
+            # An otherwise up-to-date overlay must still retire the old page.
+            (staged / '.stamp').touch()
+            (root / 'Makefile').write_text(f"""OS_PATH := {WEB.parent}/os
+WEB_PATH := {WEB}
+TMP := {root}/out
+TMP_OS_PATH := {root}/os
+include $(OS_PATH)/rootfs.mk
+""")
+            result = subprocess.run(['make', '--no-print-directory', 'WWW_ASSETS=',
+                                     str(staged / '.stamp')], cwd=root,
+                                    capture_output=True, text=True, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for destination in (output, staged):
+                self.assertFalse((destination / 'logs_rate.html').exists())
+                self.assertEqual((destination / 'index.html').read_text(), 'Current dashboard')
+                self.assertEqual((destination / 'custom.txt').read_text(), 'Keep unrelated files')
 
     def test_config_change_replaces_older_assets_and_typescript_sources(self):
         with tempfile.TemporaryDirectory() as directory:

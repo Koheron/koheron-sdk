@@ -1,5 +1,8 @@
 # Shared reply-path performance
 
+The measurements below are historical. Session rate tracking and its management
+page have since been removed; the current benchmark measures reply packing only.
+
 Validated on 2026-10-08 against V1 `bf41e191`. These changes are in `net::Session`
 and `ut::RateTracker`, shared by network-enabled examples, including TCP,
 WebSocket and Unix socket clients. They do not depend on an instrument's DSP or
@@ -72,7 +75,7 @@ Build the standalone CPU benchmark from an SDK checkout with Eigen available:
 ```sh
 g++-13 -std=c++23 -O3 -flto -fno-math-errno -pthread \
   -I. -Iserver/external_libs -I/usr/include/eigen3 \
-  server/tests/benchmark_replies.cpp server/utilities/rate_tracker.cpp \
+  server/tests/benchmark_replies.cpp \
   -o tmp/reply-benchmark
 ./tmp/reply-benchmark
 ```
@@ -80,7 +83,8 @@ g++-13 -std=c++23 -O3 -flto -fno-math-errno -pthread \
 For board measurements, use the cross compiler and ARM flags above, link
 statically and run the executable on the board. Compile the same benchmark
 source against a baseline SDK checkout by placing its root first in the include
-path; the session and rate headers must both come from that checkout.
+path. Historical baselines that still track rates also need that checkout's
+`server/utilities/rate_tracker.cpp` linked into the benchmark.
 
 ## Hardware checks
 

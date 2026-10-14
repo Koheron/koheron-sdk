@@ -72,11 +72,6 @@ const puppeteer = require(process.env.PUPPETEER_MODULE || 'puppeteer-core');
     assert.equal(await page.$eval('#instrument-name', node => node.textContent), 'fft');
     await page.screenshot({path: path.join(output, 'details.png'), fullPage: true});
     passed('production instrument details, commands and compatibility render');
-    await page.goto(new URL('logs_rate.html', base).href, {waitUntil: 'networkidle0'});
-    await page.waitForFunction(() => document.querySelector('#logs-rate-status').textContent === 'Live');
-    assert.notEqual(await page.$eval('#rate-sessions', node => node.textContent), '—');
-    await page.screenshot({path: path.join(output, 'rates.png'), fullPage: true});
-    passed('production transfer-rate page receives live server statistics');
     await page.goto(new URL('/', base).href, {waitUntil: 'domcontentloaded'});
     await page.waitForFunction(() => document.body.innerText.includes('Live spectrum') &&
       /[1-9]\d* FPS/.test(document.body.innerText) && document.body.innerText.includes('2,048 points'));

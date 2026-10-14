@@ -23,7 +23,7 @@ class MixedReplyTest(unittest.TestCase):
         command += shlex.split(os.environ.get('CXXFLAGS', ''))
         command += [str(ROOT / 'server' / source) for source in
                     ('tests/mixed_reply.cpp', 'network/websocket.cpp',
-                     'network/sha1.cpp', 'network/base64.cpp', 'utilities/rate_tracker.cpp')]
+                     'network/sha1.cpp', 'network/base64.cpp')]
         subprocess.run(command + ['-o', str(cls.binary)], check=True, timeout=120)
 
     def run_case(self, case):

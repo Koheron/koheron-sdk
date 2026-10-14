@@ -16,7 +16,6 @@
 #include <mutex>
 #include <utility>
 #include <string>
-#include <filesystem>
 
 namespace net {
 
@@ -43,8 +42,6 @@ class SessionManager
     void delete_session(SessionID id);
     void delete_all();
     void exit_comm();
-
-    bool dump_rates(const std::filesystem::path& path);
 
   private:
     // Sessions pool
