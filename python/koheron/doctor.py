@@ -255,6 +255,10 @@ def main(argv: list[str] | None = None) -> int:
             reporter.err('Host test dependencies are unavailable', 'Run make python_requirements and make koheron_python.')
         else:
             reporter.ok('Host test dependencies available')
+        if shutil.which('tclsh'):
+            reporter.ok('Tcl interpreter available for generated memory-map checks')
+        else:
+            reporter.err('Tcl interpreter unavailable: tclsh', 'Install Tcl or run make setup.')
 
     return reporter.finish(target=args.target, settings=values)
 

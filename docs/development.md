@@ -108,6 +108,21 @@ synthesis or board access. Install missing Python dependencies with
 `make python_requirements`
 and `make koheron_python`.
 
+The default `CHECK_PROFILE=fast` covers configuration, Python and build-rule
+regressions. `make check CHECK_PROFILE=full` also runs all server C++ unit tests,
+the browser instrument suites, and PNA/DPLL Python, ASan/UBSan and numerical
+checks. Specialized FPGA simulations and hardware scripts retain their own
+entry points. Full checks require the SciPy dependency listed in SDK requirements.
+
+`CHECK_MODE=auto` selects native tools when available, otherwise the installed
+Docker builders. Set `CHECK_MODE=native` or `CHECK_MODE=docker` to choose explicitly.
+`CHECK_CXX` selects the compiler for host test binaries, locally or inside the
+C++ builder; its default follows `GCC_VERSION`. `DOCKER_IMAGE` and
+`WEB_DOCKER_IMAGE` select the existing C++ and browser builders. Full Docker
+checks run without privileged device access and
+do not pull missing images. The JSON report identifies the backend for each
+additional suite and counts unittest and Node cases across their sub-suites.
+
 `HOST_PYTHON=...` selects another prepared interpreter for inspection,
 diagnostics, host checks and management commands.
 
@@ -116,8 +131,9 @@ instrument. `INSTRUMENT_TEST=...` overrides the script. Hardware scripts may
 change acquisition/output settings or open plots. Report host/build checks
 separately from hardware results.
 
-[CI](../.github/workflows/ci.yml) validates example configurations. Run
-`make check` locally for the broader host regressions.
+[CI](../.github/workflows/ci.yml) runs the fast profile and C++ client lifecycle
+and protocol regressions. Run the full profile locally for compiled server,
+browser and sanitizer coverage.
 
 ## Creating a new instrument
 

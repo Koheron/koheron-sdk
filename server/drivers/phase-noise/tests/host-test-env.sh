@@ -1,7 +1,7 @@
 # Shared native compiler settings; source from the instrument test runners.
 pna_test_repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$pna_test_repo"
-PNA_TEST_CXX=${PNA_TEST_CXX:-${CXX:-g++-13}}
+PNA_TEST_CXX=${PNA_TEST_CXX:-${CXX:-g++-15}}
 flags=(-std=c++23 -g -pthread -fsanitize=address,undefined -fno-omit-frame-pointer
        -no-pie -I. -Iserver/external_libs -I/usr/include/eigen3)
 if [[ -n ${PNA_TEST_CXXFLAGS:-} ]]; then
