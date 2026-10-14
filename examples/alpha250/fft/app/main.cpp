@@ -42,10 +42,15 @@ class AppExecutor final : public rt::IExecutor {
 
         if (cmd.operation == 0) {
             const auto sess = require<net::SessionManager>().get_session_shared(cmd.session_id);
+            if (!sess) {
+                return -1;
+            }
             sess->log_infos();
 
             std::string s;
-            cmd.read_one(s);
+            if (!cmd.read_one(s)) {
+                return -1;
+            }
             logf("echo: {}", s);
             return cmd.send(s);
         }

@@ -1,45 +1,5 @@
-
-include $(dir $(lastword $(MAKEFILE_LIST)))../make/dependencies.mk
-
 APP_PATH := $(PROJECT_PATH)
-
-# -----------------------------------------------------------------------------
-# Build directory
-# -----------------------------------------------------------------------------
-
-TMP_SERVER_PATH := $(TMP_PROJECT_PATH)/server/
-
-# -----------------------------------------------------------------------------
-# Compiler
-# -----------------------------------------------------------------------------
-
-SERVER_CCXX = $(DOCKER) $(GCC_ARCH)-g++-$(GCC_VERSION) -flto=$(N_CPUS)
-
-SERVER_CCXXFLAGS = -Wall -Wextra
-#SERVER_CCXXFLAGS += -Werror
-SERVER_CCXXFLAGS += -Wpedantic -Wfloat-equal -Wunused-macros -Wcast-qual -Wuseless-cast
-SERVER_CCXXFLAGS += -Wlogical-op -Wdouble-promotion -Wformat -Wmissing-include-dirs -Wundef
-SERVER_CCXXFLAGS += -Wpacked -Wredundant-decls -Wvarargs -Wvector-operation-performance -Wswitch-default
-SERVER_CCXXFLAGS += -Wuninitialized  -Wmissing-declarations
-SERVER_CCXXFLAGS += -Wno-psabi
-SERVER_CCXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
-SERVER_CCXXFLAGS += -I$(APP_PATH) -I$(TMP_SERVER_PATH) -I$(TMP_SERVER_PATH) -I$(SERVER_PATH)/external_libs -I$(SERVER_PATH)/runtime -I$(SERVER_PATH)/hardware -I$(SDK_PATH) -I. -I$(SERVER_PATH)/context -I$(SERVER_PATH)/drivers -I$(PROJECT_PATH)
-SERVER_CCXXFLAGS += -isystem /usr/include/eigen3
-SERVER_CCXXFLAGS += -O3 -fno-math-errno
-SERVER_CCXXFLAGS += -MMD -MP -static-libstdc++ $(GCC_FLAGS)
-SERVER_CCXXFLAGS += -std=c++23 -pthread
-
-# -----------------------------------------------------------------------------
-# Memory header from YAML
-# -----------------------------------------------------------------------------
-
-$(TMP_SERVER_PATH)/memory.hpp: $(MEMORY_YML) $(SERVER_PATH)/templates/memory.hpp | $(TMP_SERVER_PATH) $(PYTHON_REQUIREMENTS_STAMP)
-	$(MAKE_PY) --memory_hpp $@ $(MEMORY_YML)
-	$(call ok,$@)
-
-# -----------------------------------------------------------------------------
-# Object files
-# -----------------------------------------------------------------------------
+include $(dir $(lastword $(MAKEFILE_LIST)))build-common.mk
 
 # Runtime / Hardware objects
 OBJ = $(TMP_SERVER_PATH)/systemd.o \
@@ -53,49 +13,8 @@ OBJ += $(SERVER_OBJ)
 SERVERLESS_OBJ := $(subst .cpp,.o, $(addprefix $(TMP_SERVER_PATH)/, $(notdir $(SERVERLESS_CPP_SRCS))))
 OBJ += $(SERVERLESS_OBJ)
 
-DEP := $(subst .o,.d,$(OBJ))
--include $(DEP)
-
-# -----------------------------------------------------------------------------
-# Compile / Link
-# -----------------------------------------------------------------------------
-
-GEN_HDRS := \
-  $(TMP_SERVER_PATH)/memory.hpp
-
-$(OBJ): $(SERVER_PATH)/serverless.mk
-
-$(TMP_SERVER_PATH)/%.o: $(APP_PATH)/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
-
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/runtime/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
-
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/hardware/%.cpp $(TMP_SERVER_PATH)/memory.hpp | $(TMP_SERVER_PATH)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
-
-$(TMP_SERVER_PATH)/%.o: $(SERVER_PATH)/utilities/%.cpp | $(GEN_HEADERS)
-	$(SERVER_CCXX) -c $(SERVER_CCXXFLAGS) -o $@ $<
-
-SERVER_COMPILER_STAMP := $(TMP_SERVER_PATH)/.compiler-settings
-$(eval $(call compiler_settings_stamp,$(SERVER_COMPILER_STAMP),$(GCC_ARCH)-g++-$(GCC_VERSION)))
-$(OBJ): $(SERVER_COMPILER_STAMP)
-
-SERVER_FLAGS_STAMP := $(TMP_SERVER_PATH)/.compile-settings
-$(eval $(call build_settings_stamp,$(SERVER_FLAGS_STAMP),$$(call build_shell_quote,$$(SERVER_CCXX)) $$(call build_shell_quote,$$(SERVER_CCXXFLAGS))))
-$(OBJ): $(SERVER_FLAGS_STAMP)
-
-SERVER_LINK_STAMP := $(TMP_SERVER_PATH)/.link-settings
-$(eval $(call build_settings_stamp,$(SERVER_LINK_STAMP),$$(call build_shell_quote,$$(SERVER_CCXX)) $$(call build_shell_quote,$$(SERVER_CCXXFLAGS)) $$(foreach F,$$(OBJ),$$(call build_shell_quote,$$(F)))))
-
-$(SERVER): $(OBJ) $(GEN_HDRS) $(SERVER_LINK_STAMP) | $(KOHERON_SERVER_PATH)
-	$(SERVER_CCXX) -o $@ $(OBJ) $(SERVER_CCXXFLAGS) -lm
-	$(call ok,$@)
+GEN_HEADERS := $(TMP_SERVER_PATH)/memory.hpp
+include $(SERVER_BUILD_PATH)build-rules.mk
 
 .PHONY: server
 server: $(SERVER)
-	$(MAKE) --jobs=$(N_CPUS) $(SERVER)
-
-.PHONY: clean_server
-clean_server:
-	rm -rf $(TMP_SERVER_PATH)
