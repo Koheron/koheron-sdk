@@ -34,9 +34,6 @@ HOST ?= 192.168.1.100
 TMP ?= tmp
 FORMAT ?= text
 TARGET ?= all
-CHECK_PROFILE ?= fast
-CHECK_MODE ?= auto
-CHECK_CXX ?= g++-$(GCC_VERSION)
 TIMEOUT ?= $(if $(filter deploy,$(MAKECMDGOALS)),120,10)
 LOG_LIMIT ?= 100
 
@@ -94,7 +91,6 @@ help:
 	@echo ' - logs         : Read recent server logs (LOG_LIMIT=100, TIMEOUT=10)'
 	@echo ' - info         : Resolved CFG, board, toolchains and artifact paths; FORMAT=json supported'
 	@echo ' - check        : Validate CFG (or all examples) and run local host regressions'
-	@echo '                  CHECK_PROFILE=full adds C++, browser and sanitizer suites; CHECK_MODE=auto|native|docker'
 	@echo ' - fpga         : Build the FPGA bitstream'
 	@echo '                  FPGA_SYNTH_MODE=ip enables experimental per-IP synthesis caching'
 	@echo ' - timing       : Check routed FPGA timing (fails on violations)'
@@ -330,10 +326,7 @@ info:
 .PHONY: check
 check:
 	@$(if $(CFG),$(SDK_INFO_COMMAND) --format json $(SDK_INFO_ARGS) |,) $(HOST_PYTHON) $(call build_shell_quote,$(SDK_PATH)/python/koheron/check.py) \
-		--sdk-path $(call build_shell_quote,$(SDK_PATH)) --format $(call build_shell_quote,$(FORMAT)) $(if $(CFG),--settings-stdin,) \
-		--profile $(call build_shell_quote,$(CHECK_PROFILE)) --mode $(call build_shell_quote,$(CHECK_MODE)) \
-		--cxx $(call build_shell_quote,$(CHECK_CXX)) --cpp-image $(call build_shell_quote,$(DOCKER_IMAGE)) \
-		--web-image $(call build_shell_quote,$(WEB_DOCKER_IMAGE))
+		--sdk-path $(call build_shell_quote,$(SDK_PATH)) --format $(call build_shell_quote,$(FORMAT)) $(if $(CFG),--settings-stdin,)
 
 .PHONY: status logs
 status:

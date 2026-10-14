@@ -9,8 +9,8 @@ import unittest
 import sys
 
 SDK = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(SDK / 'python/koheron'))
-from test_profiles import fixture_command
+sys.path.insert(0, str(SDK / 'server/drivers/phase-noise/tests'))
+from host_test import fixture_command
 
 
 class PhaseModulatorIntegrationTest(unittest.TestCase):

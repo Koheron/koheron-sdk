@@ -29,7 +29,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y tcl
           python3 -m pip install --disable-pip-version-check -r requirements.txt ./python
-      - name: Run fast host profile
-        run: make check CHECK_PROFILE=fast HOST_PYTHON=python3
+      - name: Run host checks
+        run: make check HOST_PYTHON=python3
       - name: Check C++ client ownership and protocol
         run: CXX=g++ python3 -m unittest discover -s server/tests -p test_cpp_client.py -v

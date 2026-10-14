@@ -38,10 +38,7 @@ sanitizers and frame pointers; non-PIE executables avoid sanitizer address-space
 collisions. Output and fallback browser dependencies are under `tmp/tests`.
 
 Shared publication, cyclic DMA and streaming Welch tests run once per invocation.
-Instrument C++ fixtures stay with their examples. `make check CHECK_PROFILE=full`
-runs these Python and C++ stages together with the server unit and browser
-suites; `CHECK_MODE=auto|native|docker` selects their backend. CI runs the fast
-SDK profile and C++ client lifecycle tests. Python fixtures that compile C++
+Instrument C++ fixtures stay with their examples. Python fixtures that compile C++
 use the selected compiler and execute their temporary binaries in the same
 native or Docker environment.
 `bash web/tests/run.sh fft` runs just the shared/FFT browser checks, without
