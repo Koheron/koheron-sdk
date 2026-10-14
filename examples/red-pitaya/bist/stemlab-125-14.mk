@@ -1,5 +1,5 @@
 NAME := bist
-VERSION := 1.0.0
+VERSION := 1.2.0
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14
 ENFORCE_TIMING := 1
 MEMORY_YML := $(PROJECT_PATH)/memory.yml
@@ -11,6 +11,7 @@ OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
 DRIVERS += $(BOARD_PATH)/drivers/common.hpp $(PROJECT_PATH)/bist.hpp
 DRIVERS += $(PROJECT_PATH)/bist.cpp
 WEB_FILES += $(PROJECT_PATH)/web/index.html $(PROJECT_PATH)/web/bist.js $(PROJECT_PATH)/web/bist.css
+WEB_FILES += $(PROJECT_PATH)/web/bist-metadata.js
 
 # Record the exact reference implementation so OS comparisons also detect
 # driver/workload changes made without a release-version bump.

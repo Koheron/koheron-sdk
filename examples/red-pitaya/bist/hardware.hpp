@@ -44,6 +44,13 @@ struct Transfer
     unsigned interrupts = 0;
     uint32_t tx_status = 0, rx_status = 0;
 };
+enum class DmaFault
+{
+    none,
+    bad_descriptor,
+    stalled_stream,
+    missing_irq
+};
 class Dma
 {
   public:
@@ -107,13 +114,28 @@ class Dma
         }
         barrier();
     }
-    Transfer transfer(uint32_t size, bool tx, bool rx, bool capture = false)
+    Transfer transfer(uint32_t size, bool tx, bool rx, bool capture = false,
+                      DmaFault fault = DmaFault::none, unsigned timeout_ms = 2000)
     {
         Transfer result;
         if (size == 0 || size > bytes || size % 4 != 0 || cancelled)
             return result;
         const unsigned count = (size + chunk - 1) / chunk;
         prepare(size, tx, rx);
+        if (fault == DmaFault::bad_descriptor)
+            ram.write_reg(tx_bd + 24, 0x0c000000U); // Zero-length TX BD.
+        if (fault == DmaFault::stalled_stream)
+            ctl.write<reg::mode>(3);
+        if (fault == DmaFault::missing_irq)
+        {
+            uint32_t disabled = 0;
+            if (::write(irq.fd(), &disabled, sizeof(disabled)) != sizeof(disabled))
+                return result;
+            while (irq.wait_for_irq(std::chrono::milliseconds(0)) > 0)
+            {
+            }
+        }
+        barrier();
         if (tx)
         {
             regs.write_reg(8, uint32_t(mem::buffers_addr) + tx_bd);
@@ -126,9 +148,9 @@ class Dma
         }
         regs.write_reg(4, 0x7000U);
         regs.write_reg(0x34, 0x7000U);
-        if (!irq.arm_irq())
+        if (fault != DmaFault::missing_irq && !irq.arm_irq())
             return result;
-        const auto start = Clock::now(), deadline = start + std::chrono::seconds(2);
+        const auto start = Clock::now(), deadline = start + std::chrono::milliseconds(timeout_ms);
         if (rx)
             regs.write_reg(0x40, uint32_t(mem::buffers_addr) + rx_bd + 64 * (count - 1));
         if (tx)
@@ -158,7 +180,7 @@ class Dma
                 complete = true;
                 break;
             }
-            if (!irq.arm_irq())
+            if (fault != DmaFault::missing_irq && !irq.arm_irq())
                 break;
         }
         result.seconds = bist::seconds(start);

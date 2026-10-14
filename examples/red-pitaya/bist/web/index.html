@@ -5,8 +5,12 @@
 <a href="/koheron/">Instrument manager</a></header>
 <section class="controls"><label>Loopback cables <select id="mask"><option value="1">DAC0 → ADC0</option>
 <option value="3">Both channels</option><option value="2">DAC1 → ADC1</option><option value="0">No cables</option></select></label>
+<label>Profile <select id="profile"><option value="0">Health · short</option><option value="1">Benchmark · longer</option><option value="2">Diagnostic · recovery</option></select></label>
 <button id="start" disabled>Run onboard checks</button><button id="cancel" disabled>Cancel</button><span id="state" role="status">Connecting…</span></section>
 <p class="note">Checks run onboard and continue when this page closes. Reboot timing and stop/start validation use the Python client.</p>
+<section><h2>Run metadata</h2><p class="note">Versions and build identities recorded for this report.</p>
+<dl id="metadata" class="metadata"></dl><details><summary>Build and hardware details</summary><dl id="metadata-details" class="metadata"></dl></details></section>
 <section><div class="section-title"><h2>Scorecard</h2><button id="download" disabled>Download report</button></div>
-<div id="summary"></div><div class="table-wrap"><table><thead><tr><th>Result</th><th>Domain</th><th>Measurement</th><th>Value</th></tr></thead><tbody id="metrics"></tbody></table></div></section>
-<section><h2>Live validation log</h2><pre id="log" aria-live="polite"></pre></section></main><script src="bist.js"></script></body></html>
+<p id="outcomes" role="status"></p><div id="summary"></div><div class="table-wrap"><table><thead><tr><th>Result</th><th>Domain</th><th>Measurement</th><th>Value</th></tr></thead><tbody id="metrics"></tbody></table></div></section>
+<section id="performance-details" hidden><h2>Performance comparison</h2><p class="note">Repeated-run baseline; noisy or insufficient measurements remain inconclusive.</p><div class="table-wrap"><table><thead><tr><th>Measurement</th><th>Result</th><th>Value</th><th>Regression limit</th></tr></thead><tbody id="performance-metrics"></tbody></table></div></section>
+<section><h2>Live validation log</h2><pre id="log" aria-live="polite"></pre></section></main><script src="bist-metadata.js"></script><script src="bist.js"></script></body></html>

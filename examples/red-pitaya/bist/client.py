@@ -2,6 +2,7 @@
 """BIST RPC client and bounded reboot/stop/start validation orchestrator."""
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -11,17 +12,27 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python"))
 from koheron import KoheronClient, command
 import requests
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from performance import build_baseline, evaluate
 
 
 class BistClient:
-    def __init__(self, host):
-        self.client = KoheronClient(host, timeout=5)
+    def __init__(self, host, timeout=5):
+        self.client = KoheronClient(host, timeout=timeout)
 
     def close(self):
         self.client.sock.close()
 
     @command(classname="Bist")
     def start(self, analog_mask):
+        return self.client.recv_bool()
+
+    @command(classname="Bist")
+    def start_profile(self, analog_mask, profile):
+        return self.client.recv_bool()
+
+    @command(classname="Bist")
+    def record_performance(self, run_id, status, comparison_json):
         return self.client.recv_bool()
 
     @command(classname="Bist")
@@ -35,6 +46,10 @@ class BistClient:
     @command(classname="Bist")
     def get_boot_seconds(self):
         return self.client.recv_double()
+
+    @command(classname="Bist")
+    def get_boot_id(self):
+        return self.client.recv_string()
 
     @command(classname="Bist")
     def get_report(self):
@@ -69,14 +84,26 @@ def api(host, route, post=False):
 
 def connect(host, deadline):
     while time.monotonic() < deadline:
+        client = None
+        accepted = False
         try:
-            client = BistClient(host)
+            client = BistClient(host, timeout=min(5, deadline - time.monotonic()))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            client.client.sock.settimeout(min(5, remaining))
             if client.ping(0x1234) == (0x1234 ^ 0x42495354):
+                accepted = time.monotonic() < deadline
+            if accepted:
                 return client
-            client.close()
         except (OSError, ValueError, KeyError, requests.RequestException):
             pass
-        time.sleep(.1)
+        finally:
+            if client is not None and not accepted:
+                client.close()
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(.1, remaining))
     raise TimeoutError("BIST RPC readiness deadline exceeded")
 
 
@@ -99,10 +126,14 @@ def compare(reference, current):
     a, b = reference["metadata"], current["metadata"]
     reasons = []
     for key in ("fpga_sha256", "server_sha256", "bist_build_id", "workload_version", "parameters"):
-        if a.get(key) != b.get(key):
+        missing = False
+        for label, metadata in (("reference", a), ("current", b)):
+            value = metadata.get(key)
+            if value is None or value == "unavailable" or not value:
+                reasons.append(f"missing {label} {key}")
+                missing = True
+        if not missing and a[key] != b[key]:
             reasons.append(f"different {key}")
-    if a.get("fpga_sha256") in (None, "unavailable") or b.get("fpga_sha256") in (None, "unavailable"):
-        reasons.append("missing FPGA digest")
     old = {row["name"]: row for row in reference["metrics"]}
     rows = []
     for row in current["metrics"]:
@@ -110,8 +141,23 @@ def compare(reference, current):
         if prior is None or prior["unit"] != row["unit"]:
             rows.append({"name": row["name"], "status": "missing or incompatible reference"})
         else:
-            ratio = row["value"] / prior["value"] if prior["value"] else None
-            rows.append({"name": row["name"], "ratio": ratio, "reference_pass": prior["pass"], "current_pass": row["pass"]})
+            comparison = {"name": row["name"], "ratio": None,
+                          "reference_pass": prior["pass"], "current_pass": row["pass"]}
+            for label, measurement in (("reference", prior), ("current", row)):
+                value = measurement.get("value")
+                if type(value) not in (int, float) or not math.isfinite(value):
+                    comparison["status"] = f"unavailable {label} value"
+                    break
+            else:
+                if prior["value"]:
+                    ratio = row["value"] / prior["value"]
+                    if math.isfinite(ratio):
+                        comparison["ratio"] = ratio
+                    else:
+                        comparison["status"] = "non-finite ratio"
+                else:
+                    comparison["status"] = "zero reference value"
+            rows.append(comparison)
     rows.extend({"name": name, "status": "missing current measurement"} for name in old)
     return {"comparable": not reasons, "reasons": reasons, "metrics": rows,
             "reference_missing": reference.get("missing_measurements", []),
@@ -131,14 +177,31 @@ def ssh(args):
     return client
 
 
+def download(client, output):
+    report = client.get_report()
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
+    (output / "scorecard.txt").write_text(client.get_scorecard())
+    cursor = 0
+    with (output / "log.txt").open("w") as log:
+        while True:
+            batch = client.get_log(cursor)
+            log.write(batch["text"])
+            if batch["cursor"] == cursor:
+                break
+            cursor = batch["cursor"]
+    return report
+
+
 def validate(args):
     started = time.monotonic()
-    deadline = started + 180
+    budget = 60 if getattr(args, "profile", "health") == "benchmark" else 30
+    deadline = started + budget
     startup = None
     if not args.no_reboot:
         api(args.host, "instruments/default/bist", True)
         remote = ssh(args)
-        _, stdout, _ = remote.exec_command("cat /proc/sys/kernel/random/boot_id")
+        _, stdout, _ = remote.exec_command("cat /proc/sys/kernel/random/boot_id", timeout=5)
         old_boot = stdout.read().decode().strip()
         reboot_started = time.monotonic()
         remote.exec_command("reboot")
@@ -161,20 +224,22 @@ def validate(args):
         client = connect(args.host, deadline)
         server = time.monotonic() - reboot_started
         boot = client.get_boot_seconds()
-        remote = ssh(args)
-        _, stdout, _ = remote.exec_command("cat /proc/sys/kernel/random/boot_id")
-        if stdout.read().decode().strip() == old_boot:
+        new_boot = client.get_boot_id()
+        if not old_boot or not new_boot or new_boot == old_boot:
             raise RuntimeError("Reboot did not change the boot ID")
-        remote.close()
         startup = (network, server, float(boot))
     else:
         client = connect(args.host, deadline)
-    if not client.start(args.analog_mask):
+    profile = getattr(args, "profile", "health")
+    accepted = client.start(args.analog_mask) if profile == "health" else client.start_profile(
+        args.analog_mask, {"benchmark": 1, "diagnostic": 2}[profile])
+    if not accepted:
         raise RuntimeError("BIST start rejected (already active, invalid mask, or report storage unavailable)")
-    report = collect(client, deadline)
+    collect(client, deadline)
     if startup and not client.record_startup(*startup):
         raise RuntimeError("Startup results were not stored")
-    retained = client.get_report()
+    # Preserve the completed suite before a potentially failed service restart.
+    retained = download(client, args.output)
     client.close()
     restart = time.monotonic()
     api(args.host, "instruments/control/stop", True)
@@ -183,26 +248,30 @@ def validate(args):
     recovered = client.get_report()
     identical = recovered["run_id"] == retained["run_id"] and recovered["metrics"] == retained["metrics"]
     lifecycle_ok = client.record_lifecycle(time.monotonic() - restart, identical)
-    report = client.get_report()
-    elapsed = time.monotonic() - started
-    args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
-    (args.output / "scorecard.txt").write_text(client.get_scorecard())
-    cursor = 0
-    with (args.output / "log.txt").open("w") as log:
-        while True:
-            batch = client.get_log(cursor)
-            log.write(batch["text"])
-            if batch["cursor"] == cursor:
-                break
-            cursor = batch["cursor"]
+    report = download(client, args.output)
+    if getattr(args, "save_baseline", None):
+        references = [json.loads(path.read_text()) for path in args.reference_report] + [report]
+        model = build_baseline(references, args.tolerance)
+        args.save_baseline.write_text(json.dumps(model, indent=2, allow_nan=False) + "\n")
+    performance = None
+    if getattr(args, "baseline", None):
+        performance = evaluate(json.loads(args.baseline.read_text()), report)
+        if not client.record_performance(report["run_id"], performance["status"], json.dumps(performance, allow_nan=False)):
+            raise RuntimeError("Performance comparison was not stored")
+        report = download(client, args.output)
+        (args.output / "performance.json").write_text(json.dumps(performance, indent=2) + "\n")
     client.close()
     if args.compare:
         comparison = compare(json.loads(args.compare.read_text()), report)
         (args.output / "comparison.json").write_text(json.dumps(comparison, indent=2) + "\n")
+    elapsed = time.monotonic() - started
     failures = [row["name"] for row in report["metrics"] if not row["pass"]]
     print(f"Report ready in {elapsed:.3f} s: {args.output / 'report.json'}")
-    if failures or not lifecycle_ok or not report["storage_ok"] or report["state"] != "complete" or elapsed >= 180:
+    if performance:
+        print(f"Functional: {report['functional_status']}; performance: {performance['status']}")
+    if performance and performance["status"] == "regression":
+        raise RuntimeError("Performance regression detected; functional results remain separate")
+    if failures or not lifecycle_ok or not report["storage_ok"] or report["state"] != "complete" or elapsed >= budget:
         raise RuntimeError(f"Validation failed: {failures}, state={report['state']}, storage_ok={report['storage_ok']}")
 
 
@@ -215,6 +284,11 @@ def main():
     parser.add_argument("--ssh-known-hosts", help="SSH host-key file, checked on reboot connection")
     parser.add_argument("--output", type=Path, default=Path("tmp/bist-results"))
     parser.add_argument("--compare", type=Path, help="Previous runtime report for OS comparison")
+    parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic"), default="health")
+    parser.add_argument("--baseline", type=Path, help="Evaluate against a repeated-run baseline model")
+    parser.add_argument("--save-baseline", type=Path, help="Save a baseline using this run and reference reports")
+    parser.add_argument("--reference-report", type=Path, action="append", default=[])
+    parser.add_argument("--tolerance", type=float, default=.10)
     args = parser.parse_args()
     try:
         validate(args)

@@ -21,6 +21,9 @@ class Bist
     std::vector<uint32_t> benchmark_reply(uint32_t words);
     bool record_startup(double network_seconds, double server_seconds, double boot_seconds);
     bool record_lifecycle(double restart_seconds, bool recovered);
+    std::string get_boot_id();
+    bool start_profile(uint32_t analog_mask, uint32_t profile);
+    bool record_performance(std::string run_id, std::string status, std::string comparison_json);
 
   private:
     struct Impl;
