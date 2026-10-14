@@ -178,28 +178,35 @@ template<int Kind> void stalled_input(bool dynamic) {
 }
 
 template<int Kind> void stalled_output(uint16_t operation, bool disconnect = false) {
-    Connection<Kind> healthy(2), slow(1, true, operation == 14 ? 4096 : 0);
+    Connection<Kind> healthy(2), slow(1, true, (operation == 14 || operation == 16) ? 4096 : 0);
     slow.send(command(operation));
     until([] { return LockingInstrument::readers.load() == 1; });
     // The first client does not read. Its reply cannot fit the socket buffer.
     healthy.send(scalar_command(0, 0x44444444)); healthy.consumed(); healthy.send(command(1));
     pollfd ready{healthy.client, POLLIN, 0};
-    check(::poll(&ready, 1, 100) == 0, "Driver storage unlocked before its reply finished");
-    check(LockingInstrument::calls == 0, "Borrowed storage mutated during transmission");
+    const bool owned = operation >= 14;
+    if (owned) {
+        check(::poll(&ready, 1, 1000) == 1, "Owned reply blocked another driver call");
+        check(healthy.response(12) == scalar_response(1, 0x44444444), "Owned reply kept driver locked");
+        check(LockingInstrument::calls == 1, "Owned reply prevented mutation");
+    } else {
+        check(::poll(&ready, 1, 100) == 0, "Driver storage unlocked before its reply finished");
+        check(LockingInstrument::calls == 0, "Borrowed storage mutated during transmission");
+    }
     if (disconnect) {
         ::shutdown(slow.client, SHUT_RDWR);
         ::shutdown(slow.server, SHUT_RDWR);
-        check(healthy.response(12) == scalar_response(1, 0x44444444), "Disconnected writer kept the driver locked");
+        if (!owned) check(healthy.response(12) == scalar_response(1, 0x44444444), "Disconnected writer kept the driver locked");
         return;
     }
     Bytes expected = command(operation);
     if (operation == 14) append_be(expected, 0xbeef, 2);
-    const auto payload_bytes = (operation == 14 ? 32768 : 512 * 1024) * sizeof(uint32_t);
-    append_be(expected, payload_bytes, operation == 14 ? 4 : sizeof(size_t));
+    const auto payload_bytes = ((operation == 14 || operation == 16) ? 32768 : 512 * 1024) * sizeof(uint32_t);
+    append_be(expected, payload_bytes, (operation == 14 || operation == 16) ? 4 : sizeof(size_t));
     expected.resize(expected.size() + payload_bytes, 0x33);
     if (operation == 14) append_be(expected, 0xabcdef01, 4);
     check(slow.response(expected.size()) == expected, "Borrowed response changed during transmission");
-    check(healthy.response(12) == scalar_response(1, 0x44444444), "Driver stayed locked after its reply finished");
+    if (!owned) check(healthy.response(12) == scalar_response(1, 0x44444444), "Driver stayed locked after its reply finished");
     slow.send(command(1)); check(slow.response(12) == scalar_response(1, 0x44444444), "Connection lost after large reply");
 }
 
@@ -478,6 +485,10 @@ int main(int argc, char** argv) {
         else if (test == "tcp-input") stalled_input<net::TCP>(false);
         else if (test == "unix-input") stalled_input<net::UNIX>(false);
         else if (test == "dynamic-input") stalled_input<net::TCP>(true);
+        else if (test == "owned-string-tcp") stalled_output<net::TCP>(16);
+        else if (test == "owned-string-unix") stalled_output<net::UNIX>(16);
+        else if (test == "owned-string-ws") stalled_output<net::WEBSOCK>(16);
+        else if (test == "owned-vector-output") stalled_output<net::TCP>(15);
         else if (test == "tcp-output") stalled_output<net::TCP>(3);
         else if (test == "span-output") stalled_output<net::TCP>(4);
         else if (test == "ws-output") stalled_output<net::WEBSOCK>(3);

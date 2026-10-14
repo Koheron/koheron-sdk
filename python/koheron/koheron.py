@@ -307,12 +307,13 @@ cpp_to_np_types = {
 # --------------------------------------------
 
 class KoheronClient:
-    def __init__(self, host='', port=36000, unixsock=''):
+    def __init__(self, host='', port=36000, unixsock='', timeout=None):
         ''' Initialize connection with koheron-server
 
         Args:
             host: A string with the IP address
             port: Port of the TCP connection (must be an integer)
+            timeout: Optional socket timeout in seconds, applied before connecting
         '''
         if type(host) != str:
             raise TypeError('IP address must be a string')
@@ -328,6 +329,7 @@ class KoheronClient:
         if host != '':
             try:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.settimeout(timeout)
 
                 # Prevent delayed ACK on Ubuntu
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
@@ -346,6 +348,7 @@ class KoheronClient:
         elif unixsock != '':
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                self.sock.settimeout(timeout)
                 self.sock.connect(unixsock)
                 self.is_connected = True
             except Exception as e:
