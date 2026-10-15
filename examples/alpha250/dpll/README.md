@@ -87,7 +87,10 @@ feedback phase history and controller states are independent of monitor epochs,
 channel selection, decimation, precision and backpressure.
 The continuous 64-bit monitor history uses two 32-bit words and is delayed by
 one further clock (4 ns). Feedback phase reconstruction uses the frequency bus
-directly and retains the delays below.
+directly and retains the delays below. Canonical unwrapping registers the raw
+modular difference and the positive-pi boundary flag together, then corrects the
+sign after that same register edge. This shortens the subtraction path while
+preserving signed pi ties and sample timing.
 
 The accurate phase remains in Q8 legacy phase units through unwrapping and into
 both initial gain tables: frequency is signed 25-bit and feedback phase is
@@ -327,9 +330,12 @@ Gain requests are validated and decoded at 143 MHz, using PR 780's registered
 CDC handshakes and reset draining. RAM writes and atomic bank/coefficient commits
 remain at 250 MHz. Address and payload precede the registered write strobe,
 with a setup wait giving three clocks (12 ns) before RAM capture. Acknowledgement follows the write
-or commit. The acceptance decision and one-hot gain destination are registered
-before driving table controls; that extra programming clock does not affect
-feedback latency. Reset preserves committed gains while cancelling pending transfers.
+or commit. Acceptance and the complete one-hot commit enable are decoded on the
+existing acceptance register edge. The following edge atomically applies each
+bank and coefficient with only reset gating its enable, avoiding a shared
+state/rejection decode on the wide coefficient hold path. Programming and
+feedback latency are unchanged. Reset preserves committed gains while cancelling
+pending transfers, including a commit cancelled on its apply edge.
 Only these held RAM programming inputs use three-clock timing constraints; the
 write strobe, bank commits, lookup addresses and feedback remain at 250 MHz.
 
@@ -340,7 +346,13 @@ writes and held commands with changing data:
 ```sh
 export DPLL_VIVADO_SETTINGS=/tools/Xilinx/2025.1/Vivado/settings64.sh
 bash examples/alpha250/dpll/tests/run-table-system.sh
+bash examples/alpha250/dpll/tests/run-gain-programmer.sh
 ```
+
+The programmer reset test sweeps 65 write reset positions and 65 commit reset
+positions for each of the eight destinations, plus a directed reset on each
+destination's commit edge. It checks preservation of committed
+gains, cancellation of in-flight transfers, rejected writes/commits and recovery.
 
 ## Full FPGA build
 
@@ -380,6 +392,34 @@ clock converter and FIR configurations. It checks ordering, sustained throughput
 sample-gap reporting under backpressure and recovery after an epoch reset.
 Build results and hardware measurements are reported separately in the
 [latency notes](tests/gain_latency/README.md#integration-and-hardware-status).
+
+### Phase/gain retiming integration on V1 (2026-10-10)
+
+PR #838 was rebased onto V1 `d2d35ba9`, including the shared lookahead
+accumulator from #834 and residual lookup from #837. The initialization
+conflict preserves the accumulator's phase state and the canonical difference's
+registered raw value and pi-tie flag. No pipeline clocks or constraints changed.
+
+The shared seven-suite unwrapper/history regression passes, including all twelve
+latency configurations and canonical differences with both lookahead and split
+history. The DPLL unwrapper, gain-programmer reset, two-controller programming
+and P/PI/front-end suites also pass with unchanged sample latency.
+
+The fresh full build **fails setup timing** on this integrated revision:
+
+```sh
+make -j4 CFG=examples/alpha250/dpll/config.mk \
+  TMP=tmp/pr838-v1-integration VIVADO_VERSION=2026.1 MODE=development \
+  N_CPUS=4 ENFORCE_TIMING=1 fpga
+```
+
+Worst setup slack is **-0.003040 ns**, with **-0.006079 ns** total negative
+slack. The failing path runs from the gain-programmer state register to the
+replicated channel-1 command enables. Hold (+0.042 ns), pulse width and all
+12 bus-skew checks pass. The strict gate blocks bitstream generation; this
+revision is **not qualified for merging**. The earlier passing result on the
+old PR base does not qualify this combination. No further optimization trials
+were run, and no hardware was deployed or tested.
 
 ### Residual normalization build (2026-10-10)
 
