@@ -19,6 +19,11 @@ from performance import build_baseline, evaluate
 class BistClient:
     def __init__(self, host, timeout=5):
         self.client = KoheronClient(host, timeout=timeout)
+        try:
+            self.client.get_ids("BistCompletion", "wait")
+        except KeyError:
+            self.close()
+            raise RuntimeError("Quiet collection requires BIST 1.5 or newer; update the instrument") from None
 
     def close(self):
         self.client.sock.close()
@@ -45,6 +50,10 @@ class BistClient:
 
     @command(classname="Bist")
     def running(self):
+        return self.client.recv_bool()
+
+    @command(classname="BistCompletion")
+    def wait(self, timeout_ms):
         return self.client.recv_bool()
 
     @command(classname="Bist")
@@ -112,30 +121,21 @@ def connect(host, deadline):
 
 
 def collect(client, deadline):
-    cursor = 0
-    while time.monotonic() < deadline:
-        batch = client.get_log(cursor)
-        print(batch["text"], end="", flush=True)
-        cursor = batch["cursor"]
-        if not client.running():
-            batch = client.get_log(cursor)
-            print(batch["text"], end="", flush=True)
+    """Sleep onboard until completion without polling the measured driver."""
+    remaining = deadline - time.monotonic()
+    if remaining > 0:
+        sock = client.client.sock
+        previous_timeout = sock.gettimeout()
+        try:
+            sock.settimeout(remaining)
+            # Leave time for the timeout reply and a cancellation request.
+            complete = client.wait(min(60000, max(0, int(remaining * 1000) - 50)))
+        finally:
+            sock.settimeout(previous_timeout)
+        if complete:
             return client.get_report()
-        time.sleep(.2)
     client.cancel()
     raise TimeoutError("BIST suite deadline exceeded; partial report remains onboard")
-
-
-def collect_comparison(client, case_mask, deadline):
-    """Leave timed windows alone, including lightweight RPC polling."""
-    quiet_seconds = 1.5 + 2 * case_mask.bit_count() + 1
-    time.sleep(min(quiet_seconds, max(0, deadline - time.monotonic())))
-    while time.monotonic() < deadline:
-        if not client.running():
-            return client.get_report()
-        time.sleep(.1)
-    client.cancel()
-    raise TimeoutError("Controlled comparison deadline exceeded; partial report remains onboard")
 
 
 def compare(reference, current):
@@ -251,10 +251,7 @@ def validate(args):
         args.analog_mask, {"benchmark": 1, "diagnostic": 2, "comparison": 3, "upload": 4}[profile])
     if not accepted:
         raise RuntimeError("BIST start rejected (already active, invalid mask, or report storage unavailable)")
-    if profile in ("comparison", "upload"):
-        collect_comparison(client, 48 if profile == "upload" else 15, deadline)
-    else:
-        collect(client, deadline)
+    collect(client, deadline)
     if startup and not client.record_startup(*startup):
         raise RuntimeError("Startup results were not stored")
     # Preserve the completed suite before a potentially failed service restart.
@@ -288,6 +285,8 @@ def validate(args):
     print(f"Report ready in {elapsed:.3f} s: {args.output / 'report.json'}")
     if performance:
         print(f"Functional: {report['functional_status']}; performance: {performance['status']}")
+        if performance.get("reason"):
+            print(performance["reason"])
     if performance and performance["status"] == "regression":
         raise RuntimeError("Performance regression detected; functional results remain separate")
     if failures or not lifecycle_ok or not report["storage_ok"] or report["state"] != "complete" or elapsed >= budget:
@@ -300,7 +299,8 @@ def main():
     parser.add_argument("--analog-mask", type=lambda value: int(value, 0), choices=range(4), default=1,
                         help="Connected DAC/ADC loopbacks: bit 0=channel 0, bit 1=channel 1")
     parser.add_argument("--no-reboot", action="store_true", help="Skip startup measurements")
-    parser.add_argument("--ssh-known-hosts", help="SSH host-key file, checked on reboot connection")
+    parser.add_argument("--ssh-known-hosts", default=os.environ.get("BIST_SSH_KNOWN_HOSTS"),
+                        help="SSH host-key file, checked on reboot connection (or BIST_SSH_KNOWN_HOSTS)")
     parser.add_argument("--output", type=Path, default=Path("tmp/bist-results"))
     parser.add_argument("--compare", type=Path, help="Previous runtime report for OS comparison")
     parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic", "comparison", "upload"), default="health")

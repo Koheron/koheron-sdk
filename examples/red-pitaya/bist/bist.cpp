@@ -1,16 +1,20 @@
 #include "bist.hpp"
+#include "completion.hpp"
 #include "hardware.hpp"
 #include "metadata.hpp"
 #include "uart.hpp"
 #include "checkpoint.hpp"
 #include "pacing.hpp"
 #include "upload.hpp"
+#include "server/runtime/driver_manager.hpp"
+#include "server/runtime/signal_handler.hpp"
 #include <charconv>
 #include <drivers_json.hpp>
 #include <atomic>
 #include <barrier>
 #include <filesystem>
 #include <mutex>
+#include <condition_variable>
 #include <thread>
 #include <array>
 #include <numbers>
@@ -304,6 +308,7 @@ struct Bist::Impl
     std::atomic<bool> cancelled{false}, active{false};
     std::thread worker;
     std::mutex mutex;
+    std::condition_variable completed;
     std::string run_id, prefix, metrics = "[]", metadata = "{}", state = "idle", log_text,
                                 metadata_text;
     std::vector<Metric> values;
@@ -1316,13 +1321,32 @@ struct Bist::Impl
             if (cancelled)
                 functional = "incomplete";
             persist();
+            active = false;
         }
-        active = false;
+        completed.notify_all();
     }
 };
 
 Bist::Bist() : impl(std::make_unique<Impl>()) {}
 Bist::~Bist() = default;
+bool Bist::wait_for_completion(uint32_t timeout_ms)
+{
+    std::unique_lock lock(impl->mutex);
+    const auto run_id = impl->run_id;
+    const auto deadline = Clock::now() + std::chrono::milliseconds(std::min(timeout_ms, 60000U));
+    const auto done = [&] { return !impl->active || impl->run_id != run_id; };
+    while (!done() && Clock::now() < deadline && !rt::SignalHandler::s_interrupted)
+    {
+        // Server shutdown joins RPC sessions before destroying the drivers.
+        // Notice its signal promptly so an outstanding wait cannot delay teardown.
+        impl->completed.wait_until(lock, std::min(deadline, Clock::now() + std::chrono::milliseconds(100)), done);
+    }
+    return done();
+}
+bool BistCompletion::wait(uint32_t timeout_ms)
+{
+    return rt::get_driver<Bist>().wait_for_completion(timeout_ms);
+}
 bool Bist::start(uint32_t analog_mask) { return start_profile(analog_mask, 0); }
 bool Bist::start_profile(uint32_t analog_mask, uint32_t profile)
 {

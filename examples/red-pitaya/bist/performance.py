@@ -37,6 +37,20 @@ def healthy(report):
         "network_readiness", "server_readiness", "boot_readiness"}
     if missing:
         raise ValueError(f"Baseline has missing measurements: {sorted(missing)}")
+    observer_requests(report)
+
+
+def observer_requests(report):
+    windows = [row for row in report["metrics"] if row["name"] == "combined_window"]
+    if not windows:
+        raise ValueError("Performance comparison requires combined-window observer counts")
+    for row in windows:
+        count = row.get("observer_requests")
+        if type(count) is not int or count < 0:
+            raise ValueError("Performance comparison requires valid observer counts")
+        if count:
+            raise ValueError(f"Measurement disturbed by {count} observer requests; rerun without polling")
+    return 0
 
 
 def measurements(report):
@@ -46,6 +60,10 @@ def measurements(report):
             continue
         if finite(row.get("value")):
             result[row["name"]] = (row["value"], row["unit"], DIRECTIONS[row["name"]])
+        # Saturation RPC latency changes with the other workers' achieved load.
+        # Keep its capacity rate; use the controlled profile for latency verdicts.
+        if row["name"] == "rpc_combined":
+            continue
         for field, unit in (("latency_us", "us"), ("latency_ms", "ms")):
             distribution = row.get(field)
             if not isinstance(distribution, dict):
@@ -98,15 +116,18 @@ def build_baseline(reports, tolerance=.10):
                      "count": len(values), "median": center, "mad": mad,
                      "margin": max(center * tolerance, noise, resolution),
                      "resolution": resolution, "status": status})
-    return {"schema_version": 1, "identity": expected, "tolerance": tolerance,
+    return {"schema_version": 2, "identity": expected, "tolerance": tolerance,
             "minimum_runs": 5, "runs": sorted(seen), "metrics": rows,
             "conditions": [{"run_id": r["run_id"], "os": r["metadata"].get("os"),
                             "kernel": r["metadata"].get("kernel"),
+                            "observer_requests": observer_requests(r),
                             "environment": r["metadata"].get("environment")} for r in reports]}
 
 
 def evaluate(baseline, report):
-    if baseline.get("schema_version") != 1:
+    if baseline.get("schema_version") == 1:
+        return {"status": "inconclusive", "reason": "Baseline predates observer validation; rebuild it from quiet runs", "metrics": []}
+    if baseline.get("schema_version") != 2:
         raise ValueError("Unsupported baseline schema")
     if identity(report["metadata"]) != baseline["identity"]:
         return {"status": "incompatible", "reason": "Different reference identities or parameters", "metrics": []}

@@ -1,5 +1,5 @@
 NAME := bist
-VERSION := 1.4.0
+VERSION := 1.5.0
 BOARD_PATH := $(SDK_PATH)/boards/red-pitaya/stemlab-125-14
 ENFORCE_TIMING := 1
 MEMORY_YML := $(PROJECT_PATH)/memory.yml
@@ -10,6 +10,7 @@ CORES += $(PROJECT_PATH)/bist_uart_v1_0 $(PROJECT_PATH)/bist_path_v1_0
 OVERRIDE_DTSI := $(PROJECT_PATH)/override.dtsi
 DRIVERS += $(BOARD_PATH)/drivers/common.hpp $(PROJECT_PATH)/bist.hpp
 DRIVERS += $(PROJECT_PATH)/bist.cpp
+DRIVERS += $(PROJECT_PATH)/completion.hpp
 WEB_FILES += $(PROJECT_PATH)/web/index.html $(PROJECT_PATH)/web/bist.js $(PROJECT_PATH)/web/bist.css
 WEB_FILES += $(PROJECT_PATH)/web/bist-metadata.js
 

@@ -32,6 +32,8 @@ class Bist
     uint32_t benchmark_upload_reference(const std::vector<uint32_t>& words, uint32_t seed);
 
   private:
+    friend class BistCompletion;
+    bool wait_for_completion(uint32_t timeout_ms);
     bool start_impl(uint32_t analog_mask, uint32_t profile, uint32_t case_mask);
     struct Impl;
     std::unique_ptr<Impl> impl;

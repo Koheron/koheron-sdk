@@ -3,7 +3,7 @@ import json
 import socket
 import threading
 import time
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 from types import SimpleNamespace
 from pathlib import Path
 import pytest
@@ -108,6 +108,26 @@ def test_readiness_closes_failed_ping_connections(monkeypatch):
     connection.close.assert_called_once()
 
 
+def test_old_instrument_is_rejected_before_start(monkeypatch):
+    connection = Mock()
+    connection.get_ids.side_effect = KeyError("BistCompletion")
+    monkeypatch.setattr(client, "KoheronClient", lambda *args, **kwargs: connection)
+    with pytest.raises(RuntimeError, match="BIST 1.5"):
+        client.connect("test", time.monotonic() + 5)
+    connection.sock.close.assert_called_once()
+
+
+@pytest.mark.parametrize("override", [False, True])
+def test_sdk_test_can_select_a_pinned_host_key_file(monkeypatch, override):
+    monkeypatch.setenv("BIST_SSH_KNOWN_HOSTS", "pinned-hosts")
+    monkeypatch.setattr(client.sys, "argv", ["test.py"] + (
+        ["--ssh-known-hosts", "explicit-hosts"] if override else []))
+    validate = Mock()
+    monkeypatch.setattr(client, "validate", validate)
+    client.main()
+    assert validate.call_args.args[0].ssh_known_hosts == ("explicit-hosts" if override else "pinned-hosts")
+
+
 def test_readiness_handshake_uses_remaining_deadline(monkeypatch):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
@@ -165,3 +185,44 @@ def test_restart_failure_preserves_completed_suite_download(monkeypatch, tmp_pat
     assert (tmp_path / "scorecard.txt").read_text() == "Scorecard\n"
     assert (tmp_path / "log.txt").read_text() == "Completed\n"
     connection.close.assert_called_once()
+
+
+def test_collect_waits_without_polling_and_restores_socket_timeout(monkeypatch):
+    connection = Mock()
+    connection.client.sock.gettimeout.return_value = 5
+    saved = report()
+    connection.wait.return_value = True
+    connection.get_report.return_value = saved
+    monkeypatch.setattr(client.time, "monotonic", lambda: 100)
+    assert client.collect(connection, 120) == saved
+    connection.wait.assert_called_once()
+    assert 19000 <= connection.wait.call_args.args[0] < 20000
+    connection.running.assert_not_called()
+    connection.get_log.assert_not_called()
+    assert connection.client.sock.settimeout.call_args_list == [call(20), call(5)]
+    connection.cancel.assert_not_called()
+
+
+@pytest.mark.parametrize("remaining", [0, -1, 2])
+def test_collect_timeout_cancels_and_keeps_partial_report(monkeypatch, remaining):
+    connection = Mock()
+    connection.wait.return_value = False
+    monkeypatch.setattr(client.time, "monotonic", lambda: 100)
+    with pytest.raises(TimeoutError, match="partial report"):
+        client.collect(connection, 100 + remaining)
+    connection.cancel.assert_called_once()
+    connection.get_report.assert_not_called()
+    connection.get_log.assert_not_called()
+    connection.running.assert_not_called()
+    if remaining <= 0:
+        connection.wait.assert_not_called()
+
+
+def test_wait_transport_error_restores_socket_timeout(monkeypatch):
+    connection = Mock()
+    connection.client.sock.gettimeout.return_value = 5
+    connection.wait.side_effect = OSError("Disconnected")
+    monkeypatch.setattr(client.time, "monotonic", lambda: 100)
+    with pytest.raises(OSError, match="Disconnected"):
+        client.collect(connection, 120)
+    assert connection.client.sock.settimeout.call_args.args == (5,)

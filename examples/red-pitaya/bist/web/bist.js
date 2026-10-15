@@ -2,15 +2,15 @@
 "use strict";
 (() => {
     const $ = id => document.getElementById(id);
-    let socket, pending, driver, commands, report, cursor = 0, runId = "", connecting = false, generation = 0;
-    function rpc(name, args = []) {
+    let socket, pending, driver, completion, report, cursor = 0, runId = "", connecting = false, generation = 0;
+    function rpc(name, args = [], target = driver, timeout = 5000) {
         if (pending) return Promise.reject(new Error("RPC already pending"));
-        const command = commands[name];
+        const command = target.commands[name];
         const packet = new ArrayBuffer(8 + args.length * 4), view = new DataView(packet);
-        view.setUint16(4, driver.id); view.setUint16(6, command.id);
+        view.setUint16(4, target.id); view.setUint16(6, command.id);
         args.forEach((value, index) => view.setUint32(8 + index * 4, value));
         return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => { pending = null; reject(new Error("RPC timeout")); socket.close(); }, 5000);
+            const timer = setTimeout(() => { pending = null; reject(new Error("RPC timeout")); socket.close(); }, timeout);
             pending = {resolve, reject, timer, type: command.ret_type || command.retType};
             socket.send(packet);
         });
@@ -35,6 +35,7 @@
         $("performance-metrics").replaceChildren();
         let comparison = {};
         try { comparison = JSON.parse(report.performance?.comparison_json || "{}"); } catch (_) { /* Invalid saved comparison. */ }
+        if (comparison.reason) $("outcomes").textContent += ` · ${comparison.reason}`;
         $("performance-details").hidden = !comparison.metrics?.length;
         (comparison.metrics || []).forEach(row => {
             const tr = document.createElement("tr");
@@ -66,14 +67,15 @@
     async function poll(token) {
         if (token !== generation) return;
         try {
-            // Stop report/log traffic before the controlled measurement starts.
-            // Older instrument packages retain the existing polling behavior.
-            if (commands.comparison_active && await rpc("comparison_active")) {
-                $("state").textContent = "Controlled comparison running · updates paused during measurement";
+            // This driver sleeps without holding the measured Bist driver lock.
+            if (!await rpc("wait", [0], completion, 65000)) {
+                $("state").textContent = "Running · updates paused during measurement";
                 $("start").disabled = true; $("cancel").disabled = false; $("download").disabled = true;
-                $("summary").textContent = "Showing the previous report until the controlled comparison finishes";
-                setTimeout(() => poll(token), 15000);
-                return;
+                $("summary").textContent = "Results and logs will update when the run finishes";
+                if (!await rpc("wait", [60000], completion, 65000)) {
+                    setTimeout(() => poll(token), 300);
+                    return;
+                }
             }
             let batch = JSON.parse(await rpc("get_log", [cursor]));
             if (batch.run_id !== runId) {
@@ -93,12 +95,14 @@
         socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.hostname}:8080`);
         socket.binaryType = "arraybuffer";
         socket.onopen = async () => {
-            commands = {context: {id: 1, retType: "std::string"}}; driver = {id: 1};
+            driver = {id: 1, commands: {context: {id: 1, retType: "std::string"}}};
             try {
                 const context = JSON.parse(await rpc("context"));
-                driver = context.find(item => (item.class || item.name) === "Bist");
-                if (!driver) throw new Error("BIST driver is unavailable");
-                commands = Object.fromEntries((driver.functions || driver.commands).map(command => [command.name, command]));
+                const drivers = Object.fromEntries(context.map(item => [item.class || item.name, {
+                    id: item.id, commands: Object.fromEntries((item.functions || item.commands).map(command => [command.name, command]))
+                }]));
+                driver = drivers.Bist; completion = drivers.BistCompletion;
+                if (!driver || !completion) throw new Error("BIST 1.5 or newer is required");
                 connecting = false; poll(token);
             } catch (error) { $("state").textContent = error.message; socket.close(); }
         };
@@ -124,7 +128,7 @@
             const timer = setTimeout(() => {controlSocket.close(); reject(new Error("Control timeout"));}, 5000);
             controlSocket.onopen = () => {
                 const packet = new ArrayBuffer(8 + args.length * 4), view = new DataView(packet);
-                view.setUint16(4, driver.id); view.setUint16(6, commands[name].id);
+                view.setUint16(4, driver.id); view.setUint16(6, driver.commands[name].id);
                 args.forEach((value, i) => view.setUint32(8 + i*4, value)); controlSocket.send(packet);
                 if (name === "cancel") { clearTimeout(timer); setTimeout(() => {controlSocket.close(); resolve(true);}, 100); }
             };
