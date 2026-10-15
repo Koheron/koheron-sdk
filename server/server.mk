@@ -321,7 +321,8 @@ JSON_CXX      := g++-$(GCC_VERSION)
 JSON_CXXFLAGS := -std=c++23 -O2 -DKOHERON_SERVER_BUILD $(SERVER_INCLUDE_DIRS)
 # Metadata includes the instrument's real headers. Keep their search paths and
 # feature defines, without passing cross-target options to the host compiler.
-JSON_CXXFLAGS += $(filter -I% -D% -U%,$(SERVER_EXTRA_CCXXFLAGS))
+# Parse shell words so split options and quoted paths keep their arguments.
+JSON_CXXFLAGS += $(shell $(if $(HOST_PYTHON),$(HOST_PYTHON),python3) $(SERVER_PATH)/tools/header_flags.py $(call build_shell_quote,$(SERVER_EXTRA_CCXXFLAGS)))
 JSON_CXXFLAGS += -DINSTRUMENT_NAME=\"$(NAME)\"
 
 JSON_FLAGS_STAMP := $(TMP_SERVER_PATH)/.json-settings
