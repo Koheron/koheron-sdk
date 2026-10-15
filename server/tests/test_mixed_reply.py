@@ -32,6 +32,7 @@ class MixedReplyTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_wire_format_and_borrowed_storage(self): self.run_case('serialization')
+    def test_standalone_container_length_is_32_bits(self): self.run_case('standalone')
     def test_fixed_scalar_replies(self): self.run_case('fixed')
     def test_owned_and_borrowed_fields(self): self.run_case('ownership')
     def test_driver_reference_returns(self): self.run_case('reference-returns')

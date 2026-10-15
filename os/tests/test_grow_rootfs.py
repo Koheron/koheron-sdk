@@ -76,6 +76,22 @@ esac
         self.assertEqual(Path(str(self.log) + '.input').read_text(), ',+\n')
         self.assertIn('partx --update --nr 2 /dev/mmcblk0', self.commands())
 
+    def test_other_mmc_controller_grows_only_the_mounted_root_disk(self):
+        result = self.run_helper(ROOT_SOURCE='/dev/mmcblk1p2')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(self.stamp.exists())
+        self.assertIn('sfdisk --no-reread --no-tell-kernel --wipe never '
+                      '--wipe-partitions never -N 2 /dev/mmcblk1', self.commands())
+        self.assertIn('partx --update --nr 2 /dev/mmcblk1', self.commands())
+        self.assertIn('resize2fs /dev/mmcblk1p2', self.commands())
+        self.assertFalse(any('/dev/mmcblk0' in c for c in self.commands()))
+
+    def test_mmc_index_can_have_multiple_digits(self):
+        result = self.run_helper(ROOT_SOURCE='/dev/mmcblk12p2')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(self.stamp.exists())
+        self.assertIn('resize2fs /dev/mmcblk12p2', self.commands())
+
     def test_partition_failure_leaves_retry_available(self):
         result = self.run_helper(SFDISK_RESULT='2')
         self.assertEqual(result.returncode, 2)
@@ -106,10 +122,14 @@ esac
         self.assert_completed(self.run_helper())
 
     def test_unsupported_root_is_skipped_without_completion_marker(self):
-        result = self.run_helper(ROOT_SOURCE='/dev/sda2')
-        self.assertEqual(result.returncode, 0)
-        self.assertFalse(self.stamp.exists())
-        self.assertEqual(self.commands(), ['findmnt -no SOURCE /'])
+        for source in ('/dev/sda2', '/dev/mmcblk1p1', '/dev/mmcblk1p12',
+                       '/dev/mmcblk1boot0p2', '/dev/mmcblkp2'):
+            with self.subTest(source=source):
+                self.log.unlink(missing_ok=True)
+                result = self.run_helper(ROOT_SOURCE=source)
+                self.assertEqual(result.returncode, 0)
+                self.assertFalse(self.stamp.exists())
+                self.assertEqual(self.commands(), ['findmnt -no SOURCE /'])
 
 
 @unittest.skipUnless(shutil.which('sfdisk'), 'requires the fdisk package')

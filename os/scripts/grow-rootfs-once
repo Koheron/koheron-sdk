@@ -5,16 +5,22 @@ STAMP=/var/lib/grow-rootfs-done
 [ -e "$STAMP" ] && exit 0
 
 ROOTDEV="$(findmnt -no SOURCE /)"
-# Expect /dev/mmcblk0p2
+# SDK images put the ext4 root on partition 2 of an MMC device. Its Linux
+# controller index varies between boards and boot media (SD versus eMMC).
 case "$ROOTDEV" in
-  /dev/mmcblk0p2) ;;
+  /dev/mmcblk*p2)
+    ROOTDISK="${ROOTDEV%p2}"
+    case "${ROOTDISK#/dev/mmcblk}" in
+      ''|*[!0-9]*) echo "grow-rootfs-once: root is $ROOTDEV, skipping"; exit 0 ;;
+    esac
+    ;;
   *) echo "grow-rootfs-once: root is $ROOTDEV, skipping"; exit 0 ;;
 esac
 
 # Change only partition 2's size. -N preserves its start, type and boot flags;
 # explicit wipe suppression keeps filesystem signatures and data intact.
 # The kernel receives the updated size through partx below.
-if printf ',+\n' | sfdisk --no-reread --no-tell-kernel --wipe never --wipe-partitions never -N 2 /dev/mmcblk0; then
+if printf ',+\n' | sfdisk --no-reread --no-tell-kernel --wipe never --wipe-partitions never -N 2 "$ROOTDISK"; then
   :
 else
   result=$?
@@ -24,11 +30,11 @@ fi
 
 # Refresh this partition even when already full, so retries also pick up a
 # previous on-disk expansion. A whole-disk reread can fail on a mounted root.
-partx --update --nr 2 /dev/mmcblk0
+partx --update --nr 2 "$ROOTDISK"
 udevadm settle
 
 # Grow the ext4 filesystem online
-resize2fs /dev/mmcblk0p2
+resize2fs "$ROOTDEV"
 
 mkdir -p "$(dirname "$STAMP")"
 touch "$STAMP"
