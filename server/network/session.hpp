@@ -72,7 +72,8 @@ class Session
 
             if constexpr (first_t::extent == std::dynamic_extent) {
                 // Dynamic size => append size to header
-                builder.push(span.size_bytes());
+                if (span.size_bytes() > std::numeric_limits<uint32_t>::max()) return -1;
+                builder.push(static_cast<uint32_t>(span.size_bytes()));
             }
 
             return send_payload(span, sock_flags);
@@ -87,7 +88,8 @@ class Session
             using value_t = vec_t::value_type;
 
             auto&& vect = std::get<0>(std::forward_as_tuple(args...));
-            builder.push(vect.size() * sizeof(value_t));
+            if (vect.size() > std::numeric_limits<uint32_t>::max() / sizeof(value_t)) return -1;
+            builder.push(static_cast<uint32_t>(vect.size() * sizeof(value_t)));
             return send_payload(std::span{vect}, sock_flags);
         } else {
             // Pack metadata together and borrow large containers where possible.

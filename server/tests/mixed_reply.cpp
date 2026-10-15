@@ -95,6 +95,37 @@ void fixed_replies() {
 
 }
 
+void standalone_containers() {
+    // The clients read exactly four length bytes, including on 64-bit servers.
+    // Literal frames also catch stream misalignment after an empty reply.
+    const Bytes header{0, 0, 0, 0, 0, 11, 0, 6};
+    const Bytes payload{0x78, 0x56, 0x34, 0x12, 0xef, 0xcd, 0xab, 0x90};
+    auto expected = [&](bool dynamic, bool empty) {
+        Bytes bytes = header;
+        if (dynamic) bytes.insert(bytes.end(), {0, 0, 0, static_cast<unsigned char>(empty ? 0 : 8)});
+        if (!empty) bytes.insert(bytes.end(), payload.begin(), payload.end());
+        return bytes;
+    };
+    const std::array<uint32_t, 2> words{0x12345678, 0x90abcdef};
+    Capture vector, empty_vector, span, empty_span, fixed_span;
+    check(vector.send(11, 6, std::vector<uint32_t>(words.begin(), words.end())) == 20,
+          "vector length includes a non-wire size_t");
+    check(vector.bytes == expected(true, false), "vector literal frame");
+    check(empty_vector.send(11, 6, std::vector<uint32_t>{}) == 12, "empty vector length");
+    check(empty_vector.bytes == expected(true, true), "empty vector literal frame");
+    check(span.send(11, 6, std::span<const uint32_t>{words.data(), words.size()}) == 20,
+          "dynamic span length includes a non-wire size_t");
+    check(span.bytes == expected(true, false), "dynamic span literal frame");
+    check(empty_span.send(11, 6, std::span<const uint32_t>{}) == 12, "empty span length");
+    check(empty_span.bytes == expected(true, true), "empty span literal frame");
+    check(fixed_span.send(11, 6, std::span{words}) == 16, "fixed span gained a length prefix");
+    check(fixed_span.bytes == expected(false, false), "fixed span literal frame");
+    check(empty_vector.send(11, 0, uint32_t{0xdecafbad}) == 12, "following scalar reply");
+    auto stream = expected(true, true);
+    stream.insert(stream.end(), {0, 0, 0, 0, 0, 11, 0, 0, 0xde, 0xca, 0xfb, 0xad});
+    check(empty_vector.bytes == stream, "empty vector desynchronizes following reply");
+}
+
 template<class T>
 void compare(T&& reply, std::span<const std::byte> first, std::span<const std::byte> second = {}) {
     Capture session;
@@ -376,6 +407,7 @@ int main(int argc, char** argv) {
         check(argc == 2, "expected case");
         const std::string test = argv[1];
         if (test == "serialization") serialization();
+        else if (test == "standalone") standalone_containers();
         else if (test == "fixed") fixed_replies();
         else if (test == "ownership") ownership();
         else if (test == "reference-returns") reference_returns();
