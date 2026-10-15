@@ -129,7 +129,7 @@ class UBootI2CTest(unittest.TestCase):
             result = subprocess.run(['bash', str(PATCH), str(root)], capture_output=True,
                                     text=True, timeout=10)
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('cannot locate Cadence I2C transfer loop', result.stderr)
+            self.assertIn('FAILED', result.stdout + result.stderr)
 
 
 if __name__ == '__main__':

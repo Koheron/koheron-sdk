@@ -67,14 +67,18 @@ include {SDK / 'os/linux.mk'}
         self.make(harness, kernel / '.patched', f'LINUX_TAR={archive}')
         self.assertEqual((kernel / 'drivers/example.c').read_text(), 'vendor\n')
 
-    def test_uboot_patch_removal_restores_vendor_source(self):
+    def test_uboot_patch_inputs_restore_vendor_source(self):
         patch = self.root / 'patches/u-boot/drivers/example.c'
         patch.parent.mkdir(parents=True)
         patch.write_text('patched\n')
         patch_script = self.os_path / 'scripts/patch_uboot.sh'
-        patch_script.write_text('#!/bin/sh\nexit 0\n')
+        patch_script.write_text((SDK / 'os/scripts/patch_uboot.sh').read_text())
+        fixup = self.os_path / 'patches/u-boot/cdns-i2c-final-stop.patch'
+        fixup.parent.mkdir(parents=True)
+        fixup.write_text((SDK / 'os/patches/u-boot/cdns-i2c-final-stop.patch').read_text())
         archive = self.archive('uboot.tar.gz', {
             'drivers/example.c': 'vendor\n',
+            'drivers/i2c/i2c-cdns.c': (SDK / 'os/tests/fixtures/uboot-cdns-i2c-xfer.c').read_text(),
             'Makefile': '.PHONY: mrproper demo_defconfig\nmrproper:\n\trm -f .config\n'
                         'demo_defconfig:\n\t@printf "configured\\n" > .config\n',
         })
@@ -104,6 +108,12 @@ include {SDK / 'os/os.mk'}
         patch.unlink()
         self.make(harness, uboot / '.config', *assignments)
         self.assertEqual((uboot / 'drivers/example.c').read_text(), 'vendor\n')
+        # Editing a diff must re-extract first, rather than patch an old fix.
+        fixup.write_text(fixup.read_text().replace('including retries', 'including arbitration retries'))
+        self.make(harness, uboot / '.config', *assignments)
+        source = (uboot / 'drivers/i2c/i2c-cdns.c').read_text()
+        self.assertIn('including arbitration retries', source)
+        self.assertEqual(source.count('hold_flag = nmsgs > 1;'), 1)
 
 
 if __name__ == '__main__':

@@ -19,7 +19,8 @@ DTREE_PATH := $(TMP_OS_PATH)/device-tree-xlnx-$(DTREE_TAG)
 UBOOT_TAR := $(TMP)/u-boot-xlnx-$(UBOOT_TAG).tar.gz
 DTREE_TAR := $(TMP)/device-tree-xlnx-$(DTREE_TAG).tar.gz
 
-UBOOT_PATCH_FILES := $(sort $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f))
+UBOOT_FIXUP_PATCH := $(OS_PATH)/patches/u-boot/cdns-i2c-final-stop.patch
+UBOOT_PATCH_FILES := $(sort $(wildcard $(UBOOT_FIXUP_PATCH)) $(shell test -d $(PATCHES)/u-boot && find $(PATCHES)/u-boot -type f))
 UBOOT_CONFIG_FILE := $(wildcard $(PATCHES)/$(UBOOT_CONFIG))
 UBOOT_PATCH_SELECTION_STAMP := $(TMP_OS_BOARD_PATH)/.uboot-patches
 $(eval $(call build_settings_stamp,$(UBOOT_PATCH_SELECTION_STAMP),$$(foreach F,$$(UBOOT_PATCH_FILES) $$(UBOOT_CONFIG_FILE),$$(call build_shell_quote,$$(F)))))
@@ -75,7 +76,8 @@ $(UBOOT_TAR): $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $@ $(UBOOT_URL)
 	$(call ok,$@)
 
-$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) $(UBOOT_PATCH_SELECTION_STAMP) | $(UBOOT_PATH)/
+# A changed diff must be applied to pristine vendor source.
+$(UBOOT_PATH)/.unpacked: $(UBOOT_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED) $(UBOOT_PATCH_SELECTION_STAMP) $(wildcard $(UBOOT_FIXUP_PATCH)) | $(UBOOT_PATH)/
 	bash $(DOWNLOAD_VERIFIED) $(SOURCE_CHECKSUMS) $(UBOOT_TAR) $(UBOOT_URL)
 	rm -rf -- "$(@D)"
 	mkdir -p -- "$(@D)"

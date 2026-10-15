@@ -11,21 +11,11 @@ for makefile in scripts/Makefile.spl scripts/Makefile.xpl; do
     fi
 done
 
-# Xilinx's Cadence driver keeps HOLD enabled for every message in a combined
-# transfer. The final EEPROM read then never emits STOP and times out, losing
-# the Red Pitaya's factory MAC. Recompute the flag after each message/retry.
-python3 - "$uboot_path/drivers/i2c/i2c-cdns.c" <<'PY'
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-if path.exists():
-    source = path.read_text()
-    before = '\t\tdebug("i2c_xfer: chip=0x%x, len=0x%x\\n", msg->addr, msg->len);'
-    after = ('\t\t/* Release the bus after the final message, including retries. */\n'
-             '\t\ti2c_bus->hold_flag = nmsgs > 1;\n' + before)
-    if after not in source:
-        if source.count(before) != 1:
-            sys.exit(f'{path}: cannot locate Cadence I2C transfer loop')
-        path.write_text(source.replace(before, after))
-PY
+if [[ -f $uboot_path/drivers/i2c/i2c-cdns.c ]]; then
+    fix="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../patches/u-boot/cdns-i2c-final-stop.patch"
+    # A configuration change can run this again on the same source tree.
+    if ! patch -d "$uboot_path" -p1 -R --dry-run --force --silent --fuzz=0 < "$fix" >/dev/null 2>&1; then
+        patch -d "$uboot_path" -p1 --forward --batch --fuzz=0 \
+            --no-backup-if-mismatch --reject-file=- < "$fix"
+    fi
+fi
