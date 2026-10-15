@@ -10,8 +10,9 @@ To rebuild only the Docker builder:
 docker build -f docker/Dockerfile -t cross-armhf:26.04 docker
 ```
 
-Server, kernel, U-Boot and ARM Trusted Firmware use GCC 15 by default. FSBL/PMU
-firmware uses the bare-metal toolchains. Server, instrument and board management
+Server, kernel, U-Boot and ARM Trusted Firmware use GCC 15 by default. FSBL
+uses the builder's bare-metal AArch64 compiler. PMU firmware uses the native
+Vitis MicroBlaze compiler on the host. Server, instrument and board management
 code uses C++23; the standalone C++ client supports C++20. Compiler selection
 is independent of the Vivado release.
 
