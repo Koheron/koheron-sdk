@@ -284,6 +284,17 @@ to an already-running server and does not load or restart an instrument.
 `tests/phase_extraction/run.sh` also checks primitive arithmetic and latency.
 Set `DPLL_VERILOG_DEFINES=XILINX_ULTRASCALE` to run its DSP48E2 variant.
 
+The controller and page use the ADC sampling frequency for reference DDS
+calculations and Nyquist limits, independently of DAC playback frequency.
+For a faster processing clock, `manual_p_corrector` supports `SAMPLE_INTERVAL=2`
+with a `sample_valid` pulse for every input sample. State-update strobes follow
+the gain pipelines; the reference capture counts 64 valid input samples. Keep
+the input-domain phase estimator at its declared sampling rate and time all
+clock-domain crossings. Defaults retain one sample per processing clock.
+`FAST_GAIN_STAGES=4` enables the Fast P DSP multiplier register; the existing
+two- and three-stage implementations retain their latency. Run
+`tests/run-multirate.sh` for the arithmetic, update-rate and latency regression.
+
 ## Host checks
 
 ```sh

@@ -34,7 +34,7 @@ module table_gain #(
     generate if(DSP_FAST_P) begin : dsp_p
         // The unsigned address-one table entry is the coefficient itself.
         // Capture it in each bank, retaining the existing programming protocol.
-        if(A_WIDTH!=17 || OUTPUT_LOW!=0 || OUTPUT_WIDTH!=32 || FRACTION_BITS!=11 || (PIPE_STAGES!=2 && PIPE_STAGES!=3))
+        if(A_WIDTH!=17 || OUTPUT_LOW!=0 || OUTPUT_WIDTH!=32 || FRACTION_BITS!=11 || (PIPE_STAGES<2 || PIPE_STAGES>4))
             initial $error("DSP Fast P requires the 17-bit Q11 P interface");
         reg [42:0] coefficients[0:1];
         initial begin coefficients[0]=0; coefficients[1]=0; end
@@ -44,12 +44,12 @@ module table_gain #(
         wire [42:0] coefficient=coefficients[ACTIVE_BANK];
         wire signed [24:0] low_coefficient={1'b0,coefficient[23:0]};
         wire signed [18:0] high_coefficient=coefficient[42:24];
-        if(PIPE_STAGES==3) begin : registered_inputs
-            // A/B input registers capture the combinational projection one
-            // clock before its status/I register. P's total latency is unchanged.
+        if(PIPE_STAGES>=3) begin : registered_inputs
+            // A/B input registers capture the projection alongside its status/I
+            // register. PIPE_STAGES=4 adds the native multiplier register.
             wire [47:0] low_product,high_product;
-            dpll_p_product low_gain(CLK,low_coefficient,A,low_product);
-            dpll_p_product high_gain(CLK,{{6{high_coefficient[18]}},high_coefficient},A,high_product);
+            dpll_p_product #(.MULTIPLIER_REGISTER(PIPE_STAGES==4)) low_gain(CLK,low_coefficient,A,low_product);
+            dpll_p_product #(.MULTIPLIER_REGISTER(PIPE_STAGES==4)) high_gain(CLK,{{6{high_coefficient[18]}},high_coefficient},A,high_product);
             always @(posedge CLK) P<=low_product[42:11]+{high_product[18:0],13'b0};
         end else begin : direct_inputs
         reg signed [41:0] low_product=0;
@@ -245,8 +245,9 @@ module dpll_carry_adder #(
 endmodule
 
 // Explicit input and output registers keep the DSP multiplier setup off the
-// external coefficient mux and projection logic. This is a two-clock product.
-module dpll_p_product(input wire clk, input wire signed [24:0] coefficient,
+// external coefficient mux and projection logic. The optional multiplier
+// register adds a third product clock.
+module dpll_p_product #(parameter integer MULTIPLIER_REGISTER=0)(input wire clk, input wire signed [24:0] coefficient,
     input wire signed [16:0] sample, output wire [47:0] product);
 `ifdef XILINX_ULTRASCALE
     DSP48E2 #(
@@ -254,7 +255,7 @@ module dpll_p_product(input wire clk, input wire signed [24:0] coefficient,
     DSP48E1 #(
 `endif
         .AREG(1),.ACASCREG(1),.BREG(1),.BCASCREG(1),.CREG(0),.DREG(0),
-        .ADREG(0),.MREG(0),.PREG(1),.ALUMODEREG(0),.OPMODEREG(0),.INMODEREG(0),
+        .ADREG(0),.MREG(MULTIPLIER_REGISTER),.PREG(1),.ALUMODEREG(0),.OPMODEREG(0),.INMODEREG(0),
         .CARRYINREG(0),.CARRYINSELREG(0),.USE_MULT("MULTIPLY"),.USE_SIMD("ONE48")) dsp(
         .CLK(clk),.A({{5{coefficient[24]}},coefficient}),.B({sample[16],sample}),
         .C(48'b0),.ACIN(30'b0),.BCIN(18'b0),.PCIN(48'b0),
@@ -266,7 +267,7 @@ module dpll_p_product(input wire clk, input wire signed [24:0] coefficient,
         .ALUMODE(4'b0),.INMODE(5'b0),.CARRYIN(1'b0),
         .CARRYINSEL(3'b0),.CARRYCASCIN(1'b0),.MULTSIGNIN(1'b0),
         .CEA1(1'b1),.CEA2(1'b1),.CEB1(1'b1),.CEB2(1'b1),.CEAD(1'b0),
-        .CEC(1'b0),.CED(1'b0),.CEM(1'b0),.CEP(1'b1),.CEALUMODE(1'b0),
+        .CEC(1'b0),.CED(1'b0),.CEM(1'b1),.CEP(1'b1),.CEALUMODE(1'b0),
         .CECTRL(1'b0),.CEINMODE(1'b0),.CECARRYIN(1'b0),
         .RSTA(1'b0),.RSTB(1'b0),.RSTC(1'b0),.RSTD(1'b0),.RSTM(1'b0),.RSTP(1'b0),
         .RSTCTRL(1'b0),.RSTINMODE(1'b0),.RSTALUMODE(1'b0),.RSTALLCARRYIN(1'b0),.P(product));

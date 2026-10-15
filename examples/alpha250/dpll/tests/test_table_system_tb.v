@@ -1,7 +1,9 @@
 `timescale 1 ns / 1 ps
-module test_table_system_tb;
+module test_table_system_tb #(parameter integer GAIN_STAGES=4, SAMPLE_INTERVAL=1);
     reg clk=0, resetn=0, program_clk=0;
     always #2 clk=~clk;
+    reg sample_valid=0;
+    always @(negedge clk) sample_valid<=~sample_valid;
     initial begin #1.3; forever #3.5 program_clk=~program_clk; end
     reg [15:0] awaddr=0, araddr=0;
     reg [31:0] wdata=0;
@@ -67,39 +69,43 @@ module test_table_system_tb;
     generate for(channel=0;channel<2;channel=channel+1) begin : loop_dut
         wire [2:0] enabled=control[513+32*channel +: 3];
         wire [15:0] fast,slow;
-        table_corrector #(.FUSED(1),.GAIN_STAGES(4),.TAIL_GAIN_STAGES(4),.I2_GAIN_STAGES(4),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),
+        table_corrector #(.FUSED(1),.GAIN_STAGES(GAIN_STAGES),.TAIL_GAIN_STAGES(GAIN_STAGES),.I2_GAIN_STAGES(GAIN_STAGES),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(0),
+                             .SAMPLE_INTERVAL(SAMPLE_INTERVAL),
                              .FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8))
             dut(clk,freq[channel],phase[channel],enabled,banks[4*channel +: 4],
-                channel ? command1 : command0,data,fast,slow,,,);
-        reg [31:0] rp[0:3],rpi[0:3],ri2[0:3];
-        reg [63:0] ri3[0:3];
+                channel ? command1 : command0,data,fast,slow,,,,,,(SAMPLE_INTERVAL==1 ? 1'b1 : sample_valid));
+        reg [31:0] rp[0:GAIN_STAGES-1],rpi[0:GAIN_STAGES-1],ri2[0:GAIN_STAGES-1];
+        reg [63:0] ri3[0:GAIN_STAGES-1];
+        reg [GAIN_STAGES:0] reference_valid=0;
+        wire update_state=(SAMPLE_INTERVAL==1) || reference_valid[GAIN_STAGES];
         reg [31:0] first_sum=0,acc2=0;
         reg signed [47:0] acc1=0;
         reg [63:0] acc3=0;
         reg signed [127:0] product_p,product_pi,product_i2,product_i3;
         integer x;
         initial begin
-            for(x=0;x<4;x=x+1) begin rp[x]=0;rpi[x]=0;end
-            for(x=0;x<4;x=x+1) begin ri2[x]=0;end
-            for(x=0;x<4;x=x+1) ri3[x]=0;
+            for(x=0;x<GAIN_STAGES;x=x+1) begin rp[x]=0;rpi[x]=0;end
+            for(x=0;x<GAIN_STAGES;x=x+1) begin ri2[x]=0;end
+            for(x=0;x<GAIN_STAGES;x=x+1) ri3[x]=0;
         end
         always @(posedge clk) begin
+            reference_valid<={reference_valid[GAIN_STAGES-1:0],sample_valid};
             product_p=$signed(freq[channel])*gains[4*channel];
             product_pi=$signed(phase[channel])*gains[4*channel+1];
             product_i2=$signed(acc1)*gains[4*channel+2];
             product_i3=$signed(acc2)*gains[4*channel+3];
             rp[0]<=product_p[50:19];rpi[0]<=product_pi[66:35];
             ri2[0]<=product_i2[90:59];ri3[0]<=product_i3[74:11];
-            for(x=1;x<4;x=x+1) begin rp[x]<=rp[x-1];rpi[x]<=rpi[x-1];end
-            for(x=1;x<4;x=x+1) begin ri2[x]<=ri2[x-1];end
-            for(x=1;x<4;x=x+1) ri3[x]<=ri3[x-1];
-            first_sum<=rp[3]+rpi[3];
-            if(!enabled[0]) acc1<=0;else acc1<=acc1+$signed(first_sum);
-            if(!enabled[1]) acc2<=0;else acc2<=acc2+first_sum+ri2[3];
-            if(!enabled[2]) acc3<=0;else acc3<=acc3+ri3[3];
+            for(x=1;x<GAIN_STAGES;x=x+1) begin rp[x]<=rp[x-1];rpi[x]<=rpi[x-1];end
+            for(x=1;x<GAIN_STAGES;x=x+1) begin ri2[x]<=ri2[x-1];end
+            for(x=1;x<GAIN_STAGES;x=x+1) ri3[x]<=ri3[x-1];
+            first_sum<=rp[GAIN_STAGES-1]+rpi[GAIN_STAGES-1];
+            if(!enabled[0]) acc1<=0;else if(update_state) acc1<=acc1+$signed(first_sum);
+            if(!enabled[1]) acc2<=0;else if(update_state) acc2<=acc2+first_sum+ri2[GAIN_STAGES-1];
+            if(!enabled[2]) acc3<=0;else if(update_state) acc3<=acc3+ri3[GAIN_STAGES-1];
             #1;
             if(cycles>12 && {dut.p,dut.pi,dut.i2,dut.i3,dut.acc1,dut.acc2,dut.acc3,fast,slow} !==
-                 {rp[3],rpi[3],ri2[3],ri3[3],acc1,acc2,acc3,acc2[31:16],~acc3[63],acc3[62:48]})
+                 {rp[GAIN_STAGES-1],rpi[GAIN_STAGES-1],ri2[GAIN_STAGES-1],ri3[GAIN_STAGES-1],acc1,acc2,acc3,acc2[31:16],~acc3[63],acc3[62:48]})
                 $fatal(1,"Integrated controller mismatch channel=%0d cycle=%0d",channel,cycles);
         end
     end endgenerate

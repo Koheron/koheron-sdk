@@ -92,7 +92,7 @@ async function host(t, options = {}) {
       return state.reference;
     }
     async readFloat64({name}) {
-      assert.equal(name, 'get_dac_sampling_freq');
+      assert.equal(name, 'get_adc_sampling_freq');
       if (state.failed) { throw new Error('read failed'); }
       return state.sampleRate;
     }

@@ -66,7 +66,7 @@ class DpllWorkspace {
     try {
       const [status, routes, reference, sampleRate] = await Promise.all([
         this.dpll.getControlParameters(), this.dpll.getDacOutputs(),
-        this.clockGenerator.getReferenceClock(), this.clockGenerator.getDacSamplingFrequency()
+        this.clockGenerator.getReferenceClock(), this.clockGenerator.getAdcSamplingFrequency()
       ]);
       if (this.stopped) { return; }
       if (!Number.isFinite(sampleRate) || sampleRate <= 0) { throw new Error('Invalid DPLL sample rate.'); }

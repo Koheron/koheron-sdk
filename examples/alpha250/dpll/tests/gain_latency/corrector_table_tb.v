@@ -9,16 +9,25 @@ module corrector_table_test #(parameter integer CARRY_BLOCK=0);
     reg [8:0] command=0;
     reg [63:0] data=0;
     reg signed [63:0] gain[0:3];
-    wire [15:0] fast[0:4],slow[0:4];
+    wire [15:0] fast[0:5],slow[0:5];
+    reg sample_valid=0;
+    always @(negedge clk) sample_valid<=~sample_valid;
     integer cycle=0,checked=0,n,j,k,c,seed=172933;
     integer first_old=-1,first_new=-1,first_two=-1,first_mixed=-1;
     reg random_run=0,measure=0;
     genvar mode;
-    generate for(mode=0;mode<5;mode=mode+1) begin : implementation
-        localparam STAGES=(mode==4) ? 4 : ((mode>=2) ? 2 : 3);
-        localparam TAIL_STAGES=(mode==4) ? 4 : ((mode==2) ? 2 : 3);
+    generate for(mode=0;mode<6;mode=mode+1) begin : implementation
+        localparam STAGES=(mode==5) ? 5 : ((mode==4) ? 4 : ((mode>=2) ? 2 : 3));
+        localparam TAIL_STAGES=(mode==5) ? 5 : ((mode==4) ? 4 : ((mode==2) ? 2 : 3));
         localparam I2_STAGES=TAIL_STAGES;
-        table_corrector #(.FUSED(mode!=0), .GAIN_STAGES(STAGES), .TAIL_GAIN_STAGES(TAIL_STAGES), .I2_GAIN_STAGES(I2_STAGES), .FINAL_CSA_LEVELS((mode>=2) ? 2 : 0), .CARRY_BLOCK((mode==2) ? CARRY_BLOCK : 0)) dut(clk,freq,phase,enabled,banks,command,data,fast[mode],slow[mode],,,);
+        table_corrector #(.FUSED(mode!=0), .GAIN_STAGES(STAGES), .TAIL_GAIN_STAGES(TAIL_STAGES),
+            .I2_GAIN_STAGES(I2_STAGES), .FINAL_CSA_LEVELS((mode>=2) ? 2 : 0),
+            .CARRY_BLOCK((mode==2) ? CARRY_BLOCK : 0),.SAMPLE_INTERVAL(mode==5 ? 2 : 1)) dut(
+            .clk(clk),.freq_in(freq),.phase_in(phase),.enabled(enabled),.active_banks(banks),
+            .table_command(command),.table_data(data),.fast_corr(fast[mode]),.slow_corr(slow[mode]),
+            .sample_valid(mode==5 ? sample_valid : 1'b1));
+        reg [STAGES:0] reference_valid=0;
+        wire update_state=(mode!=5) || reference_valid[STAGES];
         wire [31:0] decomposed=dut.p_correction+dut.integral_correction;
         reg [31:0] rp[0:STAGES-1],rpi[0:STAGES-1];
         reg [31:0] ri2[0:I2_STAGES-1];
@@ -34,6 +43,7 @@ module corrector_table_test #(parameter integer CARRY_BLOCK=0);
             for(x=0;x<I2_STAGES;x=x+1) ri2[x]=0;
         end
         always @(posedge clk) begin
+            reference_valid<={reference_valid[STAGES-1:0],sample_valid};
             product_p=$signed(freq)*gain[0];
             product_pi=$signed(phase)*gain[1];
             product_i2=$signed(acc1)*gain[2];
@@ -49,11 +59,13 @@ module corrector_table_test #(parameter integer CARRY_BLOCK=0);
             for(x=1;x<I2_STAGES;x=x+1) ri2[x]<=ri2[x-1];
             first_sum<=rp[STAGES-1]+rpi[STAGES-1];
             second_sum<=first_sum+ri2[I2_STAGES-1];
-            if(!enabled[0]) acc1<=0; else acc1<=acc1+$signed(first_sum);
+            if(!enabled[0]) acc1<=0; else if(update_state) acc1<=acc1+$signed(first_sum);
             if(!enabled[1]) acc2<=0;
-            else if(mode) acc2<=acc2+first_sum+ri2[I2_STAGES-1];
-            else acc2<=acc2+second_sum;
-            if(!enabled[2]) acc3<=0;else acc3<=acc3+ri3[TAIL_STAGES-1];
+            else if(update_state) begin
+                if(mode) acc2<=acc2+first_sum+ri2[I2_STAGES-1];
+                else acc2<=acc2+second_sum;
+            end
+            if(!enabled[2]) acc3<=0;else if(update_state) acc3<=acc3+ri3[TAIL_STAGES-1];
             #1;
             if(cycle>8) begin
                 if({dut.p,dut.pi,dut.i2,dut.i3,dut.acc1,dut.acc2,dut.acc3} !==
