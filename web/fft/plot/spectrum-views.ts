@@ -228,7 +228,7 @@ class SpectrumViews {
                     max = Math.max(max, this.convert(this.history.maxPower, unit, i));
                 }
             }
-            if (unit === 'dBm-Hz' || unit === 'dBm' || unit === 'dBV' || unit === 'dbv-rtHz') {
+            if (unit === 'dBm-Hz' || unit === 'dBm' || unit === 'dBV' || unit === 'dbv-rtHz' || unit === 'dBFS-Hz' || unit === 'dBFS') {
                 this.low = Math.floor((min - 5) / 10) * 10; this.high = Math.ceil((max + 5) / 10) * 10;
             } else {
                 this.low = Math.max(0, min * .9); this.high = Math.max(this.low + 1, max * 1.1);

@@ -38,7 +38,9 @@ class FFTReferences extends PlotReferences<FFTReference> {
                 !['0', '2', 'fixed'].includes(s.clkIndex) || !Array.isArray(s.dds_freq) ||
                 s.dds_freq.length > 2 || !s.dds_freq.every((v: unknown) => finite(v) && v >= 0) ||
                 (s.inputRanges !== undefined && (!Array.isArray(s.inputRanges) || s.inputRanges.length > 4 || !s.inputRanges.every(positive))) ||
-                (s.acquisitionKey !== undefined && typeof s.acquisitionKey !== 'string')) { fail(); }
+                (s.acquisitionKey !== undefined && typeof s.acquisitionKey !== 'string') ||
+                (s.powerBasis !== undefined && s.powerBasis !== 'full-scale') ||
+                (s.powerBasis !== undefined && s.spectrum !== undefined)) { fail(); }
             const grid = s.spectrum;
             if (grid) {
                 if (grid.unit !== 'Hz' || typeof grid.logarithmic !== 'boolean' ||
@@ -52,7 +54,8 @@ class FFTReferences extends PlotReferences<FFTReference> {
             const status: IFFTStatus = {fs:s.fs, channel:s.channel, W1:s.W1, W2:s.W2,
                 window_index:s.window_index, clkIndex:s.clkIndex, dds_freq:s.dds_freq,
                 ...(grid ? {spectrum:grid} : {}), ...(s.inputRanges ? {inputRanges:s.inputRanges} : {}),
-                ...(s.acquisitionKey !== undefined ? {acquisitionKey:s.acquisitionKey} : {})};
+                ...(s.acquisitionKey !== undefined ? {acquisitionKey:s.acquisitionKey} : {}),
+                ...(s.powerBasis !== undefined ? {powerBasis:s.powerBasis} : {})};
             return {name:item.name.trim(), capturedAt:item.capturedAt, visible:item.visible, color:item.color,
                 fftSize:item.fftSize, psd:Float32Array.from(item.psd, (v: number) => v === null ? NaN : v), status};
         });
@@ -65,7 +68,8 @@ class FFTReferencePanel extends PlotReferencePanel<FFTReference> {
         super(document, references, redraw, recapture, item => {
             const windows = ['Rectangular', 'Hann', 'Flat top', 'Blackman–Harris'];
             const channel = item.status.spectrum && item.status.channel >= 2 ? (item.status.channel === 2 ? 'ADC 0 − 1' : 'ADC 0 + 1') : 'ADC ' + item.status.channel;
-            const text = channel + ' · ' + windows[item.status.window_index] + ' · ' + item.status.fs / 1e6 + ' MS/s';
+            const text = channel + ' · ' + windows[item.status.window_index] + ' · ' + item.status.fs / 1e6 + ' MS/s'
+                + (item.status.powerBasis === 'full-scale' ? ' · Uncalibrated' : '');
             return {text, title:text + ' · ' + item.fftSize + ' point FFT · ' + (item.status.clkIndex === '0' ? 'External' : item.status.clkIndex === 'fixed' ? 'Fixed' : 'Internal') + ' clock'};
         });
     }

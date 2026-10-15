@@ -22,7 +22,7 @@ vm.runInContext(`
             return fields.get(id);
         },
         querySelector(selector) { return selector === '.unit-input:checked' ? unit : {addEventListener() {}}; },
-        querySelectorAll() { return [unit]; }
+        querySelectorAll(selector) { return selector === '[data-power-basis]' ? [] : [unit]; }
     };
     let changeUnit, zoom;
     const unit = {value: 'dBm-Hz', addEventListener(event, fn) { changeUnit = fn; }};

@@ -2,6 +2,7 @@
 
 #include "server/hardware/memory_manager.hpp"
 #include "server/runtime/syslog.hpp"
+#include "spectrum.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -23,6 +24,8 @@ class Core {
         set_input_channel(0);
         set_scale_sch(0);
         set_fft_window(1);
+        frame_control = control_unlocked();
+        frame_calibrated = calibrated[input_channel];
         ctl.template set_bit<reg::psd_valid, 0>();
         running = true;
         worker = std::thread(&Core::acquire, this);
@@ -105,10 +108,30 @@ class Core {
 
     ControlState get_control_state() {
         std::lock_guard lock(mutex);
-        return {dds, fs, input_channel, W1, W2, window_index};
+        return control_unlocked();
+    }
+
+    struct SpectrumSnapshot {
+        ControlState control;
+        std::array<float, prm::fft_size/2> values;
+        bool calibrated;
+    };
+
+    // Keep the acquired samples, their normalization and units in one snapshot.
+    // Calibrated read_psd() retains its power-in-watts protocol; display clients
+    // explicitly request this API to support an uncalibrated ADC.
+    SpectrumSnapshot read_spectrum_snapshot() {
+        std::lock_guard lock(mutex);
+        return {frame_control,
+                frame_calibrated ? psd : full_scale_density(raw, prm::n_cycles,
+                    frame_control.sample_rate, frame_control.w2),
+                frame_calibrated};
     }
 
  private:
+    ControlState control_unlocked() const {
+        return {dds, fs, input_channel, W1, W2, window_index};
+    }
     static int32_t signed_adc(uint32_t value) {
         constexpr uint32_t sign = 1U << (prm::adc_width - 1);
         return int32_t(value & (sign - 1)) - int32_t(value & sign);
@@ -140,6 +163,7 @@ class Core {
             for (size_t i = 0; i < psd.size(); ++i) {
                 conversion[channel][i] = factor * inverse[channel][i];
             }
+            calibrated[channel] = valid_power_conversion(voltage, conversion[channel]);
         }
     }
 
@@ -175,6 +199,8 @@ class Core {
             for (size_t i = 0; i < psd.size(); ++i) {
                 psd[i] = raw[i] * conversion[input_channel][i];
             }
+            frame_control = control_unlocked();
+            frame_calibrated = calibrated[input_channel];
         }
     }
 
@@ -187,6 +213,9 @@ class Core {
     std::array<double, 2> dds{};
     std::array<std::array<float, prm::fft_size/2>, 2> conversion{};
     std::array<float, prm::fft_size/2> raw{}, psd{};
+    std::array<bool, 2> calibrated{};
+    ControlState frame_control{};
+    bool frame_calibrated = false;
     std::mutex mutex;
     std::atomic<bool> running{false};
     std::thread worker;

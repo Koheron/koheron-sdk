@@ -4,24 +4,33 @@
       Spectrum unit
     </span>
     <div class="segmented">
-      <label>
+      <label data-power-basis="calibrated">
         <input type="radio" name="unit" value="dBm-Hz" class="unit-input"  checked>
         <span>
           dBm/Hz
         </span>
       </label>
-      <label>
+      <label data-power-basis="calibrated">
         <input type="radio" name="unit" value="dBm" class="unit-input"  >
         <span>
           dBm
         </span>
       </label>
-      <label>
+      <label data-power-basis="calibrated">
         <input type="radio" name="unit" value="nv-rtHz" class="unit-input"  >
         <span>
           nV/√Hz
         </span>
       </label>
+      <label data-power-basis="full-scale" hidden>
+        <input type="radio" name="unit" value="dBFS-Hz" class="unit-input">
+        <span>dBFS/Hz</span>
+      </label>
+      <label data-power-basis="full-scale" hidden>
+        <input type="radio" name="unit" value="dBFS" class="unit-input">
+        <span>dBFS</span>
+      </label>
     </div>
+    <span id="fft-calibration-status" role="status" hidden>Uncalibrated · ADC full-scale units</span>
   </div>
 </template>

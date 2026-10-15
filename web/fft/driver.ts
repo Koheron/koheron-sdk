@@ -14,6 +14,9 @@ interface IFFTStatus {
         binSpacings?: ReadonlyArray<number>; unit: string; logarithmic: boolean};
     inputRanges?: number[];
     acquisitionKey?: string;
+    // Without input calibration the snapshot is relative to a full-scale ADC
+    // sine, rather than equivalent watts in 50 ohms.
+    powerBasis?: 'full-scale';
 }
 
 interface IBoardParameters {
