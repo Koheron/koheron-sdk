@@ -8,7 +8,7 @@
 #include "server/runtime/syslog.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/hardware/memory_manager.hpp"
-#include "boards/alpha250/drivers/clock-generator.hpp"
+#include <dpll-board.hpp>
 #include "gain_control.hpp"
 #include "p_path_control.hpp"
 #include "monitor_revision.hpp"
@@ -25,15 +25,13 @@ class Dpll
     Dpll()
     : ctl(hw::get_memory<mem::control>())
     , sts(hw::get_memory<mem::status>())
-    , clk_gen(rt::get_driver<ClockGenerator>())
     , gain_tables(ctl, sts, reg::gain_table_command, reg::gain_table_data0,
                   reg::gain_table_ack, reg::gain_table_banks, reg::gain_coefficients0)
     , p_paths(ctl, sts, reg::p_path_control, reg::p_fast_coeff0,
               reg::p_path_status0, reg::p_snapshot0, reg::integrators0)
     {
-        static_assert(prm::adc_clk == 200000000 || prm::adc_clk == 250000000,
-                      "DPLL supports 200 or 250 MHz sampling clocks");
-        clk_gen.set_sampling_frequency(prm::adc_clk == 250000000 ? 1 : 0);
+        board.initialize();
+        dds_freq = {get_dds_freq(0), get_dds_freq(1)};
     }
 
     void set_integrator( uint32_t channel, uint32_t integrator_index, bool integrator_on) {
@@ -48,6 +46,7 @@ class Dpll
 
     void set_dac_output(uint32_t channel, uint32_t sel) {
         dpll_monitor::ControlChange monitor_change;
+        if (channel >= 2 || sel >= DpllBoard::dac_sources) return;
         // sel =
         // 0: fast_corr0
         // 1: fast_corr1
@@ -57,11 +56,9 @@ class Dpll
         // 5: phase1 (16 MSBs)
         // 6: DDS0
         // 7: DDS1
-        if (channel == 0) {
-            ctl.write_mask<reg::dac_sel, 0b000111>(sel);
-        } else if (channel == 1) {
-            ctl.write_mask<reg::dac_sel, 0b111000>(sel << 3);
-        }
+        constexpr uint32_t mask = (uint64_t{1} << DpllBoard::dac_select_bits) - 1;
+        const uint32_t shift = channel * DpllBoard::dac_select_bits;
+        ctl.write_reg(reg::dac_sel, (ctl.read_reg(reg::dac_sel) & ~(mask << shift)) | (sel << shift));
 
         logf("DAC{} output set to {}\n", channel, sel);
     }
@@ -69,16 +66,16 @@ class Dpll
     void set_dds_freq(uint32_t channel, double freq_hz) {
         dpll_monitor::ControlChange monitor_change;
         if (channel >= 2) {
-            log<ERROR>("FFT::set_dds_freq invalid channel\n");
+            log<ERROR>("Dpll::set_dds_freq invalid channel\n");
             return;
         }
 
-        if (std::isnan(freq_hz)) {
-            log<ERROR>("FFT::set_dds_freq Frequency is NaN\n");
+        if (!std::isfinite(freq_hz)) {
+            log<ERROR>("Dpll::set_dds_freq requires a finite frequency\n");
             return;
         }
 
-        double fs_adc = clk_gen.get_dac_sampling_freq();
+        double fs_adc = board.sampling_frequency();
 
         if (freq_hz > fs_adc / 2) {
             freq_hz = fs_adc / 2;
@@ -97,10 +94,12 @@ class Dpll
 
         double factor = (uint64_t(1) << 48) / fs_adc;
 
-        //ctl.write<reg::phase_incr0, uint64_t>(phase_incr);
-
-        ctl.write_reg<uint64_t>(reg::phase_incr0 + 8 * channel, uint64_t(factor * freq_hz));
-        dds_freq[channel] = freq_hz;
+        const auto increment = uint64_t(std::llround(factor * freq_hz));
+        // AXI exposes 32-bit words; register pairs need not be 64-bit aligned.
+        const auto offset = reg::phase_incr0 + 8 * channel;
+        ctl.write_reg(offset, uint32_t(increment));
+        ctl.write_reg(offset + 4, uint32_t(increment >> 32));
+        dds_freq[channel] = double(increment) / factor;
 
         logf("fs {}, channel {}, ref. frequency set to {}\n", fs_adc, channel, freq_hz);
     }
@@ -144,7 +143,8 @@ class Dpll
 
     auto get_dac_outputs() {
         const auto sel = ctl.read<reg::dac_sel>();
-        return std::tuple{sel & 0b111U, (sel >> 3) & 0b111U};
+        constexpr uint32_t mask = (uint64_t{1} << DpllBoard::dac_select_bits) - 1;
+        return std::tuple{sel & mask, (sel >> DpllBoard::dac_select_bits) & mask};
     }
 
     // New RPCs are appended so existing command IDs remain unchanged.
@@ -172,8 +172,10 @@ class Dpll
     double get_dds_freq(uint32_t channel) {
         if (channel >= 2) return std::numeric_limits<double>::quiet_NaN();
         std::shared_lock lock(dpll_monitor::controls_mutex);
-        return double(ctl.read_reg<uint64_t>(reg::phase_incr0 + 8 * channel) &
-            ((uint64_t{1} << 48) - 1)) * double(prm::adc_clk) / double(uint64_t{1} << 48);
+        const auto offset = reg::phase_incr0 + 8 * channel;
+        const uint64_t increment = ctl.read_reg(offset) |
+            (uint64_t(ctl.read_reg(offset + 4) & 0xffffU) << 32);
+        return double(increment) * double(prm::adc_clk) / double(uint64_t{1} << 48);
     }
 
     // Appended RPCs preserve all existing command IDs. 0=Accurate, 1=Fast.
@@ -206,7 +208,7 @@ class Dpll
 
     hw::Memory<mem::control>& ctl;
     hw::Memory<mem::status>& sts;
-    ClockGenerator& clk_gen;
+    DpllBoard board;
     dpll_gain::Tables<hw::Memory<mem::control>, hw::Memory<mem::status>> gain_tables;
     dpll_p::Paths<hw::Memory<mem::control>, hw::Memory<mem::status>> p_paths;
 

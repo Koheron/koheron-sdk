@@ -3,7 +3,7 @@ import argparse
 import os
 
 import numpy as np
-from koheron import command, connect
+from koheron import command, KoheronClient
 from koheron.phase_noise import get_phase_snapshot, get_spectrum_snapshot
 
 
@@ -36,7 +36,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('hosts', nargs='*', default=[os.getenv('HOST', '192.168.1.100')])
     args = parser.parse_args()
-    drivers = [Dma(connect(host, name='dpll')) for host in args.hosts]
+    drivers = [Dma(KoheronClient(host, timeout=5)) for host in args.hosts]
     fig, ax = plt.subplots()
     lines = [ax.semilogx([], [], label=host)[0] for host in args.hosts]
     sequences = [None] * len(drivers)

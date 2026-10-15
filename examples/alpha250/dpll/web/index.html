@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>DPLL · ALPHA250 · Koheron</title>
+  <title>DPLL · Koheron</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Koheron">
   <meta charset="utf-8">
@@ -23,10 +23,10 @@
   <link rel="import" href="plot-basics.html" data-parent="plot-basics">
   <link rel="import" href="export-file.html" data-parent="export-file">
 </head>
-<body class="instrument-workspace dpll-workspace" data-board="alpha250-dpll">
+<body class="instrument-workspace dpll-workspace" data-board="dpll">
   <header class="app-header">
     <a class="brand" href="/koheron" aria-label="Koheron instruments"><img src="_koheron_logo.svg" alt="Koheron"></a>
-    <h1>DPLL</h1><span id="board-label" class="board-tag">ALPHA250</span>
+    <h1>DPLL</h1><span id="board-label" class="board-tag">—</span>
     <span id="refresh-rate" class="board-tag">— FPS</span>
     <span class="connection-control">
       <span id="connection-status" class="connection-status" role="status" data-state="connecting">Connecting…</span>
@@ -237,6 +237,7 @@
         <details open><summary id="routing-title">DAC routing</summary>
         <div class="routing-controls">
         <label class="control-field">DAC 0<select class="dac-output" data-channel="0">
+          <option value="8" hidden disabled>Muted</option>
           <option value="0">Loop 0 correction</option>
           <option value="1">Loop 1 correction</option>
           <option value="2">Phase 0 (16 LSBs)</option>
@@ -247,6 +248,7 @@
           <option value="7">DDS 1</option>
         </select></label>
         <label class="control-field">DAC 1<select class="dac-output" data-channel="1">
+          <option value="8" hidden disabled>Muted</option>
           <option value="0">Loop 0 correction</option>
           <option value="1">Loop 1 correction</option>
           <option value="2">Phase 0 (16 LSBs)</option>

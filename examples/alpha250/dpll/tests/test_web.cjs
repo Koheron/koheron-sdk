@@ -5,7 +5,8 @@ const test = require('node:test');
 const ts = require('../../../../web/transpile.cjs');
 const {JSDOM} = require('jsdom');
 const root = path.resolve(__dirname, '../../../..');
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const read = file => fs.readFileSync(file === 'examples/alpha250/dpll/web/app.ts' && process.env.DPLL_TEST_APP ?
+  process.env.DPLL_TEST_APP : path.join(root, file), 'utf8');
 const settle = (ms = 25) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function host(t, options = {}) {
@@ -113,7 +114,8 @@ async function host(t, options = {}) {
   const sources = koheron.slice(koheron.indexOf('class Imports {')) + '\n' + [
     'web/inputs/digit-input.ts', 'examples/alpha250/dpll/web/dpll.ts',
     'web/clock-generator/clock-generator.ts',
-    'examples/alpha250/dpll/web/gain-display.ts', 'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts', 'examples/alpha250/dpll/web/app.ts'
+    'examples/alpha250/dpll/web/gain-display.ts', 'examples/alpha250/dpll/web/diagram.ts', 'examples/alpha250/dpll/web/control.ts',
+    'examples/alpha250/dpll/web/workspace.ts', 'examples/alpha250/dpll/web/app.ts'
   ].map(read).join('\n');
   window.eval(ts.transpileModule(sources, {compilerOptions: {target: ts.ScriptTarget.ES2020}}).outputText);
   window.dispatchEvent(new window.Event('HTMLImportsLoaded'));
@@ -137,7 +139,7 @@ test('startup reads both loops, signed gains, routing and clock without writes',
   assert.equal(h.writes.length, 0);
   assert.equal(h.document.querySelector('#instrument-controls').disabled, false);
   assert.equal(h.document.querySelector('#connection-status').dataset.state, 'live');
-  assert.equal(h.document.querySelector('#board-label').textContent, 'ALPHA250 · 250 MS/s');
+  assert.equal(h.document.querySelector('#board-label').textContent, `${process.env.DPLL_TEST_BOARD_NAME || 'ALPHA250'} · 250 MS/s`);
   assert.equal(Number(h.inputs[1].value.replace(/\s/g, '')), 2);
   assert.equal(h.inputs[0].getAttribute('aria-valuemax'), '125000000');
   assert.equal(h.row().querySelector('.gain-input').value, '3');
@@ -698,3 +700,5 @@ test('a failed frequency commit during editor dismissal tears down without reope
   assert.equal(h.document.querySelectorAll('svg [role="button"]').length, 0);
   assert.deepEqual(h.writes, [{name:'set_dds_freq', args:[0,12000000]}]);
 });
+
+module.exports = {host, settle};

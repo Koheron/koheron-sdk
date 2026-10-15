@@ -248,12 +248,22 @@ endmodule
 // external coefficient mux and projection logic. This is a two-clock product.
 module dpll_p_product(input wire clk, input wire signed [24:0] coefficient,
     input wire signed [16:0] sample, output wire [47:0] product);
-    DSP48E1 #(.AREG(1),.ACASCREG(1),.BREG(1),.BCASCREG(1),.CREG(0),.DREG(0),
+`ifdef XILINX_ULTRASCALE
+    DSP48E2 #(
+`else
+    DSP48E1 #(
+`endif
+        .AREG(1),.ACASCREG(1),.BREG(1),.BCASCREG(1),.CREG(0),.DREG(0),
         .ADREG(0),.MREG(0),.PREG(1),.ALUMODEREG(0),.OPMODEREG(0),.INMODEREG(0),
         .CARRYINREG(0),.CARRYINSELREG(0),.USE_MULT("MULTIPLY"),.USE_SIMD("ONE48")) dsp(
         .CLK(clk),.A({{5{coefficient[24]}},coefficient}),.B({sample[16],sample}),
-        .C(48'b0),.D(25'b0),.ACIN(30'b0),.BCIN(18'b0),.PCIN(48'b0),
-        .ALUMODE(4'b0),.INMODE(5'b0),.OPMODE(7'b0000101),.CARRYIN(1'b0),
+        .C(48'b0),.ACIN(30'b0),.BCIN(18'b0),.PCIN(48'b0),
+`ifdef XILINX_ULTRASCALE
+        .D(27'b0),.OPMODE(9'b000000101),
+`else
+        .D(25'b0),.OPMODE(7'b0000101),
+`endif
+        .ALUMODE(4'b0),.INMODE(5'b0),.CARRYIN(1'b0),
         .CARRYINSEL(3'b0),.CARRYCASCIN(1'b0),.MULTSIGNIN(1'b0),
         .CEA1(1'b1),.CEA2(1'b1),.CEB1(1'b1),.CEB2(1'b1),.CEAD(1'b0),
         .CEC(1'b0),.CED(1'b0),.CEM(1'b0),.CEP(1'b1),.CEALUMODE(1'b0),

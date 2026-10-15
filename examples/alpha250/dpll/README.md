@@ -253,6 +253,37 @@ disabled on SG hardware to protect the continuous ring.
 python examples/alpha250/dpll/test_time.py 192.168.1.100
 ```
 
+## Reusing the instrument
+
+`components.mk` supplies the shared controller, monitor, cores and web assets.
+An instrument adds its board support and page entry point. The compiler searches
+the instrument directory for `dpll-board.hpp` and `dpll-monitor-board.hpp`:
+
+- `DpllBoard` selects the clock driver and DAC route encoding. The default
+  `dpll::ClockedBoard<ClockGenerator>` retains three-bit, eight-source routing.
+  Policies can override initialization and select a wider route field.
+- `DpllMonitorBoard` selects a DMA backend through
+  `BasicDpllMonitorBoard<Backend>`. The phase ring accepts a port setup policy;
+  `cyclic-phase-dma.hpp` retains Zynq-7000 AFI initialization, while the native
+  port policy uses firmware configuration without those register accesses.
+
+Board Tcl sources `tcl/instrument.tcl` after creating the platform and converter
+interfaces. It can set `dpll_program_clock`, `dpll_acquisition_tcl`,
+`dpll_dac_mute` and `dpll_optimize_timing` before sourcing the common datapath.
+The optional mute route adds a ninth, zero-valued source using four-bit selection.
+`FPGA_VERILOG_DEFINES += XILINX_ULTRASCALE` selects DSP48E2 primitives while
+preserving the signed 25-bit multiply and the existing register boundaries.
+The default still uses DSP48E1. Define changes regenerate the FPGA project.
+
+`DpllWorkspace` owns the common page lifecycle. Its entry point selects
+`boardName`, optional `muteRoute` and `defaultDecimation`; these initial page
+settings do not issue hardware commands. All boards use the same HTML, diagram,
+feedback controls and phase-noise monitor. The Python spectrum viewer connects
+to an already-running server and does not load or restart an instrument.
+
+`tests/phase_extraction/run.sh` also checks primitive arithmetic and latency.
+Set `DPLL_VERILOG_DEFINES=XILINX_ULTRASCALE` to run its DSP48E2 variant.
+
 ## Host checks
 
 ```sh
