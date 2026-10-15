@@ -41,7 +41,10 @@ template<uint32_t Size> struct PhaseRingSnapshot<Size, 2> : PhaseRingSnapshotBas
     }
 };
 
-template<uint32_t Streams>
+// Ports configured by firmware/device tree need no register initialization.
+struct NativePhaseDmaPort { static void initialize() {} };
+
+template<uint32_t Streams, class Port = NativePhaseDmaPort>
 class BasicCyclicPhaseDma {
     static_assert(Streams == 1 || Streams == 2);
     using Frequency = scicpp::units::frequency<float>;
@@ -57,8 +60,7 @@ class BasicCyclicPhaseDma {
 
     BasicCyclicPhaseDma() {
         ctl.write<reg::acquisition_run>(0);
-        hp.set_bit<0x0, 0>();
-        hp.set_bit<0x14, 0>();
+        Port::initialize();
     }
     ~BasicCyclicPhaseDma() {
         std::lock_guard lock(transfer_mtx);
@@ -219,7 +221,6 @@ class BasicCyclicPhaseDma {
   private:
     hw::Memory<mem::ram>& ram = hw::get_memory<mem::ram>();
     hw::Memory<mem::dma>& dma = hw::get_memory<mem::dma>();
-    hw::Memory<mem::axi_hp0>& hp = hw::get_memory<mem::axi_hp0>();
     hw::Memory<mem::control>& ctl = hw::get_memory<mem::control>();
     AxisStreamPacketMux mux;
     mutable std::recursive_mutex transfer_mtx;
@@ -235,7 +236,7 @@ class BasicCyclicPhaseDma {
     mutable std::chrono::steady_clock::time_point last_progress{};
 
     void barrier() const {
-#if defined(__arm__)
+#if defined(__arm__) || defined(__aarch64__)
         asm volatile("dsb sy" ::: "memory");
 #else
         std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -300,6 +301,9 @@ class BasicCyclicPhaseDma {
         }
         barrier();
         const uint32_t first = Streams * (generation_base % ring_chunks);
+        // The reserved ring and descriptors use the low 32-bit DMA aperture.
+        dma.write<0x3c>(0);
+        dma.write<0x44>(0);
         dma.write<0x38>(address + first * descriptor_bytes);
         dma.write<0x30>(0x11); // Run + cyclic BD enable.
         dma.write<0x40>(0x50); // Trigger; tail must be outside the cyclic chain.
@@ -309,6 +313,4 @@ class BasicCyclicPhaseDma {
         return true;
     }
 };
-using CyclicPhaseDma = BasicCyclicPhaseDma<1>;
-using PairedPhaseDma = BasicCyclicPhaseDma<2>;
 #endif

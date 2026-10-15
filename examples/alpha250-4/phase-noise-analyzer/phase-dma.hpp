@@ -1,3 +1,3 @@
 #pragma once
-#include "server/drivers/phase-noise/phase-ring.hpp"
+#include "server/drivers/phase-noise/cyclic-phase-dma.hpp"
 using PhaseDma = PairedPhaseDma;

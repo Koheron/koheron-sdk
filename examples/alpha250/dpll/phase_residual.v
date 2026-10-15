@@ -364,16 +364,29 @@ module phase_residual_mac #(
     // Preserve these explicit arithmetic boundaries. DSP register optimization
     // otherwise extracts BREG/CREG into fabric, exposing multiply-plus-add input
     // timing and defeating the 250 MHz interpolation pipeline.
+`ifdef XILINX_ULTRASCALE
+    (* DONT_TOUCH = "TRUE" *) DSP48E2 #(
+`else
     (* DONT_TOUCH = "TRUE" *) DSP48E1 #(
+`endif
         .AREG(REGISTER_A), .ACASCREG(REGISTER_A), .BREG(REGISTER_B), .BCASCREG(REGISTER_B),
         .MREG(REGISTER_MULTIPLIER), .CREG(REGISTER_C),
         .PREG(REGISTER_RESULT ? 1 : 0), .ADREG(0), .DREG(0),
         .ALUMODEREG(0), .OPMODEREG(0), .INMODEREG(0),
-        .CARRYINREG(0), .CARRYINSELREG(0), .USE_DPORT("FALSE"),
+        .CARRYINREG(0), .CARRYINSELREG(0),
+`ifndef XILINX_ULTRASCALE
+        .USE_DPORT("FALSE"),
+`endif
         .USE_MULT("MULTIPLY"), .USE_SIMD("ONE48")
     ) dsp (
-        .CLK(clk), .A(a), .B(b), .C(c), .D(25'd0), .P(p),
-        .OPMODE(7'b0110101), .ALUMODE(SUBTRACT ? 4'b0011 : 4'b0000),
+        // Preserve the signed 25-bit multiplier operand on either family.
+        .CLK(clk), .A({{5{a[24]}},a[24:0]}), .B(b), .C(c), .P(p),
+`ifdef XILINX_ULTRASCALE
+        .D(27'd0), .OPMODE(9'b000110101),
+`else
+        .D(25'd0), .OPMODE(7'b0110101),
+`endif
+        .ALUMODE(SUBTRACT ? 4'b0011 : 4'b0000),
         .INMODE(5'd0), .CARRYIN(1'b0), .CARRYINSEL(3'd0),
         .ACIN(30'd0), .BCIN(18'd0), .PCIN(48'd0),
         .CARRYCASCIN(1'b0), .MULTSIGNIN(1'b0),

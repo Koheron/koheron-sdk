@@ -9,9 +9,17 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../../../../.." && pwd)
 out=${DPLL_PHASE_TEST_OUT:-"$repo/tmp/tests/alpha250-dpll/phase-extraction"}
 mkdir -p "$out"
-python3 "$here/vectors.py" "$out/vectors.txt"
+"${DPLL_TEST_PYTHON:-$repo/.venv/bin/python3}" "$here/vectors.py" "$out/vectors.txt"
 cd "$out"
-xvlog --sv "$here/../../phase_residual.v" "$here/../../phase_extractor.v" "$here/test_tb.v" "$here/cordic_tb.v" "$here/legacy_tb.v" "$XILINX_VIVADO/data/verilog/src/glbl.v" > compile.log 2>&1
+defines=()
+for define in ${DPLL_VERILOG_DEFINES:-}; do defines+=(--define "$define"); done
+xvlog --sv "${defines[@]}" "$here/../../table_gain.v" "$here/../test_dsp_primitives_tb.sv" \
+    "$here/../../phase_residual.v" "$here/../../phase_extractor.v" "$here/test_tb.v" "$here/cordic_tb.v" "$here/legacy_tb.v" "$XILINX_VIVADO/data/verilog/src/glbl.v" > compile.log 2>&1
+xelab -L unisims_ver work.dpll_dsp_primitives_tb work.glbl -s dpll_dsp_primitives_test > dsp-elaborate.log 2>&1
+xsim dpll_dsp_primitives_test -runall > dsp-simulation.log 2>&1
+rg -q 'DSP gain/MAC checks passed' dsp-simulation.log
+if rg -q 'Fatal:|ERROR:|FATAL:' dsp-simulation.log; then cat dsp-simulation.log; exit 1; fi
+rg 'DSP gain/MAC checks passed' dsp-simulation.log
 xelab -L unisims_ver work.phase_extraction_test work.glbl -s phase_extraction_test > elaborate.log 2>&1
 xsim phase_extraction_test -testplusarg "VECTORS=$out/vectors.txt" -runall > simulation.log 2>&1
 rg 'checks passed|Continuous atan2 error:|Before output rounding:|Fatal:|ERROR:|FATAL:' simulation.log || true

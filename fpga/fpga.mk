@@ -8,6 +8,8 @@ $(TMP_FPGA_PATH):
 # Global synthesis is the default; per-IP synthesis trades a slower cold build
 # for reusable output products when iterating on a design or another instrument.
 FPGA_SYNTH_MODE ?= global
+FPGA_VERILOG_DEFINES ?=
+export FPGA_VERILOG_DEFINES
 ifneq ($(FPGA_SYNTH_MODE),global)
 ifneq ($(FPGA_SYNTH_MODE),ip)
 $(error FPGA_SYNTH_MODE must be global or ip)
@@ -23,6 +25,7 @@ FPGA_PROJECT_STAMP := $(TMP_FPGA_PATH)/.project-settings
 $(eval $(call build_settings_stamp,$(FPGA_PROJECT_STAMP),\
     $$(call build_shell_quote,MODE=$$(MODE)) \
     $$(call build_shell_quote,SYNTH=$$(FPGA_SYNTH_MODE)) \
+    $$(call build_shell_quote,DEFINES=$$(FPGA_VERILOG_DEFINES)) \
     $$(call build_shell_quote,BOARD=$$(BOARD_PATH)) \
     $$(call build_shell_quote,BD=$$(BD_TCL)) \
     $$(call build_shell_quote,XDC=$$(XDC)) \

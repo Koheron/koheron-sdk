@@ -29,8 +29,6 @@ foreach pat [split $::env(XDC)] {
 }
 add_files -norecurse -fileset constrs_1 $constr_files
 
-set_property VERILOG_DEFINE {TOOL_VIVADO} [current_fileset]
-
 switch $mode {
   "development" {
     # set_property STRATEGY Flow_PerfOptimized_High [get_runs synth_1]

@@ -53,7 +53,7 @@ class DpllDiagram {
   }
 
   private routeName(route: number): string {
-    return ['Loop 0', 'Loop 1', 'φ₀ LSB', 'φ₁ LSB', 'φ₀ MSB', 'φ₁ MSB', 'DDS 0', 'DDS 1'][route] || '?';
+    return ['Loop 0', 'Loop 1', 'φ₀ LSB', 'φ₁ LSB', 'φ₀ MSB', 'φ₁ MSB', 'DDS 0', 'DDS 1', 'Muted'][route] || '?';
   }
 
   private positionEditor(): void {

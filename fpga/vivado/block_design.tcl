@@ -34,6 +34,13 @@ set_param board.repoPaths {}
 
 create_project -force -part $part $project_name $output_path
 
+# Module references are elaborated while the block design is constructed.
+set verilog_defines {TOOL_VIVADO}
+if {[info exists ::env(FPGA_VERILOG_DEFINES)]} {
+  lappend verilog_defines {*}$::env(FPGA_VERILOG_DEFINES)
+}
+set_property VERILOG_DEFINE $verilog_defines [current_fileset]
+
 catch { unset_property board_part [current_project] }
 
 set_property IP_REPO_PATHS [list $::env(TMP_CORES_PATH)] [current_project]

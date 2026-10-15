@@ -202,7 +202,8 @@ $(MEMORY_TCL):
             before = len(events())
             build()
             self.assertEqual(events()[before:], ['project', 'hwdef', 'bitstream'])
-            for settings in (['MODE=production'], [], ['FPGA_SYNTH_MODE=ip'], []):
+            for settings in (['MODE=production'], [], ['FPGA_SYNTH_MODE=ip'], [],
+                             ['FPGA_VERILOG_DEFINES=PORTABLE_DSP'], []):
                 before = len(events())
                 build(*settings)
                 self.assertEqual(events()[before:], ['project', 'hwdef', 'bitstream'])
