@@ -113,9 +113,14 @@ iteration without startup measurements. `--analog-mask` declares the connected
 cables: `1` for DAC0/ADC0, `2` for DAC1/ADC1, `3` for both, or `0` for neither.
 Unconnected channels record input noise and an explicit skipped result.
 
-Open `http://192.168.1.84/` for run metadata, the scorecard and live log. The webpage uses the
+Open `http://192.168.1.84/` for run metadata, the scorecard and log. The webpage uses the
 normal server's generated RPC methods over WebSocket. Closing it does not stop
-validation. Reports are stored at `/var/lib/koheron/bist/<run-id>/` as
+validation. BIST 1.5 clients and the webpage wait for completion without polling
+reports during any profile. A separate `BistCompletion` SDK driver sleeps until
+the worker finishes, leaving the measured `Bist` driver free to serve benchmark
+RPCs and cancellation. Results and logs appear after completion; cancellation
+and service shutdown remain responsive. The updated client requires BIST 1.5
+or newer. Reports are stored at `/var/lib/koheron/bist/<run-id>/` as
 `report.json`, `scorecard.txt` and `log.txt`; the `latest` file identifies the
 most recent run. The client downloads the same files to `tmp/bist-results/`.
 The scorecard identifies the instrument and SDK versions, Ubuntu release,
@@ -234,10 +239,17 @@ done
 Functional integrity and performance regression are separate outcomes.
 Baselines require distinct, complete, functionally healthy reports with matching
 reference identities, parameters, board and FPGA DNA. A metric needs at least
-five runs. Limits use its median and the larger of the configured tolerance
+five runs. Combined windows must record zero report/log observer requests;
+disturbed runs cannot seed a baseline or receive a performance verdict, even
+when functional integrity passes. Schema-1 baselines predate this validation
+and must be rebuilt from quiet runs; they evaluate as inconclusive. Limits use
+the median and the larger of the configured tolerance
 (default 10%) or three scaled MADs (`3 × 1.4826 × MAD`), with a floor of one completed
 batch for combined DMA and CPU throughput. This accounts for the resolution
-of counting fixed-size batches inside a window. Excessively noisy or
+of counting fixed-size batches inside a window. Saturation RPC latency remains
+descriptive in the report: its competing workers' achieved load varies, so
+baseline verdicts use RPC capacity and isolated latency instead. Use the
+controlled SDK comparison below for latency at a fixed offered load. Excessively noisy or
 insufficient baselines remain inconclusive. Throughput regressions fall below
 the limit; latency regressions exceed it. Missing values and incompatible
 identities never pass. OS/kernel/environment provenance is retained for each
@@ -281,8 +293,8 @@ open-loop overload; missed slots make unmet demand explicit.
 
 A case has valid comparison quality only with zero integrity/affinity errors,
 at least 98% of each active worker's requested operations completed, and zero
-BIST report/log/status observer calls during measurement. The webpage pauses
-polling during this profile; the Python comparison client also stays quiet.
+BIST report/log/status observer calls during measurement. The webpage and
+Python client wait quietly for completion during every profile.
 An old cached webpage or another observer makes the affected run inconclusive.
 Other applications and unrelated SDK traffic still need to be controlled by
 the operator. Functional integrity and comparison quality are separate results.

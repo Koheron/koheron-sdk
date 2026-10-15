@@ -13,7 +13,7 @@ import sys
 import time
 import zipfile
 
-from client import collect_comparison, connect, download
+from client import collect, connect, download
 from koheron.management import Client as ManagementClient, ManagementError
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -208,7 +208,7 @@ def measure(host, package, identity, output, case_mask):
     try:
         if not connection.start_comparison(case_mask):
             raise RuntimeError("Controlled comparison start rejected")
-        collect_comparison(connection, case_mask, time.monotonic() + 20)
+        collect(connection, time.monotonic() + 20)
         report = download(connection, output)
         for key in ("server_sha256", "fpga_sha256"):
             if report["metadata"].get(key) != identity[key]:

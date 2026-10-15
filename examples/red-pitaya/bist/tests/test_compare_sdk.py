@@ -170,7 +170,7 @@ def test_wrong_live_binary_is_rejected_after_raw_report_is_saved(monkeypatch, tm
     connection = Connection()
     monkeypatch.setattr(module, "ManagementClient", lambda *a, **k: SimpleNamespace(deploy=lambda *a, **k: None))
     monkeypatch.setattr(module, "connect", lambda *a: connection)
-    monkeypatch.setattr(module, "collect_comparison", lambda *a: saved)
+    monkeypatch.setattr(module, "collect", lambda *a: saved)
     def download(client, output):
         module.save(output / "report.json", saved)
         return saved

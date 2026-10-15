@@ -11,7 +11,8 @@ spec.loader.exec_module(p)
 def report(run=0, rate=100):
     return {"run_id": str(run), "state": "complete", "storage_ok": True, "functional_status": "pass",
             "metadata": {key: {"profile": "health"} if key == "parameters" else "id" for key in p.IDENTITY},
-            "metrics": [{"name": "dma_combined", "value": rate, "unit": "MB/s", "pass": True}],
+            "metrics": [{"name": "dma_combined", "value": rate, "unit": "MB/s", "pass": True},
+                        {"name": "combined_window", "observer_requests": 0, "pass": True}],
             "missing_measurements": []}
 
 
@@ -71,6 +72,21 @@ def test_unavailable_tails_do_not_seed_samples():
     assert {row["name"] for row in model["metrics"]} == {"dma_combined", "dma_combined.p50"}
 
 
+def test_saturation_latency_is_descriptive_but_isolated_latency_is_compared():
+    reports = [report(i) for i in range(5)]
+    for r in reports:
+        r["metrics"][0].update(name="rpc_combined", unit="requests/s", latency_us={"p50": 378})
+    model = p.build_baseline(reports)
+    current = copy.deepcopy(reports[0])
+    current["metrics"][0]["latency_us"]["p50"] = 540
+    assert p.evaluate(model, current)["status"] == "pass"
+    assert {row["name"] for row in model["metrics"]} == {"rpc_combined"}
+    for r in reports:
+        r["metrics"][0]["name"] = "rpc_isolated"
+    current["metrics"][0]["name"] = "rpc_isolated"
+    assert p.evaluate(p.build_baseline(reports), current)["status"] == "regression"
+
+
 @pytest.mark.parametrize("value", [None, "", "unavailable", {}, 0, False])
 def test_missing_baseline_identity_is_rejected(value):
     bad = report()
@@ -90,3 +106,34 @@ def test_batch_resolution_prevents_false_dma_regression():
     current["metrics"][0]["value"] = 3.145728
     assert p.evaluate(model, current)["status"] == "regression"
     assert model["metrics"][0]["resolution"] == pytest.approx(1.048576)
+
+
+@pytest.mark.parametrize("count", [1, 15, -1, None, True, "0", 0.0])
+def test_disturbed_or_unverified_measurements_cannot_seed_baseline(count):
+    bad = report(10)
+    bad["metrics"][1]["observer_requests"] = count
+    with pytest.raises(ValueError, match="observer"):
+        p.build_baseline([bad])
+    result = p.evaluate(baseline(), bad)
+    assert result["status"] == "inconclusive"
+    assert "observer" in result["reason"]
+    assert bad["functional_status"] == "pass"
+
+
+def test_missing_observer_counts_are_not_assumed_quiet():
+    bad = report(10)
+    del bad["metrics"][1]["observer_requests"]
+    with pytest.raises(ValueError, match="observer"):
+        p.build_baseline([bad])
+    bad["metrics"].pop()
+    assert p.evaluate(baseline(), bad)["status"] == "inconclusive"
+
+
+def test_old_baseline_requires_recollection():
+    model = baseline()
+    assert model["schema_version"] == 2
+    assert all(row["observer_requests"] == 0 for row in model["conditions"])
+    model["schema_version"] = 1
+    result = p.evaluate(model, report(10))
+    assert result["status"] == "inconclusive"
+    assert "rebuild" in result["reason"]
