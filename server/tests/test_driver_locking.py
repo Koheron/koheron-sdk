@@ -50,7 +50,7 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
     def test_cases(self):
         for case in (
             'argument-ownership-tcp', 'argument-ownership-unix', 'argument-ownership-ws',
-            'argument-ownership-empty',
+            'argument-ownership-empty', 'buffered-stream',
             'tcp-read-calls', 'unix-read-calls', 'checked-decode', 'concurrent-first',
             'mixed-disconnect-output', 'disconnect-output', 'empty-arrays', 'fixed-tcp',
             'fixed-ws', 'invalid-driver-tcp', 'invalid-driver-ws', 'large-arrays',

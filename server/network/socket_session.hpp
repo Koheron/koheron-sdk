@@ -61,6 +61,17 @@ class SocketSession : public Session
 
     std::conditional_t<socket_type == WEBSOCK, WebSocket, EmptyWebsock> websock;
 
+    [[no_unique_address]]
+    std::conditional_t<socket_type == WEBSOCK, EmptyWebsock, BufferedStreamReader> input;
+
+    ssize_t read_bytes(int fd, std::span<std::byte> bytes) override {
+        if constexpr (socket_type == TCP || socket_type == UNIX) {
+            return input.read_exact(fd, bytes);
+        } else {
+            return net::read_exact(fd, bytes);
+        }
+    }
+
     int init_socket();
     int exit_socket();
 
@@ -153,7 +164,7 @@ int SocketSession<socket_type>::read_command(Command& cmd) {
         // Read and decode header
         // |      RESERVED     | dev_id  |  op_id  |             payload_size              |   payload
         // |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |  9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | ...
-        const int header_bytes = read_exact(
+        const int header_bytes = read_bytes(
             comm_fd,
             std::as_writable_bytes(std::span{cmd.header.data(), cmd.header.size()})
         );
