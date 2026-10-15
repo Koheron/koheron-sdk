@@ -6,12 +6,29 @@
 #include "server/utilities/endian_utils.hpp"
 
 #include <chrono>
+#include <limits>
 #include <span>
 
 PrecisionAdc::PrecisionAdc()
 : spi(services::require<hw::SpiManager>().get("spidev1.0", SPI_MODE_3, 10000000, 8))
 {
+    analog_inputs_data.fill(std::numeric_limits<float>::quiet_NaN());
     if (! spi.is_ok()) {
+        return;
+    }
+
+    // Restore the documented power-on serial state, including when a previous
+    // instrument left continuous-read, CRC or power-down settings behind.
+    std::array<uint8_t, 8> reset_tx, reset_rx{};
+    reset_tx.fill(0xff);
+    if (const auto result = spi.transfer_checked(reset_tx, reset_rx); !result) {
+        logf<ERROR>("PrecisionAdc: serial reset failed: {}\n", result.error().message());
+        return;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    const auto id = get_device_id();
+    if ((id & 0xf0) != 0x10) {
+        logf<ERROR>("PrecisionAdc: invalid AD7124-8 identity: {:#x}\n", id);
         return;
     }
 
