@@ -108,7 +108,8 @@ The client verifies the new boot ID over RPC, so SSH is needed only to request
 the reboot. Completed measurements are downloaded before the service restart,
 so a later lifecycle failure still leaves the suite's report on the host.
 `BIST_SSH_PASSWORD` overrides the image's default root password; SSH keys also
-work. `--ssh-known-hosts FILE` selects a host-key file. Use `--no-reboot` for
+work. `--ssh-known-hosts FILE` selects a host-key file; `BIST_SSH_KNOWN_HOSTS`
+sets the same option for `make test`. Use `--no-reboot` for
 iteration without startup measurements. `--analog-mask` declares the connected
 cables: `1` for DAC0/ADC0, `2` for DAC1/ADC1, `3` for both, or `0` for neither.
 Unconnected channels record input noise and an explicit skipped result.

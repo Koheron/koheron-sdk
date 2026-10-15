@@ -117,6 +117,17 @@ def test_old_instrument_is_rejected_before_start(monkeypatch):
     connection.sock.close.assert_called_once()
 
 
+@pytest.mark.parametrize("override", [False, True])
+def test_sdk_test_can_select_a_pinned_host_key_file(monkeypatch, override):
+    monkeypatch.setenv("BIST_SSH_KNOWN_HOSTS", "pinned-hosts")
+    monkeypatch.setattr(client.sys, "argv", ["test.py"] + (
+        ["--ssh-known-hosts", "explicit-hosts"] if override else []))
+    validate = Mock()
+    monkeypatch.setattr(client, "validate", validate)
+    client.main()
+    assert validate.call_args.args[0].ssh_known_hosts == ("explicit-hosts" if override else "pinned-hosts")
+
+
 def test_readiness_handshake_uses_remaining_deadline(monkeypatch):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))

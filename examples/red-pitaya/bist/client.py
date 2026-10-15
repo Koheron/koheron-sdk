@@ -299,7 +299,8 @@ def main():
     parser.add_argument("--analog-mask", type=lambda value: int(value, 0), choices=range(4), default=1,
                         help="Connected DAC/ADC loopbacks: bit 0=channel 0, bit 1=channel 1")
     parser.add_argument("--no-reboot", action="store_true", help="Skip startup measurements")
-    parser.add_argument("--ssh-known-hosts", help="SSH host-key file, checked on reboot connection")
+    parser.add_argument("--ssh-known-hosts", default=os.environ.get("BIST_SSH_KNOWN_HOSTS"),
+                        help="SSH host-key file, checked on reboot connection (or BIST_SSH_KNOWN_HOSTS)")
     parser.add_argument("--output", type=Path, default=Path("tmp/bist-results"))
     parser.add_argument("--compare", type=Path, help="Previous runtime report for OS comparison")
     parser.add_argument("--profile", choices=("health", "benchmark", "diagnostic", "comparison", "upload"), default="health")
