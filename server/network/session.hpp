@@ -7,6 +7,7 @@
 #include "server/network/serializer_deserializer.hpp"
 #include "server/network/mixed_reply.hpp"
 #include "server/network/fixed_reply.hpp"
+#include "server/network/stream_reader.hpp"
 #include "server/network/configs/config.hpp"
 #include "server/utilities/metadata.hpp"
 #include "server/utilities/meta_utils.hpp"
@@ -134,6 +135,10 @@ class Session
   protected:
     enum {CLOSED, OPENED};
     int status = OPENED;
+
+    virtual ssize_t read_bytes(int fd, std::span<std::byte> bytes) {
+        return net::read_exact(fd, bytes);
+    }
 
     // Socket specific hooks
     virtual int init_socket() = 0;
