@@ -24,6 +24,10 @@ class ClockGenerator {
         return this.client.readFloat64(Command(this.id, this.cmds['get_dac_sampling_freq']));
     }
 
+    getAdcSamplingFrequency(): Promise<number> {
+        return this.client.readFloat64(Command(this.id, this.cmds['get_adc_sampling_freq']));
+    }
+
     setReferenceClock(clkin: number): void {
         this.client.send(Command(this.id, this.cmds['set_reference_clock'], clkin));
     }

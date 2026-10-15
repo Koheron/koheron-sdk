@@ -14,7 +14,10 @@ xvlog --sv "$XILINX_VIVADO/data/ip/xpm/xpm_cdc/hdl/xpm_cdc.sv" "$XILINX_VIVADO/d
     "$repo/fpga/cores/axi_sts_register_v1_0/axi_sts_register.v" \
     "$here/../gain_programmer.v" "$here/../table_gain.v" "$here/../table_corrector.v" \
     "$here/test_table_system_tb.v" > compile.log 2>&1
-xelab -L unisims_ver work.test_table_system_tb work.glbl -s test_table_system_tb > elaborate.log 2>&1
+xelab -L unisims_ver work.test_table_system_tb work.glbl \
+    -generic_top "GAIN_STAGES=${DPLL_GAIN_STAGES:-4}" \
+    -generic_top "SAMPLE_INTERVAL=${DPLL_SAMPLE_INTERVAL:-1}" \
+    -s test_table_system_tb > elaborate.log 2>&1
 xsim test_table_system_tb -runall > simulation.log 2>&1
 rg 'checks passed|Fatal:|ERROR:' simulation.log || true
 rg -q 'Table system checks passed' simulation.log

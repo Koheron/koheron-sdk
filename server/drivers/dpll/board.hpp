@@ -17,7 +17,7 @@ struct ClockedBoard {
         rt::get_driver<Clock>().set_sampling_frequency(prm::adc_clk == 250000000 ? 1 : 0);
     }
     double sampling_frequency() const {
-        return rt::get_driver<Clock>().get_dac_sampling_freq();
+        return rt::get_driver<Clock>().get_adc_sampling_freq();
     }
 };
 }

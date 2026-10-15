@@ -11,7 +11,8 @@ module table_corrector #(
     parameter integer CARRY_BLOCK=0,
     parameter integer FREQ_WIDTH=17,
     parameter integer PHASE_WIDTH=32,
-    parameter integer PHASE_FRAC=0
+    parameter integer PHASE_FRAC=0,
+    parameter integer SAMPLE_INTERVAL=1
 )(
     input wire clk,
     input wire signed [FREQ_WIDTH-1:0] freq_in,
@@ -26,7 +27,8 @@ module table_corrector #(
     output wire [31:0] p_correction,
     output wire [31:0] integral_correction,
     output wire [31:0] i_correction,
-    output wire [31:0] higher_correction
+    output wire [31:0] higher_correction,
+    input tri1 sample_valid
 );
     wire [3:0] we;
     genvar k;
@@ -45,6 +47,11 @@ module table_corrector #(
     (* use_dsp="yes" *) reg signed [47:0] acc1=0;
     (* use_dsp="yes" *) reg [31:0] acc2=0;
     reg [63:0] acc3=0;
+    // Gains run on every processing clock. State advances once per input
+    // sample, after the gain and first-sum pipeline have accepted that sample.
+    reg [GAIN_STAGES:0] sample_pipeline=0;
+    always @(posedge clk) sample_pipeline<={sample_pipeline[GAIN_STAGES-1:0],sample_valid};
+    wire integrate=(SAMPLE_INTERVAL==1) || sample_pipeline[GAIN_STAGES];
     table_gain #(.A_WIDTH(FREQ_WIDTH), .OUTPUT_LOW(PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
         gp(clk,freq_in,active_banks[0],we[0],table_command[7],table_command[6],table_command[5:2],table_data,p);
     table_gain #(.A_WIDTH(PHASE_WIDTH), .OUTPUT_LOW(16+PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
@@ -65,10 +72,12 @@ module table_corrector #(
         first_p<=p;
         first_pi<=pi;
         if(!enabled[0]) acc1<=0;
-        else if(CARRY_BLOCK==0) acc1<=acc1+$signed(first_sum);
-        else acc1<=acc1_next;
+        else if(integrate) begin
+            if(CARRY_BLOCK==0) acc1<=acc1+$signed(first_sum);
+            else acc1<=acc1_next;
+        end
         if(!enabled[2]) acc3<=0;
-        else acc3<=acc3_next;
+        else if(integrate) acc3<=acc3_next;
     end
     generate if(FUSED) begin : fused
         // Combine the second summing node and fast accumulator in one clock.
@@ -87,14 +96,16 @@ module table_corrector #(
         dpll_carry_adder #(.BLOCK(CARRY_BLOCK)) higher_add(higher_acc,i2,1'b0,higher_next);
         always @(posedge clk) begin
             if(!enabled[1]) acc2<=0;
-            else if(CARRY_BLOCK==0) acc2<=acc2+first_sum+i2;
-            else acc2<=acc2_next;
+            else if(integrate) begin
+                if(CARRY_BLOCK==0) acc2<=acc2+first_sum+i2;
+                else acc2<=acc2_next;
+            end
             if(!enabled[1]) p_acc<=0;
-            else p_acc<=p_next;
+            else if(integrate) p_acc<=p_next;
             if(!enabled[1]) integral_acc<=0;
-            else integral_acc<=integral_next;
+            else if(integrate) integral_acc<=integral_next;
             if(!enabled[1]) begin i_acc<=0; higher_acc<=0; end
-            else begin i_acc<=i_next; higher_acc<=higher_next; end
+            else if(integrate) begin i_acc<=i_next; higher_acc<=higher_next; end
         end
     end else begin : separate
         reg [31:0] second_sum=0;
@@ -107,13 +118,13 @@ module table_corrector #(
             second_integral<=first_pi+i2;
             second_i<=first_pi; second_higher<=i2;
             if(!enabled[1]) acc2<=0;
-            else acc2<=acc2+second_sum;
+            else if(integrate) acc2<=acc2+second_sum;
             if(!enabled[1]) p_acc<=0;
-            else p_acc<=p_acc+second_p;
+            else if(integrate) p_acc<=p_acc+second_p;
             if(!enabled[1]) integral_acc<=0;
-            else integral_acc<=integral_acc+second_integral;
+            else if(integrate) integral_acc<=integral_acc+second_integral;
             if(!enabled[1]) begin i_acc<=0; higher_acc<=0; end
-            else begin i_acc<=i_acc+second_i; higher_acc<=higher_acc+second_higher; end
+            else if(integrate) begin i_acc<=i_acc+second_i; higher_acc<=higher_acc+second_higher; end
         end
     end endgenerate
     assign fast_corr=acc2[31:16];

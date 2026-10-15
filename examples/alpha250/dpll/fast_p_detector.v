@@ -56,7 +56,8 @@ module p_reference_capture #(parameter integer PHASE_WIDTH=32)(
     output reg ack=0,
     output reg [31:0] snapshot=0,
     input wire signed [PHASE_WIDTH-1:0] phase_in,
-    output reg signed [PHASE_WIDTH-1:0] reference_phase=0
+    output reg signed [PHASE_WIDTH-1:0] reference_phase=0,
+    input tri1 sample_valid
 );
     reg busy=0, pending=0;
     reg [6:0] count=0;
@@ -76,6 +77,7 @@ module p_reference_capture #(parameter integer PHASE_WIDTH=32)(
             count<=0; sum_i<=0; sum_q<=0;
             phase_sum<=0; delta_d<=0;
         end else if(busy && count<64) begin
+          if(sample_valid) begin
             if(count==0) origin<=phase_in;
             delta_d<=count==0 ? 0 : phase_in-origin;
             if(count!=0) phase_sum<=phase_sum+delta_d;
@@ -84,6 +86,7 @@ module p_reference_capture #(parameter integer PHASE_WIDTH=32)(
                 snapshot<={next_q[21:6],next_i[21:6]};
             end
             count<=count+1'b1;
+          end
         end else if(busy && count==64) begin
             // Drain the last registered difference before averaging.
             phase_sum<=phase_sum+delta_d;

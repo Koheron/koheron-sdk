@@ -72,6 +72,7 @@ for {set i 0} {$i < 2} {incr i} {
 
     connect_cell corrector$i {
         clk adc_dac/adc_clk
+        sample_valid [get_constant_pin 1 1]
         resetn rst_adc_clk/peripheral_aresetn
         freq_in cordic$i/freq
         phase_in cordic$i/phase
