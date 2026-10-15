@@ -14,7 +14,9 @@ if [[ -n ${DPLL_VERILOG_DEFINES:-} ]]; then defines=(--define "$DPLL_VERILOG_DEF
 xvlog --sv "${defines[@]}" "$here/../table_gain.v" "$here/../table_corrector.v" \
     "$here/../fast_p_detector.v" "$here/../p_path_switch.v" "$here/../manual_p_corrector.v" \
     "$here/test_multirate_controller_tb.sv" "$XILINX_VIVADO/data/verilog/src/glbl.v"
-xelab -L unisims_ver work.test_multirate_controller_tb work.glbl -s multirate
+xelab -L unisims_ver work.test_multirate_controller_tb work.glbl \
+    -generic_top "CARRY_BLOCK=${DPLL_CARRY_BLOCK:-0}" \
+    -generic_top "CLOCK_HALF_PERIOD=${DPLL_CLOCK_HALF_PERIOD:-1.25}" -s multirate
 xsim multirate -runall > multirate.log 2>&1
 cat multirate.log
 rg -q 'Multirate controller checks passed' multirate.log

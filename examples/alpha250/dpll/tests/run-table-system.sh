@@ -17,6 +17,8 @@ xvlog --sv "$XILINX_VIVADO/data/ip/xpm/xpm_cdc/hdl/xpm_cdc.sv" "$XILINX_VIVADO/d
 xelab -L unisims_ver work.test_table_system_tb work.glbl \
     -generic_top "GAIN_STAGES=${DPLL_GAIN_STAGES:-4}" \
     -generic_top "SAMPLE_INTERVAL=${DPLL_SAMPLE_INTERVAL:-1}" \
+    -generic_top "CARRY_BLOCK=${DPLL_CARRY_BLOCK:-0}" \
+    -generic_top "CLOCK_HALF_PERIOD=${DPLL_CLOCK_HALF_PERIOD:-2.0}" \
     -s test_table_system_tb > elaborate.log 2>&1
 xsim test_table_system_tb -runall > simulation.log 2>&1
 rg 'checks passed|Fatal:|ERROR:' simulation.log || true
