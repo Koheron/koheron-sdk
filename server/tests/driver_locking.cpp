@@ -202,7 +202,7 @@ template<int Kind> void stalled_output(uint16_t operation, bool disconnect = fal
     Bytes expected = command(operation);
     if (operation == 14) append_be(expected, 0xbeef, 2);
     const auto payload_bytes = ((operation == 14 || operation == 16) ? 32768 : 512 * 1024) * sizeof(uint32_t);
-    append_be(expected, payload_bytes, (operation == 14 || operation == 16) ? 4 : sizeof(size_t));
+    append_be(expected, payload_bytes, 4);
     expected.resize(expected.size() + payload_bytes, 0x33);
     if (operation == 14) append_be(expected, 0xabcdef01, 4);
     check(slow.response(expected.size()) == expected, "Borrowed response changed during transmission");
