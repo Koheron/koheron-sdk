@@ -23,7 +23,7 @@ class ZynqFclk {
 
   private:
     const Path devcfg = "/sys/devices/soc0/amba/f8007000.devcfg";
-    const Path amba_clocking = "/sys/devices/soc0/fpga-region/fpga-region:clocking";
+    const Path amba_clocking = "/sys/bus/platform/devices/fpga-region:clocking";
 
     void set_impl(const std::string& fclk_name, uint32_t fclk_rate, bool update_rate);
 

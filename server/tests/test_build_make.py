@@ -51,6 +51,8 @@ SDK_FULL_PATH := {SDK}
 export SDK_PATH
 OS_PATH := {SDK}/os
 SERVER_PATH := {SDK}/server
+PROJECT_PATH := {self.root}
+NAME := probe
 TMP_PROJECT_PATH := {self.root}/out
 SERVER := $(TMP_PROJECT_PATH)/serverd
 MEMORY_YML := {self.root}/memory.yml
@@ -150,6 +152,36 @@ output.chmod(0o755)
                           f'JSON_CXX={sys.executable} {compiler}', target)
                 self.assertEqual(json.loads((self.root / target).read_text()),
                                  {'instrument': 'probe'})
+
+    def test_metadata_inherits_header_flags_without_cross_target_options(self):
+        target = self.output / 'drivers_json_dump'
+        def build(extra):
+            self.make('GEN_HEADERS=', 'DOCKER=',
+                      f'JSON_CXX={sys.executable} {self.compiler}',
+                      f'SERVER_EXTRA_CCXXFLAGS={extra}', target)
+            return json.loads(target.read_text())
+        for header_flags, expected in (
+                ('-I/external/include -DEXTERNAL_FEATURE=1 -UOLD_FEATURE',
+                 ['-I/external/include', '-DEXTERNAL_FEATURE=1', '-UOLD_FEATURE']),
+                ('-I "/external/include dir" -D EXTERNAL_FEATURE=1 -U OLD_FEATURE',
+                 ['-I', '/external/include dir', '-D', 'EXTERNAL_FEATURE=1', '-U', 'OLD_FEATURE']),
+                ('''-I"/external/it's include" -DLABEL='"hello world"' -DEXTERNAL_FEATURE=1 -UOLD_FEATURE''',
+                 ["-I/external/it's include", '-DLABEL="hello world"',
+                  '-DEXTERNAL_FEATURE=1', '-UOLD_FEATURE'])):
+            with self.subTest(flags=header_flags):
+                flags = header_flags + ' -mfpu=neon -mcpu=cortex-a9'
+                args = build(flags)
+                start = args.index(expected[0])
+                self.assertEqual(args[start:start + len(expected)], expected)
+                self.assertIn('-DINSTRUMENT_NAME="probe"', args)
+                self.assertNotIn('-mfpu=neon', args)
+                self.assertNotIn('-mcpu=cortex-a9', args)
+                initial = (self.root / 'compiles').read_text()
+                build(flags)
+                self.assertEqual((self.root / 'compiles').read_text(), initial)
+                args = build(flags.replace('FEATURE=1', 'FEATURE=2'))
+                self.assertTrue(any('FEATURE=2' in arg for arg in args))
+                self.assertNotEqual((self.root / 'compiles').read_text(), initial)
 
 
 class AlternateServerBuildMakeTest(unittest.TestCase):

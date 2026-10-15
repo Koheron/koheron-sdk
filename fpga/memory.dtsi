@@ -16,3 +16,11 @@
     };
 {%- endfor %}
 };
+
+/* Use requested rates: reapplying HSI's rounded output can select a slower
+ * divider when Linux rounds that approximation down a second time. */
+{% for index, rate in fclk_rates.items() %}
+&clocking{{ index }} {
+    assigned-clock-rates = <{{ rate }}>;
+};
+{% endfor %}

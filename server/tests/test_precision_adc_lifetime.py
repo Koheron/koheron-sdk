@@ -32,6 +32,18 @@ class PrecisionAdcLifetimeTest(unittest.TestCase):
     def test_failed_spi_initialization_does_not_start_worker(self):
         self.run_case('init-error')
 
+    def test_failed_serial_reset_does_not_configure_or_sample(self):
+        self.run_case('reset-error')
+
+    def test_failed_identity_read_does_not_configure_or_sample(self):
+        self.run_case('id-error')
+
+    def test_invalid_identity_leaves_all_channels_unavailable(self):
+        self.run_case('invalid-id')
+
+    def test_ad7124_family_accepts_silicon_revisions(self):
+        self.run_case('id-revisions')
+
     def test_each_failed_setup_write_stops_initialization(self):
         self.run_case('setup-errors')
 

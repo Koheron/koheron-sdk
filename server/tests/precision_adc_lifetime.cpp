@@ -3,6 +3,7 @@
 #include "server/runtime/services.hpp"
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -11,6 +12,10 @@ using namespace std::chrono_literals;
 namespace {
 bool available = true;
 bool fail_init = false;
+bool fail_reset = false, fail_id = false;
+bool identity_seen = false;
+uint8_t device_id = 0x14;
+unsigned resets = 0;
 unsigned fail_setup_write = 0;
 std::atomic<bool> block_read{false}, entered{false}, fail_read{false};
 std::atomic<unsigned> reads{0};
@@ -62,8 +67,22 @@ SpiDev& SpiManager::get(std::string_view name, uint8_t mode_, uint32_t speed_, u
 }
 SpiDev::Result SpiDev::transfer_checked(std::span<const uint8_t> tx, std::span<uint8_t> rx) {
     check(tx.size() == rx.size(), "SPI sizes");
-    if (tx[0] == 0x45) { rx[1] = 0xA5; return {}; }
+    if (tx[0] == 0xff) {
+        check(tx.size() == 8, "serial reset length");
+        for (auto byte : tx) check(byte == 0xff, "serial reset bits");
+        ++resets;
+        identity_seen = false;
+        if (fail_reset) return std::unexpected(std::make_error_code(std::errc::io_error));
+        return {};
+    }
+    if (tx[0] == 0x45) {
+        check(resets != 0, "identity must follow serial reset");
+        if (fail_id) return std::unexpected(std::make_error_code(std::errc::io_error));
+        identity_seen = true;
+        rx[1] = device_id; return {};
+    }
     if (tx[0] != 0x42) {
+        check(identity_seen, "setup must follow identity check");
         if (++setup_writes == fail_setup_write) {
             return std::unexpected(std::make_error_code(std::errc::io_error));
         }
@@ -89,11 +108,30 @@ int main(int argc, char** argv) {
     const std::string_view test{argv[1]};
     available = test != "unavailable";
     fail_init = test == "init-error";
+    fail_reset = test == "reset-error";
+    fail_id = test == "id-error";
     auto spi = services::provide<hw::SpiManager>();
     if (test == "unavailable" || test == "init-error") {
         PrecisionAdc adc;
-        for (auto value : adc.get_adc_values()) { check(value == 0.0f, "initial data"); }
+        for (auto value : adc.get_adc_values()) { check(std::isnan(value), "initial data"); }
         check(active_readers == 0 && reads == 0 && setup_writes == 0, "worker without SPI");
+    } else if (test == "reset-error" || test == "id-error") {
+        PrecisionAdc adc;
+        check(resets == 1 && setup_writes == 0 && reads == 0, "initialization continued after failure");
+        for (auto value : adc.get_adc_values()) check(std::isnan(value), "failed initialization data");
+    } else if (test == "invalid-id") {
+        for (auto id : {0x00, 0xff, 0xa5}) {
+            device_id = id;
+            PrecisionAdc adc;
+            check(setup_writes == 0 && reads == 0, "initialization after invalid identity");
+            for (auto value : adc.get_adc_values()) check(std::isnan(value), "invalid identity data");
+        }
+    } else if (test == "id-revisions") {
+        for (auto id : {0x10, 0x1f}) {
+            device_id = id; setup_writes = 0;
+            PrecisionAdc adc;
+            check(setup_writes == 11, "valid silicon revision rejected");
+        }
     } else if (test == "setup-errors") {
         for (unsigned failed_write = 1; failed_write <= 11; ++failed_write) {
             setup_writes = 0;
@@ -101,14 +139,14 @@ int main(int argc, char** argv) {
             PrecisionAdc adc;
             check(setup_writes == failed_write, "setup continued after failed write");
             check(active_readers == 0 && reads == 0, "worker started after failed setup");
-            for (auto value : adc.get_adc_values()) { check(value == 0.0f, "failed setup data"); }
+            for (auto value : adc.get_adc_values()) { check(std::isnan(value), "failed setup data"); }
         }
     } else if (test == "samples") {
         {
             PrecisionAdc adc;
             check(setup_writes == 11, "ADC setup changed");
-            check(adc.get_device_id() == 0xA5, "device ID read");
-            wait_until([&] { return adc.get_adc_values()[7] != 0.0f; });
+            check(adc.get_device_id() == 0x14, "device ID read");
+            wait_until([&] { return std::isfinite(adc.get_adc_values()[7]); });
             const auto values = adc.get_adc_values();
             for (unsigned i = 0; i < values.size(); ++i) {
                 check(values[i] == static_cast<float>(i) * 1.25f / 128, "sample conversion changed");
@@ -147,7 +185,7 @@ int main(int argc, char** argv) {
                 while (!done) {
                     auto values = adc.get_adc_values();
                     for (unsigned i = 0; i < values.size(); ++i) {
-                        check(values[i] == 0.0f || values[i] == static_cast<float>(i) * 1.25f / 128,
+                        check(std::isnan(values[i]) || values[i] == static_cast<float>(i) * 1.25f / 128,
                               "torn sample snapshot");
                     }
                 }
