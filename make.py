@@ -185,6 +185,8 @@ def build_mem_simple_context(cfg):
     return {
         'regions': regions,
         'arch': arch,
+        'fclk_rates': {index: cfg['parameters'][f'fclk{index}']
+                       for index in range(4) if f'fclk{index}' in cfg.get('parameters', {})},
     }
 
 #########################
