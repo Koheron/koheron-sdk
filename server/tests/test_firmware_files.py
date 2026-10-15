@@ -1,24 +1,16 @@
 """Exercise firmware preparation with real files instead of board sysfs nodes."""
 import os
 from pathlib import Path
-import subprocess
 import tempfile
 import unittest
-
-ROOT = Path(__file__).resolve().parents[2]
+from cpp_fixture import compile_cpp, run_cpp
 
 
 class FirmwareFilesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        build = tempfile.TemporaryDirectory()
-        cls.addClassCleanup(build.cleanup)
-        cls.binary = Path(build.name) / 'firmware-files'
-        subprocess.run([
-            os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall', '-Wextra',
-            '-Werror', '-Wpedantic', '-fno-exceptions', '-I', str(ROOT),
-            str(ROOT / 'server/tests/firmware_files.cpp'), '-o', str(cls.binary),
-        ], check=True, timeout=60)
+        cls.binary = compile_cpp(cls, 'server/tests/firmware_files.cpp',
+            flags=('-Wpedantic', '-fno-exceptions'))
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -34,10 +26,8 @@ class FirmwareFilesTest(unittest.TestCase):
             (self.live / name).write_bytes(content)
 
     def prepare(self, *, success=True):
-        result = subprocess.run([
-            str(self.binary), str(self.live), str(self.firmware), str(self.parameter),
-        ], capture_output=True, text=True, timeout=5)
-        self.assertEqual(result.returncode, 0 if success else 1, result.stderr)
+        run_cpp(self, self.binary, self.live, self.firmware, self.parameter,
+                timeout=5, returncode=0 if success else 1)
 
     def assert_copied(self):
         for name, content in self.payloads.items():

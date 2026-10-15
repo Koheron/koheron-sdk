@@ -5,11 +5,14 @@
 #ifndef __DRIVERS_PULSE_HPP__
 #define __DRIVERS_PULSE_HPP__
 
+#include "server/hardware/memory_manager.hpp"
+
+#include <array>
 #include <atomic>
 #include <thread>
 #include <chrono>
-
-#include <context.hpp>
+#include <tuple>
+#include <vector>
 
 // http://www.xilinx.com/support/documentation/ip_documentation/axi_fifo_mm_s/v4_1/pg080-axi-fifo-mm-s.pdf
 namespace Fifo_regs {
@@ -25,12 +28,7 @@ constexpr uint32_t dac_size = mem::dac_range/sizeof(uint32_t);
 class Pulse
 {
   public:
-    Pulse(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , adc_fifo_map(ctx.mm.get<mem::adc_fifo>())
-    , dac_map(ctx.mm.get<mem::dac>())
-    {
+    Pulse() {
         start_fifo_acquisition();
     }
 
@@ -119,10 +117,9 @@ class Pulse
     void start_fifo_acquisition();
 
   private:
-    hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
-    hw::Memory<mem::adc_fifo>& adc_fifo_map;
-    hw::Memory<mem::dac>& dac_map;
+    hw::Memory<mem::control>& ctl = hw::get_memory<mem::control>();
+    hw::Memory<mem::adc_fifo>& adc_fifo_map = hw::get_memory<mem::adc_fifo>();
+    hw::Memory<mem::dac>& dac_map = hw::get_memory<mem::dac>();
 
     uint32_t pulse_width;
     uint32_t pulse_period;

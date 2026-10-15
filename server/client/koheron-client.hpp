@@ -14,6 +14,7 @@
 #include <memory>
 #include <thread>
 #include <unordered_map>
+#include <utility>
 
 #include <cstdint>
 #include <cstdlib>
@@ -1513,12 +1514,75 @@ struct fixed_string {
 //   auto v = client.recv_by_name<uint32_t>(KOHERON_OP_FUNC(DataMover));
 #define KOHERON_OP_FUNC(Class) (std::string(#Class) + "::" + __func__).c_str()
 
+namespace client_detail {
+
+// A connection owns one socket, including descriptor zero on POSIX. Closing
+// releases ownership before any system call and never throws during cleanup.
+class Socket {
+  public:
+    Socket() = default;
+    Socket(const Socket&) = delete;
+    Socket& operator=(const Socket&) = delete;
+    Socket(Socket&& other) noexcept { swap(other); }
+    Socket& operator=(Socket&& other) noexcept {
+        if (this != &other) { close(); swap(other); }
+        return *this;
+    }
+    ~Socket() { close(); }
+
+    socket_t get() const noexcept { return fd; }
+
+    void open() {
+        close();
+#ifdef _WIN32
+        WSADATA wsa;
+        if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+            throw socket_error("WSAStartup failed");
+        }
+        winsock_started = true;
+#endif
+        fd = ::socket(AF_INET, SOCK_STREAM, 0);
+        if (fd == koheron_http::invalid_socket) {
+            close();
+            throw socket_error("Cannot open TCP socket\n");
+        }
+    }
+
+    void close() noexcept {
+        const auto owned = std::exchange(fd, koheron_http::invalid_socket);
+        if (owned != koheron_http::invalid_socket) {
+#ifdef _WIN32
+            (void)::shutdown(owned, SD_BOTH);
+#else
+            (void)::shutdown(owned, SHUT_RDWR);
+#endif
+            koheron_http::close_socket(owned);
+        }
+#ifdef _WIN32
+        if (std::exchange(winsock_started, false)) { WSACleanup(); }
+#endif
+    }
+
+  private:
+    socket_t fd = koheron_http::invalid_socket;
+#ifdef _WIN32
+    bool winsock_started = false;
+#endif
+    void swap(Socket& other) noexcept {
+        std::swap(fd, other.fd);
+#ifdef _WIN32
+        std::swap(winsock_started, other.winsock_started);
+#endif
+    }
+};
+
+} // namespace client_detail
+
 class KoheronClient
 {
   public:
     KoheronClient(const char *host_, int port_)
-    : sockfd(koheron_http::invalid_socket)
-    , host(host_)
+    : host(host_)
     , port(port_)
     , rcv_buffer(0)
     , send_buffer(0)
@@ -1542,28 +1606,14 @@ class KoheronClient
         firmware_restart = restart_;
     }
 
-    ~KoheronClient() {
-        close();
-    }
+    // Connections can transfer ownership, but cannot share a socket by copying.
+    KoheronClient(const KoheronClient&) = delete;
+    KoheronClient& operator=(const KoheronClient&) = delete;
+    KoheronClient(KoheronClient&&) noexcept = default;
+    KoheronClient& operator=(KoheronClient&&) noexcept = default;
+    ~KoheronClient() = default;
 
-    void close() {
-        if (sockfd > 0) {
-#ifdef _WIN32
-            if (shutdown(sockfd, SD_BOTH) < 0) {
-                WSACleanup();
-                closesocket(sockfd);
-                throw socket_error("Cannot shutdown socket\n");
-            }
-            closesocket(sockfd);
-#else
-            if (shutdown(sockfd, SHUT_RDWR) < 0) {
-                ::close(sockfd);
-                throw socket_error("Cannot shutdown socket\n");
-            }
-            ::close(sockfd);
-#endif
-        }
-    }
+    void close() noexcept { sockfd.close(); }
 
     /// @brief HTTP port of the instrument API used by firmware validation
     /// (default 80, the nginx/uwsgi endpoint of koheron-board)
@@ -1705,52 +1755,24 @@ class KoheronClient
     }
 
     void connect_once() {
-#ifdef _WIN32
-        WSADATA wsa;
-        if (WSAStartup(MAKEWORD(2,2),&wsa) != 0) {
-            throw socket_error("WSAStartup failed");
-        }
-
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-        if (sockfd == INVALID_SOCKET) {
-            WSACleanup();
-            throw socket_error("Cannot open TCP socket\n");
-        }
-
-        int on = 1;
-
-        if (::connect(sockfd, (SOCKADDR*) &serveraddr, sizeof serveraddr) == SOCKET_ERROR) {
+        server_ctx.reset();
+        op_table.reset();
+        sockfd.open();
+        try {
+            if (::connect(sockfd.get(), reinterpret_cast<const sockaddr*>(&serveraddr), sizeof serveraddr) != 0) {
+                throw socket_error("Cannot connect to server\n");
+            }
+            int on = 1;
+            if (setsockopt(sockfd.get(), IPPROTO_TCP, TCP_NODELAY,
+                           reinterpret_cast<const char*>(&on), sizeof(on)) != 0) {
+                throw socket_error("Cannot set TCP_NODELAY option\n");
+            }
+            // Fetch metadata before advertising a usable connection.
+            refresh_server_context();
+        } catch (...) {
             close();
-            sockfd = INVALID_SOCKET;
-            throw socket_error("Cannot connect to server\n");
+            throw;
         }
-#else
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-        if (sockfd < 0) {
-            throw socket_error("Cannot open TCP socket\n");
-        }
-
-        int on = 1;
-
-        if (::connect(sockfd, (struct sockaddr*) &serveraddr, sizeof serveraddr) < 0) {
-            close();
-            sockfd = -1;
-            throw socket_error("Cannot connect to server\n");
-        }
-#endif
-
-        if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY,
-                       (const char *)&on, sizeof(int)) < 0) {
-            close();
-            sockfd = -1;
-            throw socket_error("Cannot set TCP_NODELAY option\n");
-        }
-
-        // Download the instrument op table (python load_devices() equivalent)
-        // so that every subsequent call<id> is validated against the server.
-        refresh_server_context();
     }
 
     template<uint32_t id, typename... Args>
@@ -1812,7 +1834,7 @@ class KoheronClient
     }
 
   private:
-    socket_t sockfd;
+    client_detail::Socket sockfd;
     sockaddr_in_t serveraddr;
 
     std::string host;
@@ -1856,7 +1878,7 @@ class KoheronClient
     static constexpr auto header_size = serdes::required_buffer_size<uint32_t, uint16_t, uint16_t>();
 
     void send() {
-        int err = ::send(sockfd, reinterpret_cast<const char*>(send_buffer.data()), send_buffer.size(), 0);
+        int err = ::send(sockfd.get(), reinterpret_cast<const char*>(send_buffer.data()), send_buffer.size(), 0);
 #ifdef _WIN32
         if (err == SOCKET_ERROR) {
             throw socket_error("Cannot send command to koheron-server\n");
@@ -1874,7 +1896,7 @@ class KoheronClient
         int bytes_read = 0;
 
         while (bytes_read < n_bytes) {
-            bytes_rcv = ::recv(sockfd, reinterpret_cast<char*>(rcv_buffer.data() + bytes_read), n_bytes - bytes_read, 0);
+            bytes_rcv = ::recv(sockfd.get(), reinterpret_cast<char*>(rcv_buffer.data() + bytes_read), n_bytes - bytes_read, 0);
 
             if (bytes_rcv == 0)
                 // Technically not really an error.

@@ -4,7 +4,7 @@ BUILD_DEPENDENCIES_MK := $(lastword $(MAKEFILE_LIST))
 
 # make.py imports the server generator even when only rendering a memory map.
 BUILD_SDK_PATH := $(if $(SDK_PATH),$(SDK_PATH),$(abspath $(dir $(BUILD_DEPENDENCIES_MK))..))
-MAKE_PY_SOURCES := $(BUILD_SDK_PATH)/make.py $(BUILD_SDK_PATH)/server/__init__.py
+MAKE_PY_SOURCES := $(BUILD_SDK_PATH)/make.py $(BUILD_SDK_PATH)/server/__init__.py $(BUILD_SDK_PATH)/python/koheron/memory_schema.py
 
 build_shell_quote = '$(subst ','"'"',$(1))'
 

@@ -1,12 +1,8 @@
 """Driver locking regressions using production dispatch and real local sockets."""
-import os
 from pathlib import Path
-import shlex
-import subprocess
 import tempfile
 import unittest
-
-ROOT = Path(__file__).resolve().parents[2]
+from cpp_fixture import ROOT, compile_cpp, run_cpp, NETWORK_INCLUDES
 
 
 class DriverLockingTest(unittest.TestCase):
@@ -47,59 +43,25 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
                    'runtime/runtime_executor.cpp', 'network/session.cpp',
                    'network/websocket.cpp', 'network/sha1.cpp', 'network/base64.cpp',
                    'tests/driver_locking.cpp')
-        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
-                   '-Wextra', '-Werror', '-pthread', '-DKOHERON_SERVER_BUILD', '-Wl,--wrap=read',
-                   '-I', str(build), '-I', str(ROOT), '-I', str(ROOT / 'server/tests'),
-                   '-I', str(ROOT / 'server/external_libs'),
-                   '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]
-        command += shlex.split(os.environ.get('CXXFLAGS', ''))
-        command += [str(ROOT / 'server' / source) for source in sources]
-        subprocess.run(command + ['-o', str(cls.binary)], check=True, timeout=120)
+        cls.binary = compile_cpp(cls, *(ROOT / 'server' / source for source in sources),
+            flags=('-pthread', '-DKOHERON_SERVER_BUILD', '-Wl,--wrap=read'),
+            includes=(build, ROOT / 'server/tests', *NETWORK_INCLUDES), output=cls.binary)
 
-    def run_case(self, case):
-        result = subprocess.run([str(self.binary), case], capture_output=True, text=True, timeout=15)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_checked_decode_and_string_boundaries(self): self.run_case('checked-decode')
-    def test_stalled_scalar_tcp(self): self.run_case('tcp-input')
-    def test_stalled_scalar_unix(self): self.run_case('unix-input')
-    def test_stalled_dynamic_input(self): self.run_case('dynamic-input')
-    def test_owned_string_tcp(self): self.run_case('owned-string-tcp')
-    def test_owned_string_unix(self): self.run_case('owned-string-unix')
-    def test_owned_string_websocket(self): self.run_case('owned-string-ws')
-    def test_owned_vector_output(self): self.run_case('owned-vector-output')
-    def test_stalled_vector_output(self): self.run_case('tcp-output')
-    def test_stalled_span_output(self): self.run_case('span-output')
-    def test_stalled_websocket_output(self): self.run_case('ws-output')
-    def test_disconnected_writer(self): self.run_case('disconnect-output')
-    def test_concurrent_first_commands(self): self.run_case('concurrent-first')
-    def test_truncated_input(self): self.run_case('truncated-input')
-    def test_invalid_driver_tcp(self): self.run_case('invalid-driver-tcp')
-    def test_invalid_driver_websocket(self): self.run_case('invalid-driver-ws')
-    def test_shared_driver_publication(self): self.run_case('manager-publication')
-    def test_batched_tcp_read_calls(self): self.run_case('tcp-read-calls')
-    def test_batched_unix_read_calls(self): self.run_case('unix-read-calls')
-    def test_fixed_tcp_wire_format(self): self.run_case('fixed-tcp')
-    def test_fixed_websocket_wire_format(self): self.run_case('fixed-ws')
-    def test_partial_tcp_batch(self): self.run_case('partial-tcp-batch')
-    def test_partial_unix_batch(self): self.run_case('partial-unix-batch')
-    def test_truncated_tcp_batch(self): self.run_case('truncated-tcp-batch')
-    def test_truncated_websocket_batch(self): self.run_case('truncated-ws-batch')
-    def test_oversized_tcp_closes_before_body_dispatch(self): self.run_case('oversized-tcp')
-    def test_oversized_unix_closes_before_body_dispatch(self): self.run_case('oversized-unix')
-    def test_misaligned_tcp_closes_before_body_dispatch(self): self.run_case('misaligned-tcp')
-    def test_misaligned_unix_closes_before_body_dispatch(self): self.run_case('misaligned-unix')
-    def test_maximum_tcp_vector_and_next_command(self): self.run_case('maximum-tcp')
-    def test_maximum_unix_vector_and_next_command(self): self.run_case('maximum-unix')
-    def test_rejected_websocket_payload_preserves_next_frame(self): self.run_case('rejected-ws')
-    def test_mixed_tcp_arguments(self): self.run_case('mixed-tcp')
-    def test_mixed_websocket_arguments(self): self.run_case('mixed-ws')
-    def test_empty_fixed_arrays(self): self.run_case('empty-arrays')
-    def test_large_fixed_arrays(self): self.run_case('large-arrays')
-    def test_stalled_mixed_tcp_reply(self): self.run_case('mixed-tcp-output')
-    def test_stalled_mixed_unix_reply(self): self.run_case('mixed-unix-output')
-    def test_stalled_mixed_websocket_reply(self): self.run_case('mixed-ws-output')
-    def test_disconnected_mixed_reply(self): self.run_case('mixed-disconnect-output')
+    def test_cases(self):
+        for case in (
+            'tcp-read-calls', 'unix-read-calls', 'checked-decode', 'concurrent-first',
+            'mixed-disconnect-output', 'disconnect-output', 'empty-arrays', 'fixed-tcp',
+            'fixed-ws', 'invalid-driver-tcp', 'invalid-driver-ws', 'large-arrays',
+            'maximum-tcp', 'maximum-unix', 'misaligned-tcp', 'misaligned-unix', 'mixed-tcp',
+            'mixed-ws', 'oversized-tcp', 'oversized-unix', 'owned-string-tcp',
+            'owned-string-unix', 'owned-string-ws', 'owned-vector-output', 'partial-tcp-batch',
+            'partial-unix-batch', 'rejected-ws', 'manager-publication', 'dynamic-input',
+            'mixed-tcp-output', 'mixed-unix-output', 'mixed-ws-output', 'tcp-input',
+            'unix-input', 'span-output', 'tcp-output', 'ws-output', 'truncated-input',
+            'truncated-tcp-batch', 'truncated-ws-batch',
+        ):
+            with self.subTest(case=case):
+                run_cpp(self, self.binary, case, timeout=15)
 
 
 if __name__ == '__main__':

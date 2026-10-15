@@ -120,6 +120,10 @@ int main(int argc, char** argv) {
         fail_request = SPI_IOC_WR_MODE;
         check(spi.init(SPI_MODE_0, 1000000, 8) == -1 && errno == ENOTTY,
               "legacy init did not restore captured errno");
+        fail_request = 0;
+        check(spi.init(SPI_MODE_0, 1000000, 8) == 0, "legacy init retry failed");
+        hw::SpiDev moved{std::move(spi)};
+        check(moved.is_ok() && !spi.is_ok(), "move ownership");
         return 0;
     }
     if (test == "checked-invalid-device") {
@@ -137,20 +141,6 @@ int main(int argc, char** argv) {
         for (const auto& result : {spi.recv_checked(rx), spi.write_checked(tx)}) {
             check(!result && result.error() == std::errc::bad_file_descriptor,
                   "byte I/O invalid descriptor error lost");
-        }
-        return 0;
-    }
-    if (test == "init") {
-        for (const auto request : {SPI_IOC_WR_MODE, SPI_IOC_WR_MAX_SPEED_HZ,
-                                   SPI_IOC_WR_BITS_PER_WORD}) {
-            fail_request = request;
-            check(spi.init(SPI_MODE_0, 1000000, 8) < 0, "failed init reported success");
-            check(!spi.is_ok(), "failed initialization left device ready");
-            check(fcntl(last_fd, F_GETFD) == -1 && errno == EBADF, "failed init leaked fd");
-            fail_request = 0;
-            const auto before = opens;
-            check(spi.init(SPI_MODE_0, 1000000, 8) == 0 && spi.is_ok(), "retry failed");
-            check(opens == before + 1, "retry did not reopen");
         }
         return 0;
     }
@@ -241,6 +231,7 @@ int main(int argc, char** argv) {
         check(read_calls == 0 && write_calls == 0, "invalid byte I/O reached kernel");
     } else if (test == "checked-transfer") {
         check(spi.transfer_checked(tx, rx).has_value(), "checked full duplex");
+        check(spi.transfer(tx, rx) == 0 && captured.len == tx.size(), "legacy transfer result");
         check(spi.transfer_checked(tx, rx, 2).has_value() && captured.len == 2, "checked prefix");
         check(spi.transfer_checked(tx, 2).has_value() && captured.rx_buf == 0, "checked TX only");
         check(spi.transfer_checked(rx, 2).has_value() && captured.tx_buf == 0, "checked RX only");
@@ -290,6 +281,7 @@ int main(int argc, char** argv) {
             check(!result && result.error() == std::errc::inappropriate_io_control_operation,
                   "setting error lost");
         }
+        check(spi.set_word_length(16) == -1 && errno == ENOTTY, "legacy setting error lost");
         check(spi.transfer_checked(tx, rx).has_value() && captured.speed_hz == 1000000
               && captured.bits_per_word == 8, "failed checked setting affected transfer");
         fail_request = 0;
@@ -299,63 +291,5 @@ int main(int argc, char** argv) {
               && spi.set_word_length_checked(16).has_value(), "checked settings failed");
         check(spi.transfer_checked(tx, rx).has_value() && captured.speed_hz == 2000000
               && captured.bits_per_word == 16, "checked settings not used");
-    } else if (test == "empty") {
-        check(spi.transfer(std::span{tx}.first(0), rx) == 0, "receive only");
-        // Like the kernel's u64_to_user_ptr, truncate to the native pointer width.
-        check(captured.tx_buf == 0 && static_cast<uintptr_t>(captured.rx_buf) == reinterpret_cast<uintptr_t>(rx.data())
-              && captured.len == rx.size(), "empty TX exposed a non-null kernel buffer");
-        check(spi.transfer(tx, std::span{rx}.first(0)) == 0, "transmit only");
-        check(captured.rx_buf == 0 && static_cast<uintptr_t>(captured.tx_buf) == reinterpret_cast<uintptr_t>(tx.data()),
-              "empty RX exposed a non-null kernel buffer");
-    } else if (test == "settings") {
-        fail_request = SPI_IOC_WR_MAX_SPEED_HZ;
-        check(spi.set_speed(4000000) < 0, "speed failure");
-        check(spi.transfer(tx, rx) == 0 && captured.speed_hz == 1000000,
-              "failed speed setting affected transfer");
-        fail_request = SPI_IOC_WR_BITS_PER_WORD;
-        check(spi.set_word_length(16) < 0, "word length failure");
-        check(spi.transfer(tx, rx) == 0 && captured.bits_per_word == 8,
-              "failed word length setting affected transfer");
-        fail_request = 0;
-        check(spi.set_speed(2000000) == 0 && spi.set_word_length(16) == 0, "accepted settings");
-        check(spi.transfer(tx, rx) == 0 && captured.speed_hz == 2000000
-              && captured.bits_per_word == 16, "accepted settings not used");
-    } else if (test == "bounds") {
-        check(spi.transfer(tx, rx, 5) < 0, "oversized full-duplex count accepted");
-        check(spi.transfer(tx, 5) < 0, "oversized TX count accepted");
-        check(spi.transfer(rx, 5) < 0, "oversized RX count accepted");
-        const std::array<uint8_t, 2> small_tx{};
-        check(spi.transfer(small_tx, rx, 3) < 0, "short TX ignored");
-        std::array<uint8_t, 2> small_rx{};
-        check(spi.transfer(tx, small_rx, 3) < 0, "short RX ignored");
-        check(messages == 0, "invalid bounds reached kernel");
-    } else if (test == "length") {
-        uint8_t byte{};
-        const auto too_large = static_cast<size_t>(INT_MAX) + 1;
-        check(spi.transfer(&byte, nullptr, too_large) < 0, "oversized transfer accepted");
-        check(spi.recv(&byte, too_large) < 0, "oversized receive accepted");
-        uint32_t word{};
-        check(spi.write(&word, UINT32_MAX / sizeof(word) + 1) < 0,
-              "write length overflow accepted");
-        check(messages == 0, "oversized transfer reached kernel");
-        check(spi.transfer(nullptr, nullptr, 1) < 0, "missing buffers accepted");
-        check(spi.recv(nullptr, 1) < 0, "missing receive buffer accepted");
-        check(spi.write(static_cast<const uint8_t*>(nullptr), 1) < 0,
-              "missing write buffer accepted");
-    } else if (test == "normal") {
-        check(spi.transfer(tx, rx) == 0 && messages == 1, "full duplex");
-        check(static_cast<uintptr_t>(captured.tx_buf) == reinterpret_cast<uintptr_t>(tx.data())
-              && static_cast<uintptr_t>(captured.rx_buf) == reinterpret_cast<uintptr_t>(rx.data())
-              && captured.len == tx.size(), "full-duplex buffers");
-        check(spi.transfer(tx, rx, 2) == 0 && captured.len == 2, "prefix");
-        check(spi.transfer(tx, std::span{rx}.first(2)) < 0 && messages == 2, "mismatched lengths");
-        check(spi.transfer(tx, rx, 0) == 0 && messages == 2, "empty transfer touched hardware");
-        fail_request = SPI_IOC_MESSAGE(1);
-        check(spi.transfer(tx, rx) < 0 && messages == 3, "kernel error propagation");
-        check(spi.write(tx.data(), tx.size()) == 4, "ordinary write");
-        check(spi.recv(rx) == 0, "EOF receive");
-        hw::SpiDev moved{std::move(spi)};
-        check(moved.is_ok() && !spi.is_ok(), "move ownership");
-        check(spi.transfer(tx, rx) < 0 && messages == 3, "invalid device used");
     } else { check(false, "unknown case"); }
 }

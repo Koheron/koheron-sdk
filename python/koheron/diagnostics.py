@@ -12,6 +12,7 @@ class Reporter:
         self.format = format
         self.checks = []
         self.errors = 0
+        self.warnings = 0
 
     def _line(self, level, message, remedy=None):
         record = {'status': level.lower(), 'message': message}
@@ -19,6 +20,7 @@ class Reporter:
             record['remedy'] = remedy
         self.checks.append(record)
         self.errors += level == 'ERR'
+        self.warnings += level == 'WARN'
         if self.format == 'text':
             colors = {'OK': '\033[1;32m', 'WARN': '\033[1;33m', 'ERR': '\033[1;31m'}
             label = f'[{level}]'

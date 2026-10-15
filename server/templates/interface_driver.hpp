@@ -15,17 +15,6 @@
 
 namespace koheron {
 
-{# ---------- helpers ---------- #}
-{# Build the full PMF expression (with static_cast when needed) #}
-{%- macro full_arg_type(a) -%}
-{{ 'const ' if a.get('is_const') }}{{ a['type'] }}{{ '&' if a.get('by_reference') }}
-{%- endmacro -%}
-{%- macro arg_type_list(args) -%}
-{%- for a in args -%}
-{{ full_arg_type(a) }}{{ ", " if not loop.last }}
-{%- endfor -%}
-{%- endmacro -%}
-
 constexpr int {{ driver.name }}Id = {{ driver.id }};
 
 using {{ driver.name }}Adapter = DriverAdapter<
@@ -35,7 +24,7 @@ using {{ driver.name }}Adapter = DriverAdapter<
 {%- for op in driver.operations -%}
 {{ SEP() }}        Op<
         {%- if op.needs_cast -%}
-            static_cast<{{ op.ret_expr }} ({{ driver.name }}::*)({{ arg_type_list(op.get('arguments', [])) }})>
+            static_cast<{{ op.ret_expr }} ({{ driver.name }}::*)({{ op.arg_types_str }})>
             (&{{ driver.name }}::{{ op['name'] }})
         {%- else -%}
             &{{ driver.name }}::{{ op['name'] }}

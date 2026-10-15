@@ -6,6 +6,28 @@
 * `utilities/`: Misc. utilities.
 * `drivers/`: Generic drivers for basic IPs (FIFO, DMA, ...).
 
+## Server build variants
+
+`server.mk` builds the RPC server, `serverless.mk` builds a hardware application,
+and `server-bare.mk` adds networking for a custom executor. They share compiler
+flags, memory generation, dependency files and compiler/link settings tracking
+through `build-common.mk` and `build-rules.mk`. All variants honor
+`SERVER_EXTRA_CCXXFLAGS`; generated headers are ready before compilation begins.
+The RPC server keeps its precompiled header, ccache and disabled exceptions.
+Custom applications keep exceptions enabled.
+
+`examples/alpha250/fft/config_app.mk` selects an example custom entry point and
+executor. Its includes and runtime driver table both follow `DRIVERS` in the
+instrument configuration, including reordered or removed drivers.
+
+## C++ client ownership
+
+`KoheronClient` owns its TCP socket. It can be moved, including its cached
+operation metadata, and cannot be copied. `close()` is nonthrowing and
+idempotent; destruction also releases descriptor zero. Reconnecting releases
+the previous socket, and connection or metadata failures release the new
+socket before propagating the original exception.
+
 ## Checked SPI operations
 
 `hw::SpiDev` provides `init_checked`, `set_mode_checked`, `set_full_mode_checked`,

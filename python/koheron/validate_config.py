@@ -4,11 +4,20 @@
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import sys
 from pathlib import Path
 from typing import Any
+
+if __package__:
+    from .diagnostics import Reporter
+    from .memory_schema import parse_int, parse_range
+else:
+    # Direct script execution and importlib-based SDK fixtures avoid loading
+    # the client package and its unrelated runtime dependencies.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from diagnostics import Reporter
+    from memory_schema import parse_int, parse_range
 
 try:
     import yaml  # type: ignore
@@ -18,34 +27,6 @@ except ImportError:  # pragma: no cover - PyYAML is listed in SDK requirements.
 ASSIGN_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*([:+?]?=)\s*(.*)$")
 INCLUDE_RE = re.compile(r"^-?include\s+(.+)$")
 ARRAY_RE = re.compile(r"\[\s*([^\]]+)\s*\]")
-
-
-class Reporter:
-    def __init__(self, color: bool) -> None:
-        self.color = color
-        self.errors = 0
-        self.warnings = 0
-
-    def _line(self, level: str, message: str) -> None:
-        colors = {"OK": "\033[1;32m", "WARN": "\033[1;33m", "ERR": "\033[1;31m"}
-        reset = "\033[0m"
-        label = f"[{level}]"
-        if self.color:
-            label = f"{colors[level]}{label}{reset}"
-        print(f"{label} {message}")
-        if level == "ERR":
-            self.errors += 1
-        elif level == "WARN":
-            self.warnings += 1
-
-    def ok(self, message: str) -> None:
-        self._line("OK", message)
-
-    def warn(self, message: str) -> None:
-        self._line("WARN", message)
-
-    def err(self, message: str) -> None:
-        self._line("ERR", message)
 
 
 def strip_comment(line: str) -> str:
@@ -166,35 +147,6 @@ def resolve_assignment_path(cfg: MakeConfig, source: Path, raw_entry: str) -> Pa
     if source.resolve() == cfg.config_mk.resolve():
         return (cfg.sdk_path / path).resolve()
     return (source.parent / path).resolve()
-
-
-def parse_int(value: Any) -> int | None:
-    if isinstance(value, int):
-        return value
-    if not isinstance(value, str):
-        return None
-    text = value.replace("_", "").strip()
-    try:
-        return int(text, 0)
-    except ValueError:
-        return None
-
-
-def parse_range(value: Any) -> int | None:
-    if isinstance(value, int):
-        return value
-    if not isinstance(value, str):
-        return None
-    text = value.replace("_", "").strip()
-    match = re.fullmatch(r"([0-9]+)([KMGkmg]?)", text)
-    if match:
-        number = int(match.group(1))
-        suffix = match.group(2).upper()
-        return number * {"": 1, "K": 1024, "M": 1024**2, "G": 1024**3}[suffix]
-    try:
-        return int(text, 0)
-    except ValueError:
-        return None
 
 
 def validate_config(reporter: Reporter, cfg: MakeConfig) -> None:
@@ -342,8 +294,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-color", action="store_true", help="Disable colored status labels")
     args = parser.parse_args(argv)
 
-    color = sys.stdout.isatty() and not args.no_color and os.environ.get("NO_COLOR") is None
-    reporter = Reporter(color=color)
+    reporter = Reporter(color=sys.stdout.isatty() and not args.no_color)
     sdk_path = Path(args.sdk_path).resolve()
     config_mk = Path(args.cfg)
     if not config_mk.is_absolute():

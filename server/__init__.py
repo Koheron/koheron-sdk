@@ -1,6 +1,6 @@
 # (c) Koheron
 
-import os, re, json
+import os, re
 import CppHeaderParser
 import jinja2
 
@@ -17,12 +17,6 @@ FORBIDDEN_INTS = [
 def is_std_array(t: str) -> bool:
     return t.split("<")[0].strip() in ["std::array", "const std::array"]
 
-def is_std_vector(t: str) -> bool:
-    return t.split("<")[0].strip() in ["std::vector", "const std::vector"]
-
-def is_std_string(t: str) -> bool:
-    return t.strip() in ["std::string", "const std::string"]
-
 def check_type(_type, driver_name, opname):
     if _type in FORBIDDEN_INTS:
         raise ValueError(f'[{driver_name}::{opname}] Invalid type "{_type}": '
@@ -37,13 +31,6 @@ def exact_ret_type(classname, operation):
         )
         return f"decltype(std::declval<{classname}>().{operation['name']}({decl_args}))"
     return ret
-
-def format_type(_type):
-    if is_std_array(_type):
-        templates = _type.split('<')[1].split('>')[0].split(',')
-        return f'std::array<{templates[0]}, " << {templates[1]} << ">'
-    else:
-        return _type
 
 # ------------------------- Jinja env ------------------------
 
@@ -61,27 +48,21 @@ def _build_jinja_env():
     )
 
     env.filters["exact_ret_type"] = lambda operation, classname: exact_ret_type(classname, operation)
-    env.filters["get_exact_ret_type"] = lambda classname, operation: exact_ret_type(classname, operation)
+    env.filters["get_exact_ret_type"] = exact_ret_type
     env.globals["get_exact_ret_type"] = exact_ret_type
     return env
 
-def _env():
+def get_template(filename):
     global _ENV
     if _ENV is None:
         _ENV = _build_jinja_env()
-    return _ENV
-
-def get_template(filename):
-    return _env().get_template(filename)
+    return _ENV.get_template(filename)
 
 # ------------------------- Parsing -------------------
 
 def parse_header(hppfile):
     cpp_header = CppHeaderParser.CppHeader(hppfile)
-    drivers = []
-    for _, cls in cpp_header.classes.items():
-        drivers.append(parse_driver_header(cls, hppfile))
-    return drivers
+    return [parse_driver_header(cls, hppfile) for cls in cpp_header.classes.values()]
 
 def parse_driver_header(_class, hppfile):
     driver = {
@@ -94,13 +75,12 @@ def parse_driver_header(_class, hppfile):
     }
     op_id = 0
     for method in _class["methods"]["public"]:
-        if (method["name"] in ["" + _class["name"], "~" + _class["name"]]) or method.get("template"):
+        if method["name"] in [_class["name"], "~" + _class["name"]] or method.get("template"):
             continue
         op = parse_header_operation(driver["name"], method)
         op["id"] = op_id
         driver["operations"].append(op)
         op_id += 1
-    mark_overloads(driver)
     mark_ops_needing_cast(_class, driver)
     augment_ops(driver)
     return driver
@@ -110,7 +90,7 @@ def parse_header_operation(driver_name, method):
     check_type(op["ret_type"], driver_name, op["name"])
     params = method.get("parameters") or []
     if params:
-        op["arguments"], op["args_client"] = [], []
+        op["arguments"] = []
         for p in params:
             arg_type = p["type"].strip()
             by_ref = arg_type.endswith("&")
@@ -131,24 +111,15 @@ def parse_header_operation(driver_name, method):
                 arg["is_const"] = True
 
             op["arguments"].append(arg)
-            op["args_client"].append({"name": arg["name"], "type": format_type(arg["type"])})
     return op
-
-def mark_overloads(driver_dict):
-    counts = {}
-    for op in driver_dict["operations"]:
-        counts[op["name"]] = counts.get(op["name"], 0) + 1
-    for op in driver_dict["operations"]:
-        op["is_overloaded"] = counts[op["name"]] > 1
 
 def mark_ops_needing_cast(_class, driver_dict):
     templated_names = {m["name"] for m in _class["methods"]["public"] if m.get("template", False)}
     counts = {}
     for op in driver_dict["operations"]:
         counts[op["name"]] = counts.get(op["name"], 0) + 1
-    overloaded_names = {n for n, c in counts.items() if c > 1}
     for op in driver_dict["operations"]:
-        op["needs_cast"] = (op["name"] in templated_names) or (op["name"] in overloaded_names)
+        op["needs_cast"] = op["name"] in templated_names or counts[op["name"]] > 1
 
 def _full_arg_type(a):
     t = a['type'].strip()
@@ -157,20 +128,6 @@ def _full_arg_type(a):
     if a.get('by_reference'):
         t = f'{t}&'
     return t
-
-def build_arg_types_str(op):
-    args = op.get('arguments', [])
-    return ', '.join(_full_arg_type(a) for a in args) if args else ''
-
-def build_ret_expr(classname, operation):
-    rt = operation['ret_type']
-    if 'auto' in rt or is_std_array(rt):
-        decl_args = []
-        for a in operation.get('arguments', []):
-            decl_args.append(f'std::declval<{_full_arg_type(a)}>()')
-        call_args = ', '.join(decl_args)
-        return f'decltype(std::declval<{classname}>().{operation["name"]}({call_args}))'
-    return rt
 
 def augment_ops(driver_dict):
     classname = driver_dict['name']
@@ -183,9 +140,6 @@ def augment_ops(driver_dict):
 class Driver:
     def __init__(self, path, base_dir="."):
         dev = parse_header(os.path.join(base_dir, path))[0]
-        self.raw = dev
-        self.header_path = os.path.dirname(path)
-        self.path = path
         self.operations = dev["operations"]
         self.tag = dev["tag"]
         self.name = dev["name"]
@@ -194,7 +148,6 @@ class Driver:
         self.includes = dev["includes"]
         self.interface_name = "interface_" + os.path.basename(self.includes[0]).split(".")[0]
         self.id = None
-        self.calls = None
 
 def get_driver(path, driver_id=0):
     d = Driver(path)
@@ -202,20 +155,17 @@ def get_driver(path, driver_id=0):
     return d
 
 def get_drivers(drivers_list):
-    drivers, driver_id = [], 2
-    for path in drivers_list or []:
+    drivers = []
+    for driver_id, path in enumerate(drivers_list or [], 2):
         assert path.endswith((".hpp", ".h"))
         drivers.append(get_driver(path, driver_id))
-        driver_id += 1
     return drivers
 
 def get_driver_id(drivers_list, driver_path):
-    driver_id = 2
-    for path in drivers_list or []:
+    for driver_id, path in enumerate(drivers_list or [], 2):
         assert path.endswith((".hpp", ".h"))
         if os.path.split(path)[1] == os.path.split(driver_path)[1]:
             return driver_id
-        driver_id += 1
     return None
 
 # ------------------------- Rendering entry points ---------------------------

@@ -9,10 +9,10 @@ bash examples/alpha250/phase-noise-analyzer/tests/run.sh
 make CFG=examples/alpha250/phase-noise-analyzer/config.mk server web N_CPUS=4
 ```
 
-The runner defaults to `.venv/bin/python3`, `cross-armhf:24.04` and
+The runner defaults to `.venv/bin/python3`, `cross-armhf:26.04` and
 `koheron-web:node24`; override with `PNA_PYTHON`, `PNA_CPP_IMAGE` and
 `PNA_WEB_IMAGE`. The Python environment needs NumPy, SciPy and the Koheron
-client dependencies. The C++ image needs g++-13 and Eigen; the web image needs
+client dependencies. The C++ image needs g++-15 and Eigen; the web image needs
 Node.js and npm. If TypeScript or jsdom are missing, the runner caches the
 versions specified for these tests under `tmp/tests/phase-noise/web-deps`.
 The wrapper delegates to the [shared host runner](../../../../server/drivers/phase-noise/tests/README.md),

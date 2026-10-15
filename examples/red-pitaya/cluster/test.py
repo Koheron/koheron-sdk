@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
-import os, time
+import time
 from koheron import command, connect
 
-class Cluster(object):
+class Cluster:
     def __init__(self, client):
         self.client = client
 

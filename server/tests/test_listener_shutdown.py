@@ -1,13 +1,9 @@
 """Listener shutdown and admission limits with real TCP/WebSocket/UNIX sockets."""
-import os
 from pathlib import Path
-import shlex
 import socket
-import subprocess
 import tempfile
 import unittest
-
-ROOT = Path(__file__).resolve().parents[2]
+from cpp_fixture import ROOT, compile_cpp, run_cpp, NETWORK_INCLUDES
 
 
 class ListenerShutdownTest(unittest.TestCase):
@@ -33,26 +29,20 @@ class ListenerShutdownTest(unittest.TestCase):
                             .replace('/var/run/koheron-server.sock', str(build / 'server.sock')))
         (build / 'drivers_list.hpp').write_text('#pragma once\n#include <tuple>\nusing driver_list = std::tuple<>;\n')
         cls.binary = build / 'listener-shutdown'
-        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
-                   '-Wextra', '-Werror', '-pthread', '-Wl,--wrap=read',
-                   '-I', str(build), '-I', str(ROOT),
-                   '-I', str(ROOT / 'server/external_libs'),
-                   '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]
-        command += shlex.split(os.environ.get('CXXFLAGS', ''))
         sources = ('tests/listener_shutdown.cpp', 'network/listener_manager.cpp',
                    'network/listening_channel.cpp', 'network/session_manager.cpp',
                    'network/session.cpp', 'network/sockets.cpp', 'network/websocket.cpp',
                    'network/sha1.cpp', 'network/base64.cpp', 'runtime/runtime_executor.cpp')
-        command += [str(ROOT / 'server' / source) for source in sources]
-        subprocess.run(command + ['-o', str(cls.binary)], check=True, timeout=120)
+        cls.binary = compile_cpp(cls, *(ROOT / 'server' / source for source in sources),
+            flags=('-pthread', '-Wl,--wrap=read'), includes=(build, *NETWORK_INCLUDES),
+            output=cls.binary)
 
-    def run_case(self, case):
-        result = subprocess.run([str(self.binary), case], capture_output=True,
-                                text=True, timeout=15)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_shutdown_waits_for_blocked_workers(self): self.run_case('shutdown')
-    def test_connection_limit_during_burst(self): self.run_case('limit')
+    def test_cases(self):
+        for case in (
+            'limit', 'shutdown',
+        ):
+            with self.subTest(case=case):
+                run_cpp(self, self.binary, case, timeout=15)
 
 
 if __name__ == '__main__':

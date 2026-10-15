@@ -27,7 +27,7 @@ variable memory_{{ address['name'] }}_offset {{ address['offset'] }}
 variable memory_{{ address['name'] }}_range {{ address['range'] }}
 {% else %}
 {% for i in range(address['n_blocks']) -%}
-variable memory_{{ address['name'] }}{{ i }}_offset 0x[format %x [expr {{ address['offset'] }} + {{ i }} * {{ address['range']|replace_KMG }}]]
+variable memory_{{ address['name'] }}{{ i }}_offset 0x[format %x [expr {{ address['offset'] }} + {{ i }} * {{ address['range']|size_bytes }}]]
 variable memory_{{ address['name'] }}{{ i }}_range {{ address['range'] }}
 {% endfor %}
 {% endif %}

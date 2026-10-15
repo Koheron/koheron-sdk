@@ -1,16 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import numpy as np
 import os
-import time
 from adc_dac_bram import AdcDacBram
 from koheron import connect
 
-import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D
 
 def set_dac_modulation():
     amp_mod = 0.99
@@ -40,7 +35,7 @@ def test_phase_shift(config):
     plt.show()
 
 if __name__ == "__main__":
-    host = os.getenv('HOST', '192.168.1.42')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, 'adc-dac-bram', restart=True)
     driver = AdcDacBram(client)
 

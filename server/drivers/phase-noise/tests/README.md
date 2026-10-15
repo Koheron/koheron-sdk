@@ -17,7 +17,7 @@ bundle first when selecting ALPHA250-4 or all instruments. Browser checks load
 the real sources and templates directly and need no web build, but their wire
 format integration fixture requires the `cpp` stage to have run first.
 
-For native execution, install g++-13, Eigen, the Python client dependencies,
+For native execution, install g++-15, Eigen, the Python client dependencies,
 NumPy and SciPy, and run `npm install --prefix web --no-package-lock`. Then use:
 
 ```sh
@@ -38,10 +38,9 @@ sanitizers and frame pointers; non-PIE executables avoid sanitizer address-space
 collisions. Output and fallback browser dependencies are under `tmp/tests`.
 
 Shared publication, cyclic DMA and streaming Welch tests run once per invocation.
-Instrument C++ fixtures stay with their examples. The workflow in
-`.github/workflows/ci.yml` compiles eleven web applications (PNA, DPLL, FFT,
-ALPHA15, phase modulator, dual DDS and pulse generator) and runs the complete host suite natively.
-CI also runs ALPHA15's existing C++ acquisition regression with sanitizers.
+Instrument C++ fixtures stay with their examples. Python fixtures that compile C++
+use the selected compiler and execute their temporary binaries in the same
+native or Docker environment.
 `bash web/tests/run.sh fft` runs just the shared/FFT browser checks, without
 requiring PNA C++ payloads.
 

@@ -8,6 +8,8 @@ case "$suite" in all|alpha250|alpha250-4|dpll) ;; *) echo "Unknown suite: $suite
 case "$stage" in all|python|cpp|web) ;; *) echo "Unknown stage: $stage" >&2; exit 2 ;; esac
 mode=${PNA_TEST_MODE:-native}
 case "$mode" in native|docker) ;; *) echo "PNA_TEST_MODE must be native or docker" >&2; exit 2 ;; esac
+export PNA_CPP_IMAGE=${PNA_CPP_IMAGE:-cross-armhf:26.04}
+export PNA_WEB_IMAGE=${PNA_WEB_IMAGE:-koheron-web:node24}
 if [[ -x .venv/bin/python3 ]]; then
     python=${PNA_PYTHON:-.venv/bin/python3}
 else
@@ -16,10 +18,10 @@ fi
 
 run_cpp() {
     if [[ $mode == docker ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" -v "$repo:/review" -w /review \
+        docker run --rm --pull=never --init -u "$(id -u):$(id -g)" -v "$repo:/review" -w /review \
             -e PNA_TEST_CXX="${PNA_TEST_CXX:-g++-15}" \
             -e PNA_TEST_CXXFLAGS="${PNA_TEST_CXXFLAGS:-}" \
-            "${PNA_CPP_IMAGE:-cross-armhf:26.04}" bash "$1"
+            "$PNA_CPP_IMAGE" bash "$1"
     else
         bash "$1"
     fi
@@ -27,8 +29,8 @@ run_cpp() {
 
 run_web() {
     if [[ $mode == docker ]]; then
-        docker run --rm -u "$(id -u):$(id -g)" -v "$repo:/review" -w /review \
-            "${PNA_WEB_IMAGE:-koheron-web:node24}" "$@"
+        docker run --rm --pull=never --init -u "$(id -u):$(id -g)" -v "$repo:/review" -w /review \
+            "$PNA_WEB_IMAGE" "$@"
     else
         "$@"
     fi

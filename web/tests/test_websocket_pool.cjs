@@ -25,8 +25,38 @@ function fixture() {
     }).outputText, context);
     const Pool = vm.runInContext('WebSocketPool', context);
     const Client = vm.runInContext('Client', context);
-    return {sockets, Pool, Client};
+    const Command = vm.runInContext('Command', context);
+    return {sockets, Pool, Client, Command};
 }
+
+test('command scalars retain network byte order and signed integer boundaries', () => {
+    const {Command} = fixture();
+    const types = ['int8_t', 'uint8_t', 'int16_t', 'uint16_t', 'int32_t', 'uint32_t',
+        'float', 'double', 'bool', 'bool'];
+    const command = Command(0x1234, {id: 0x5678, args: types.map(type => ({type}))},
+        -128, 255, -32768, 65535, -2147483648, 4294967295, -1.5, 1.5, true, false);
+    assert.equal(Buffer.from(command.data).toString('hex'),
+        '000000001234567880ff8000ffff80000000ffffffffbfc000003ff80000000000000100');
+});
+
+test('command arrays, vectors and strings retain their payload framing', () => {
+    const {Command} = fixture();
+    const types = ['std::array<uint8_t, 2>', 'std::vector<int32_t>', 'std::string'];
+    const command = Command(2, {id: 3, args: types.map(type => ({type}))},
+        new Uint8Array([0, 255]), new Int32Array([0x01020304, -1]), 'AZ');
+    assert.equal(Buffer.from(command.data).toString('hex'),
+        '000000000002000300ff0000000804030201ffffffff00000002415a');
+});
+
+test('zero-argument commands and invalid argument errors retain their behavior', () => {
+    const {Command} = fixture();
+    assert.equal(Buffer.from(Command(1, {id: 2, args: []}, 'ignored').data).toString('hex'),
+        '0000000000010002');
+    assert.throws(() => Command(1, {id: 2, args: [{type: 'uint32_t'}]}),
+        /Invalid number of arguments\. Expected 1 receive 0\./);
+    assert.throws(() => Command(1, {id: 2, args: [{type: 'unsupported'}]}, 0),
+        /Unknown type unsupported/);
+});
 
 test('socket IDs survive out-of-order opens and simultaneous replies', async () => {
     const {sockets, Pool, Client} = fixture();

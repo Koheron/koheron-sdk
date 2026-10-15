@@ -1,24 +1,19 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import os
-import time
-from koheron import command, connect
+from koheron import connect
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 mpl.style.use('classic')
 import numpy as np
 from adc_dac_dma import AdcDacDma
 
-host = os.getenv('HOST','192.168.1.113')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, name='adc-dac-dma')
 driver = AdcDacDma(client)
 
 n_avg = 5
-
-# -------------------------------------------------------------------------------
 # Set ADC
-# -------------------------------------------------------------------------------
 
 input_range = 1
 
@@ -32,10 +27,7 @@ else:
 
 adc_channel = 0
 driver.select_adc_channel(adc_channel)
-
-# -------------------------------------------------------------------------------
 # Run DMA
-# -------------------------------------------------------------------------------
 
 fs_adc = 15E6
 adc = np.zeros(driver.n)
@@ -53,15 +45,10 @@ plt.ylim((-2**17, 2**17))
 plt.xlabel('Time (us)')
 plt.ylabel('ADC Raw data')
 plt.show()
-
-# -------------------------------------------------------------------------------
 # Acquire PSD
-# -------------------------------------------------------------------------------
 
 f = np.arange((n_pts // 2 + 1)) * fs_adc / n_pts
 psd = np.zeros((n_pts // 2 + 1))
-
-# win = np.hanning(n)
 win = np.ones(n_pts)
 
 for i in range(n_avg):
@@ -73,8 +60,6 @@ for i in range(n_avg):
     data_volts = data * input_span / 2**18
     print("Transition noise = {:.2f} LSBrms, Input noise = {:.2f} uVrms"
             .format( noise_lsb_rms, 1E6 * np.std(data_volts)))
-    # plt.plot(data_volts)
-    # plt.show()
     psd += 2.0 * np.abs(np.fft.rfft(win * (data_volts - np.mean(data_volts)))) ** 2 / fs_adc / np.sum(win**2)
 
 psd /= n_avg
@@ -87,6 +72,5 @@ ax.grid(True, which='minor', linestyle='-', color='0.35')
 ax.set_axisbelow(True)
 ax.set_xlabel("FREQUENCY (Hz)")
 ax.set_ylabel(u"VOLTAGE NOISE DENSITY (nV/\u221AHz)")
-# ax.set_ylim(1., 100.)
 plt.legend(loc='best')
 plt.show()

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -7,6 +6,10 @@ import json
 import jinja2
 import yaml
 import server
+
+# Import the standalone schema without initializing the Python client package.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'python', 'koheron'))
+from memory_schema import parse_int, range_literal, size_bytes
 
 def write_if_changed(path, text):
     old = None
@@ -19,15 +22,6 @@ def write_if_changed(path, text):
         return True
     return False
 
-def append_path(filename, file_path):
-    if filename.startswith('./'):
-        return os.path.join(file_path, filename[2:])
-    if os.path.isabs(filename):          # <-- keep absolute paths
-        return filename
-    return os.path.join(SDK_PATH, filename)
-
-    return filename
-
 def load_config(config_filename):
     ''' Get the config dictionary from the file 'memory.yml' '''
 
@@ -38,7 +32,7 @@ def load_config(config_filename):
 
 def parse_brackets(string):
     ''' ex: 'pwm', '4' = parse_brackets('pwm[4]') '''
-    start, end = map(lambda char : string.find(char), ('[', ']'))
+    start, end = string.find('['), string.find(']')
     if start >= 0 and end >= 0:
         return string[0 : start], string[start + 1 : end]
     else:
@@ -57,30 +51,21 @@ def read_parameters(string, parameters):
 
 def _normalize_int_literal(value):
     """Return a string literal without numeric separators."""
+    parsed = parse_int(value)
+    if parsed is None or parsed < 0:
+        raise ValueError(f'Invalid memory offset: {value!r}')
     if isinstance(value, str):
         cleaned = value.replace('_', '')
-        try:
-            parsed = int(cleaned, 0)
-        except ValueError:
-            return value
 
         lowered = cleaned.lower()
-        if lowered.startswith('0x'):
+        if lowered.startswith(('0x', '0o')):
             return f'0x{parsed:X}'
-        if lowered.startswith('0o'):
-            return f'0o{parsed:o}'
         if lowered.startswith('0b'):
             return f'0b{parsed:b}'
         return str(parsed)
 
-    if isinstance(value, int):
-        # Preserve hexadecimal formatting for integer literals that may have
-        # been parsed by YAML (e.g. ``0x5400_0000``). Represent them in
-        # uppercase hexadecimal so downstream templates still receive an
-        # address-like string instead of a decimal representation.
-        return f'0x{value:X}'
-
-    return value
+    # Preserve hexadecimal formatting for integer literals parsed by YAML.
+    return f'0x{parsed:X}'
 
 
 def build_memory(memory, parameters):
@@ -90,16 +75,17 @@ def build_memory(memory, parameters):
 
         if 'offset' in address:
             address['offset'] = _normalize_int_literal(address['offset'])
+        address['range'] = range_literal(address['range'])
 
         # Protection
-        if not 'protection' in address:
+        if 'protection' not in address:
             address['prot_flag'] = 'PROT_READ|PROT_WRITE'
         elif address['protection'] == 'read':
             address['prot_flag'] = 'PROT_READ'
         elif address['protection'] == 'write':
             address['prot_flag'] = 'PROT_WRITE'
 
-        if not 'dev' in address:
+        if 'dev' not in address:
             address['dev'] = '/dev/mem'
         else:
             address['dev'] = str(address['dev'])
@@ -125,8 +111,7 @@ def build_registers(registers, parameters):
             for i in range(parameter):
                 new_registers.append(register+str(i))
 
-    registers = new_registers
-    return registers
+    return new_registers
 
 def append_memory_to_config(config):
     parameters = config.get('parameters', {})
@@ -137,29 +122,9 @@ def build_json(dict):
     dict_json = json.dumps(dict, separators=(',', ':')).replace('"', '\\"')
     return dict_json
 
-def dump_if_changed(filename, new_dict):
-    changed = False
-    if os.path.isfile(filename):
-        with open(filename, 'r') as yml_file:
-            old_dict = yaml.safe_load(yml_file)
-            if old_dict != new_dict:
-               changed = True
-
-    if not os.path.isfile(filename) or changed:
-        with open(filename, 'w') as yml_file:
-            yaml.dump(new_dict, yml_file)
-
 def render_template_to_string(config, template_filename):
     tpl = get_renderer().get_template(template_filename)
     return tpl.render(config=config)
-
-def _parse_size_bytes(s):
-    s = str(s).strip()
-    if s.endswith(('K','M','G')):
-        num = int(s[:-1], 0) if s[:-1].startswith('0x') else int(s[:-1])
-        mul = {'K':1024, 'M':1024*1024, 'G':1024*1024*1024}[s[-1]]
-        return num * mul
-    return int(s, 0)
 
 def _compat_to_dt(val):
     # Accept string or list; return a DTS-compatible string list
@@ -173,8 +138,10 @@ def build_mem_simple_context(cfg):
         # Only include entries that explicitly set a compatible
         if 'compatible' not in e:
             continue
-        base = int(str(e['offset']), 0)
-        size = _parse_size_bytes(e['range'])
+        base = parse_int(e['offset'])
+        if base is None or base < 0:
+            raise ValueError(f"Invalid memory offset: {e['offset']!r}")
+        size = size_bytes(e['range'])
         regions.append({
             'name': e['name'],
             'base': base,
@@ -202,25 +169,12 @@ def get_renderer():
       loader = jinja2.FileSystemLoader([os.path.join(SDK_PATH, 'fpga'), os.path.join(SDK_PATH, 'server/templates')])
     )
 
-    def quote(list_):
-        return ['"%s"' % element for element in list_]
-
-    def remove_extension(filename):
-        toks = filename.split('.')
-        return toks[0]
-
     def replace_KMG(string):
-        return string.replace('K', '*1024U').replace('M', '*1024U*1024U').replace('G', '*1024U*1024U*1024U')
+        return f'{size_bytes(string)}U'
 
-    renderer.filters['quote'] = quote
-    renderer.filters['remove_extension'] = remove_extension
     renderer.filters['replace_KMG'] = replace_KMG
+    renderer.filters['size_bytes'] = size_bytes
     return renderer
-
-def fill_template(config, template_filename, output_filename):
-    template = get_renderer().get_template(template_filename)
-    with open(output_filename, 'w') as output:
-        output.write(template.render(config=config))
 
 ###################
 # Main
@@ -239,13 +193,8 @@ if __name__ == "__main__":
 
     config_filename = sys.argv[3]
     config = load_config(config_filename)
-    config_path = os.path.dirname(config_filename)
 
-    if sys.version_info[0] < 3:
-        reload(sys)
-        sys.setdefaultencoding('utf-8')
-
-    elif cmd == '--memory_tcl':
+    if cmd == '--memory_tcl':
         text = render_template_to_string(append_memory_to_config(config), 'memory.tcl')
         write_if_changed(output_filename, text)
 

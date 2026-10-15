@@ -1,8 +1,7 @@
 import os
-import time
 from koheron import connect, command
 
-class VCO(object):
+class VCO:
     def __init__(self, client):
         self.client = client
 
@@ -22,7 +21,7 @@ class VCO(object):
     def set_reference_clock(self, val):
         pass
 
-host = os.getenv('HOST','192.168.1.22')
+host = os.getenv('HOST', '192.168.1.100')
 driver = VCO(connect(host, 'vco', restart=False))
 
 # Use external reference clock

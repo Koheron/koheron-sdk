@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 from pprint import pprint
 import numpy as np
@@ -10,7 +9,7 @@ from koheron import connect
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-host = os.getenv('HOST', '192.168.1.42')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'adc-dac-bram', restart=True)
 pprint(client.commands)
 driver = AdcDacBram(client)
@@ -24,7 +23,6 @@ clk_100MHz = {'idx': 2, 'fs': 100E6}
 
 clock = clk_100MHz
 driver.set_sampling_frequency(clock['idx'])
-# driver.phase_shift(100)
 
 driver.set_reference_clock(0)
 
