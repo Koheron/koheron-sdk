@@ -15,6 +15,8 @@
 // Deliberately returns driver-owned storage, including nested borrowed views.
 struct LockingInstrument {
     inline static std::atomic<unsigned> constructions{0}, calls{0}, readers{0}, active{0}, max_active{0};
+    std::vector<uint32_t> owned_words;
+    std::string owned_text;
     uint32_t value = 7;
     std::vector<uint32_t> data = std::vector<uint32_t>(512 * 1024, 0x33333333);
     std::array<uint32_t, 4> array{1, 2, 3, 4};
@@ -27,6 +29,25 @@ struct LockingInstrument {
         array.fill(v);
         text = "after mutation";
     }
+    bool argument_ownership(std::vector<uint32_t> words, const std::vector<uint32_t>& constant_words,
+                            std::vector<uint32_t>& mutable_words, std::string text,
+                            const std::string& constant_text, std::string& mutable_text) {
+        const bool same = words == constant_words && words == mutable_words &&
+                          text == constant_text && text == mutable_text;
+        bool independent = true;
+        if (!mutable_words.empty()) {
+            mutable_words[0] ^= 1;
+            independent = words[0] == constant_words[0] && words[0] != mutable_words[0];
+        }
+        if (!mutable_text.empty()) {
+            mutable_text[0] ^= 1;
+            independent = independent && text[0] == constant_text[0] && text[0] != mutable_text[0];
+        }
+        owned_words = std::move(words);
+        owned_text = std::move(text);
+        return same && independent;
+    }
+    uint32_t retained_arguments() const { return uint32_t(owned_words.size() + owned_text.size()); }
     uint32_t get() const { return value; }
     void set_vector(const std::vector<uint32_t>& v) { ++calls; value = v.at(0); }
     const std::vector<uint32_t>& get_vector() const { ++readers; return data; }

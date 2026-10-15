@@ -72,7 +72,7 @@
                 $("state").textContent = "Controlled comparison running · updates paused during measurement";
                 $("start").disabled = true; $("cancel").disabled = false; $("download").disabled = true;
                 $("summary").textContent = "Showing the previous report until the controlled comparison finishes";
-                setTimeout(() => poll(token), 11000);
+                setTimeout(() => poll(token), 15000);
                 return;
             }
             let batch = JSON.parse(await rpc("get_log", [cursor]));

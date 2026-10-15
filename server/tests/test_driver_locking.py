@@ -20,7 +20,7 @@ using driver_list = std::tuple<LockingInstrument>;
         (build / 'drivers.hpp').write_text('#include "driver_locking_instrument.hpp"\n')
         methods = ('set', 'get', 'set_vector', 'get_vector', 'get_span', 'get_array',
                    'get_fixed_span', 'get_views', 'busy', 'set_scalars', 'fixed_types',
-                   'mixed_types', 'empty_arrays', 'large_arrays', 'get_mixed', 'get_owned_vector', 'get_owned_string')
+                   'mixed_types', 'empty_arrays', 'large_arrays', 'get_mixed', 'get_owned_vector', 'get_owned_string', 'argument_ownership', 'retained_arguments')
         ops = ','.join(f'Op<&LockingInstrument::{method}>' for method in methods)
         (build / 'interface_drivers.hpp').write_text(f'''
 #include "server/executor/driver_adapter.hpp"
@@ -49,6 +49,8 @@ namespace koheron { inline std::string build_drivers_json() { return "[]"; } }
 
     def test_cases(self):
         for case in (
+            'argument-ownership-tcp', 'argument-ownership-unix', 'argument-ownership-ws',
+            'argument-ownership-empty',
             'tcp-read-calls', 'unix-read-calls', 'checked-decode', 'concurrent-first',
             'mixed-disconnect-output', 'disconnect-output', 'empty-arrays', 'fixed-tcp',
             'fixed-ws', 'invalid-driver-tcp', 'invalid-driver-ws', 'large-arrays',

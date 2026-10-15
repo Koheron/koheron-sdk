@@ -28,6 +28,8 @@ class Bist
 
     bool start_comparison(uint32_t case_mask);
     bool comparison_active();
+    uint32_t benchmark_upload(std::vector<uint32_t> words, uint32_t seed);
+    uint32_t benchmark_upload_reference(const std::vector<uint32_t>& words, uint32_t seed);
 
   private:
     bool start_impl(uint32_t analog_mask, uint32_t profile, uint32_t case_mask);

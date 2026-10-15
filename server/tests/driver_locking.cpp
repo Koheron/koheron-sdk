@@ -9,9 +9,28 @@
 #include <stdexcept>
 #include <sys/ioctl.h>
 #include <iostream>
+#include <cstdlib>
+#include <new>
 
 using namespace std::chrono_literals;
 using Bytes = std::vector<unsigned char>;
+
+// Observe only allocations on the server thread, excluding client construction.
+// The two distinct sizes identify decoded vector and long-string storage.
+thread_local bool server_allocations = false;
+std::atomic<size_t> vector_allocation_size{0}, string_allocation_size{0};
+std::atomic<unsigned> vector_allocations{0}, string_allocations{0};
+[[gnu::noinline]] void* operator new(size_t size) {
+    void* result = std::malloc(size == 0 ? 1 : size);
+    if (!result) throw std::bad_alloc();
+    if (server_allocations) {
+        if (size == vector_allocation_size) ++vector_allocations;
+        if (size == string_allocation_size) ++string_allocations;
+    }
+    return result;
+}
+[[gnu::noinline]] void operator delete(void* pointer) noexcept { std::free(pointer); }
+[[gnu::noinline]] void operator delete(void* pointer, size_t) noexcept { std::free(pointer); }
 
 // Count real server read calls for a fully queued body. Client reads use recv().
 std::atomic<int> measured_fd{-1};
@@ -110,7 +129,9 @@ template<int Kind> struct Connection {
     }
     void start() {
         worker = std::thread([this] {
+            server_allocations = true;
             session->run();
+            server_allocations = false;
             // Production SessionManager shuts down the socket when run exits.
             // Keep the descriptor owned by this fixture until destruction.
             ::shutdown(server, SHUT_RDWR);
@@ -125,8 +146,11 @@ template<int Kind> struct Connection {
     }
     void send(const Bytes& bytes) {
         if constexpr (Kind == net::WEBSOCK) {
-            check(bytes.size() < 126, "Test frame too large");
-            Bytes frame{0x82, static_cast<unsigned char>(0x80 | bytes.size()), 0, 0, 0, 0};
+            Bytes frame; frame.reserve(bytes.size() + 14); frame.push_back(0x82);
+            if (bytes.size() < 126) frame.push_back(0x80 | bytes.size());
+            else if (bytes.size() <= 65535) { frame.push_back(0xfe); append_be(frame, bytes.size(), 2); }
+            else { frame.push_back(0xff); append_be(frame, bytes.size(), 8); }
+            frame.insert(frame.end(), 4, 0);
             frame.insert(frame.end(), bytes.begin(), bytes.end()); send_all(client, frame);
         } else send_all(client, bytes);
     }
@@ -488,13 +512,48 @@ void checked_decode() {
     check(!result && result.error()==Error::disconnected && out.empty(),"partial string published");
 }
 
+template<int Kind> void argument_ownership(bool empty = false) {
+    Connection<Kind> connection(1);
+    connection.send(command(1));
+    check(connection.response(12) == scalar_response(1, 7), "Warmup failed");
+    std::vector<uint32_t> words(empty ? 0 : 4096);
+    for (size_t i = 0; i < words.size(); ++i) words[i] = uint32_t(i * 73 + 1);
+    const std::string text(empty ? 0 : 8192, 'x');
+    auto request = command(17);
+    for (unsigned i = 0; i < 3; ++i) {
+        append_be(request, words.size() * sizeof(uint32_t), 4);
+        const auto* data = reinterpret_cast<const unsigned char*>(words.data());
+        if (!words.empty()) request.insert(request.end(), data, data + words.size() * sizeof(uint32_t));
+    }
+    for (unsigned i = 0; i < 3; ++i) {
+        append_be(request, text.size(), 4);
+        request.insert(request.end(), text.begin(), text.end());
+    }
+    vector_allocation_size = empty ? 0 : words.size() * sizeof(uint32_t);
+    string_allocation_size = empty ? 0 : text.size() + 1;
+    vector_allocations = string_allocations = 0;
+    connection.send(request);
+    auto expected = command(17); expected.push_back(1);
+    check(connection.response(9) == expected, "Value/reference arguments changed or alias each other");
+    check(vector_allocations == (empty ? 0U : 3U), "Vector argument was copied after decode");
+    check(string_allocations == (empty ? 0U : 3U), "String argument was copied after decode");
+    vector_allocation_size = string_allocation_size = 0;
+    connection.send(command(18));
+    check(connection.response(12) == scalar_response(18, uint32_t(words.size() + text.size())),
+          "Driver did not retain ownership after the decoded arguments were destroyed");
+}
+
 int main(int argc, char** argv) {
     try {
         check(argc == 2, "Expected test case");
         services::provide<rt::DriverManager>();
         services::provide<rt::IExecutor>(std::make_shared<koheron::Executor>());
         const std::string test = argv[1];
-        if (test == "checked-decode") checked_decode();
+        if (test == "argument-ownership-tcp") argument_ownership<net::TCP>();
+        else if (test == "argument-ownership-unix") argument_ownership<net::UNIX>();
+        else if (test == "argument-ownership-ws") argument_ownership<net::WEBSOCK>();
+        else if (test == "argument-ownership-empty") argument_ownership<net::TCP>(true);
+        else if (test == "checked-decode") checked_decode();
         else if (test == "tcp-input") stalled_input<net::TCP>(false);
         else if (test == "unix-input") stalled_input<net::UNIX>(false);
         else if (test == "dynamic-input") stalled_input<net::TCP>(true);

@@ -4,6 +4,7 @@
 #include "uart.hpp"
 #include "checkpoint.hpp"
 #include "pacing.hpp"
+#include "upload.hpp"
 #include <charconv>
 #include <drivers_json.hpp>
 #include <atomic>
@@ -91,27 +92,24 @@ bool socket_io(int fd, void* data, size_t size, bool write)
     }
     return true;
 }
-uint32_t rpc_operation(bool bulk)
+uint32_t rpc_operation_named(std::string_view requested)
 {
-    // Resolve IDs from the generated adapter's operation metadata.
     using Adapter = koheron::adapter_meta<koheron::BistAdapter>;
-    uint32_t ping_id = 0, bulk_id = 0;
+    uint32_t operation = std::numeric_limits<uint32_t>::max();
     [&]<size_t... I>(std::index_sequence<I...>)
     {
         ((
              [&]
              {
                  using Operation = std::tuple_element_t<I, typename Adapter::ops_tuple>;
-                 const auto name = koheron::op_name<koheron::op_meta<Operation>::pmf>();
-                 if (name == "ping")
-                     ping_id = uint32_t(I);
-                 if (name == "benchmark_reply")
-                     bulk_id = uint32_t(I);
+                 if (koheron::op_name<koheron::op_meta<Operation>::pmf>() == requested)
+                     operation = (uint32_t(Adapter::id) << 16) | uint32_t(I);
              }()),
          ...);
     }(std::make_index_sequence<std::tuple_size_v<typename Adapter::ops_tuple>>{});
-    return (uint32_t(Adapter::id) << 16) | (bulk ? bulk_id : ping_id);
+    return operation;
 }
+uint32_t rpc_operation(bool bulk) { return rpc_operation_named(bulk ? "benchmark_reply" : "ping"); }
 struct RpcResult
 {
     uint64_t calls = 0, errors = 0, bytes = 0;
@@ -233,7 +231,7 @@ RpcResult rpc_benchmark(bool bulk, double duration, std::atomic<bool>& cancel,
     return result;
 }
 // Separate probe so the established saturation workload retains its timing.
-PacedResult controlled_rpc(StartGate& gate, std::atomic<bool>& cancelled)
+PacedResult controlled_rpc(StartGate& gate, std::atomic<bool>& cancelled, unsigned case_index)
 {
     PacedResult result;
     result.affinity_error = pin_worker(0);
@@ -250,15 +248,33 @@ PacedResult controlled_rpc(StartGate& gate, std::atomic<bool>& cancelled)
     address.sin_family = AF_INET;
     address.sin_port = htons(36000);
     address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    const uint32_t operation = rpc_operation(false);
+    const bool upload = case_index >= 4;
+    const uint32_t operation =
+        upload ? rpc_operation_named(case_index == 4 ? "benchmark_upload"
+                                                     : "benchmark_upload_reference")
+               : rpc_operation(false);
+    std::array<std::vector<uint32_t>, 2> packets;
+    if (upload)
+        for (size_t i = 0; i < packets.size(); ++i)
+            packets[i] = upload_request(operation, upload_seeds[i]);
     uint32_t nonce = 0x13579bdf;
+    unsigned sequence = 0;
     auto call = [&]
     {
         std::array<uint32_t, 3> request{0, htonl(operation), htonl(++nonce)}, reply{};
-        return socket_io(fd, request.data(), sizeof(request), true) &&
-               socket_io(fd, reply.data(), 8, false) && socket_io(fd, reply.data() + 2, 4, false) &&
-               reply[0] == 0 && ntohl(reply[1]) == operation &&
-               ntohl(reply[2]) == (nonce ^ 0x42495354U);
+        uint32_t expected = nonce ^ 0x42495354U;
+        uint32_t* data = request.data();
+        size_t bytes = sizeof(request);
+        if (upload)
+        {
+            const auto index = sequence++ % packets.size();
+            data = packets[index].data();
+            bytes = packets[index].size() * sizeof(uint32_t);
+            expected = upload_seeds[index] ^ 0x42495354U ^ (upload_bytes / sizeof(uint32_t));
+        }
+        return socket_io(fd, data, bytes, true) && socket_io(fd, reply.data(), 8, false) &&
+               socket_io(fd, reply.data() + 2, 4, false) && reply[0] == 0 &&
+               ntohl(reply[1]) == operation && ntohl(reply[2]) == expected;
     };
     if (fd < 0 || ::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0 ||
         !call())
@@ -269,7 +285,8 @@ PacedResult controlled_rpc(StartGate& gate, std::atomic<bool>& cancelled)
     else
     {
         gate.wait();
-        paced(result, gate.start(), comparison_rpc_rate, comparison_seconds, cancelled, call);
+        paced(result, gate.start(), upload ? upload_requests_per_second : comparison_rpc_rate,
+              comparison_seconds, cancelled, call);
     }
     if (fd >= 0)
         ::close(fd);
@@ -290,6 +307,7 @@ struct Bist::Impl
     std::string run_id, prefix, metrics = "[]", metadata = "{}", state = "idle", log_text,
                                 metadata_text;
     std::vector<Metric> values;
+    std::vector<uint32_t> upload_storage;
     bool storage_ok = true;
     bool defer_io = false;
     Profile profile;
@@ -1068,7 +1086,7 @@ struct Bist::Impl
     }
     void controlled()
     {
-        log("Controlled RPC comparison v4: fixed offered load, no UART, no report "
+        log("Controlled RPC comparison: fixed offered load, no UART, no report "
             "writes in windows.");
         const bool dma_ready = (comparison_mask & 12) == 0 || dma.open();
         // Let an already-open webpage discover comparison_active before
@@ -1079,7 +1097,7 @@ struct Bist::Impl
         {
             if (!(comparison_mask & (1U << index)))
                 continue;
-            const bool memory_on = index == 1 || index == 3, dma_on = index >= 2;
+            const bool memory_on = index == 1 || index == 3, dma_on = index == 2 || index == 3;
             std::vector<uint64_t> memory(memory_on ? 1024 * 1024 : 0, 0x42495354);
             PacedResult rpc, cpu, transfer;
             uint64_t checksum = 0;
@@ -1114,7 +1132,7 @@ struct Bist::Impl
                                   return true;
                               });
                 });
-            std::thread rpc_worker([&] { rpc = controlled_rpc(gate, cancelled); });
+            std::thread rpc_worker([&] { rpc = controlled_rpc(gate, cancelled, index); });
             transfer.affinity_error = pin_worker(0);
             const bool ready = !dma_on || (dma_ready && dma.reset());
             if (!ready)
@@ -1308,6 +1326,8 @@ Bist::~Bist() = default;
 bool Bist::start(uint32_t analog_mask) { return start_profile(analog_mask, 0); }
 bool Bist::start_profile(uint32_t analog_mask, uint32_t profile)
 {
+    if (profile == 4)
+        return start_comparison(48);
     return start_impl(analog_mask, profile, 15);
 }
 bool Bist::start_comparison(uint32_t case_mask) { return start_impl(0, 3, case_mask); }
@@ -1319,7 +1339,7 @@ bool Bist::comparison_active()
 }
 bool Bist::start_impl(uint32_t analog_mask, uint32_t profile, uint32_t case_mask)
 {
-    if (analog_mask > 3 || profile > 3 || case_mask == 0 || case_mask > 15 || impl->active)
+    if (analog_mask > 3 || profile > 3 || case_mask == 0 || case_mask > 63 || impl->active)
         return false;
     if (impl->worker.joinable())
         impl->worker.join();
@@ -1337,7 +1357,7 @@ bool Bist::start_impl(uint32_t analog_mask, uint32_t profile, uint32_t case_mask
         return false;
     impl->profile.id = profile;
     impl->comparison_mask = case_mask;
-    const unsigned version_id = profile == 3 ? 4 : workload_version;
+    const unsigned version_id = profile == 3 ? ((case_mask & 48) ? 5 : 4) : workload_version;
     impl->functional = "pass";
     impl->performance_status = "not_evaluated";
     impl->performance.clear();
@@ -1480,6 +1500,18 @@ std::vector<uint32_t> Bist::benchmark_reply(uint32_t words)
         result[i] = pattern(uint32_t(i), 0x42495354U);
     return result;
 }
+uint32_t Bist::benchmark_upload(std::vector<uint32_t> words, uint32_t seed)
+{
+    const auto ack = upload_ack(words, seed);
+    if (ack != 0)
+        impl->upload_storage = std::move(words);
+    return ack;
+}
+uint32_t Bist::benchmark_upload_reference(const std::vector<uint32_t>& words, uint32_t seed)
+{
+    return upload_ack(words, seed);
+}
+
 bool Bist::record_startup(double network_seconds, double server_seconds, double boot_seconds)
 {
     if (impl->active || impl->run_id.empty() || !std::isfinite(network_seconds) ||

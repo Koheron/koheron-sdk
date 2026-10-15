@@ -349,17 +349,18 @@ class Command
         if (mutex) {
             lock = std::unique_lock<std::mutex>(*mutex);
         }
-        auto invoke = [&]() -> decltype(auto) {
-            return std::apply([&](auto&... a) -> decltype(auto) {
-                return std::invoke(pmf, std::forward<Obj>(obj), a...);
-            }, args);
+        auto invoke = [&]<std::size_t... I>(std::index_sequence<I...>) -> decltype(auto) {
+            // Decoded arguments belong to this invocation. Transfer value
+            // parameters once, preserving the method's reference qualifiers.
+            return std::invoke(pmf, std::forward<Obj>(obj),
+                std::forward<std::tuple_element_t<I, ArgsTuple>>(std::get<I>(args))...);
         };
 
         if constexpr (std::is_void_v<Ret>) {
-            invoke();
+            invoke(IS{});
             return 0;
         } else {
-            decltype(auto) r = invoke();
+            decltype(auto) r = invoke(IS{});
             if constexpr (owns_reply_storage<Ret>()) {
                 if (lock.owns_lock()) { lock.unlock(); }
             }
