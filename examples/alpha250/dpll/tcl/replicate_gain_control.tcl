@@ -56,5 +56,7 @@ set high_control_nets {}
 foreach net $control_nets {
     if {[llength [get_pins -leaf -of_objects $net -filter {DIRECTION == IN}]] > 32} {lappend high_control_nets $net}
 }
-set_property FORCE_MAX_FANOUT 32 $high_control_nets
-phys_opt_design -force_replication_on_nets $high_control_nets
+if {[llength $high_control_nets]} {
+    set_property FORCE_MAX_FANOUT 32 $high_control_nets
+    phys_opt_design -force_replication_on_nets $high_control_nets
+}
