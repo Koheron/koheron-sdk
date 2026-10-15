@@ -342,6 +342,46 @@ instrument, or run service-recovery checks inside measured windows. Exit 2 means
 incompatible, invalid or insufficient paired runs; valid runs may still have
 statistically inconclusive individual metrics.
 
+## Upload ownership comparison
+
+BIST 1.4.0 adds controlled workload 5 for SDK argument ownership. Two cases
+send **128 KiB at 100 requests/s for two seconds**, with one outstanding RPC:
+
+- `upload_value` passes a vector by value. The receiver validates every word,
+  then retains ownership of that vector as an uploaded buffer.
+- `upload_reference` passes the same payload by const reference and validates
+  every word without retaining it. It controls for changes outside ownership
+  transfer.
+
+Two deterministic payloads with different seeds alternate between requests.
+They are constructed before the common epoch, and a warmup request precedes
+timing. Acknowledgements identify the seed and payload length; corruption at
+any word fails validation. No UART, memory-load or DMA worker runs in these
+cases. The by-value endpoint retains at most one 128 KiB buffer. Timing includes
+socket I/O, SDK decode/invoke, receiver validation and reply checking.
+
+Each window offers 200 requests, enough for p95; p99 remains unavailable below
+its existing 1000-sample minimum. Missed slots, achieved load, observer checks,
+paired ordering and uncertainty follow the controlled comparison rules above.
+The upload target appears under `parameters.controlled.upload`; the scalar
+comparison defaults remain recorded alongside it.
+
+```sh
+.venv/bin/python examples/red-pitaya/bist/client.py --host 192.168.1.84 \
+  --no-reboot --profile upload --output tmp/bist-upload
+.venv/bin/python examples/red-pitaya/bist/compare_sdk.py --host 192.168.1.84 \
+  --baseline-ref origin/V1 --candidate-ref YOUR_SDK_REVISION \
+  --cases upload_value upload_reference --output tmp/bist-upload-comparison
+```
+
+The webpage's **Upload comparison · ownership** profile runs both cases.
+`start_comparison` accepts bits 4 and 5 for value/reference uploads (mask 48
+selects both). Masks containing upload cases identify workload 5. Health,
+saturation and diagnostic profiles retain workload 3; comparisons containing
+only the original four cases retain workload 4. Default SDK comparisons still
+select idle and mixed scalar cases. Overlay the same current BIST source on
+both SDK revisions, as the comparison command does automatically.
+
 ## Local verification
 
 ```sh
@@ -355,6 +395,8 @@ g++ -std=c++23 -Wall -Wextra -Werror -pthread examples/red-pitaya/bist/tests/tes
 /tmp/bist-checkpoint
 g++ -std=c++23 -Wall -Wextra -Werror -pthread examples/red-pitaya/bist/tests/test_pacing.cpp -o /tmp/bist-pacing
 /tmp/bist-pacing
+g++ -std=c++23 -Wall -Wextra -Werror -pthread examples/red-pitaya/bist/tests/test_upload.cpp -o /tmp/bist-upload
+/tmp/bist-upload
 source /tools/Xilinx/2025.1/Vivado/settings64.sh
 vivado -mode batch -source examples/red-pitaya/bist/tests/run_sim.tcl -tclargs tmp/bist-rtl
 .venv/bin/python examples/red-pitaya/bist/tests/hardware_checks.py --host 192.168.1.84
@@ -367,6 +409,43 @@ upload addressing, atomic snapshots and capture overflow diagnostics. Routed
 FPGA timing is enforced by the instrument configuration.
 
 ## Measured validation
+
+BIST 1.4.0 / controlled workload 5 was measured on `192.168.1.84` on
+2026-10-15 (Europe/Paris), with DAC0/ADC0 connected, channel 1 unconnected,
+Ubuntu 26.04.1 / Linux 6.18.0-xilinx and the unchanged FPGA. Five alternating
+pairs compared SDK `8ba70a79` with `e0872822` (move decoded value arguments),
+using identical BIST source on both SDK revisions. Each upload case offered
+200 requests per two-second window, with no observation traffic.
+
+| Controlled RPC RTT | Baseline | Move arguments | Paired median change | 95% ratio interval | ±5% verdict |
+| --- | ---: | ---: | ---: | --- | --- |
+| Upload by value p50 | 1656 us | 1336 us | −20.1% | 0.756–0.819 | Improvement |
+| Upload by value p95 | 1704 us | 1368 us | −19.7% | 0.746–0.825 | Improvement |
+| Upload by const reference p50 | 1256 us | 1256 us | +1.3% | 0.926–1.029 | Inconclusive |
+| Idle scalar p50 | 139 us | 139 us | 0.0% | 0.970–1.031 | Within tolerance |
+| Mixed scalar p50 | 163 us | 163 us | 0.0% | 0.984–1.028 | Within tolerance |
+
+Baseline/candidate columns are medians across runs; changes are medians of the
+paired ratios. Intervals include worst-case histogram resolution. The scalar
+controls used a separate five-pair comparison. All twenty comparison runs had
+valid matched loads and functional PASS. Upload p99 was unavailable because
+each case collected only 200 samples. The reference control was inconclusive;
+the measured gain applies to this 128 KiB ownership-transfer workload.
+
+The upload CLI profile passed in **7.343 s**, including report retrieval and
+service restart/recovery. Thirty-two hardware acknowledgement checks covered
+both endpoints and seeds, rejecting corruption at the first/middle/last word,
+wrong seeds, short payloads and empty payloads. Invalid masks and concurrent
+starts were rejected; upload cancellation completed in **53 ms**, retained an
+incomplete report, and a subsequent health validation passed. Local validation
+passed 151 host checks, 85 BIST/Python checks, five C++ helper checks and 57
+socket/lifecycle checks. The ownership regression test fails on the baseline
+SDK's extra vector copy and passes for TCP, Unix and WebSocket with the move
+change. The production ARM build passed with warnings as errors.
+The browser upload profile also passed on the baseline SDK in **5.543 s**
+onboard, with 200/200 requests in both cases and zero observer calls; its JSON
+download matched the RPC report exactly. The board was left on the baseline
+SDK with BIST 1.4.0 after health and service-recovery validation.
 
 BIST 1.3.0 / controlled workload 4 was measured on `192.168.1.84` on
 2026-10-15 (Europe/Paris), on the same Ubuntu 26.04.1 / Linux 6.18.0-xilinx image

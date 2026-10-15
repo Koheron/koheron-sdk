@@ -1,6 +1,7 @@
 #ifndef KOHERON_BIST_PACING_HPP
 #define KOHERON_BIST_PACING_HPP
 #include "workload.hpp"
+#include "upload.hpp"
 
 namespace bist
 {
@@ -98,21 +99,28 @@ void paced(PacedResult& result, Clock::time_point epoch, unsigned rate, unsigned
 constexpr unsigned comparison_seconds = 2, comparison_rpc_rate = 600;
 constexpr unsigned comparison_memory_rate = 512, comparison_memory_bytes = 16384;
 constexpr unsigned comparison_dma_rate = 256, comparison_dma_bytes = 4096;
-constexpr std::array<std::string_view, 4> comparison_cases{"idle", "memory", "dma", "mixed"};
+constexpr std::array<std::string_view, 6> comparison_cases{
+    "idle", "memory", "dma", "mixed", "upload_value", "upload_reference"};
 inline std::string comparison_parameters(unsigned mask)
 {
-    return "{\"settle_seconds\":1.5,\"case_mask\":" + std::to_string(mask) +
-           ",\"window_seconds\":2,\"rpc_requests_per_second\":600,"
-           "\"memory_bytes_per_second\":16777216,\"memory_quantum_bytes\":16384,"
-           "\"memory_working_set_bytes\":8388608,\"dma_bytes_per_second\":"
-           "1048576,"
-           "\"dma_quantum_bytes\":4096,\"dma_payload_accounting\":\"one "
-           "direction, duplex verified\","
-           "\"release_policy\":\"absolute, skip expired slots, one outstanding "
-           "operation\","
-           "\"minimum_completed_fraction\":0.98,\"maximum_pair_load_difference\":"
-           "0.02,"
-           "\"observer_requests_allowed\":0,\"uart_load\":false}";
+    std::string result = "{\"settle_seconds\":1.5,\"case_mask\":" + std::to_string(mask) +
+                         ",\"window_seconds\":2,\"rpc_requests_per_second\":600,"
+                         "\"memory_bytes_per_second\":16777216,\"memory_quantum_bytes\":16384,"
+                         "\"memory_working_set_bytes\":8388608,\"dma_bytes_per_second\":"
+                         "1048576,"
+                         "\"dma_quantum_bytes\":4096,\"dma_payload_accounting\":\"one "
+                         "direction, duplex verified\","
+                         "\"release_policy\":\"absolute, skip expired slots, one outstanding "
+                         "operation\","
+                         "\"minimum_completed_fraction\":0.98,\"maximum_pair_load_difference\":"
+                         "0.02,"
+                         "\"observer_requests_allowed\":0,\"uart_load\":false";
+    if (mask & 48)
+        result += ",\"upload\":{\"payload_bytes\":" + std::to_string(upload_bytes) +
+                  ",\"requests_per_second\":" + std::to_string(upload_requests_per_second) +
+                  ",\"alternating_seeds\":[324508639,610839776],"
+                  "\"validation\":\"every word checked before acknowledgement\"}";
+    return result + '}';
 }
 } // namespace bist
 #endif
