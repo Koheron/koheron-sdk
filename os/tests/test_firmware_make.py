@@ -10,7 +10,7 @@ SDK = Path(__file__).resolve().parents[2]
 
 
 class FirmwareMakeTest(unittest.TestCase):
-    def test_fsbl_console_overrides_vendor_template_after_generation(self):
+    def test_standalone_consoles_override_vendor_templates_after_generation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             bsp = root / 'zynqmp_fsbl_bsp'
@@ -18,10 +18,13 @@ class FirmwareMakeTest(unittest.TestCase):
             (bsp / 'system.mss').touch()
             harness = '''
 namespace eval hsi {
-    proc open_hw_design {args} {}
+    proc open_hw_design {args} { return hw }
     proc create_sw_design {args} {}
     proc add_library {args} {}
-    proc generate_app {args} { set ::selected_console vendor_default }
+    proc generate_app {args} {
+        if {[lsearch -exact $args -compile] >= 0} { error "Compile must use the native make rule" }
+        set ::selected_console vendor_default
+    }
     proc open_sw_design {path} { set ::opened $path }
     proc get_os {} { return os }
     proc generate_bsp {args} { set ::regenerated $::selected_console }
@@ -33,22 +36,82 @@ namespace eval common {
         if {$name eq "CONFIG.STDOUT"} { set ::selected_console $value }
     }
 }
-set argv [list test cpu HARD OUTPUT hardware.xsa zynqmp]
+set argv ARGUMENTS
 if {[info exists env(TEST_CONSOLE)] && $env(TEST_CONSOLE) ne ""} {
     lappend argv $env(TEST_CONSOLE)
 }
 source SCRIPT
 puts "console=$::selected_console"
 if {[info exists ::regenerated]} { puts "bsp=$::regenerated" }
-'''.replace('OUTPUT', str(root)).replace('SCRIPT', str(SDK / 'fpga/hsi/fsbl.tcl'))
-            for console in ('', 'psu_uart_1'):
-                result = subprocess.run(['tclsh'], input=harness, text=True,
-                    capture_output=True, timeout=10,
-                    env={**os.environ, 'TEST_CONSOLE': console})
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(result.stderr, '')
-                self.assertIn('console=' + (console or 'vendor_default'), result.stdout)
-                self.assertEqual('bsp=psu_uart_1' in result.stdout, bool(console))
+'''
+            for app, arguments in (
+                ('fsbl', f'[list test cpu HARD {root} hardware.xsa zynqmp]'),
+                ('pmufw', f'[list test HARD {root} hardware.xsa]'),
+            ):
+                script = harness.replace('ARGUMENTS', arguments).replace(
+                    'SCRIPT', str(SDK / f'fpga/hsi/{app}.tcl'))
+                for console in ('', 'psu_uart_1'):
+                    with self.subTest(application=app, console=console):
+                        result = subprocess.run(['tclsh'], input=script, text=True,
+                            capture_output=True, timeout=10,
+                            env={**os.environ, 'TEST_CONSOLE': console})
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertEqual(result.stderr, '')
+                        self.assertIn('console=' + (console or 'vendor_default'), result.stdout)
+                        self.assertEqual('bsp=psu_uart_1' in result.stdout, bool(console))
+
+    def test_pmu_native_compiler_and_flags_replace_cached_application(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            vitis = root / 'vitis'
+            compiler = vitis / 'gnu/microblaze/lin/bin/mb-gcc'
+            compiler.parent.mkdir(parents=True)
+            (vitis / 'settings64.sh').write_text('export PMU_NATIVE_TEST=ready\n')
+            compiler.write_text('''\
+#!/bin/sh
+test "$PMU_NATIVE_TEST" = ready || exit 1
+case "$MAKEFLAGS" in *-j1*) ;; *) exit 1 ;; esac
+printf '%s\\n' "$*" > executable.elf
+''')
+            compiler.chmod(0o755)
+            fpga = root / 'fpga'
+            fpga.mkdir()
+            (fpga / 'test.xsa').touch()
+            generator = root / 'hsi.py'
+            generator.write_text('''\
+from pathlib import Path
+import sys
+firmware = Path(sys.argv[4])
+with (firmware.parent / 'generations').open('a') as log:
+    log.write('generated\\n')
+(firmware / 'Makefile').write_text('CC := mb-gcc\\nall: executable.elf\\n'
+    'executable.elf: Makefile\\n\\t$(CC) $(CFLAGS)\\n')
+''')
+            harness = f'''\
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+NAME := test
+TMP_OS_PATH := {root}/os
+TMP_FPGA_PATH := {fpga}
+OS_PATH := {SDK}/os
+FPGA_PATH := {SDK}/fpga
+VITIS_PATH := {vitis}
+HSI := python3 {generator}
+DOCKER := false
+%/:
+\tmkdir -p $@
+include {SDK}/os/os.mk
+'''
+            output = root / 'os/pmu/executable.elf'
+            for flags, generations in (('-DTEST_PLATFORM=1', 1), ('-DTEST_PLATFORM=1', 1),
+                                       ('-DTEST_PLATFORM=2', 2), ('', 3), ('', 3)):
+                result = subprocess.run(
+                    ['make', '--no-print-directory', '-j4', '-f', '-',
+                     str(output), f'PMU_CFLAGS={flags}'],
+                    input=harness, text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(output.read_text(), flags + '\n')
+                self.assertEqual((root / 'os/generations').read_text().count('generated'), generations)
 
     def test_atf_compiler_change_discards_cached_objects(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -66,6 +129,7 @@ clean:
 bl31:
 \t@mkdir -p build/zynqmp/release/bl31
 \t@test -f build/compiler || printf '%s\\n' '$(CC)' > build/compiler
+\t@test -f build/console || printf '%s\\n' '$(ZYNQMP_CONSOLE)' > build/console
 \t@cp build/compiler build/zynqmp/release/bl31/bl31.elf
 \t@echo build >> events
 ''')
@@ -86,13 +150,14 @@ include {SDK}/os/os.mk
 '''
             output.parent.mkdir()
 
-            def build(version):
+            def build(version, console='cadence'):
                 result = subprocess.run(
                     ['make', '--no-print-directory', '-f', '-', str(output),
-                     f'ATF_GCC_VERSION={version}'], input=harness,
+                     f'ATF_GCC_VERSION={version}', f'ATF_CONSOLE={console}'], input=harness,
                     text=True, capture_output=True, timeout=10)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(output.read_text(), f'aarch64-linux-gnu-gcc-{version}\n')
+                self.assertEqual((firmware / 'build/console').read_text(), console + '\n')
 
             build(13)
             build(15)
@@ -100,8 +165,12 @@ include {SDK}/os/os.mk
             self.assertEqual(events, 'clean\nbuild\nclean\nbuild\n')
             build(15)
             self.assertEqual((firmware / 'events').read_text(), events)
+            build(15, 'cadence1')
+            self.assertEqual((firmware / 'events').read_text(), events + 'clean\nbuild\n')
+            build(15)
+            self.assertEqual((firmware / 'events').read_text(), events + 'clean\nbuild\nclean\nbuild\n')
 
-    def test_parallel_generators_share_staged_hardware_and_serialize_pmu_bsp(self):
+    def test_parallel_generators_share_staged_hardware_and_track_consoles(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             fpga = root / 'fpga'
@@ -116,8 +185,9 @@ from pathlib import Path
 import sys
 script, *args = sys.argv[1:]
 if script.endswith('pmufw.tcl'):
-    assert os.environ['MAKEFLAGS'] == '-j1'
     destination, hardware = args[2:4]
+    with open({str(root / 'pmu-consoles')!r}, 'a') as log:
+        log.write(args[4] + '\\n')
 else:
     destination, hardware = args[3:5]
     with open({str(root / 'fsbl-consoles')!r}, 'a') as log:
@@ -158,6 +228,14 @@ include {SDK}/os/os.mk
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual((root / 'fsbl-consoles').read_text(),
                              'default\npsu_uart_1\npsu_uart_0\n')
+            for console in ('psu_uart_1', 'psu_uart_1', 'psu_uart_0', ''):
+                result = subprocess.run(
+                    ['make', '--no-print-directory', '-f', '-',
+                     str(root / 'os/pmu/Makefile'), f'PMU_STDIO={console}'],
+                    input=harness, text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual((root / 'pmu-consoles').read_text(),
+                             '\npsu_uart_1\npsu_uart_0\n\n')
 
 
 if __name__ == '__main__':

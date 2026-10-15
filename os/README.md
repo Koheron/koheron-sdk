@@ -45,4 +45,15 @@ FTDI USB serial ports use a 1 ms receive latency timer by default, applied at
 boot and on connection by `/etc/udev/rules.d/99-koheron-ftdi.rules` when the
 device supports it. Rebuild the OS image to include this default.
 
+Boards can set `FSBL_STDIO` and `PMU_STDIO` to a native UART peripheral name
+to select each standalone BSP's standard input/output. Empty values retain
+the vendor defaults. `PMU_CFLAGS` adds application compiler flags, for example
+to select a vendor board configuration. PMU generation and native Vitis
+compilation are separate steps; changing its console or flags regenerates
+the application and discards cached objects.
+
+`ATF_CONSOLE` selects the native ZynqMP Trusted Firmware console, defaulting
+to `cadence` (UART0). Select `cadence1` for UART1. Changing it invalidates
+cached Trusted Firmware objects.
+
 The [board management guide](api/README.md) covers the API and web interface.

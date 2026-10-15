@@ -128,14 +128,21 @@ $(TMP_OS_PATH)/u-boot.elf: $(TMP_OS_BOARD_PATH)/u-boot.elf | $(TMP_OS_PATH)/
 .PHONY: pmufw
 pmufw: $(TMP_OS_PATH)/pmu/executable.elf
 
-$(TMP_OS_PATH)/pmu/Makefile: $(TMP_OS_PATH)/hard/$(NAME).xsa
-	mkdir -p $(@D)
-	# Vendor BSP library recipes run clean alongside compilation under -j.
-	export MAKEFLAGS=-j1; $(HSI) $(FPGA_PATH)/hsi/pmufw.tcl $(NAME) $(TMP_OS_PATH)/hard $(@D) $<
+PMU_STDIO ?=
+PMU_CFLAGS ?=
+PMU_SETTINGS_STAMP := $(TMP_OS_PATH)/.pmu-settings
+$(eval $(call build_settings_stamp,$(PMU_SETTINGS_STAMP),$$(call build_shell_quote,STDIO=$$(PMU_STDIO)) $$(call build_shell_quote,CFLAGS=$$(PMU_CFLAGS))))
+
+$(TMP_OS_PATH)/pmu/Makefile: $(TMP_OS_PATH)/hard/$(NAME).xsa $(FPGA_PATH)/hsi/pmufw.tcl $(PMU_SETTINGS_STAMP)
+	rm -rf -- "$(@D)"
+	mkdir -p "$(@D)"
+	$(HSI) $(FPGA_PATH)/hsi/pmufw.tcl $(NAME) $(TMP_OS_PATH)/hard $(@D) $< "$(PMU_STDIO)"
 	$(call ok,$@)
 
 $(TMP_OS_PATH)/pmu/executable.elf: $(TMP_OS_PATH)/pmu/Makefile
-	source $(VITIS_PATH)/settings64.sh && $(DOCKER) make -C $(@D) all
+	# Vendor BSP recipes run clean alongside compilation under -j.
+	source $(VITIS_PATH)/settings64.sh && \
+	  PATH="$(VITIS_PATH)/gnu/microblaze/lin/bin:$$PATH" $(MAKE) -j1 -C $(@D) CFLAGS="$(PMU_CFLAGS)" all
 
 .PHONY: clean_pmufw
 clean_pmufw:
@@ -158,10 +165,14 @@ $(ATRUST_PATH)/.unpacked: $(ATRUST_TAR) $(SOURCE_CHECKSUMS) $(DOWNLOAD_VERIFIED)
 
 ATF_COMPILER_STAMP := $(ATRUST_PATH)/.compiler-settings
 $(eval $(call compiler_settings_stamp,$(ATF_COMPILER_STAMP),$(ATF_CC)))
-$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked $(ATF_COMPILER_STAMP)
+ATF_CONSOLE ?= cadence
+ATF_CONSOLE_STAMP := $(ATRUST_PATH)/.console-settings
+$(eval $(call build_settings_stamp,$(ATF_CONSOLE_STAMP),$$(call build_shell_quote,CONSOLE=$$(ATF_CONSOLE))))
+$(ATF_CONSOLE_STAMP): $(ATRUST_PATH)/.unpacked
+$(TMP_OS_PATH)/bl31.elf: $(ATRUST_PATH)/.unpacked $(ATF_COMPILER_STAMP) $(ATF_CONSOLE_STAMP)
 	# TF-A does not track compiler command changes in its cached objects.
 	$(DOCKER) make PLAT=zynqmp clean -C $(ATRUST_PATH)
-	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- CC=$(ATF_CC) PLAT=zynqmp bl31 ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
+	$(DOCKER) make CROSS_COMPILE=$(GCC_ARCH)- CC=$(ATF_CC) PLAT=zynqmp bl31 ZYNQMP_CONSOLE=$(ATF_CONSOLE) ZYNQMP_ATF_MEM_BASE=0x10000 ZYNQMP_ATF_MEM_SIZE=0x40000 -C $(ATRUST_PATH)
 	cp $(ATRUST_PATH)/build/zynqmp/release/bl31/bl31.elf $@
 	$(call ok,$@)
 
