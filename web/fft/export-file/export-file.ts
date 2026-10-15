@@ -65,6 +65,7 @@ class ExportFile {
         const channel = status.spectrum && status.channel >= 2 ? (status.channel === 2 ? 'ADC 0 − 1' : 'ADC 0 + 1') : 'ADC ' + status.channel;
         return channel + ' · ' + (windows[status.window_index] || 'Window ' + status.window_index)
             + ' · ' + status.fs / 1e6 + ' MS/s'
+            + (status.powerBasis === 'full-scale' ? ' · Uncalibrated ADC full scale' : '')
             + (status.inputRanges ? ' · ' + status.inputRanges.join(' / ') + ' V ranges' : '');
     }
 
@@ -74,6 +75,7 @@ class ExportFile {
             'Input channel,' + status.channel,
             'Sampling frequency (Hz),' + status.fs,
             'Reference clock,' + (status.clkIndex === 'fixed' ? 'Fixed onboard' : status.clkIndex === '0' ? 'External' : 'Internal'),
+            ...(status.powerBasis === 'full-scale' ? ['Calibration,Unavailable; ADC full-scale units'] : []),
             ...(status.inputRanges ? status.inputRanges.map((value, i) => 'ADC ' + i + ' range (V),' + value) : [
                 'DDS 0 (Hz),' + status.dds_freq[0], 'DDS 1 (Hz),' + status.dds_freq[1]]),
             '',

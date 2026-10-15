@@ -24,7 +24,15 @@ of acquisition-control updates; ALPHA15 uses it in its local board controls.
 [Precision channels](../precision-channels/README.md) own precision-editor styles.
 
 The compact toolbar above the plot holds acquisition, view, units and plot actions.
-It wraps on smaller screens. The collapsible **Preferences** widget in the right
+Native spectrum snapshots can declare `powerBasis: 'full-scale'` when ADC input
+calibration is unavailable. The display then shows **Uncalibrated** and offers
+`dBFS/Hz` and `dBFS`; 0 dBFS is a full-scale sine at the ADC, independent of
+analog input gain. Physical power/voltage units return with calibrated frames.
+Snapshots retain their own basis through pause, history, references and exports.
+References from a different basis remain saved and are hidden from the current
+plot. The calibrated `read_psd` RPC keeps its watts/Hz meaning.
+
+The toolbar wraps on smaller screens. The collapsible **Preferences** widget in the right
 sidebar holds peak markers, Exclude DC, average/max hold and Clear history, plus
 duration and level settings for history views. It also contains the optional
 **Persistence** toggle, decay, intensity and Clear trails controls. It starts

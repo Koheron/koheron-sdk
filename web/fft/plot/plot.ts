@@ -42,7 +42,10 @@ class Plot {
     private persistenceEnabled = false;
     private persistenceFrame = 0;
     public references: FFTReferences;
-    public get visibleReferences(): FFTReference[] { return this.references.items.filter(item => item.visible); }
+    public get visibleReferences(): FFTReference[] {
+        return this.references.items.filter(item => item.visible &&
+            item.status.powerBasis === (this.frameStatus || this.fft.status).powerBasis);
+    }
     public history = new SpectrumHistory();
     private views: SpectrumViews;
     public average_data: number[][];
@@ -322,7 +325,7 @@ class Plot {
 
     private sameFrameStatus(status: IFFTStatus): boolean {
         return !!this.frameStatus &&
-            (['fs', 'channel', 'window_index', 'W1', 'W2', 'clkIndex', 'acquisitionKey'] as (keyof IFFTStatus)[])
+            (['fs', 'channel', 'window_index', 'W1', 'W2', 'clkIndex', 'acquisitionKey', 'powerBasis'] as (keyof IFFTStatus)[])
                 .every(key => Object.is(status[key], this.frameStatus[key])) &&
             status.dds_freq.length === this.frameStatus.dds_freq.length &&
             status.dds_freq.every((value, i) => Object.is(value, this.frameStatus.dds_freq[i]));
@@ -330,7 +333,20 @@ class Plot {
 
     private displaySpectrum(): void {
         this.unit = this.document.querySelector<HTMLInputElement>('.unit-input:checked').value;
-        this.yLabel = this.unit === 'dBV' ? 'Voltage (dBV)' : this.unit === 'dbv-rtHz' ? 'Voltage noise (dBV/√Hz)' : this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';
+        const fullScale = this.frameStatus.powerBasis === 'full-scale';
+        for (const label of Array.from(this.document.querySelectorAll<HTMLElement>('[data-power-basis]'))) {
+            label.hidden = (label.dataset.powerBasis === 'full-scale') !== fullScale;
+            const input = label.querySelector<HTMLInputElement>('input');
+            input.disabled = label.hidden;
+        }
+        const calibration = this.document.getElementById('fft-calibration-status');
+        if (calibration) { calibration.hidden = !fullScale; }
+        if (fullScale !== this.unit.startsWith('dBFS')) {
+            this.unit = fullScale ? 'dBFS-Hz' : 'dBm-Hz';
+            const selected = this.document.querySelector<HTMLInputElement>('.unit-input[value="' + this.unit + '"]');
+            if (selected) { selected.checked = true; }
+        }
+        this.yLabel = this.unit === 'dBFS-Hz' ? 'PSD (dBFS/Hz)' : this.unit === 'dBFS' ? 'Power (dBFS)' : this.unit === 'dBV' ? 'Voltage (dBV)' : this.unit === 'dbv-rtHz' ? 'Voltage noise (dBV/√Hz)' : this.unit === 'dBm-Hz' ? 'PSD (dBm/Hz)' : this.unit === 'dBm' ? 'Power (dBm)' : 'Voltage noise (nV/√Hz)';
         const fs = this.frameStatus.fs;
         if (fs !== this.samplingFrequency) {
             this.samplingFrequency = fs;
@@ -349,7 +365,7 @@ class Plot {
             ? this.frameStatus.spectrum.binSpacings.map(step => Number((step < 1000 ? step : step / 1000).toPrecision(3)) + (step < 1000 ? ' Hz' : ' kHz')).join(' / ')
             : (fs / this.fft.fft_size / 1000).toFixed(3) + ' kHz');
         this.setReadout('fft-size', this.fft.fft_size.toLocaleString() + ' points');
-        for (const reference of this.references.items) {
+        for (const reference of this.visibleReferences) {
             if (!reference.data || reference.unit !== this.unit) {
                 reference.data = Array.from(reference.psd, (value, index) => [
                     this.frequencyAt(index, reference.status, reference.fftSize),
@@ -420,7 +436,7 @@ class Plot {
             if (Number.isFinite(row[1]) && (!peak.length || row[1] > peak[1])) { peak = row.slice(); }
         }
         this.setReadout('peak-frequency', peak.length ? (this.frequencyUnit === 'Hz' ? Number(peak[0].toPrecision(7)).toLocaleString() : peak[0].toFixed(6)) + ' ' + this.frequencyUnit : '—');
-        const unitLabel = this.unit === 'dBV' ? 'dBV' : this.unit === 'dbv-rtHz' ? 'dBV/√Hz' : this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
+        const unitLabel = this.unit === 'dBFS-Hz' ? 'dBFS/Hz' : this.unit === 'dBFS' ? 'dBFS' : this.unit === 'dBV' ? 'dBV' : this.unit === 'dbv-rtHz' ? 'dBV/√Hz' : this.unit === 'dBm-Hz' ? 'dBm/Hz' : this.unit === 'dBm' ? 'dBm' : 'nV/√Hz';
         this.setReadout('peak-level', peak.length ? peak[1].toFixed(2) + ' ' + unitLabel : '—');
         this.peak = peak;
         if (this.view !== 'spectrum') { this.views.render(this.unit, this.yLabel, this.paused); return; }
@@ -433,6 +449,11 @@ class Plot {
 
     convertValue(value: number, unit: string, status: IFFTStatus = this.frameStatus || this.fft.status, index = 0, fftSize = this.fft.fft_size): number {
         if (!Number.isFinite(value) || value < 0) { return NaN; }
+        const fullScale = status.powerBasis === 'full-scale';
+        if (fullScale !== unit.startsWith('dBFS')) { return NaN; }
+        if (fullScale) {
+            return 10 * Math.log10(unit === 'dBFS' ? value * (status.W2 / status.W1) * status.fs / fftSize : value);
+        }
         if (status.spectrum) {
             if (unit === 'dbv-rtHz') { return 10 * Math.log10(value); }
             if (unit === 'dBV') { return 10 * Math.log10(value * status.spectrum.bandwidths[index]); }
