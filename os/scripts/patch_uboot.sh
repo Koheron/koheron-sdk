@@ -10,3 +10,12 @@ for makefile in scripts/Makefile.spl scripts/Makefile.xpl; do
         sed -i 's/conv=block,sync bs=4/conv=sync bs=4/g' "$uboot_path/$makefile"
     fi
 done
+
+if [[ -f $uboot_path/drivers/i2c/i2c-cdns.c ]]; then
+    fix="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../patches/u-boot/cdns-i2c-final-stop.patch"
+    # A configuration change can run this again on the same source tree.
+    if ! patch -d "$uboot_path" -p1 -R --dry-run --force --silent --fuzz=0 < "$fix" >/dev/null 2>&1; then
+        patch -d "$uboot_path" -p1 --forward --batch --fuzz=0 \
+            --no-backup-if-mismatch --reject-file=- < "$fix"
+    fi
+fi

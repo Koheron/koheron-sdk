@@ -1,0 +1,2 @@
+# Unified diff context prefixes the original tab indentation with a space.
+*.patch whitespace=-space-before-tab

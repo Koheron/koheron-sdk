@@ -1,0 +1,14 @@
+Release the Cadence I2C bus after the final message of a combined transfer.
+Otherwise EEPROM reads time out and Red Pitaya loses its factory MAC.
+
+--- a/drivers/i2c/i2c-cdns.c
++++ b/drivers/i2c/i2c-cdns.c
+@@ -451,6 +451,8 @@
+ 	debug("i2c_xfer: %d messages\n", nmsgs);
+ 	for (u8 retry = 0; retry < CDNS_I2C_ARB_LOST_MAX_RETRIES &&
+ 	     nmsgs > 0;) {
++		/* Release the bus after the final message, including retries. */
++		i2c_bus->hold_flag = nmsgs > 1;
+ 		debug("i2c_xfer: chip=0x%x, len=0x%x\n", msg->addr, msg->len);
+ 		if (msg->flags & I2C_M_RD) {
+ 			ret = cdns_i2c_read_data(i2c_bus, msg->addr, msg->buf,
