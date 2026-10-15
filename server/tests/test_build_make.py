@@ -183,10 +183,36 @@ output.chmod(0o755)
                 self.assertTrue(any('FEATURE=2' in arg for arg in args))
                 self.assertNotEqual((self.root / 'compiles').read_text(), initial)
 
+    def test_custom_app_driver_selection_refreshes_generated_type_table(self):
+        app_mk = SDK / 'examples/alpha250/fft/app/app.mk'
+        self.harness.write_text(self.harness.read_text().replace(
+            f'include {SDK}/server/server.mk', f'include {app_mk}'))
+        self.make('-n', 'clean_server')
+        self.assertFalse(self.output.parent.exists(), 'reading app.mk created build artifacts')
+        targets = [self.output / name for name in ('drivers.hpp', 'drivers_list.hpp')]
+
+        def generate(names):
+            self.make('DRIVERS=' + ' '.join(str(self.root / f'{name}.hpp') for name in names),
+                      f'MAKE_PY_SOURCES={self.generator_input}', *targets)
+            includes, table = [path.read_text() for path in targets]
+            for name in names:
+                self.assertIn(f'{name}.hpp', includes)
+            self.assertEqual(re.findall(r'class (\w+);', table), names)
+            return [path.stat().st_mtime_ns for path in targets]
+
+        initial = generate(['Alpha', 'Beta'])
+        self.assertEqual(generate(['Alpha', 'Beta']), initial)
+        generate(['Beta', 'Alpha'])
+        (self.root / 'Alpha.hpp').unlink()
+        generate(['Beta'])
+        for path in targets:
+            self.assertNotIn('Alpha', path.read_text())
+
 
 class AlternateServerBuildMakeTest(unittest.TestCase):
     def test_flags_and_source_removal_refresh_cached_server(self):
-        for makefile in ('serverless.mk', 'server-bare.mk'):
+        for makefile in ('server/serverless.mk', 'server/server-bare.mk',
+                         'examples/alpha250/fft/app/app.mk'):
             with self.subTest(makefile=makefile), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 app = root / 'app'
@@ -199,14 +225,20 @@ class AlternateServerBuildMakeTest(unittest.TestCase):
                 compiler.write_text('''import json, pathlib, sys
 args = sys.argv[1:]
 output = pathlib.Path(args[args.index('-o') + 1])
-output.parent.mkdir(parents=True, exist_ok=True)
+if '-c' in args:
+    # Model a real compiler: it needs its output directory and generated headers
+    # to exist, and emits header dependencies for subsequent cached builds.
+    header = pathlib.Path(__file__).with_name('out') / 'server/memory.hpp'
+    assert header.is_file(), 'compiled before memory.hpp was generated'
+    output.with_suffix('.d').write_text(f'{output}: {header}\\n')
 output.write_text(json.dumps(args))
 with pathlib.Path(__file__).with_name('events').open('a') as stream:
     stream.write(('compile' if '-c' in args else 'link') + '\\n')
 ''')
                 generator = root / 'generator.py'
-                generator.write_text('''import pathlib, sys
-path = pathlib.Path(sys.argv[sys.argv.index('--memory_hpp') + 1])
+                generator.write_text('''import pathlib, sys, time
+time.sleep(0.05)
+path = pathlib.Path(sys.argv[2])
 path.write_text('// generated\\n')
 ''')
                 harness = root / 'Makefile'
@@ -215,6 +247,7 @@ path.write_text('// generated\\n')
 .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
 SDK_PATH := {SDK}
+SDK_FULL_PATH := {SDK}
 SERVER_PATH := {SDK}/server
 PROJECT_PATH := {app}
 TMP_PROJECT_PATH := {root}/out
@@ -231,18 +264,26 @@ NAME := original
 %/:
 \tmkdir -p $@
 include {SDK}/os/compiler-settings.mk
-include {SDK}/server/{makefile}
+include {SDK}/{makefile}
 ''')
 
-                def build(name, sources):
+                def build(name, sources, flags=''):
+                    selection = ('DRIVERS=' + ' '.join(map(str, sources[1:]))) if makefile.endswith('app.mk') else (
+                        'SERVERLESS_CPP_SRCS=' + ' '.join(map(str, sources)))
                     result = subprocess.run(
                         ['make', '--no-print-directory', '-j4', '-f', str(harness),
-                         f'NAME={name}', 'SERVERLESS_CPP_SRCS=' + ' '.join(map(str, sources)),
+                         f'NAME={name}', selection, f'SERVER_EXTRA_CCXXFLAGS={flags}',
+                         f'APP_PATH={app}', 'SERVER_LIB_OBJ=', 'SERVER_NET_OBJ=', 'HARDWARE_OBJ=',
+                         f'MAKE_PY_SOURCES={generator}',
                          str(server)], cwd=root, text=True, capture_output=True, timeout=20)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
                 sources = [app / 'main.cpp', app / 'extra.cpp']
                 build('original', sources)
+                flags = json.loads((root / 'out/server/main.o').read_text())
+                self.assertIn('-std=c++23', flags)
+                self.assertEqual('-Werror' in flags, makefile.endswith('app.mk'))
+                self.assertNotIn('-fno-exceptions', flags)
                 initial_events = (root / 'events').read_text()
                 build('original', sources)
                 self.assertEqual((root / 'events').read_text(), initial_events)
@@ -252,12 +293,23 @@ include {SDK}/server/{makefile}
                 renamed_events = (root / 'events').read_text()
                 self.assertGreater(renamed_events.count('compile'), initial_events.count('compile'))
 
-                build('renamed', sources[:1])
+                build('renamed', sources, flags='-DFEATURE=1')
+                self.assertIn('-DFEATURE=1', json.loads((root / 'out/server/main.o').read_text()))
+                renamed_events = (root / 'events').read_text()
+
+                build('renamed', sources[:1], flags='-DFEATURE=1')
                 self.assertNotIn('extra.o', server.read_text())
                 self.assertEqual((root / 'events').read_text().count('compile'),
                                  renamed_events.count('compile'))
                 self.assertEqual((root / 'events').read_text().count('link'),
                                  renamed_events.count('link') + 1)
+
+                # A shared parser/generator edit must regenerate the header and
+                # rebuild its consumers even when memory.yml is unchanged.
+                previous = (root / 'events').read_text()
+                generator.write_text(generator.read_text() + '\n# changed generator input\n')
+                build('renamed', sources[:1], flags='-DFEATURE=1')
+                self.assertGreater((root / 'events').read_text().count('compile'), previous.count('compile'))
 
 
 if __name__ == '__main__':

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import numpy as np
 import os
@@ -10,7 +9,7 @@ from matplotlib import pyplot as plt
 import matplotlib as mpl
 mpl.style.use('classic')
 
-host = os.getenv('HOST', '192.168.1.113')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'adc-dac-bram', restart=False)
 driver = AdcDacBram(client)
 
@@ -19,10 +18,7 @@ driver.set_reference_clock(1)
 fs = 15E6
 n = driver.adc_size
 n_avg = 10
-
-# -------------------------------------------------------------------------------
 # Set ADC
-# -------------------------------------------------------------------------------
 
 input_range = 0
 
@@ -33,10 +29,7 @@ if input_range == 0:
     input_span = 2.048 # Vpp
 else:
     input_span = 8.192 # Vpp
-
-# -------------------------------------------------------------------------------
 # Set modulation on DAC
-# -------------------------------------------------------------------------------
 
 fs_dac = 240E6
 amp_mod = 0.0
@@ -49,15 +42,10 @@ print("fmod = {} kHz".format(f_mod / 1E3))
 driver.dac[0, :] = amp_mod * np.sin(2.0 * np.pi * f_dac * t_dac)
 driver.dac[1, :] = amp_mod * np.sin(2.0 * np.pi * f_dac * t_dac)
 driver.set_dac()
-
-# -------------------------------------------------------------------------------
 # Acquire PSD
-# -------------------------------------------------------------------------------
 
 f = np.arange((n//2+1)) * fs / n
 psd = np.zeros((2,n//2+1))
-
-# win = np.hanning(n)
 win = np.ones(n)
 
 driver.get_adc(0)
@@ -71,8 +59,6 @@ for i in range(n_avg):
         data_volts = data * input_span / 2**18
         print("{}: Transition noise = {:.2f} LSBrms, Input noise = {:.2f} uVrms"
               .format(channel, noise_lsb_rms, 1E6 * np.std(data_volts)))
-        # plt.plot(data_volts)
-        # plt.show()
         psd[channel, :] += 2.0 * np.abs(np.fft.rfft(win * (data_volts - np.mean(data_volts)))) ** 2 / fs / np.sum(win**2)
 
 psd /= n_avg

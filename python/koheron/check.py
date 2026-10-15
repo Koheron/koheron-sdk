@@ -4,6 +4,7 @@ import importlib.util
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -61,6 +62,8 @@ def main(argv=None):
     for module in HOST_TEST_MODULES:
         if importlib.util.find_spec(module) is None:
             reporter.err(f'Missing host test dependency: {module}', 'Run make python_requirements and make koheron_python.')
+    if not shutil.which('tclsh'):
+        reporter.err('Missing host test dependency: tclsh', 'Install Tcl or run make setup.')
     if reporter.errors:
         return reporter.finish(scope='host', hardware_tests=False, configurations=0, tests=0)
     if args.settings_stdin:

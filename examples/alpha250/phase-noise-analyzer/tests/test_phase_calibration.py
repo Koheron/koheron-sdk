@@ -7,6 +7,11 @@ import shlex
 import subprocess
 import tempfile
 import unittest
+import sys
+
+SDK = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(SDK / 'server/drivers/phase-noise/tests'))
+from host_test import fixture_command
 
 
 class PhaseCalibrationTest(unittest.TestCase):
@@ -29,12 +34,13 @@ int main() {
     }
 }
 ''')
-            compiler = shlex.split(os.environ.get("CXX", "g++"))
-            subprocess.run(compiler + [
+            compiler = shlex.split(os.environ.get('PNA_TEST_CXX', os.environ.get('CXX', 'g++-15')))
+            subprocess.run(fixture_command(SDK, Path(directory), compiler + [
                 "-std=c++23", "-Wall", "-Wextra", "-Werror", "-Wpedantic",
                 "-I", str(instrument), "-I", str(instrument.parents[2]), str(source), "-o", str(executable),
-            ], check=True)
-            output = subprocess.check_output([str(executable)], text=True)
+            ]), check=True, timeout=90)
+            output = subprocess.check_output(fixture_command(SDK, Path(directory), [str(executable)]),
+                                             text=True, timeout=15)
         cls.corrections = {
             int(rate): float(correction)
             for rate, correction in (line.split() for line in output.splitlines())

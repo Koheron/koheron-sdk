@@ -14,14 +14,14 @@
 #include <thread>
 
 namespace {
-unsigned entries = 0, reads = 0, writes = 0, addresses = 0;
+unsigned entries = 0, opens = 0, reads = 0, writes = 0, addresses = 0;
 int device_fd = -1, selected = -1;
-bool reject_address = false;
+bool reject_open = false, reject_address = false;
 bool verify_address = false;
 thread_local int expected_address = -1;
 ssize_t read_result = -2, write_result = -2; // -2 means complete the request
 std::vector<uint8_t> sent;
-constexpr auto device = "i2c-transfer-test";
+constexpr auto device = "i2c-regression-device-with-long-name";
 void check(bool ok, const char* message) {
     if (!ok) { std::cerr << message << '\n'; std::abort(); }
 }
@@ -47,6 +47,8 @@ extern "C" int __wrap_closedir(DIR*) { return 0; }
 extern "C" int __real_open(const char*, int, ...);
 extern "C" int __wrap_open(const char* path, int flags, ...) {
     check(std::string(path) == std::string("/dev/") + device, "device path");
+    ++opens;
+    if (reject_open) { errno = EACCES; return -1; }
     device_fd = __real_open("/dev/null", flags);
     return device_fd;
 }
@@ -115,6 +117,14 @@ int main(int argc, char** argv) {
     const std::string_view test{argv[1]};
     hw::I2cManager manager;
     check(manager.init() == 0, "discovery");
+    if (test == "initialization") {
+        reject_open = true;
+        check(!manager.get(device).is_ok(), "failed open must remain unavailable");
+        reject_open = false;
+        check(manager.get(device).is_ok(), "open must be retryable");
+        check(manager.get(device).is_ok() && opens == 2, "initialized device reopened");
+        return 0;
+    }
     auto& dev = manager.get(device);
     check(dev.is_ok(), "initialization");
     std::array<uint8_t, 4> bytes{};

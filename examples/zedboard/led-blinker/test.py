@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 import os
 import time
 from koheron import command, connect
 
-class LedBlinker(object):
+class LedBlinker:
     def __init__(self, client):
         self.client = client
 
@@ -17,7 +16,7 @@ class LedBlinker(object):
         return self.client.recv_uint32()
 
 if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.100')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, 'led-blinker')
     driver = LedBlinker(client)
 

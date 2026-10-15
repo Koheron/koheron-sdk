@@ -1,66 +1,23 @@
 """Precision ADC worker ownership with a simulated SPI device."""
-import os
-from pathlib import Path
-import shlex
-import subprocess
-import tempfile
 import unittest
+from cpp_fixture import compile_cpp, run_cpp
 
-ROOT = Path(__file__).resolve().parents[2]
 
 class PrecisionAdcLifetimeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.directory = tempfile.TemporaryDirectory()
-        cls.addClassCleanup(cls.directory.cleanup)
-        cls.binary = Path(cls.directory.name) / 'precision-adc-test'
-        command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
-                   '-Wextra', '-Werror', '-fno-exceptions', '-pthread', '-I', str(ROOT)]
-        command += shlex.split(os.environ.get('CXXFLAGS', ''))
-        command += [str(ROOT / 'server/tests/precision_adc_lifetime.cpp'),
-                    str(ROOT / 'boards/alpha250/drivers/precision-adc.cpp'), '-o', str(cls.binary)]
-        subprocess.run(command, check=True, timeout=90)
+        cls.binary = compile_cpp(cls, 'server/tests/precision_adc_lifetime.cpp',
+            'boards/alpha250/drivers/precision-adc.cpp',
+            flags=('-fno-exceptions', '-pthread'))
 
-    def run_case(self, case):
-        result = subprocess.run([str(self.binary), case], capture_output=True,
-                                text=True, timeout=10)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+    def test_cases(self):
+        for case in (
+            'inflight', 'setup-errors', 'init-error', 'immediate', 'unavailable', 'errors',
+            'samples', 'readers', 'reset-error', 'id-error', 'invalid-id', 'id-revisions',
+        ):
+            with self.subTest(case=case):
+                run_cpp(self, self.binary, case)
 
-    def test_missing_spi_does_not_start_worker(self):
-        self.run_case('unavailable')
-
-    def test_failed_spi_initialization_does_not_start_worker(self):
-        self.run_case('init-error')
-
-    def test_failed_serial_reset_does_not_configure_or_sample(self):
-        self.run_case('reset-error')
-
-    def test_failed_identity_read_does_not_configure_or_sample(self):
-        self.run_case('id-error')
-
-    def test_invalid_identity_leaves_all_channels_unavailable(self):
-        self.run_case('invalid-id')
-
-    def test_ad7124_family_accepts_silicon_revisions(self):
-        self.run_case('id-revisions')
-
-    def test_each_failed_setup_write_stops_initialization(self):
-        self.run_case('setup-errors')
-
-    def test_samples_and_configuration_are_preserved(self):
-        self.run_case('samples')
-
-    def test_destruction_joins_in_flight_read(self):
-        self.run_case('inflight')
-
-    def test_read_failure_still_allows_shutdown(self):
-        self.run_case('errors')
-
-    def test_immediate_repeated_destruction(self):
-        self.run_case('immediate')
-
-    def test_snapshots_during_acquisition(self):
-        self.run_case('readers')
 
 if __name__ == '__main__':
     unittest.main()

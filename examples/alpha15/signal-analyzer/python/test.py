@@ -1,14 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import os
 from pprint import pprint
-import time
 from koheron import command, connect
-import matplotlib.pyplot as plt
 import numpy as np
 
-class SignalAnalyzer(object):
+class SignalAnalyzer:
     def __init__(self, client):
         self.client = client
 
@@ -30,7 +27,7 @@ class SignalAnalyzer(object):
         pass
 
 if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.122')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, name='signal-analyzer')
     pprint(client.commands)
     driver = SignalAnalyzer(client)

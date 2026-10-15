@@ -1,4 +1,4 @@
-name: Configuration check
+name: Host checks
 
 on:
   pull_request:
@@ -13,10 +13,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  configurations:
-    name: Validate example configurations
+  host:
+    name: Validate configurations and host regressions
     runs-on: ubuntu-24.04
-    timeout-minutes: 2
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -24,18 +24,12 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - name: Install YAML parser
-        run: python3 -m pip install --disable-pip-version-check PyYAML
-      - name: Validate examples
-        shell: bash
+      - name: Install host dependencies
         run: |
-          count=0
-          while IFS= read -r config; do
-            if ! python3 python/koheron/validate_config.py --cfg "$config" --no-color > /tmp/validate.log 2>&1; then
-              cat /tmp/validate.log
-              exit 1
-            fi
-            count=$((count + 1))
-          done < <(python3 python/koheron/list_examples.py --configs)
-          test "$count" -gt 0
-          echo "Validated $count instrument configurations"
+          sudo apt-get update
+          sudo apt-get install -y tcl
+          python3 -m pip install --disable-pip-version-check -r requirements.txt ./python
+      - name: Run host checks
+        run: make check HOST_PYTHON=python3
+      - name: Check C++ client ownership and protocol
+        run: CXX=g++ python3 -m unittest discover -s server/tests -p test_cpp_client.py -v

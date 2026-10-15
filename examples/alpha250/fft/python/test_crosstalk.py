@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 '''
 Measure the crosstalk between ADC0 and ADC1
@@ -12,10 +11,8 @@ import matplotlib.pyplot as plt
 from fft import FFT
 from koheron import connect
 
-try: input = raw_input
-except NameError: pass
 
-host = os.getenv('HOST', '192.168.1.16')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'fft', restart=False)
 driver = FFT(client)
 
@@ -60,7 +57,6 @@ for j in range(2):
 	    print(freq, crosstalk[j,i])
 
 	ax.plot(freqs*1e-6, crosstalk[j,:], label='ADC{} to ADC{}'.format(j%2, (j+1)%2))
-
 
 
 ax.set_xlim([fmin * 1e-6, fmax * 1e-6])

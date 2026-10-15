@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import os
 from koheron import command, connect
@@ -63,7 +62,7 @@ class AdcDacDma(DacUpload):
         self.get_adc(N)
 
 if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.98')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, name='adc-dac-dma', restart=False)
     driver = AdcDacDma(client)
 

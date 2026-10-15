@@ -5,17 +5,11 @@
 #ifndef __DRIVERS_PICOBLAZE_HPP__
 #define __DRIVERS_PICOBLAZE_HPP__
 
-#include <context.hpp>
+#include "server/hardware/memory_manager.hpp"
 
 class Picoblaze
 {
   public:
-    Picoblaze(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    , picoram(ctx.mm.get<mem::picoram>())
-    {}
-
     void write_ram(uint32_t address, uint32_t value) {
         picoram.write_reg(address, value);
     }
@@ -34,9 +28,9 @@ class Picoblaze
     }
 
   private:
-    hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
-    hw::Memory<mem::picoram>& picoram;
+    hw::Memory<mem::control>& ctl = hw::get_memory<mem::control>();
+    hw::Memory<mem::status>& sts = hw::get_memory<mem::status>();
+    hw::Memory<mem::picoram>& picoram = hw::get_memory<mem::picoram>();
 };
 
 #endif // __DRIVERS_PICOBLAZE_HPP__

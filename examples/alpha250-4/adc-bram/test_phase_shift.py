@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import numpy as np
 import os
@@ -7,10 +6,7 @@ import time
 from adc_bram import AdcBram
 from koheron import connect
 
-import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D
 
 def test_phase_shift(config):
     driver.get_adc(0) # Flush ADC buffer
@@ -41,7 +37,7 @@ def test_phase_shift(config):
     plt.show()
 
 if __name__ == "__main__":
-    host = os.getenv('HOST', '192.168.1.156')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, 'adc-bram', restart=True)
     driver = AdcBram(client)
 

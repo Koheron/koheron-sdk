@@ -1,12 +1,8 @@
 """Driver dependency lifetime and acquisition shutdown with production code."""
-import os
 from pathlib import Path
-import shlex
-import subprocess
 import tempfile
 import unittest
-
-ROOT = Path(__file__).resolve().parents[2]
+from cpp_fixture import ROOT, NETWORK_INCLUDES, compile_cpp, run_cpp
 
 
 class DriverShutdownTest(unittest.TestCase):
@@ -18,17 +14,10 @@ class DriverShutdownTest(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(text)
             binary = build / 'shutdown'
-            command = [os.environ.get('CXX', 'g++'), '-std=c++23', '-O2', '-Wall',
-                       '-Wextra', '-Werror', '-fno-exceptions', '-pthread',
-                       '-DKOHERON_SERVER_BUILD', '-I', str(build), '-I', str(ROOT),
-                       '-I', str(ROOT / 'server/tests'),
-                       '-I', str(ROOT / 'server/external_libs'),
-                       '-I', os.environ.get('EIGEN_INCLUDE_DIR', '/usr/include/eigen3')]
-            command += shlex.split(os.environ.get('CXXFLAGS', ''))
-            command += list(flags) + [str(ROOT / source) for source in sources]
-            subprocess.run(command + ['-o', str(binary)], check=True, timeout=90)
-            result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=15)
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            compile_cpp(self, *sources,
+                flags=('-fno-exceptions', '-pthread', '-DKOHERON_SERVER_BUILD', *flags),
+                includes=(build, ROOT / 'server/tests', *NETWORK_INCLUDES), output=binary)
+            run_cpp(self, binary, timeout=15)
 
     def test_dependencies_outlive_acquisition_workers(self):
         self.compile_run(['server/tests/driver_shutdown.cpp',
@@ -49,7 +38,6 @@ class DriverShutdownTest(unittest.TestCase):
                  'using driver_list = std::tuple<>;\n'),
                 ('drivers.hpp', '#pragma once\n'),
                 ('server/context/context.hpp', '#pragma once\nclass Context {};\n')])
-
 
 
 if __name__ == '__main__':

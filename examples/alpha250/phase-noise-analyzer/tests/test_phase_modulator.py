@@ -6,6 +6,11 @@ import shlex
 import subprocess
 import tempfile
 import unittest
+import sys
+
+SDK = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(SDK / 'server/drivers/phase-noise/tests'))
+from host_test import fixture_command
 
 
 class PhaseModulatorIntegrationTest(unittest.TestCase):
@@ -180,22 +185,23 @@ int main() {
                 path = temp / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(contents)
-            compiler = shlex.split(os.environ.get("CXX", "g++"))
+            compiler = shlex.split(os.environ.get('PNA_TEST_CXX', os.environ.get('CXX', 'g++-15')))
             configurations = [("alpha250", rate) for rate in (200_000_000, 250_000_000, 100_000_000, 240_000_000)]
             configurations.append(("red-pitaya", 125_000_000))
             for board, rate in configurations:
                 with self.subTest(board=board, sample_rate=rate):
+                    driver_board = 'red-pitaya/stemlab-125-14' if board == 'red-pitaya' else board
                     executable = temp / f"test-{rate}"
-                    subprocess.run(compiler + [
+                    subprocess.run(fixture_command(root, temp, compiler + [
                         "-std=c++23", "-Wall", "-Wextra", "-Werror", "-Wpedantic", "-fno-exceptions",
                         f"-DTEST_SAMPLE_RATE={rate}",
-                        f'-DPHASE_MODULATOR_HEADER="{root}/boards/{board}/drivers/phase-modulator.hpp"',
+                        f'-DPHASE_MODULATOR_HEADER="{root}/boards/{driver_board}/drivers/phase-modulator.hpp"',
                         *(['-DTEST_RED_PITAYA'] if board == 'red-pitaya' else []),
                         "-I", str(temp), "-I", str(root), str(temp / "test.cpp"),
                         str(root / "examples/alpha250/phase-noise-analyzer/dds.cpp"),
                         "-o", str(executable),
-                    ], check=True)
-                    subprocess.run([str(executable)], check=True)
+                    ]), check=True, timeout=90)
+                    subprocess.run(fixture_command(root, temp, [str(executable)]), check=True, timeout=15)
 
 
 if __name__ == "__main__":

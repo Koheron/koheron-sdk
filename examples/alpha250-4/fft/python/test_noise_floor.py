@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 '''
 Measure the noise floor of the ADC and ADC + DAC
@@ -7,13 +6,12 @@ Measure the noise floor of the ADC and ADC + DAC
 
 import numpy as np
 import os
-import time
 import matplotlib.pyplot as plt
 
 from fft import FFT
 from koheron import connect
 
-host = os.getenv('HOST', '192.168.1.50')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'fft', restart=False)
 driver = FFT(client)
 

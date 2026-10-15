@@ -1,15 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import os
 import time
 from koheron import command, connect
 import matplotlib.pyplot as plt
 import numpy as np
-import statistics as stats
 import math
 
-class AdcDacDma(object):
+class AdcDacDma:
     def __init__(self, client):
         self.n = 32*1024*1024
         self.client = client
@@ -153,7 +151,7 @@ def plot_rates(results, title="get_test_vector throughput"):
     plt.tight_layout()
 
 if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.98')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, name='tests-network')
     driver = AdcDacDma(client)
 

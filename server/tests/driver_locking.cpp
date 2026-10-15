@@ -202,7 +202,7 @@ template<int Kind> void stalled_output(uint16_t operation, bool disconnect = fal
     Bytes expected = command(operation);
     if (operation == 14) append_be(expected, 0xbeef, 2);
     const auto payload_bytes = ((operation == 14 || operation == 16) ? 32768 : 512 * 1024) * sizeof(uint32_t);
-    append_be(expected, payload_bytes, (operation == 14 || operation == 16) ? 4 : sizeof(size_t));
+    append_be(expected, payload_bytes, 4);
     expected.resize(expected.size() + payload_bytes, 0x33);
     if (operation == 14) append_be(expected, 0xabcdef01, 4);
     check(slow.response(expected.size()) == expected, "Borrowed response changed during transmission");
@@ -434,6 +434,19 @@ int read_header(net::Session& session, net::Command& cmd) {
     return (session.*&SessionReader::read_command)(cmd);
 }
 void checked_decode() {
+    // Scalars use network byte order; array elements retain native bytes.
+    static_assert(std::endian::native == std::endian::little);
+    const unsigned char wire[] = {0x12, 0x34, 0x56, 0x78,
+                                 0x34, 0x12, 0xcd, 0xab, 0xff, 0x7f, 0x00, 0x80};
+    auto [scalar, words] = net::deserialize<0, uint32_t, std::array<uint32_t, 2>>(
+        reinterpret_cast<const std::byte*>(wire));
+    check(scalar == 0x12345678u && words[0] == 0xabcd1234u && words[1] == 0x80007fffu,
+          "scalar/array byte order changed");
+    const std::array<float, 3> coeffs{1.0f, -2.5f, 0.125f};
+    check(net::extract<std::array<float, 3>>(reinterpret_cast<const std::byte*>(coeffs.data())) == coeffs,
+          "float array bytes changed");
+    check(net::extract<std::array<uint32_t, 0>>(nullptr).empty(), "empty array decode");
+
     using Error = net::Command::DecodeError;
     net::Command unattached;
     std::string value;

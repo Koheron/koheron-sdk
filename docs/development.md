@@ -116,8 +116,8 @@ instrument. `INSTRUMENT_TEST=...` overrides the script. Hardware scripts may
 change acquisition/output settings or open plots. Report host/build checks
 separately from hardware results.
 
-[CI](../.github/workflows/ci.yml) validates example configurations. Run
-`make check` locally for the broader host regressions.
+[CI](../.github/workflows/ci.yml) runs `make check` and C++ client lifecycle
+and protocol regressions.
 
 ## Creating a new instrument
 

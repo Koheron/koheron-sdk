@@ -5,16 +5,14 @@
 #ifndef __DRIVERS_ADC_DAC_HPP__
 #define __DRIVERS_ADC_DAC_HPP__
 
-#include <context.hpp>
+#include "server/hardware/memory_manager.hpp"
+
+#include <cstdint>
+#include <tuple>
 
 class AdcDac
 {
   public:
-    AdcDac(Context& ctx)
-    : ctl(ctx.mm.get<mem::control>())
-    , sts(ctx.mm.get<mem::status>())
-    {}
-
     void set_dac(uint32_t dac_value, uint32_t dac_channel) {
         ctl.write_reg(reg::dac0 + 4 * (dac_channel % 2), dac_value);
     }
@@ -35,8 +33,8 @@ class AdcDac
     }
 
   private:
-    hw::Memory<mem::control>& ctl;
-    hw::Memory<mem::status>& sts;
+    hw::Memory<mem::control>& ctl = hw::get_memory<mem::control>();
+    hw::Memory<mem::status>& sts = hw::get_memory<mem::status>();
 };
 
 #endif // __DRIVERS_ADC_DAC_HPP__

@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import os
 from koheron import command, connect
 
-class AdcDac(object):
+class AdcDac:
     def __init__(self, client):
         self.client = client
 
@@ -17,11 +16,8 @@ class AdcDac(object):
         return self.client.recv_tuple('ii')
 
 if __name__=="__main__":
-    host = os.getenv('HOST','192.168.1.100')
+    host = os.getenv('HOST', '192.168.1.100')
     client = connect(host, name='adc_dac')
     driver = AdcDac(client)
-
-    # driver.set_dac_0(0)
-    # driver.set_dac_1(1000)
     adc1, adc2 = driver.get_adc()
     print('adc1 = {}, adc2 = {}'.format(adc1, adc2))

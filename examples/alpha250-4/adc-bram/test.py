@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 import numpy as np
 import os
@@ -7,12 +6,10 @@ import time
 from adc_bram import AdcBram
 from koheron import connect
 
-import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
-host = os.getenv('HOST', '192.168.1.50')
+host = os.getenv('HOST', '192.168.1.100')
 client = connect(host, 'adc-bram', restart=False)
 driver = AdcBram(client)
 
@@ -26,7 +23,6 @@ clk_250MHz = {'idx': 1, 'fs': 250E6}
 
 clock = clk_250MHz
 driver.set_sampling_frequency(clock['idx'])
-# driver.phase_shift(0)
 
 t = np.arange(driver.adc_size) / clock['fs']
 t_us = 1e6 * t
@@ -46,7 +42,6 @@ ax.add_line(line3)
 ax.set_xlabel('Time (us)')
 ax.set_ylabel('ADC Raw data')
 ax.set_xlim((t_us[0], t_us[-1]))
-# ax.set_ylim((-2**15, 2**15))
 ax.set_ylim((-32768, 32768))
 ax.legend(loc='upper right')
 fig.canvas.draw()
@@ -63,6 +58,5 @@ while True:
         line3.set_data(t_us, driver.adc1[1,:])
         fig.canvas.draw()
         plt.pause(0.001)
-        # plt.pause(3600)
     except KeyboardInterrupt:
         break

@@ -51,23 +51,14 @@ class Driver {
 
 class WebSocketPool {
 
-    private pool: Array<WebSocket>;
-    private freeSockets: number[];
-    private dedicatedSockets: Array<WebSocket>;
-    private socketCounter: number;
-    private exiting: boolean;
+    private pool: WebSocket[] = [];
+    private freeSockets: number[] = [];
+    private dedicatedSockets: WebSocket[] = [];
+    private socketCounter: number = 0;
+    private exiting: boolean = false;
 
-    constructor(private poolSize: number, private url: string, private onOpenCallback: any,
+    constructor(private poolSize: number, private url: string, onOpenCallback: () => void,
                 private onDisconnect?: (error: Error) => void) {
-        this.poolSize = poolSize;
-        this.url = url;
-
-        this.pool = [];
-        this.freeSockets = [];
-        this.dedicatedSockets = [];
-        this.socketCounter = 0;
-        this.exiting = false;
-
         for (let i = 0, end = this.poolSize-1, asc = 0 <= end; asc ? i <= end : i >= end; asc ? i++ : i--) {
             const websocket = this._newWebSocket();
             this.pool.push(websocket);
@@ -225,34 +216,15 @@ class WebSocketPool {
 
 // === Helper functions to build binary buffer ===
 
-let appendInt8 = function(buffer, value) {
-    buffer.push(value & 0xff);
-    return 1;
-};
-
 let appendUint8 = function(buffer, value) {
     buffer.push(value & 0xff);
     return 1;
-};
-
-let appendInt16 = function(buffer, value) {
-    buffer.push((value >> 8) & 0xff);
-    buffer.push(value & 0xff);
-    return 2;
 };
 
 let appendUint16 = function(buffer, value) {
     buffer.push((value >> 8) & 0xff);
     buffer.push(value & 0xff);
     return 2;
-};
-
-let appendInt32 = function(buffer, value) {
-    buffer.push((value >> 24) & 0xff);
-    buffer.push((value >> 16) & 0xff);
-    buffer.push((value >> 8) & 0xff);
-    buffer.push(value & 0xff);
-    return 4;
 };
 
 let appendUint32 = function(buffer, value) {
@@ -263,16 +235,15 @@ let appendUint32 = function(buffer, value) {
     return 4;
 };
 
+// Signed and unsigned integers use the same two's-complement wire bytes.
+let appendInt8 = appendUint8;
+let appendInt16 = appendUint16;
+let appendInt32 = appendUint32;
+
 let floatToBytes = function(f) {
     let buf = new ArrayBuffer(4);
     (new Float32Array(buf))[0] = f;
     return (new Uint32Array(buf))[0];
-};
-
-let bytesTofloat = function(bytes) {
-    let buffer = new ArrayBuffer(4);
-    (new Uint32Array(buffer))[0] = bytes;
-    return new Float32Array(buffer)[0];
 };
 
 let appendFloat32 = (buffer, value) => appendUint32(buffer, floatToBytes(value));
@@ -293,8 +264,7 @@ let appendArray = function(buffer, array) {
 
 let appendVector = function(buffer, array) {
     appendUint32(buffer, array.buffer.byteLength);
-    let bytes = new Uint8Array(array.buffer);
-    return bytes.map((_byte) => buffer.push(_byte));
+    return appendArray(buffer, array);
 };
 
 let appendString = function(buffer, str: string) {
@@ -310,86 +280,58 @@ let isStdVector = type => type.split('<')[0].trim() === 'std::vector';
 
 let isStdString = type => type.trim() === 'std::string';
 
-let isStdTuple = type => type.split('<')[0].trim() === 'std::tuple';
-
-let getStdVectorType = type => type.split('<')[1].split('>')[0].trim();
-
 function Command(devId: number, cmd: ICommand, ...params: any[]): CmdMessage {
     let buffer = [];
     appendUint32(buffer, 0); // RESERVED
     appendUint16(buffer, devId);
     appendUint16(buffer, cmd.id);
 
-    if (cmd.args.length === 0) {
-        return {
-            devid: devId,
-            cmd,
-            data: new Uint8Array(buffer)
-        };
-    }
-
-    if (cmd.args.length !== params.length) {
+    if (cmd.args.length > 0 && cmd.args.length !== params.length) {
         throw new Error(`Invalid number of arguments. Expected ${cmd.args.length} receive ${params.length}.`);
     }
 
-    let buildPayload = function(args, params) {
-        if (args == null) { args = []; }
-        let payload = [];
-
-        for (let i = 0; i < args.length; i++) {
-            let arg = args[i];
-            switch (arg.type) {
-                case 'uint8_t':
-                    appendUint8(payload, params[i]);
-                    break;
-                case 'int8_t':
-                    appendInt8(payload, params[i]);
-                    break;
-                case 'uint16_t':
-                    appendUint16(payload, params[i]);
-                    break;
-                case 'int16_t':
-                    appendInt16(payload, params[i]);
-                    break;
-                case 'uint32_t':
-                    appendUint32(payload, params[i]);
-                    break;
-                case 'int32_t':
-                    appendInt32(payload, params[i]);
-                    break;
-                case 'float':
-                    appendFloat32(payload, params[i]);
-                    break;
-                case 'double':
-                    appendFloat64(payload, params[i]);
-                    break;
-                case 'bool':
-                    if (params[i]) {
-                        appendUint8(payload, 1);
-                    } else {
-                        appendUint8(payload, 0);
-                    }
-                    break;
-                default:
-                    if (isStdArray(arg.type)) {
-                        appendArray(payload, params[i]);
-                    } else if (isStdVector(arg.type)) {
-                        appendVector(payload, params[i]);
-                    } else if (isStdString(arg.type)) {
-                        appendString(payload, params[i]);
-                    } else {
-                        throw new TypeError(`Unknown type ${arg.type}`);
-                    }
-            }
+    for (let i = 0; i < cmd.args.length; i++) {
+        const arg = cmd.args[i];
+        const value = params[i];
+        switch (arg.type) {
+            case 'uint8_t':
+            case 'int8_t':
+                appendUint8(buffer, value);
+                break;
+            case 'uint16_t':
+            case 'int16_t':
+                appendUint16(buffer, value);
+                break;
+            case 'uint32_t':
+            case 'int32_t':
+                appendUint32(buffer, value);
+                break;
+            case 'float':
+                appendFloat32(buffer, value);
+                break;
+            case 'double':
+                appendFloat64(buffer, value);
+                break;
+            case 'bool':
+                appendUint8(buffer, value ? 1 : 0);
+                break;
+            default:
+                if (isStdArray(arg.type)) {
+                    appendArray(buffer, value);
+                } else if (isStdVector(arg.type)) {
+                    appendVector(buffer, value);
+                } else if (isStdString(arg.type)) {
+                    appendString(buffer, value);
+                } else {
+                    throw new TypeError(`Unknown type ${arg.type}`);
+                }
         }
-
-        return payload;
-    };
+    }
 
     return {
         devid: devId,
         cmd,
-        data: new Uint8Array(buffer.concat(buildPayload(cmd.args, params)))
+        data: new Uint8Array(buffer)
     };
 }
 
@@ -497,15 +439,9 @@ class Client {
     // ------------------------
 
     redirectError(errTest, errMsg, onSuccess, onError) {
-        if (errTest) {
-            if (onError === null) {
-                throw new TypeError(errMsg);
-            } else {
-                return onError(errMsg);
-            }
-        } else {
-            return onSuccess();
-        }
+        if (!errTest) { return onSuccess(); }
+        if (onError === null) { throw new TypeError(errMsg); }
+        return onError(errMsg);
     }
 
     getPayload(
@@ -526,9 +462,6 @@ class Client {
             throw new Error(`Frame too small: ${dv.byteLength} < ${STATIC_HEADER_BYTES}`);
         }
 
-        // Header
-        // reserved is available if you need it later:
-        // const reserved = dv.getUint32(0);
         const classId = dv.getUint16(4);
         const funcId  = dv.getUint16(6);
 
@@ -539,9 +472,6 @@ class Client {
             offset = STATIC_HEADER_BYTES;
             len = dv.byteLength - STATIC_HEADER_BYTES;
 
-            if (len < 0) {
-                throw new Error('Negative payload length (static).');
-            }
         } else {
             if (dv.byteLength < DYNAMIC_HEADER_BYTES) {
                 throw new Error(`Frame too small for dynamic header: ${dv.byteLength} < ${DYNAMIC_HEADER_BYTES}`);
