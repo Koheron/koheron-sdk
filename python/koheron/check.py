@@ -21,6 +21,7 @@ else:
 
 SUITES = (('python/tests', 'test_*.py'), ('make/tests', 'test_*.py'),
           ('os/tests', 'test_*_make.py'),
+          ('os/tests', 'test_uboot_i2c.py'),
           ('fpga/tests/build_flow', 'test_*.py'),
           ('server/tests', 'test_build_make.py'), ('web/tests', 'test_build.py'))
 
