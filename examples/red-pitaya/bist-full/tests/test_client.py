@@ -144,3 +144,47 @@ def test_protocol_deadline_stops_new_calls_and_keeps_completed_checks(monkeypatc
     assert 0 < connection.ping.call_count < 5
     assert len(checks) > 3
     connection.echo_u64.assert_not_called()
+
+
+@pytest.mark.parametrize("level", [0, 8191])
+def test_constant_adc_evidence_is_preserved_without_nan(tmp_path, level):
+    import json
+    import time
+
+    names = [f"ch0_capture_{i}.json" for i in range(21)]
+    raw = dict(
+        observe_channel=0,
+        sample_rate_hz=62500000,
+        adc0=[level] * 8192,
+        adc1=[level] * 8192,
+        dac=[0] * 1024,
+    )
+    connection = Mock()
+    connection.get_artifact.side_effect = lambda run, name: (
+        {"files": names} if name == "ch_manifest.json" else raw
+    )
+    onboard = dict(
+        run_id="123",
+        metadata={"parameters": {"analog_mask": 1}},
+        checks=[
+            dict(
+                group="analog",
+                name="ch0_spectrum_13",
+                capture_artifact=names[0],
+                frequency_hz=1586914.0625,
+                amplitude=0,
+                sndr_db=0,
+                thd_dbc=0,
+                sfdr_db=0,
+                status="fail",
+            )
+        ],
+    )
+    outcome = client.download_artifacts(connection, onboard, tmp_path, time.monotonic() + 30)
+    assert (
+        outcome["status"] == "pass"
+    )  # Independent analysis agrees; hardware verdict stays failed.
+    comparison = json.loads((tmp_path / "spectral-crosscheck.json").read_text())
+    assert comparison[0]["match"]
+    assert onboard["checks"][0]["status"] == "fail"
+    json.dumps(comparison, allow_nan=False)

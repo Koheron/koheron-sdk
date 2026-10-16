@@ -20,7 +20,29 @@
         try { host = JSON.parse(report.host_results_json || "{}"); } catch (_) { /* Retain onboard results. */ }
         const checks = [...report.checks, ...(host.checks || [])];
         const counts = status => checks.filter(row => row.status === status).length;
-        $("state").textContent = report.state;
+        $("state").textContent = `Run ${report.run_id || "—"} · ${report.state}`;
+        const failed = checks.filter(row => row.status === "fail");
+        const healthy = report.state === "complete" && report.storage_ok && checks.length > 0 && !failed.length;
+        $("overall").textContent = failed.length ? "FAIL" : healthy ? "PASS" : report.state.toUpperCase();
+        $("overall").className = failed.length ? "fail" : healthy ? "pass" : "";
+        $("failures").hidden = !failed.length;
+        $("failure-list").replaceChildren();
+        failed.forEach(row => {
+            const li = document.createElement("li");
+            li.textContent = `${row.group} / ${row.name.replaceAll("_", " ")}: ${row.detail}`;
+            $("failure-list").append(li);
+        });
+        $("groups").replaceChildren();
+        const groups = [...new Set(checks.map(row => row.group))];
+        groups.forEach(group => {
+            const rows = checks.filter(row => row.group === group);
+            const failures = rows.filter(row => row.status === "fail").length;
+            const card = document.createElement("article"), name = document.createElement("strong"), counts = document.createElement("small");
+            card.className = failures ? "fail" : "pass";
+            name.textContent = group.toUpperCase();
+            counts.textContent = `${rows.filter(row => row.status === "pass").length} pass · ${failures} fail · ${rows.filter(row => row.status === "skipped").length} skipped`;
+            card.append(name, counts); $("groups").append(card);
+        });
         $("summary").textContent = `${counts("pass")} pass · ${counts("fail")} fail · ${counts("skipped")} skipped · ${report.observer_requests} report reads during the run`;
         $("start").disabled = report.state === "running";
         $("cancel").disabled = report.state !== "running";
@@ -34,6 +56,12 @@
                 if (i === 0) td.className = row.status;
                 tr.append(td);
             });
+            const extra = Object.entries(row).filter(([key]) => !["status", "group", "name", "value", "unit", "detail", "elapsed_ms"].includes(key));
+            if (extra.length) {
+                const metrics = document.createElement("div"); metrics.className = "metrics";
+                metrics.textContent = extra.map(([key, value]) => `${key.replaceAll("_", " ")}: ${typeof value === "object" ? JSON.stringify(value) : value}`).join(" · ");
+                tr.lastChild.append(metrics);
+            }
             $("checks").append(tr);
         });
         $("metadata").replaceChildren();

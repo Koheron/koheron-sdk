@@ -15,7 +15,7 @@ struct DmaResult
     double seconds = 0;
 };
 
-// Only the boot-reserved 8 MiB window is accessible to this exerciser.
+// Descriptor and payload allocations use the first 8 MiB of the boot reservation.
 class Dma
 {
   public:
@@ -118,15 +118,18 @@ class Dma
     DmaResult transfer(const std::vector<uint32_t> &lengths, uint32_t tx_offset = 0,
                        uint32_t rx_offset = 0, bool tx = true, bool rx = true, bool trigger = false,
                        unsigned timeout_ms = 250, unsigned descriptor_fault = 0,
-                       bool mask_irq = false)
+                       bool mask_irq = false, const std::vector<uint32_t> &receive_lengths = {})
     {
         DmaResult r;
-        if (!valid(lengths, tx_offset) || !valid(lengths, rx_offset) || cancel)
+        const auto &incoming = receive_lengths.empty() ? lengths : receive_lengths;
+        if (!valid(lengths, tx_offset) || !valid(incoming, rx_offset) || cancel ||
+            std::accumulate(lengths.begin(), lengths.end(), uint64_t(0)) !=
+                std::accumulate(incoming.begin(), incoming.end(), uint64_t(0)))
             return r;
         if (tx)
             descriptors(lengths, tx_offset, true);
         if (rx)
-            descriptors(lengths, rx_offset, false);
+            descriptors(incoming, rx_offset, false);
         if (descriptor_fault == 1)
             ram.write_reg(tx_bd + 24, 0x0c000000U);
         if (descriptor_fault == 2)
@@ -154,11 +157,11 @@ class Dma
         if (::write(irq.fd(), &enabled, sizeof(enabled)) != sizeof(enabled))
             return r;
         const auto begin = Clock::now(), end = begin + std::chrono::milliseconds(timeout_ms);
-        const auto tail = 64 * (lengths.size() - 1);
+        const auto tx_tail = 64 * (lengths.size() - 1), rx_tail = 64 * (incoming.size() - 1);
         if (rx)
-            regs.write_reg(0x40, uint32_t(mem::buffers_addr) + rx_bd + tail);
+            regs.write_reg(0x40, uint32_t(mem::buffers_addr) + rx_bd + rx_tail);
         if (tx)
-            regs.write_reg(0x10, uint32_t(mem::buffers_addr) + tx_bd + tail);
+            regs.write_reg(0x10, uint32_t(mem::buffers_addr) + tx_bd + tx_tail);
         if (trigger)
             ctl.write<reg::capture>(ctl.read<reg::capture>() + 1);
         while (!cancel && Clock::now() < end)
@@ -175,8 +178,8 @@ class Dma
             barrier();
             if ((r.tx_status | r.rx_status) & 0x770U)
                 break;
-            const bool tx_done = !tx || (ram.read_reg(tx_bd + tail + 28) & 0x80000000U);
-            const bool rx_done = !rx || (ram.read_reg(rx_bd + tail + 28) & 0x80000000U);
+            const bool tx_done = !tx || (ram.read_reg(tx_bd + tx_tail + 28) & 0x80000000U);
+            const bool rx_done = !rx || (ram.read_reg(rx_bd + rx_tail + 28) & 0x80000000U);
             if (tx_done && rx_done && event > 0)
             {
                 r.completed = true;
@@ -187,22 +190,25 @@ class Dma
         }
         r.seconds = bist::seconds(begin);
         barrier();
-        for (size_t i = 0; i < lengths.size(); ++i)
-            for (bool transmit : {false, true})
+        for (bool transmit : {false, true})
+        {
+            if ((transmit && !tx) || (!transmit && !rx))
+                continue;
+            const auto &chain = transmit ? lengths : incoming;
+            for (size_t i = 0; i < chain.size(); ++i)
             {
-                if ((transmit && !tx) || (!transmit && !rx))
-                    continue;
                 const auto status = ram.read_reg((transmit ? tx_bd : rx_bd) + 64 * i + 28);
                 r.errors += !(status & 0x80000000U) || (status & 0x70000000U) ||
-                            (status & 0x7fffffU) != lengths[i];
+                            (status & 0x7fffffU) != chain[i];
                 if (!transmit)
                 {
                     const uint32_t framing =
-                        (i == 0 ? 0x08000000U : 0U) | (i + 1 == lengths.size() ? 0x04000000U : 0U);
+                        (i == 0 ? 0x08000000U : 0U) | (i + 1 == chain.size() ? 0x04000000U : 0U);
                     r.errors += (status & 0x0c000000U) != framing;
                     r.received += status & 0x7fffffU;
                 }
             }
+        }
         r.ok = r.completed && !r.errors && r.interrupts;
         regs.write_reg(0, 0U);
         regs.write_reg(0x30, 0U);

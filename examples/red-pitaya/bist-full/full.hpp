@@ -12,6 +12,7 @@ class BistFull
     bool start(uint32_t analog_mask, uint32_t budget_ms, uint32_t seed);
     void cancel();
     std::string get_report();
+    std::string get_artifact(std::string run_id, std::string name);
     uint32_t ping(uint32_t value);
     uint64_t echo_u64(uint64_t value);
     double echo_double(double value);

@@ -14,7 +14,7 @@ def test_quiet_wait_controls_and_stale_refresh():
     runner = r"""
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const nodes=new Map(),calls=[],timers=new Map();let serial=0,active=false,finish,mainSocket;
-const node=()=>({textContent:'',replaceChildren(){},append(){}});
+const node=()=>({textContent:'',children:[],replaceChildren(){this.children=[];},append(...items){this.children.push(...items);},get lastChild(){return this.children.at(-1);}});
 const context=[
  {class:'BistFull',id:7,functions:[{name:'start',id:1,ret_type:'bool'},{name:'cancel',id:2,ret_type:'void'},{name:'get_report',id:3,ret_type:'std::string'}]},
  {class:'FullCompletion',id:8,functions:[{name:'wait',id:1,ret_type:'bool'}]}
@@ -34,7 +34,7 @@ class WebSocket{
   else if(driver===7&&id===1){
    calls.push('start');assert.deepStrictEqual([v.getUint32(8),v.getUint32(12),v.getUint32(16)],[1,35000,0xb157f011]);active=true;reply(true);
   }else if(driver===7&&id===2){calls.push('cancel');active=false;}
-  else if(driver===7&&id===3){calls.push('report');reply({run_id:'1',state:'complete',observer_requests:0,checks:[],metadata:{}});}
+  else if(driver===7&&id===3){calls.push('report');reply({run_id:'1',state:'complete',storage_ok:true,observer_requests:0,checks:[{group:'identity',name:'ethernet_factory_mac',status:'fail',value:0,detail:'factory mismatch',factory_mac:'00:26:32:f0:1c:6a'}],metadata:{}});}
   else throw new Error('unexpected command');
  }
  close(){}
@@ -47,6 +47,7 @@ const flush=async()=>{for(let i=0;i<30;++i)await Promise.resolve();};
 (async()=>{
  vm.runInNewContext(fs.readFileSync(process.argv[1],'utf8'),browser);await flush();
  assert.deepStrictEqual(calls,['context','wait','report']);
+ assert.strictEqual(nodes.get('overall').textContent,'FAIL');assert.strictEqual(nodes.get('failures').hidden,false);assert.strictEqual(nodes.get('failure-list').children.length,1);
  browser.document.getElementById('mask').value='1';await nodes.get('start').onclick();await flush();
  assert.strictEqual(nodes.get('cancel').disabled,false);
  const refresh=[...timers.values()].find(t=>t.ms===500).fn;refresh();await flush();

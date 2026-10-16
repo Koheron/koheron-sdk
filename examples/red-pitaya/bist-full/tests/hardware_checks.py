@@ -17,7 +17,7 @@ import time
 import paramiko
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from client import api, collect, connect, remaining, validate_report
+from client import GROUPS, api, collect, connect, remaining, required_checks, validate_report
 
 
 def main():
@@ -39,14 +39,14 @@ def main():
         api(args.host, "instruments/control/start", deadline, True)
         return connect(args.host, deadline)
 
-    def await_stress(connection):
+    def await_ddr(connection):
         while time.monotonic() < deadline:
             report = connection.get_report()
-            if any(row["name"] == "capture_overflow_recovery" for row in report["checks"]):
+            if any(row["name"] == "zeros_write_128m" for row in report["checks"]):
                 assert report["state"] == "running"
                 return report["run_id"]
             time.sleep(0.01)
-        raise TimeoutError("Stress phase did not start")
+        raise TimeoutError("Independent DDR traffic did not start")
 
     def waiter(connection, result):
         try:
@@ -66,7 +66,7 @@ def main():
 
         assert connection.start(1, 35000, 2)
         assert not connection.start(1, 35000, 3), "active start was not rejected"
-        await_stress(connection)
+        await_ddr(connection)
         result = []
         threads = [
             threading.Thread(target=waiter, args=(connect(args.host, deadline), result))
@@ -86,7 +86,7 @@ def main():
         save("cancelled-with-waiters", report)
 
         assert connection.start(1, 35000, 3)
-        run_id = await_stress(connection)
+        run_id = await_ddr(connection)
         result = []
         thread = threading.Thread(target=waiter, args=(connect(args.host, deadline), result))
         thread.start()
@@ -114,7 +114,7 @@ def main():
         )
         with closing(connect(args.host, deadline)) as connection:
             assert connection.start(1, 35000, 4)
-            run_id = await_stress(connection)
+            run_id = await_ddr(connection)
             _, stdout, stderr = remote.exec_command(
                 "systemctl kill --signal=KILL koheron-server.service", timeout=remaining(deadline)
             )
@@ -128,7 +128,12 @@ def main():
             # Create a complete, owned checkpoint pair before injecting corruption.
             assert connection.start(1, 35000, 5)
             report = collect(connection, deadline)
-            assert not validate_report(report), validate_report(report)
+            assert report["state"] == "complete" and report["storage_ok"]
+            assert set(report["completed_groups"]) == GROUPS
+            assert required_checks(1) <= {(row["group"], row["name"]) for row in report["checks"]}
+            # A physical board failure must remain visible. Checkpoint resilience
+            # tests can still verify exact preservation of that failed report.
+            summary["functional_report_errors"] = validate_report(report)
             assert connection.record_host_results(report["run_id"], '{"test":"checkpoint fixture"}')
             report = connection.get_report()
         prefix = f"/var/lib/koheron/bist-full/{report['run_id']}"
@@ -160,11 +165,16 @@ def main():
                     )
                 summary["checkpoint_fallback_and_corruption"] = "pass"
             finally:
-                api(args.host, "instruments/control/stop", deadline, True)
-                for name, contents in originals.items():
-                    with transfer.open(f"{prefix}/{name}", "wb") as file:
-                        file.write(contents)
-        with closing(restart()) as connection:
+                # Cleanup must still run if a test exhausted its own deadline.
+                cleanup_deadline = time.monotonic() + 10
+                try:
+                    api(args.host, "instruments/control/stop", cleanup_deadline, True)
+                finally:
+                    for name, contents in originals.items():
+                        with transfer.open(f"{prefix}/{name}", "wb") as file:
+                            file.write(contents)
+                    api(args.host, "instruments/control/start", cleanup_deadline, True)
+        with closing(connect(args.host, deadline)) as connection:
             restored = connection.get_report()
             assert restored["storage_ok"] and restored["checks"] == report["checks"]
             assert restored["host_results_json"] == report["host_results_json"]

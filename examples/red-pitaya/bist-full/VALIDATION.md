@@ -1,81 +1,146 @@
 # Hardware validation — 2026-10-16
 
-Instrument: **bist-full 0.1.0**, workload 1, original STEMlab 125-14.
-Host Ubuntu 24.04; Vivado/Vitis 2025.1; ARM GCC 15. Board at 192.168.1.85,
-DAC0 connected to ADC0, channel 1 unconnected. OS image
-`20261015.195921.a8061a0f1cc6`, Ubuntu 26.04.1, kernel `6.18.0-xilinx`.
-SDK base under test: `d030a8a32c9b`; the new reference implementation is
-identified separately by its source and binary digests below.
+Instrument **bist-full 0.2.0**, workload 2, original STEMlab 125-14 Gen1.
+DAC0 → ADC0, channel 1 unconnected, LV input range. Board at 192.168.1.85;
+DNA 23675955948361837; factory serial 160200540, revision 1.1.2.
+OS image `20261015.195921.a8061a0f1cc6`, Ubuntu 26.04.1, kernel `6.18.0-xilinx`.
+Reference host Ubuntu 24.04, Vivado/Vitis 2025.1, ARM GCC 15.
 
-## Build and host checks
+**Functional verdict: FAIL.** Four raw-loopback qualification checks fail
+repeatably: high-frequency gain, high-frequency clipping, step ringing/settling
+and broadband correlation. The aggregate host verdict also fails. DDR,
+CPU/cache, storage, DMA, UART, interrupt, protocol and lifecycle checks pass.
+The failure verdict is retained in the CLI, checkpoint and webpage.
 
-- New FPGA bitstream built and routed with timing enforcement enabled.
-  Setup slack **0.538 ns**, hold slack **0.021 ns**, no negative slack.
-- **6297/17600 LUTs (35.78%)**, **10353/35200 registers (29.41%)**,
-  **8/60 BRAM tiles (13.33%)**, **0 DSPs**.
-- Production ARM server and web package built and deployed through SDK commands.
-- `make check CFG=examples/red-pitaya/bist-full/stemlab-125-14.mk`: **161 host checks passed**.
-- Combined reference-client pytest run: **124 passed**. CI includes this suite.
-- RTL simulation passed elastic AXIS stability, byte tails, independent source,
-  checker corruption, malformed KEEP, early/missing TLAST, ADC overflow,
-  reset while stalled, IRQ clear and snapshot wrap.
+## Build and host verification
 
-## Full hardware validation
+- FPGA built with timing enforcement: **0.119 ns setup**, **0.020 ns hold**,
+  no negative slack.
+- **7846/17600 LUTs (44.58%)**, **11663/35200 registers (33.13%)**,
+  **8/60 BRAM tiles (13.33%)**, **0/80 DSPs**.
+- SDK production server/package build and deployment succeeded with warnings
+  treated as errors.
+- `make check CFG=examples/red-pitaya/bist-full/stemlab-125-14.mk`:
+  **161 host checks passed**.
+- Combined compact/full BIST pytest suite: **127 passed**. Includes native
+  FFT known answers and constant/railed ADC evidence, without NaN artifacts.
+- RTL simulation: elastic packet path and independent DDR master passed.
+  Covers independently stalled AXI channels, 4 KiB splitting, 1/16/64/256-beat
+  bursts, byte strobes, exact injected corruption, invalid request fences,
+  BRESP/RRESP/early-RLAST errors, draining abort and subsequent recovery.
 
-All three runs below used the final implementation, a fresh reboot, different
-pattern seeds, the 60-second end-to-end budget and the live webpage connected.
-Every run produced **175 PASS, 0 FAIL, 1 SKIP**, comprising 135 onboard and
-41 host checks. The only skip is the absent channel-1 analog cable. All seven
-coverage groups and the complete required-case manifest were present.
+## Reboot-to-recovery measurements
 
-| Run | End-to-end | Onboard suite | Observer reads | DMA payload MB/s | Duplex UART kB/s |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | 29.253 s | 5.745 s | 0 | 492.567 | 91.574 |
-| 2 | 29.669 s | 5.734 s | 0 | 492.834 | 91.564 |
-| 3 | 29.636 s | 5.745 s | 0 | 493.168 | 91.576 |
+Each run reboots, requires network disappearance/return and a changed boot ID,
+executes the instrument with four concurrent paced SDK clients, downloads raw
+captures, cross-checks spectra with NumPy, tests protocol corner cases,
+reloads the service/overlay, checks exact report retention and executes fresh
+DDR/DMA/UART traffic. The webpage remained connected and used quiet completion
+waits. The end-to-end allowance remains **60 seconds**.
 
-End-to-end includes reboot, ICMP/RPC readiness, onboard checks, protocol probes,
-service/overlay reload and fresh DMA/UART recovery. The SDK `make test` entry
-point also passed during validation. DMA MB/s counts one direction's payload
-per transfer-completion time, excluding preparation/comparison; UART is the
-sum of both directions. These are descriptive results, not SDK regression
-verdicts or analog calibration claims.
+| Run | End-to-end | Onboard | Report reads while active | Pass / Fail / Skip |
+| --- | ---: | ---: | ---: | --- |
+| boot1 | 41.041 s | 14.276 s | 0 | 238 / 5 / 1 |
+| boot2 | 38.320 s | 14.216 s | 0 | 238 / 5 / 1 |
+| boot3 | 37.508 s | 14.268 s | 0 | 239 / 5 / 1 |
 
-## Fault and recovery validation
+The final run has **197 onboard and 48 host checks**. The preceding two runs
+have 47 host checks; the final client additionally verifies artifact access
+validation. All runs have the same four analog failures and aggregate failure.
+The sole skip is the absent channel-1 analog cable. External wall time for
+boot3, including Python startup and report export, was **37.87 seconds**.
 
-The separate recovery script passed every case within its own 60-second budget:
+## New independent paths verified on hardware
 
-- Onboard budget expiration leaves a failing, partial report.
-- Starting an already-active suite is rejected.
-- Cancellation during combined traffic wakes two completion waiters.
-- Active service stop retains a cancelled report and devices recover.
-- SIGKILL during combined traffic restores an interrupted report; devices recover.
-- A truncated checkpoint falls back with `storage_ok=false`.
-- Two corrupt generations produce an explicit corrupt report with no invented checks.
-- Restoring the saved checkpoint pair restores checks and host results exactly.
+- HP1 master wrote and checked all **128 MiB**, seven patterns, **1.75 GiB**
+  total payload traffic. CPU independently checked every 4 KiB page; PL checked
+  CPU-written data at the end of the reservation. A CPU-flipped bit produced
+  exactly one mismatch at the expected address with exact expected/actual data.
+- Hardware rejected out-of-window/misaligned/zero-length/illegal-burst requests
+  with **zero AXI transactions**. Complementary byte writes preserved the
+  unselected lanes. Throttled abort drained the current burst and recovered.
+- An **8 MiB** pattern survived the CPU, media, DMA, UART and converter phases.
+- Both CPUs passed executed arithmetic/CRC/VFP/NEON checks, peer reads over
+  **32 MiB** cacheable RAM and **4096** release/acquire cache-line handoffs.
+- Own **4 MiB** SD file passed fsync/rename/directory-fsync/O_DIRECT readback;
+  actual changed-file-byte and truncation controls were rejected; files removed.
+- **32** seeded asymmetric SG packets passed independent TX/RX segmentation,
+  different DRE offsets, byte comparison, every descriptor and PL checks.
+- Both UART receivers rejected a forced low stop bit, raised an error IRQ and
+  enqueued no corrupt byte; subsequent traffic recovered.
+- **Three seconds** of CPU churn, HP0 DMA, independent HP1 write/check traffic
+  and **131072 bytes in each UART direction** completed without integrity errors.
+  Four network clients simultaneously verified distinct SDK vector payloads.
 
-Measured cancellation: **69.1 ms**; active stop: **186.2 ms**.
-The entire recovery script took **30.459 s**.
+## Analog findings and independent measurement evidence
 
-Additional negative wiring control: declaring channel 1 connected while leaving
-it unplugged fails all seven channel-1 sweeps. The other hardware and SDK checks
-remain available; the overall full validation correctly fails.
+Each connected channel retains **21 captures**, each containing generated DAC
+codes and both 8192-sample ADC records. Both ADC channels and every DMA/sample
+loss/guard diagnostic remain available after service reload. The client saves
+these to `captures/`, and records NumPy/onboard FFT agreement in
+`spectral-crosscheck.json`.
 
-Expected faults also passed within each normal suite: bad descriptors, input
-and post-checker corruption, early/missing packet end, masked DMA IRQ, RX/TX
-UART overruns and capture overflow. Every corresponding recovery probe passed.
+The following values are from boot3:
+
+| Stimulus | Measured result | Qualification |
+| --- | --- | --- |
+| 1.58691 MHz, 4096 DAC codes | Gain 0.9527; SNDR 51.41 dB; 0 clipped samples | PASS |
+| 4.51660 MHz, 4096 DAC codes | Gain 0.9892; SNDR 51.05 dB; 0 clipped samples | PASS |
+| 15.99121 MHz, 4096 DAC codes | Gain 1.7726; SNDR 36.21 dB; 0 clipped samples | FAIL |
+| 25.75684 MHz, 4096 DAC codes | Gain 0.0214; SNDR -9.17 dB; 7666 clipped samples | FAIL |
+| 25.75684 MHz, 512 DAC codes | Gain 6.643; SNDR 42.95 dB; no clipped samples | Reduced-drive diagnostic PASS |
+| Bipolar step | Overshoot 98.6%; settling 560 ns to 2% band | FAIL: limits 40%, 192 ns |
+| Broadband sequence | Correlation 0.7910 | FAIL: minimum 0.9 |
+| Seven DC levels | Gain 0.9011; offset -210.2 codes; max residual 10.24 codes | PASS |
+
+No unintended FIFO sample loss, DMA errors or guard damage accompanied these
+findings. NumPy independently reproduced onboard amplitude, SNDR, THD and SFDR.
+The 15.99 MHz case fails its gain ceiling of 1.7, despite meeting its spectral
+limits. At 25.76 MHz, reduced drive removes clipping and exposes substantial
+frequency-dependent gain. Raw data confirms the ringing and correlation result.
+
+These are qualifications of the **uncalibrated, unequalized DAC/cable/ADC
+loopback**. The instrument bypasses Red Pitaya's frequency equalization;
+[Red Pitaya documents that equalization compensates the analog front-end and
+changes ringing, settling and frequency response](https://redpitaya.readthedocs.io/en/latest/appsFeatures/systemtool/calibration/frequency_calibration.html).
+The results do not isolate the ADC, DAC, cabling, loading or compensation as the
+cause. They do establish that the selected raw-loopback profile fails. Factory
+EEPROM is read only; no calibration or network configuration was changed.
+
+At session entry the already-running boot had MAC `ca:70:4c:f8:d6:37`, differing
+from factory `00:26:32:f0:1c:6a`. All three new boots recovered the factory MAC
+and passed the new comparison. The initial mismatch is retained as evidence;
+these runs do not establish a persistent MAC failure.
+
+## Cancellation, process death and persistence
+
+The separate destructive-test script completed in **31.172 seconds**:
+
+- Budget expiration produced a partial `timeout` report.
+- Active-start rejection and cancellation with two completion waiters passed;
+  cancellation completed in **26.6 ms**.
+- Active service stop during independent DDR traffic completed in **218.6 ms**.
+- SIGKILL during DDR traffic restored an `interrupted` report. Fresh independent
+  DDR, DMA and UART traffic passed after reload.
+- Truncating the current checkpoint selected the intact previous generation
+  and explicitly marked storage unhealthy. Corrupting both generations produced
+  `corrupt`, with no checks presented as completed.
+- Restoring this script's own originals recovered every check and host fixture
+  exactly. Functional analog failures remained visible throughout.
 
 ## Identity and evidence
 
-- `source_sha256`: `73d47d45ce9dc3c7a99a5f2c46a1de2b1184890d5eb8f061c58ed33b2580a21d`
-- `server_sha256`: `7d9a23b29f49f52f5cac3810a2eb7a269676d4b4dd5d1c95becf21347e81751f`
-- `fpga_sha256`: `0c665d862f7fdc560f5aa626fdfe0f1309d87411bff5d516ac1ccbe34c46c3d3`
+Final onboard implementation:
 
-Raw host reports, scorecards, logs, recovery fixtures and summaries are retained
-locally under `tmp/bist-full-evidence/verified/`; build, simulation and host-check
-logs are under `tmp/bist-full-*.log` and `tmp/bist-full-evidence/`.
-The reports retain per-run boot ID, FPGA DNA, OS/image provenance and client hash.
+- `source_sha256`: `b050f420df0bf5c85a9c5afee145a22299388cafaa16a3703e96e771880b4dbb`
+- `fpga_sha256`: `3e9a2147f823f91b949eddd35fb2b601a5a021de19fe40e06b51afec557ec055`
+- `server_sha256`: `3ed31960296cd06cbc04baf1fe2098fea003270cf500c37280dd87adea95efc2`
+- Final host client SHA256: `a6538bc355181a209eb7b9f42c0254c3c63ef71627463997eb57ac62b87f48f0`
 
-These runs cover this board and fixture. They do not certify the unconnected
-analog channel, external expansion wiring/clocking, every DDR cell, SD power
-loss, Ethernet line-rate capacity or extended thermal endurance.
+Local evidence: `tmp/bist-full-v2-evidence/` contains every run's report,
+scorecard, raw captures, independent FFT comparisons, recovery reports,
+pre-reboot identity evidence and the plotted loopback response. FPGA and host
+check logs are retained in `tmp/bist-full-{fpga,sim,check,doctor}-v2.*`.
+
+The 0.1.0 validation is preserved in Git history. It exercised a smaller set
+of paths and did not characterize this high-frequency/transient response.

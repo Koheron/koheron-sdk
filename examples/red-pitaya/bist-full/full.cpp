@@ -2,8 +2,10 @@
 #include "../bist/checkpoint.hpp"
 #include "../bist/metadata.hpp"
 #include "../bist/uart.hpp"
+#include "analog.hpp"
 #include "completion.hpp"
 #include "dma.hpp"
+#include "platform.hpp"
 #include "server/runtime/driver_manager.hpp"
 #include "server/runtime/signal_handler.hpp"
 #include <condition_variable>
@@ -30,13 +32,18 @@ std::string digest(const std::string &path)
     pclose(stream);
     return ok ? std::string(text, 64) : "unavailable";
 }
-size_t resources(const char *path)
+size_t device_fds(const std::string &device)
 {
     std::error_code error;
     size_t count = 0;
-    for (std::filesystem::directory_iterator it(path, error), end; !error && it != end;
+    for (std::filesystem::directory_iterator it("/proc/self/fd", error), end; !error && it != end;
          it.increment(error))
-        ++count;
+    {
+        std::error_code link_error;
+        const auto target = std::filesystem::read_symlink(it->path(), link_error);
+        if (!link_error && target == device)
+            ++count;
+    }
     return count;
 }
 std::string array_append(std::string array, const std::string &value)
@@ -60,10 +67,17 @@ struct BistFull::Impl
     std::thread worker;
     std::string run_id, prefix, checks = "[]", metadata = "{}", state = "idle", host = "", log,
                                 groups = "[]";
-    bool storage_ok = true;
+    bool storage_ok = true, reservation_ok = false;
     Clock::time_point beginning, deadline;
     uint32_t seed = 0;
     bist_full::Dma dma{cancelled};
+    bist_full::Ddr ddr{cancelled};
+    bist_full::Emit output()
+    {
+        return [this](const auto &g, const auto &n, bool pass, double value, const auto &unit,
+                      const auto &detail, const auto &extra)
+        { add(g, n, pass, value, unit, detail, extra); };
+    }
 
     Impl()
     {
@@ -102,6 +116,7 @@ struct BistFull::Impl
         cancelled = true;
         if (worker.joinable())
             worker.join();
+        ddr.stop();
         dma.stop();
     }
     std::string report() const
@@ -176,7 +191,7 @@ struct BistFull::Impl
                number(value) + " " + unit + " " + detail + "\n";
         persist();
     }
-    bool available() const { return !cancelled && Clock::now() < deadline; }
+    bool available() const { return !cancelled && Clock::now() < deadline && reservation_ok; }
     void group_done(const std::string &name)
     {
         std::lock_guard lock(mutex);
@@ -192,6 +207,24 @@ struct BistFull::Impl
         while (sts.read<reg::snapshot_id>() != token && Clock::now() < end)
             std::this_thread::yield();
         return sts.read<reg::snapshot_id>() == token;
+    }
+    bool reservation_valid()
+    {
+        std::ifstream iomem("/proc/iomem");
+        const std::string reservation =
+            "/sys/firmware/devicetree/base/reserved-memory/dma-buffer@18000000";
+        const auto reg = read_file(reservation + "/reg");
+        uint64_t base = 0, size = 0;
+        if (reg.size() == 8)
+            for (unsigned i = 0; i < 4; ++i)
+            {
+                base = (base << 8) | static_cast<unsigned char>(reg[i]);
+                size = (size << 8) | static_cast<unsigned char>(reg[i + 4]);
+            }
+        return reg.size() == 8 && mem::buffers_addr >= base &&
+               mem::buffers_addr + mem::buffers_range <= base + size &&
+               std::filesystem::exists(reservation + "/no-map") &&
+               hw::outside_system_ram(iomem, mem::buffers_addr, mem::buffers_range);
     }
     void platform()
     {
@@ -215,33 +248,22 @@ struct BistFull::Impl
         add("platform", "mapping_backends", mappings, 0, "errors", paths);
         add("platform", "fpga_identity", sts.read<reg::identity>() == 0x42494631,
             sts.read<reg::identity>(), "id", "new full-design identity 0x42494631");
-        std::ifstream iomem("/proc/iomem");
-        const std::string reservation =
-            "/sys/firmware/devicetree/base/reserved-memory/dma-buffer@18000000";
-        const auto reg = read_file(reservation + "/reg");
-        uint64_t base = 0, size = 0;
-        if (reg.size() == 8)
-            for (unsigned i = 0; i < 4; ++i)
-            {
-                base = (base << 8) | static_cast<unsigned char>(reg[i]);
-                size = (size << 8) | static_cast<unsigned char>(reg[i + 4]);
-            }
-        const bool reserved = reg.size() == 8 && mem::buffers_addr >= base &&
-                              mem::buffers_addr + mem::buffers_range <= base + size &&
-                              std::filesystem::exists(reservation + "/no-map") &&
-                              hw::outside_system_ram(iomem, mem::buffers_addr, mem::buffers_range);
+        const bool reserved = reservation_valid();
+        reservation_ok = reserved;
         add("platform", "dma_reservation", reserved, mem::buffers_range, "bytes",
             "boot no-map and exclusion from all Linux System RAM");
-        const size_t before = resources("/proc/self/fd");
+        const size_t before = device_fds(mapping_path(sts.base_addr()));
         bool cycles = true;
         for (unsigned i = 0; i < 32; ++i)
         {
             Uio<mem::status> map;
             cycles &= map.open() >= 0 && map.mmap() != nullptr;
         }
-        const size_t after = resources("/proc/self/fd");
+        const size_t after = device_fds(mapping_path(sts.base_addr()));
         add("platform", "mapping_lifetime_32", cycles && before == after,
-            double(after) - double(before), "fds", "32 UIO map/unmap/open/close cycles");
+            double(after) - double(before), "fds",
+            "32 UIO map/unmap/open/close cycles; device-specific FD count excludes concurrent "
+            "network sessions");
         const auto child = ::fork();
         bool protected_write = false;
         if (child == 0)
@@ -392,7 +414,7 @@ struct BistFull::Impl
             "coherent snapshots including signed boundary and uint32 wrap");
         memory_test(bram, mem::bram_range, "bram16k");
         if (available())
-            memory_test(ram, mem::buffers_range, "ddr8m");
+            memory_test(ram, 8 * 1024 * 1024, "ddr8m");
     }
     bool recover(const std::string &name)
     {
@@ -496,6 +518,55 @@ struct BistFull::Impl
                 double(errors + r.errors), "errors",
                 "same DDR buffers/descriptors reused with a distinct pattern");
         }
+        uint32_t random = seed | 1;
+        auto next = [&]
+        {
+            random ^= random << 13;
+            random ^= random >> 17;
+            random ^= random << 5;
+            return random;
+        };
+        uint64_t randomized_errors = 0, randomized_bytes = 0;
+        unsigned trials = 0;
+        for (; trials < 32 && available(); ++trials)
+        {
+            const uint32_t n = 4097 + (next() & 32767), tx_offset = next() & 63,
+                           rx_offset = next() & 63, key = next();
+            std::vector<uint32_t> tx_chunks, rx_chunks;
+            for (bool transmit : {false, true})
+            {
+                auto &chain = transmit ? tx_chunks : rx_chunks;
+                uint32_t remaining = n;
+                while (remaining)
+                {
+                    const auto chunk = chain.size() == 63
+                                           ? remaining
+                                           : std::min(remaining, transmit ? 4 * (1 + (next() & 511))
+                                                                          : 1 + (next() & 2047));
+                    chain.push_back(chunk);
+                    remaining -= chunk;
+                }
+            }
+            dma.reset();
+            ctl.write<reg::scratch>(key);
+            ctl.write<reg::packet_bytes>(n);
+            dma.fill(n, key, tx_offset, rx_offset);
+            const auto r = dma.transfer(tx_chunks, tx_offset, rx_offset, true, true, false, 250, 0,
+                                        false, rx_chunks);
+            snapshot();
+            randomized_errors += !r.ok;
+            randomized_errors +=
+                dma.verify(n, key, rx_offset) + dma.guards(n, tx_offset, rx_offset);
+            randomized_errors += sts.read<reg::checker_errors>() + sts.read<reg::keep_errors>() +
+                                 sts.read<reg::discontinuities>();
+            randomized_bytes += n;
+        }
+        add("dma", "randomized_asymmetric_sg", trials == 32 && !randomized_errors,
+            double(randomized_errors), "errors",
+            "32 seeded packets: independently partitioned TX/RX chains, different DRE offsets, "
+            "every descriptor status, exact bytes, PL checker and guards",
+            "\"trials\":" + std::to_string(trials) + ",\"bytes\":" +
+                std::to_string(randomized_bytes) + ",\"seed\":" + std::to_string(seed));
         // Independent PL source and sink isolate each DMA direction.
         for (bool source : {false, true})
         {
@@ -687,6 +758,28 @@ struct BistFull::Impl
             "\"latency_us\":" + distribution(ar.roundtrip_us));
         auto &tx = hw::get_memory<mem::uart_a>();
         auto &rx = hw::get_memory<mem::uart_b>();
+        // Hold the physical internal RX wire low, beyond a complete stop bit.
+        auto framing = [&](auto &endpoint, auto &irq, unsigned direction)
+        {
+            a.reset();
+            b.reset();
+            const bool bound = irq.open() >= 0;
+            endpoint.write_reg(8, 4U);
+            const bool armed = bound && irq.arm_irq();
+            ctl.write<reg::uart_fault>(1U << direction);
+            barrier();
+            const int event = armed ? irq.wait_for_irq(std::chrono::milliseconds(10)) : -1;
+            const auto errors = endpoint.read_reg(24), status = endpoint.read_reg(4);
+            ctl.write<reg::uart_fault>(0);
+            barrier();
+            add("uart", "framing_break_" + std::to_string(direction),
+                event > 0 && errors > 0 && (status & 255) == 0, errors, "detected frames",
+                "forced low stop bit must raise error IRQ and must not enqueue a corrupt byte");
+        };
+        Uio<mem::uart_a> irq_a;
+        Uio<mem::uart_b> irq_b;
+        framing(rx, irq_b, 0);
+        framing(tx, irq_a, 1);
         a.reset();
         b.reset();
         // Bounded batches avoid overflowing TX; deliberately never drain RX.
@@ -815,7 +908,7 @@ struct BistFull::Impl
         a.reset();
         b.reset();
         std::atomic<bool> done{false};
-        StartGate gate{4};
+        StartGate gate{5};
         std::atomic<int> affinity_error{0};
         uint64_t checksum = 0;
         std::thread cpu(
@@ -836,12 +929,29 @@ struct BistFull::Impl
                     }
                 }
             });
+        uint64_t ddr_bytes = 0, ddr_errors = 0;
+        std::thread memory_master(
+            [&]
+            {
+                bist_full::pin(1);
+                gate.wait();
+                while (!done && available())
+                {
+                    const auto w =
+                        ddr.run(32 * 1024 * 1024, 4 * 1024 * 1024, seed, 3, true, deadline);
+                    const auto r =
+                        ddr.run(32 * 1024 * 1024, 4 * 1024 * 1024, seed, 3, false, deadline);
+                    ddr_errors += !w.ok() || !r.ok();
+                    if (w.ok() && r.ok())
+                        ddr_bytes += w.bytes + r.bytes;
+                }
+            });
         SerialResult ar, br;
         std::thread serial_a(
             [&]
             {
                 if (opened)
-                    ar = a.exchange(32768, 0, false, &gate);
+                    ar = a.exchange(131072, 0, false, &gate);
                 else
                     gate.drop();
             }),
@@ -849,7 +959,7 @@ struct BistFull::Impl
                 [&]
                 {
                     if (opened)
-                        br = b.exchange(32768, 1, false, &gate);
+                        br = b.exchange(131072, 1, false, &gate);
                     else
                         gate.drop();
                 });
@@ -861,7 +971,7 @@ struct BistFull::Impl
         uint64_t errors = 0, bytes = 0;
         gate.wait();
         const auto begin = Clock::now();
-        while (seconds(begin) < .8 && available())
+        while (seconds(begin) < 3 && available())
         {
             ctl.write<reg::reset_diag>(ctl.read<reg::reset_diag>() + 1);
             barrier();
@@ -874,13 +984,16 @@ struct BistFull::Impl
         serial_b.join();
         done = true;
         cpu.join();
+        memory_master.join();
         add("stress", "cpu_dma_uart",
             opened && !errors && !ar.errors && !br.errors && !affinity_error &&
-                !dma_affinity_error && bytes > 0,
+                !dma_affinity_error && bytes > 0 && !ddr_errors && ddr_bytes > 0,
             bytes / seconds(begin) / 1e6, "MB/s verified DMA",
-            "CPU memory churn, repeated DMA and simultaneous duplex UART; all integrity checks "
+            "CPU memory churn, HP0 DMA, independent HP1 DDR writer/checker and duplex UART; "
+            "integrity "
             "retained",
-            "\"checksum\":" + quote(std::to_string(checksum)) +
+            "\"ddr_bytes\":" + std::to_string(ddr_bytes) + ",\"ddr_errors\":" +
+                std::to_string(ddr_errors) + ",\"checksum\":" + quote(std::to_string(checksum)) +
                 ",\"dma_errors\":" + std::to_string(errors) +
                 ",\"uart_errors\":" + std::to_string(ar.errors + br.errors) +
                 ",\"uart_a_received\":" + std::to_string(ar.received) +
@@ -897,6 +1010,25 @@ struct BistFull::Impl
         if (available())
         {
             group_done("memory");
+            dma.stop();
+            if (reservation_ok)
+                ddr.exercise(seed, deadline, output());
+            else
+                add("ddr", "reservation_required", false, 0, "bytes",
+                    "DDR master disabled: boot reservation did not validate");
+        }
+        if (available())
+        {
+            group_done("ddr");
+            bist_full::processors(seed, cancelled, deadline, output());
+            group_done("cpu");
+            bist_full::board_identity(output());
+            group_done("identity");
+            bist_full::storage(prefix, seed, output());
+            group_done("storage");
+        }
+        if (available())
+        {
             dma_matrix();
         }
         if (available())
@@ -914,6 +1046,8 @@ struct BistFull::Impl
         {
             group_done("uart");
             analog(mask);
+            if (available())
+                bist_full::Analog(dma, cancelled, deadline, output(), prefix).exercise(mask);
         }
         if (available())
         {
@@ -921,14 +1055,27 @@ struct BistFull::Impl
             stress();
         }
         if (available())
+        {
             group_done("stress");
+            const auto retained =
+                ddr.run(16 * 1024 * 1024, 8 * 1024 * 1024, seed, 3, false, deadline);
+            add("ddr", "retention_after_load", retained.ok() && retained.bytes == 8 * 1024 * 1024,
+                retained.mismatches, "errors",
+                "DDR pattern retained across CPU, media, UART, converter and DMA phases",
+                retained.json());
+        }
+        ddr.stop();
+        ctl.write<reg::uart_fault>(0);
         const bool within = available();
         dma.stop();
         add("lifecycle", "onboard_budget", within, seconds(beginning), "s",
             "onboard allowance leaves time inside the 60 s end-to-end budget");
         {
             std::lock_guard lock(mutex);
-            state = cancelled ? "cancelled" : within ? "complete" : "timeout";
+            state = !reservation_ok ? "unsafe_fixture"
+                    : cancelled     ? "cancelled"
+                    : within        ? "complete"
+                                    : "timeout";
             persist();
             active = false;
         }
@@ -952,8 +1099,8 @@ bool BistFull::start(uint32_t mask, uint32_t budget_ms, uint32_t seed)
                                       std::chrono::system_clock::now().time_since_epoch())
                                       .count());
     impl->prefix = std::string(root) + "/" + impl->run_id;
-    std::filesystem::create_directory(impl->prefix, error);
-    if (error)
+    const bool created = std::filesystem::create_directory(impl->prefix, error);
+    if (!created || error)
         return false;
     impl->storage_ok = true;
     impl->checks = "[]";
@@ -966,7 +1113,7 @@ bool BistFull::start(uint32_t mask, uint32_t budget_ms, uint32_t seed)
     utsname system{};
     uname(&system);
     impl->metadata =
-        "{\"instrument_version\":\"0.1.0\",\"workload_version\":1,\"source_sha256\":" +
+        "{\"instrument_version\":\"0.2.0\",\"workload_version\":2,\"source_sha256\":" +
         quote(FULL_BUILD_ID) + ",\"sdk_version\":" + quote(KOHERON_VERSION) +
         ",\"board\":\"STEMlab 125-14 Gen1\",\"kernel\":" + quote(system.release) +
         ",\"os\":" + fields_json(release_fields(read_file("/etc/os-release"))) +
@@ -981,9 +1128,10 @@ bool BistFull::start(uint32_t mask, uint32_t budget_ms, uint32_t seed)
         ",\"seed\":" + std::to_string(seed) +
         ",\"onboard_budget_ms\":" + std::to_string(budget_ms) +
         ",\"end_to_end_budget_seconds\":60,\"dma_dre\":true,\"dma_maximum_bytes\":2097152,\"bram_"
-        "bytes\":16384,\"ddr_test_bytes\":8388608}}";
+        "bytes\":16384,\"ddr_test_bytes\":134217728,\"cacheable_test_bytes\":33554432}}";
     impl->write(std::string(root) + "/latest", impl->run_id);
     impl->cancelled = false;
+    impl->reservation_ok = false;
     impl->active = true;
     impl->beginning = Clock::now();
     impl->deadline = impl->beginning + std::chrono::milliseconds(budget_ms);
@@ -998,6 +1146,16 @@ std::string BistFull::get_report()
         ++impl->observers;
     std::lock_guard lock(impl->mutex);
     return impl->report();
+}
+std::string BistFull::get_artifact(std::string run_id, std::string name)
+{
+    std::lock_guard lock(impl->mutex);
+    if (impl->active || run_id != impl->run_id || !name.starts_with("ch") ||
+        !name.ends_with(".json") || name.size() > 80 ||
+        name.substr(0, name.size() - 5)
+                .find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") != std::string::npos)
+        return "";
+    return read_file(impl->prefix + '/' + name);
 }
 uint32_t BistFull::ping(uint32_t value) { return value ^ 0x42494631U; }
 uint64_t BistFull::echo_u64(uint64_t value) { return value; }
@@ -1030,6 +1188,8 @@ bool BistFull::recover_devices()
     if (impl->worker.joinable())
         impl->worker.join();
     impl->cancelled = false;
+    if (!impl->reservation_valid())
+        return false;
     const uint32_t key = 0x7265636f;
     bool ok = impl->dma.open() && impl->dma.reset();
     impl->ctl.write<reg::scratch>(key);
@@ -1049,6 +1209,11 @@ bool BistFull::recover_devices()
     std::thread second([&] { br = b.exchange(256, 1, false, &gate); });
     first.join();
     second.join();
+    const auto end = Clock::now() + std::chrono::seconds(1);
+    const auto written = impl->ddr.run(64 * 1024 * 1024, 65536, key, 3, true, end);
+    const auto checked = impl->ddr.run(64 * 1024 * 1024, 65536, key, 3, false, end);
+    ok &= written.ok() && checked.ok() && written.bytes == 65536 && checked.bytes == 65536;
+    impl->ddr.stop();
     impl->dma.stop();
     return ok && !ar.errors && !br.errors && ar.interrupts > 0 && br.interrupts > 0;
 }

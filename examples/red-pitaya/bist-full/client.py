@@ -12,6 +12,7 @@ import socket
 import struct
 import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python"))
@@ -19,7 +20,19 @@ import numpy as np
 import requests
 from koheron import KoheronClient, command
 
-GROUPS = {"platform", "memory", "dma", "irq", "uart", "analog", "stress"}
+GROUPS = {
+    "platform",
+    "memory",
+    "ddr",
+    "cpu",
+    "identity",
+    "storage",
+    "dma",
+    "irq",
+    "uart",
+    "analog",
+    "stress",
+}
 
 
 def required_checks(mask):
@@ -34,11 +47,19 @@ def required_checks(mask):
         "dma": (
             "uio_binding pl_generator_rx_only pl_checker_tx_only duplex_2m_capacity "
             "reject_zero_length_bd reject_completed_bd descriptor_fault_1_recovery "
-            "descriptor_fault_2_recovery detect_tx_corruption tx_corruption_recovery "
+            "descriptor_fault_2_recovery randomized_asymmetric_sg detect_tx_corruption tx_corruption_recovery "
             "detect_post_checker_corruption output_corruption_recovery detect_early_tlast "
             "detect_missing_tlast tlast_2_recovery tlast_4_recovery masked_uio_irq_timeout "
             "masked_irq_recovery reject_invalid_requests capture_overflow_recovery"
         ).split(),
+        "ddr": (
+            "cpu_write_pl_read detect_cpu_corruption corruption_recovery "
+            "write_strobe_isolation complementary_write_strobes hardware_address_fence "
+            "draining_abort abort_recovery retention_prepare retention_after_load"
+        ).split(),
+        "cpu": ["core_0", "core_1", "cacheable_32m", "cache_line_handoff"],
+        "identity": ["factory_eeprom", "ethernet_factory_mac", "ethernet_link"],
+        "storage": ["atomic_file", "detect_media_corruption", "cleanup"],
         "irq": ["level_rearm_32", "masked_level_retention"],
         "uart": (
             "uio_binding idle_timeout request_reply_100 detect_rx_overrun "
@@ -99,6 +120,21 @@ def required_checks(mask):
         ("descriptor_reuse", range(16)),
     ):
         cases["dma"] += [f"{prefix}_{value}" for value in values]
+    cases["ddr"] += [
+        f"{pattern}_{operation}"
+        for pattern in (
+            "zeros",
+            "ones",
+            "checkerboard",
+            "address",
+            "walking_one",
+            "walking_zero",
+            "scrambled",
+        )
+        for operation in ("write_128m", "read_128m", "cpu_crosscheck")
+    ]
+    cases["ddr"] += [f"burst_{burst}_4k_crossing" for burst in (1, 16, 64, 256)]
+    cases["uart"] += ["framing_break_0", "framing_break_1"]
     cases["uart"] += [f"duplex_bytes_{n}" for n in (1, 31, 32, 63, 64, 65, 127, 128, 129, 32768)]
     for channel in range(2):
         if mask & (1 << channel):
@@ -112,6 +148,22 @@ def required_checks(mask):
                     (64, 2048, 0),
                     (8, 2048, 500),
                     (8, 2048, -500),
+                )
+            ]
+            cases["analog"] += [f"ch{channel}_spectrum_{b}" for b in (13, 37, 131, 211)]
+            cases["analog"] += [
+                f"ch{channel}_{name}"
+                for name in (
+                    "dc_transfer",
+                    "high_frequency_headroom",
+                    "amplitude_linearity",
+                    "adc_bit_activity",
+                    "other_dac_isolation",
+                    "detect_clipped_waveform",
+                    "clipping_recovery",
+                    "two_tone_imd",
+                    "step_response",
+                    "prbs_correlation",
                 )
             ]
         else:
@@ -140,6 +192,10 @@ class FullClient:
 
     @command(classname="BistFull")
     def get_report(self):
+        return self.client.recv_json()
+
+    @command(classname="BistFull")
+    def get_artifact(self, run_id, name):
         return self.client.recv_json()
 
     @command(classname="BistFull")
@@ -380,6 +436,62 @@ def protocol_checks(host, connection, deadline, checks):
             "bad session closes and the healthy connection remains usable",
         )
 
+    def receive(raw, n):
+        data = bytearray()
+        while len(data) < n:
+            raw.settimeout(remaining(deadline))
+            part = raw.recv(n - len(data))
+            if not part:
+                raise ConnectionError("early EOF in protocol probe")
+            data.extend(part)
+        return bytes(data)
+
+    ping_device, ping_operation, _ = connection.client.get_ids("BistFull", "ping")
+
+    def ping_packet(value):
+        return struct.pack("!IHHI", 0, ping_device, ping_operation, value)
+
+    with socket.create_connection((host, 36000), timeout=remaining(deadline)) as raw:
+        raw.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        for byte in ping_packet(0xFEDCBA98):
+            raw.sendall(bytes([byte]))
+        response = receive(raw, 12)
+        add(
+            "fragmented_request",
+            struct.unpack("!I", response[8:])[0] == (0xFEDCBA98 ^ 0x42494631),
+            "one request split into single-byte writes, including header and argument",
+        )
+        values = [i * 0x1020304 & 0xFFFFFFFF for i in range(128)]
+        raw.sendall(b"".join(ping_packet(v) for v in values))
+        response = receive(raw, 12 * len(values))
+        add(
+            "pipelined_requests",
+            all(
+                struct.unpack_from("!I", response, i * 12 + 8)[0] == (v ^ 0x42494631)
+                for i, v in enumerate(values)
+            ),
+            "128 coalesced requests with ordered, exact replies on one connection",
+        )
+    for name, packet in (
+        ("non_element_vector_length", header + struct.pack("!I", 3) + b"abc"),
+        ("oversized_vector_length", header + struct.pack("!I", 0xFFFFFFFF)),
+    ):
+        with socket.create_connection((host, 36000), timeout=remaining(deadline)) as raw:
+            raw.settimeout(remaining(deadline, 0.5))
+            raw.sendall(packet)
+            raw.shutdown(socket.SHUT_WR)
+            try:
+                closed = raw.recv(16) == b""
+            except ConnectionResetError:
+                closed = True
+            except TimeoutError:
+                closed = False
+        add(
+            name,
+            closed and invoke(connection.ping, 9) == (9 ^ 0x42494631),
+            "invalid dynamic-payload length closes only the offending session",
+        )
+
     def concurrent(index):
         with closing(connect(host, deadline)) as other:
             values = np.arange(257, dtype=np.uint32) ^ np.uint32(index * 0x1010101)
@@ -396,7 +508,123 @@ def protocol_checks(host, connection, deadline, checks):
         all(outcomes),
         "80 vector roundtrips, distinct per-client payloads and independent connections",
     )
+    run_id = invoke(connection.get_report)["run_id"]
+    rejected = 0
+    for identity, name in (
+        (run_id, "../checkpoint"),
+        (run_id, "ch0_../checkpoint.json"),
+        (run_id, "ch0_\0.json"),
+        ("wrong-run", "ch_manifest.json"),
+    ):
+        try:
+            invoke(connection.get_artifact, identity, name)
+        except ValueError:
+            rejected += 1
+    add(
+        "artifact_access_validation",
+        rejected == 4 and invoke(connection.ping, 10) == (10 ^ 0x42494631),
+        "traversal, embedded NUL and wrong-run artifact requests return no data; connection remains usable",
+    )
     return checks
+
+
+def collect_with_traffic(host, connection, deadline):
+    stop = threading.Event()
+
+    def worker(index):
+        count, errors, latencies = 0, [], []
+        try:
+            with closing(connect(host, deadline)) as other:
+                while not stop.is_set():
+                    other.client.sock.settimeout(remaining(deadline))
+                    values = np.arange(1024, dtype=np.uint32) ^ np.uint32(
+                        (index << 24) | (count & 0xFFFFFF)
+                    )
+                    when = time.monotonic()
+                    if not np.array_equal(other.echo_vector(values), values):
+                        errors.append("payload mismatch")
+                    latencies.append((time.monotonic() - when) * 1000)
+                    count += 1
+                    stop.wait(0.01)
+        except (OSError, ValueError, RuntimeError) as error:
+            errors.append(str(error))
+        return dict(calls=count, errors=errors, max_ms=max(latencies, default=0))
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        pending = [pool.submit(worker, i) for i in range(4)]
+        try:
+            onboard = collect(connection, deadline)
+        finally:
+            stop.set()
+        results = [future.result() for future in pending]
+    return onboard, dict(
+        group="sdk",
+        name="traffic_during_hardware",
+        status="pass" if all(r["calls"] > 0 and not r["errors"] for r in results) else "fail",
+        detail="four paced clients verify distinct 4 KiB vectors throughout onboard hardware tests; no report polling",
+        workers=results,
+        payload_bytes_per_call=4096,
+        period_seconds=0.01,
+    )
+
+
+def download_artifacts(connection, onboard, output, deadline):
+    connection.client.sock.settimeout(remaining(deadline))
+    manifest = connection.get_artifact(onboard["run_id"], "ch_manifest.json")
+    expected = 21 * onboard["metadata"]["parameters"]["analog_mask"].bit_count()
+    if len(manifest["files"]) != expected or len(set(manifest["files"])) != expected:
+        raise RuntimeError("missing or duplicated analog evidence artifacts")
+    target = output / "captures"
+    target.mkdir(exist_ok=True)
+    for name in manifest["files"]:
+        if Path(name).name != name or not name.startswith("ch") or not name.endswith(".json"):
+            raise RuntimeError("unsafe evidence artifact name")
+        connection.client.sock.settimeout(remaining(deadline))
+        data = connection.get_artifact(onboard["run_id"], name)
+        if len(data["adc0"]) != 8192 or len(data["adc1"]) != 8192 or len(data["dac"]) != 1024:
+            raise RuntimeError("incomplete analog evidence artifact")
+        (target / name).write_text(json.dumps(data, separators=(",", ":")) + "\n")
+    comparisons = []
+    for row in onboard["checks"]:
+        if row["group"] != "analog" or "_spectrum_" not in row["name"]:
+            continue
+        raw = json.loads((target / row["capture_artifact"]).read_text())
+        y = np.asarray(raw[f"adc{raw['observe_channel']}"], dtype=float)
+        p = np.abs(np.fft.rfft(y)) ** 2 / len(y) ** 2
+        p[1:-1] *= 2
+        b = round(row["frequency_hz"] * len(y) / raw["sample_rate_hz"])
+        harmonic_bins = {(h * b) % len(y) for h in range(2, 11)}
+        harmonic_bins = {min(i, len(y) - i) for i in harmonic_bins} - {0, b}
+        signal, rest = p[b], sum(p[1:]) - p[b]
+        distortion = sum(p[i] for i in harmonic_bins)
+        independent = dict(
+            amplitude=np.sqrt(2 * signal),
+            sndr_db=10 * np.log10(max(signal, 1e-30) / max(rest, 1e-30)),
+            thd_dbc=10 * np.log10(max(distortion, 1e-30) / max(signal, 1e-30)),
+            sfdr_db=10 * np.log10(max(signal, 1e-30) / max(max(np.delete(p[1:], b - 1)), 1e-30)),
+        )
+        comparisons.append(
+            dict(
+                name=row["name"],
+                match=all(
+                    np.isclose(row[k], v, rtol=1e-6, atol=1e-6) for k, v in independent.items()
+                ),
+                numpy=independent,
+            )
+        )
+    (output / "spectral-crosscheck.json").write_text(json.dumps(comparisons, indent=2) + "\n")
+    return dict(
+        group="evidence",
+        name="analog_captures",
+        status=(
+            "pass"
+            if comparisons and all(row["match"] for row in comparisons) or expected == 0
+            else "fail"
+        ),
+        value=expected,
+        unit="raw captures",
+        detail="DAC codes and both ADC channels retained; NumPy independently verifies onboard amplitude, SNDR, THD and SFDR",
+    )
 
 
 def save(output, onboard, host):
@@ -433,7 +661,8 @@ def validate(args):
             raise RuntimeError("Full BIST start rejected")
         print(f"Onboard validation running quietly; allowance {budget/1000:.1f} s", flush=True)
         try:
-            onboard = collect(connection, deadline - 6)
+            onboard, traffic = collect_with_traffic(args.host, connection, deadline - 6)
+            host["checks"].append(traffic)
         except (OSError, TimeoutError):
             # Use an independent session: a timed-out completion RPC may still
             # be outstanding on its original socket.
@@ -444,6 +673,8 @@ def validate(args):
             raise
         save(args.output, onboard, host)
         errors = validate_report(onboard)
+        if onboard["state"] == "complete":
+            host["checks"].append(download_artifacts(connection, onboard, args.output, deadline))
         if startup and onboard["metadata"]["boot_id"].strip() == startup[0]:
             errors.append("reboot did not change boot ID")
         try:
@@ -501,10 +732,13 @@ def validate(args):
             )
         )
         host["status"] = "fail" if any(c["status"] == "fail" for c in host["checks"]) else "pass"
+        recovered.client.sock.settimeout(remaining(deadline))
         if not recovered.record_host_results(onboard["run_id"], json.dumps(host, allow_nan=False)):
             raise RuntimeError("Host results were not retained onboard")
+        recovered.client.sock.settimeout(remaining(deadline))
         onboard = recovered.get_report()
         save(args.output, onboard, host)
+        remaining(deadline)
     counts = {
         status: sum(c["status"] == status for c in onboard["checks"] + host["checks"])
         for status in ("pass", "fail", "skipped")

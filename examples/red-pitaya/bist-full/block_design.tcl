@@ -65,8 +65,9 @@ for {set i 0} {$i < 2} {incr i} {
     set_property offset [get_memory_offset $name] $seg
     set_property range [get_memory_range $name] $seg
 }
-connect_pins uart_a/tx uart_b/rx
-connect_pins uart_b/tx uart_a/rx
+# Force either receiver low to test real UART stop-bit/framing detection.
+connect_pins uart_b/rx [get_and_pin uart_a/tx [get_not_pin [get_slice_pin [ctl_pin uart_fault] 0 0]]]
+connect_pins uart_a/rx [get_and_pin uart_b/tx [get_not_pin [get_slice_pin [ctl_pin uart_fault] 1 1]]]
 cell xilinx.com:ip:util_vector_logic:2.0 dma_irq {C_SIZE 1 C_OPERATION or} {Res concat_interrupts/In2}
 
 set idx [add_master_interface 0]
@@ -126,3 +127,29 @@ assign_bd_address [get_bd_addr_segs xadc/s_axi_lite/Reg]
 set seg [get_bd_addr_segs ps_0/Data/SEG_xadc_Reg]
 set_property offset [get_memory_offset xadc] $seg
 set_property range [get_memory_range xadc] $seg
+
+# A second, independent memory master exercises the complete reserved DDR window.
+set_property CONFIG.PCW_USE_S_AXI_HP1 1 [get_bd_cells ps_0]
+connect_pins ps_0/S_AXI_HP1_ACLK $clk
+cell koheron:user:ddr_tester:1.0 ddr_test {} {
+    aclk $clk aresetn $rst
+    command [ctl_pin ddr_command] config_word [ctl_pin ddr_config]
+    address [ctl_pin ddr_address] byte_count [ctl_pin ddr_bytes] seed [ctl_pin ddr_seed]
+    burst_beats [ctl_pin ddr_burst] pauses [ctl_pin ddr_pauses] abort_request [ctl_pin ddr_abort]
+    done [sts_pin ddr_done] busy [sts_pin ddr_busy] errors [sts_pin ddr_errors]
+    mismatches [sts_pin ddr_mismatches] first_address [sts_pin ddr_first_address]
+    bursts [sts_pin ddr_bursts]
+}
+foreach {port regname} {first_expected ddr_expected first_actual ddr_actual transferred ddr_transferred cycles ddr_cycles} {
+    for {set i 0} {$i < 2} {incr i} {
+        connect_pins [sts_pin ${regname}$i] [get_slice_pin ddr_test/$port [expr 32*$i+31] [expr 32*$i]]
+    }
+}
+cell xilinx.com:ip:axi_interconnect:2.1 hp1 {
+    NUM_SI 1 NUM_MI 1
+} {
+    ACLK $clk ARESETN $rst S00_ACLK $clk M00_ACLK $clk
+    S00_ARESETN $rst M00_ARESETN $rst
+    S00_AXI ddr_test/M_AXI M00_AXI ps_0/S_AXI_HP1
+}
+assign_bd_address -target_address_space ddr_test/M_AXI [get_bd_addr_segs ps_0/S_AXI_HP1/HP1_DDR_LOWOCM] -force
