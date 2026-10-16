@@ -105,6 +105,14 @@ html { scrollbar-gutter: stable; }
 .system-workspace #health-table { table-layout: fixed; }
 .system-workspace #health-table td { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .system-workspace #health-table[data-stale="true"] td { color: var(--muted); }
+.system-workspace .board-telemetry { margin-bottom: 20px; }
+.system-workspace .board-telemetry table { table-layout: fixed; }
+.system-workspace .board-telemetry th, .system-workspace .board-telemetry td { padding: 7px 3px; font-size: 11px; }
+.system-workspace .board-telemetry th:first-child { width: 27%; overflow-wrap: anywhere; }
+.system-workspace .board-telemetry td, .system-workspace .board-telemetry thead th:not(:first-child) { text-align: right; white-space: nowrap; }
+.system-workspace .board-telemetry table[data-stale="true"] td { color: var(--muted); }
+.system-workspace #temperature-table { margin-top: 8px; }
+.system-workspace #temperature-table th { width: 65%; }
 .system-workspace #diagnostics-download { font-size: 11px; }
 .system-workspace .system-sidebar .section-heading { align-items: baseline; }
 @media (max-width: 900px) {

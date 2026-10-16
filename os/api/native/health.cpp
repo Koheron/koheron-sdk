@@ -1,4 +1,5 @@
 #include "health.hpp"
+#include "telemetry.hpp"
 #include <sstream>
 #include <sys/statvfs.h>
 
@@ -36,6 +37,7 @@ Json system_health(const Settings& settings, std::uint64_t api_ready, std::uint6
     add(disks, "instruments", storage(settings.instruments)); add(disks, "staging", storage(settings.live.parent_path()));
     add(result, "load_average", std::move(load)); add(result, "memory", std::move(memory)); add(result, "storage", std::move(disks));
     add(result, "instrument_service", service_status(settings, settings.unit));
+    add(result, "telemetry", board_telemetry(settings.telemetry));
     auto timing = object(); add(timing, "api_ready_monotonic_us", integer(api_ready));
     add(timing, "api_initialization_us", api_ready >= api_started ? integer(api_ready - api_started) : Json{});
     add(timing, "extraction", service_status(settings, "unzip-default-instrument.service"));

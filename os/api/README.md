@@ -44,6 +44,25 @@ to 20 MiB.
 or last operation, and board health. The status WebSocket sends updates when
 operations change and periodic snapshots.
 
+The home page also displays power, voltage, current and temperature from
+`health.telemetry`, using the same status WebSocket and HTTP fallback. An optional
+board service publishes `/run/koheron/telemetry.json` independently of the
+instrument. Missing readings appear as a dash; snapshots older than five seconds
+are marked stale. Stopping an instrument does not stop board monitoring.
+
+The producer atomically replaces this UTF-8 JSON file (maximum 16 KiB):
+
+```json
+{"sampled_monotonic_us":123456789,"supplies":[{"label":"Input","voltage_v":12.0,"current_a":0.5,"power_w":6.0}],"temperatures":[{"label":"Processor","celsius":42.0}]}
+```
+
+`sampled_monotonic_us` uses `CLOCK_MONOTONIC` on the same running system. Each
+array accepts up to sixteen channels with labels of at most eighty UTF-8 bytes.
+Unavailable measurements are `null`. The management API only reads this snapshot;
+board services own sensor access and recovery. It never loads an FPGA or starts
+an instrument to collect telemetry. `--telemetry PATH` selects a fixture or a
+different producer path.
+
 Log entries include microsecond timestamps, message text, priority and a
 truncation flag. The WebSocket and HTTP log endpoints share cursors, so clients
 can resume after reconnecting or fall back to HTTP. An expired cursor returns

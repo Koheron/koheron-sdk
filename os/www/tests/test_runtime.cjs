@@ -253,3 +253,53 @@ test('small extracted sizes stay visible and full versions remain in accessible 
     assert.equal(f.w.PreflightView.bytes(0), '0 B');
     assert.equal(f.w.PreflightView.bytes(-1), 'Unavailable');
 });
+
+test('power and temperature share the status socket without a running instrument', t => {
+    const f = fixture(t);
+    const telemetry = {state: 'live', supplies: [
+        {label: 'Input', power_w: 6, voltage_v: 12, current_a: .5},
+        {label: 'Module', power_w: 1, voltage_v: 5, current_a: .2}],
+        temperatures: [{label: 'Processor', celsius: 42.25}]};
+    const update = () => f.sockets[0].reply(status({instruments: {instruments: installed, live_instrument: null},
+        health: {telemetry}}));
+    update();
+    assert.equal(f.sockets.length, 1);
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Live');
+    assert.match(f.doc.querySelector('#supply-table').textContent, /Input6.00 W12.00 V0.500 A/);
+    assert.match(f.doc.querySelector('#temperature-table').textContent, /Processor42.3 °C/);
+    const row = f.doc.querySelector('#supply-table tbody tr'); update();
+    assert.equal(f.doc.querySelector('#supply-table tbody tr'), row);
+    telemetry.temperatures[0].celsius = 43; update();
+    assert.match(f.doc.querySelector('#temperature-table').textContent, /43.0 °C/);
+});
+
+test('missing sensor readings stay unavailable and labels are rendered as text', t => {
+    const f = fixture(t);
+    f.sockets[0].reply(status({health: {telemetry: {state: 'live',
+        supplies: [{label: '<img src=x>', power_w: null, voltage_v: '12', current_a: false}],
+        temperatures: [{label: 'Sensor', celsius: null}]}}}));
+    assert.equal(f.doc.querySelector('#supply-table tbody').textContent, '<img src=x>———');
+    assert.equal(f.doc.querySelector('#supply-table img'), null);
+    assert.equal(f.doc.querySelector('#temperature-table tbody').textContent, 'Sensor—');
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Sensor readings unavailable');
+    f.sockets[0].reply(status({health: {}}));
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Telemetry unavailable');
+    assert.equal(f.doc.querySelector('#supply-table tbody').children.length, 0);
+});
+
+test('stale sensors and disconnected transport never claim live readings', t => {
+    const f = fixture(t);
+    f.sockets[0].reply(status({health: {telemetry: {state: 'stale', supplies: [],
+        temperatures: [{label: 'Processor', celsius: 42}]}}}));
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Stale · last known readings');
+    assert.equal(f.doc.querySelector('#temperature-table').dataset.stale, 'true');
+    assert.match(f.doc.querySelector('#temperature-table').textContent, /42.0 °C/);
+    f.sockets[0].onclose();
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Disconnected · last known readings');
+    f.requests.shift().reply(200, status({health: {telemetry: {state: 'live', supplies: [],
+        temperatures: [{label: 'Processor', celsius: 43}]}}}));
+    return f.flush().then(() => {
+        assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Live');
+        assert.equal(f.doc.querySelector('#temperature-table').dataset.stale, 'false');
+    });
+});
