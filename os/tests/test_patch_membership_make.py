@@ -54,7 +54,7 @@ TMP := {self.root}
 ARCH := arm
 ZYNQ_TYPE := zynq
 GCC_ARCH := arm-linux-gnueabihf
-LINUX_VERSION := test
+LINUX_VERSION := vtest
 SOURCE_CHECKSUMS := {self.os_path / 'source-checksums.sha256'}
 DOWNLOAD_VERIFIED := {self.os_path / 'scripts/download_verified.sh'}
 %/:

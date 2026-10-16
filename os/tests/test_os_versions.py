@@ -41,16 +41,10 @@ print-os-versions:
                                     f'arm-trust-xlnx-arm-trust-v{vivado}.tar.gz'):
                         self.assertIn(archive, checksums)
 
-    def test_original_kernel_release_can_be_selected(self):
-        values = self.versions('alpha250/fft', '2025.1', 'LINUX_VERSION=2026.1')
-        self.assertEqual(values[0], 'xilinx-linux-v2026.1')
-        self.assertEqual(values[1],
-                         'https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v2026.1.tar.gz')
-
     def test_older_runtime_can_be_selected_with_newer_tools(self):
         values = self.versions('alpha250/fft', '2026.1',
-                               'LINUX_VERSION=2025.1', 'UBUNTU_VERSION=24.04.5', 'UBOOT_VERSION=2025.1')
-        self.assertEqual(values[0], 'xilinx-linux-v2025.1')
+                               'LINUX_VERSION=xilinx-v2025.1', 'UBUNTU_VERSION=24.04.5', 'UBOOT_VERSION=2025.1')
+        self.assertEqual(values[0], 'xilinx-linux-xilinx-v2025.1')
         self.assertIn('xilinx-v2025.1.tar.gz', values[1])
         self.assertEqual(values[2:5], ['24.04.5', 'xilinx-uboot-v2025.1', 'xilinx_v2026.1'])
         self.assertEqual(values[8], 'https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v2025.1.tar.gz')

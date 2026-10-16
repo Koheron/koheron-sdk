@@ -1,16 +1,10 @@
 # Runtime kernel release is independent of the FPGA/boot toolchain.
 include $(dir $(lastword $(MAKEFILE_LIST)))compiler-settings.mk
 include $(dir $(lastword $(MAKEFILE_LIST)))../make/dependencies.mk
-LINUX_VERSION ?= 2026.1-update
-ifeq ($(LINUX_VERSION),2026.1-update)
-# Pin xlnx_rebase_v6.18_LTS_2026.1_update (Linux 6.18.40), not its moving tip.
-LINUX_REVISION := c3faafdafc13d2592825d909395b95da390dc2be
-LINUX_TAG := xilinx-linux-$(LINUX_REVISION)
-LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/$(LINUX_REVISION).tar.gz
-else
-LINUX_TAG := xilinx-linux-v$(LINUX_VERSION)
-LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v$(LINUX_VERSION).tar.gz
-endif
+# Linux 6.18.40 from xlnx_rebase_v6.18_LTS_2026.1_update.
+LINUX_VERSION ?= c3faafdafc13d2592825d909395b95da390dc2be
+LINUX_TAG := xilinx-linux-$(LINUX_VERSION)
+LINUX_URL := https://github.com/Xilinx/linux-xlnx/archive/$(LINUX_VERSION).tar.gz
 LINUX_PATH := $(TMP)/linux-xlnx-$(ARCH)-$(LINUX_TAG)
 LINUX_TAR := $(TMP)/linux-xlnx-$(LINUX_TAG).tar.gz
 SOURCE_CHECKSUMS := $(OS_PATH)/source-checksums.sha256

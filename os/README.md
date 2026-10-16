@@ -37,11 +37,11 @@ card. `flash` writes the existing release ZIP.
 ## Settings
 
 The default image uses Ubuntu Base 26.04.1, Xilinx Linux 6.18.40, U-Boot
-2026.1, and Vivado/Vitis 2025.1. `LINUX_VERSION=2026.1-update` selects the
-`xlnx_rebase_v6.18_LTS_2026.1_update` maintenance branch, pinned to commit
-`c3faafdafc13d2592825d909395b95da390dc2be` with a verified source archive.
-Use `LINUX_VERSION=2026.1` for the original Xilinx release tag, or select
-other releases with `LINUX_VERSION`, `UBOOT_VERSION`, or `VIVADO_VERSION`.
+2026.1, and Vivado/Vitis 2025.1. The kernel is pinned to commit
+`c3faafdafc13d2592825d909395b95da390dc2be` from
+`xlnx_rebase_v6.18_LTS_2026.1_update`, with a verified source archive.
+`LINUX_VERSION` accepts a Git commit or tag (for example, `xilinx-v2026.1`).
+Select other boot/tool releases with `UBOOT_VERSION` or `VIVADO_VERSION`.
 Set `PASSWORD` and `TIMEZONE` in the environment to override the image defaults.
 
 FTDI USB serial ports use a 1 ms receive latency timer by default, applied at
