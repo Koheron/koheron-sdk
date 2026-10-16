@@ -12,7 +12,10 @@ module table_corrector #(
     parameter integer FREQ_WIDTH=17,
     parameter integer PHASE_WIDTH=32,
     parameter integer PHASE_FRAC=0,
-    parameter integer SAMPLE_INTERVAL=1
+    parameter integer SAMPLE_INTERVAL=1,
+    // Tune the gain output adder independently of controller state arithmetic.
+    parameter integer GAIN_CARRY_BLOCK=CARRY_BLOCK,
+    parameter integer SUM_CARRY_BLOCK=CARRY_BLOCK
 )(
     input wire clk,
     input wire signed [FREQ_WIDTH-1:0] freq_in,
@@ -52,18 +55,18 @@ module table_corrector #(
     reg [GAIN_STAGES:0] sample_pipeline=0;
     always @(posedge clk) sample_pipeline<={sample_pipeline[GAIN_STAGES-1:0],sample_valid};
     wire integrate=(SAMPLE_INTERVAL==1) || sample_pipeline[GAIN_STAGES];
-    table_gain #(.A_WIDTH(FREQ_WIDTH), .OUTPUT_LOW(PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
+    table_gain #(.A_WIDTH(FREQ_WIDTH), .OUTPUT_LOW(PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(GAIN_CARRY_BLOCK))
         gp(clk,freq_in,active_banks[0],we[0],table_command[7],table_command[6],table_command[5:2],table_data,p);
-    table_gain #(.A_WIDTH(PHASE_WIDTH), .OUTPUT_LOW(16+PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
+    table_gain #(.A_WIDTH(PHASE_WIDTH), .OUTPUT_LOW(16+PHASE_FRAC), .OUTPUT_WIDTH(32), .PIPE_STAGES(GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(GAIN_CARRY_BLOCK))
         gpi(clk,phase_in,active_banks[1],we[1],table_command[7],table_command[6],table_command[5:2],table_data,pi);
-    table_gain #(.A_WIDTH(48), .OUTPUT_LOW(48), .OUTPUT_WIDTH(32), .PIPE_STAGES(I2_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
+    table_gain #(.A_WIDTH(48), .OUTPUT_LOW(48), .OUTPUT_WIDTH(32), .PIPE_STAGES(I2_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(GAIN_CARRY_BLOCK))
         gi2(clk,acc1,active_banks[2],we[2],table_command[7],table_command[6],table_command[5:2],table_data,i2);
-    table_gain #(.A_WIDTH(32), .OUTPUT_WIDTH(64), .PIPE_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(CARRY_BLOCK))
+    table_gain #(.A_WIDTH(32), .OUTPUT_WIDTH(64), .PIPE_STAGES(TAIL_GAIN_STAGES), .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS), .CARRY_BLOCK(GAIN_CARRY_BLOCK))
         gi3(clk,acc2,active_banks[3],we[3],table_command[7],table_command[6],table_command[5:2],table_data,i3);
     wire [31:0] first_next;
     wire [47:0] acc1_next;
     wire [63:0] acc3_next;
-    dpll_carry_adder #(.BLOCK(CARRY_BLOCK)) first_add(p,pi,1'b0,first_next);
+    dpll_carry_adder #(.BLOCK(SUM_CARRY_BLOCK)) first_add(p,pi,1'b0,first_next);
     dpll_carry_adder #(.WIDTH(48),.BLOCK(CARRY_BLOCK)) acc1_add(
         acc1,{{16{first_sum[31]}},first_sum},1'b0,acc1_next);
     dpll_carry_adder #(.WIDTH(64),.BLOCK(CARRY_BLOCK)) acc3_add(acc3,i3,1'b0,acc3_next);

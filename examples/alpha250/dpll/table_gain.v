@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-// Programmable constant multiplier with two to five pipeline stages. For four-bit
+// Programmable constant multiplier with two to six pipeline stages. For four-bit
 // chunks, software prepares sixteen multiples of the signed Q*.11 gain,
 // including the octave, for unsigned nibbles and sixteen for the signed top
 // nibble. Small asynchronous LUT RAMs
@@ -134,14 +134,14 @@ module table_gain #(
         dpll_carry_adder #(.WIDTH(WIDTH),.BLOCK(CARRY_BLOCK)) final_add(
             stage[LEVELS*TERMS],stage[LEVELS*TERMS+1],1'b0,product);
         always @(posedge CLK) P<=product[FRACTION_BITS+OUTPUT_LOW +: OUTPUT_WIDTH];
-    end else if((PIPE_STAGES==4 || PIPE_STAGES==5) && FINAL_CSA_LEVELS>0 && (FRACTION_BITS+OUTPUT_LOW)>0) begin : split_final
+    end else if((PIPE_STAGES>=4 && PIPE_STAGES<=6) && FINAL_CSA_LEVELS>0 && (FRACTION_BITS+OUTPUT_LOW)>0) begin : split_final
         // Lower bits affect the retained output only through their carry.
         // Compute that carry at the existing intermediate register boundary.
         localparam CUT=FRACTION_BITS+OUTPUT_LOW;
         reg [WIDTH-CUT-1:0] sum=0,carry=0;
         reg low_carry=0;
         wire [WIDTH-1:0] final_sum,final_carry;
-        if(PIPE_STAGES==5) begin : reduction_stage
+        if(PIPE_STAGES>=5) begin : reduction_stage
             // Keep the final two compressor levels separate from the carry
             // of the discarded bits. This costs one sample clock.
             reg [WIDTH-1:0] sum=0,carry=0;
@@ -159,7 +159,35 @@ module table_gain #(
         dpll_carry_out #(.WIDTH(CUT),.BLOCK(0)) carry_out(
             final_sum[CUT-1:0],final_carry[CUT-1:0],low_next);
         wire [WIDTH-CUT-1:0] product;
-        dpll_carry_adder #(.WIDTH(WIDTH-CUT),.BLOCK(CARRY_BLOCK)) final_add(sum,carry,low_carry,product);
+        if(PIPE_STAGES==6) begin : registered_final
+            // Precompute both local sums before the final carry selection.
+            // The extra clock cuts the retained-word carry propagation in two.
+            localparam BLOCK=(CARRY_BLOCK>0) ? CARRY_BLOCK : 16;
+            localparam BLOCKS=(WIDTH-CUT+BLOCK-1)/BLOCK;
+            localparam GROUPS=(BLOCKS+3)/4;
+            reg [WIDTH-CUT-1:0] zero=0,one=0;
+            reg [GROUPS*4-1:0] g=0,p=0;
+            reg cin=0;
+            wire [GROUPS*4:0] c;
+            assign c[0]=cin;
+            always @(posedge CLK) cin<=low_carry;
+            for(i=0;i<BLOCKS;i=i+1) begin : chunk
+                localparam N=(WIDTH-CUT-i*BLOCK<BLOCK) ? WIDTH-CUT-i*BLOCK : BLOCK;
+                wire [N-1:0] x=sum[i*BLOCK +: N],y=carry[i*BLOCK +: N];
+                always @(posedge CLK) begin
+                    {g[i],zero[i*BLOCK +: N]}<={1'b0,x}+{1'b0,y};
+                    one[i*BLOCK +: N]<=x+y+1'b1;
+                    p[i]<=&(x^y);
+                end
+                assign product[i*BLOCK +: N]=c[i] ? one[i*BLOCK +: N] : zero[i*BLOCK +: N];
+            end
+            for(i=0;i<GROUPS;i=i+1) begin : carry_group
+                CARRY4 chain(.CI(i==0 ? cin : c[4*i]),.CYINIT(1'b0),
+                    .DI(g[4*i +: 4]),.S(p[4*i +: 4]),.CO(c[4*i+1 +: 4]),.O());
+            end
+        end else begin : combinational_final
+            dpll_carry_adder #(.WIDTH(WIDTH-CUT),.BLOCK(CARRY_BLOCK)) final_add(sum,carry,low_carry,product);
+        end
         always @(posedge CLK) begin
             sum<=final_sum[WIDTH-1:CUT];
             carry<=final_carry[WIDTH-1:CUT];

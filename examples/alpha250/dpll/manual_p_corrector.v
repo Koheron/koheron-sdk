@@ -14,7 +14,11 @@ module manual_p_corrector #(
     parameter integer FREQ_WIDTH=17,
     parameter integer PHASE_WIDTH=32,
     parameter integer PHASE_FRAC=0,
-    parameter integer SAMPLE_INTERVAL=1
+    parameter integer SAMPLE_INTERVAL=1,
+    // Tune the gain output adder independently of controller state arithmetic.
+    parameter integer GAIN_CARRY_BLOCK=CARRY_BLOCK,
+    parameter integer SUM_CARRY_BLOCK=CARRY_BLOCK,
+    parameter integer FAST_CARRY_BLOCK=8
 )(
     input wire clk, resetn,
     input wire signed [FREQ_WIDTH-1:0] freq_in,
@@ -42,9 +46,9 @@ module manual_p_corrector #(
         reg [16:0] low=0;
         reg [PHASE_WIDTH-17:0] high_zero=0,high_one=0;
         wire [PHASE_WIDTH-17:0] high_zero_next,high_one_next;
-        dpll_carry_adder #(.WIDTH(PHASE_WIDTH-16),.BLOCK(8)) high_add_zero(
+        dpll_carry_adder #(.WIDTH(PHASE_WIDTH-16),.BLOCK(FAST_CARRY_BLOCK)) high_add_zero(
             reference_phase[PHASE_WIDTH-1:16],phase_delta_shifted[PHASE_WIDTH-1:16],1'b0,high_zero_next);
-        dpll_carry_adder #(.WIDTH(PHASE_WIDTH-16),.BLOCK(8)) high_add_one(
+        dpll_carry_adder #(.WIDTH(PHASE_WIDTH-16),.BLOCK(FAST_CARRY_BLOCK)) high_add_one(
             reference_phase[PHASE_WIDTH-1:16],phase_delta_shifted[PHASE_WIDTH-1:16],1'b1,high_one_next);
         always @(posedge clk) begin
             low<={1'b0,reference_phase[15:0]}+{1'b0,phase_delta_shifted[15:0]};
@@ -60,7 +64,7 @@ module manual_p_corrector #(
     reg [FAST_I_STAGES-1:0] fast_sample_pipeline=0;
     always @(posedge clk) fast_sample_pipeline<={fast_sample_pipeline[FAST_I_STAGES-2:0],sample_valid};
     wire fast_integrate=(SAMPLE_INTERVAL==1) || fast_sample_pipeline[FAST_I_STAGES-1];
-    dpll_carry_adder #(.BLOCK(8)) fast_i_add(fast_i_acc,fast_pi,1'b0,fast_i_next);
+    dpll_carry_adder #(.BLOCK(FAST_CARRY_BLOCK)) fast_i_add(fast_i_acc,fast_pi,1'b0,fast_i_next);
     always @(posedge clk) begin
         if(!enabled[1]) fast_i_acc<=0;
         else if(fast_integrate) begin
@@ -72,7 +76,7 @@ module manual_p_corrector #(
 
     table_corrector #(.FUSED(FUSED),.GAIN_STAGES(GAIN_STAGES),
         .TAIL_GAIN_STAGES(TAIL_GAIN_STAGES),.I2_GAIN_STAGES(I2_GAIN_STAGES),.FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),
-        .CARRY_BLOCK(CARRY_BLOCK),.FREQ_WIDTH(FREQ_WIDTH),
+        .CARRY_BLOCK(CARRY_BLOCK),.GAIN_CARRY_BLOCK(GAIN_CARRY_BLOCK),.SUM_CARRY_BLOCK(SUM_CARRY_BLOCK),.FREQ_WIDTH(FREQ_WIDTH),
         .PHASE_WIDTH(PHASE_WIDTH),.PHASE_FRAC(PHASE_FRAC),.SAMPLE_INTERVAL(SAMPLE_INTERVAL)) accurate_controller(
         .clk(clk),.freq_in(freq_in),.phase_in(phase_in),.enabled(enabled),
         .active_banks(active_banks),.table_command(table_command),.table_data(table_data),
@@ -84,11 +88,11 @@ module manual_p_corrector #(
     // Program and commit the extra P table with the same transactions/bank as
     // the accurate P gain. No additional software gain programming is needed.
     table_gain #(.A_WIDTH(17),.OUTPUT_WIDTH(32),.PIPE_STAGES(FAST_GAIN_STAGES),.DSP_FAST_P(FAST_P_DSP),
-        .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),.CARRY_BLOCK(CARRY_BLOCK)) fast_gain(
+        .FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),.CARRY_BLOCK(GAIN_CARRY_BLOCK)) fast_gain(
         clk,(FAST_P_DSP && FAST_GAIN_STAGES>=3) ? fast_phase_pre : fast_phase,active_banks[0],table_command[8] && table_command[1:0]==0,
         table_command[7],table_command[6],table_command[5:2],table_data,fast_p);
     table_gain #(.A_WIDTH(PHASE_WIDTH),.OUTPUT_LOW(16+PHASE_FRAC),.OUTPUT_WIDTH(32),
-        .PIPE_STAGES(GAIN_STAGES),.FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),.CARRY_BLOCK(CARRY_BLOCK)) fast_i_gain(
+        .PIPE_STAGES(GAIN_STAGES),.FINAL_CSA_LEVELS(FINAL_CSA_LEVELS),.CARRY_BLOCK(GAIN_CARRY_BLOCK)) fast_i_gain(
         clk,fast_i_phase,active_banks[1],table_command[8] && table_command[1:0]==1,
         table_command[7],table_command[6],table_command[5:2],table_data,fast_pi);
     p_path_switch #(.CARRY_BLOCK(SELECTOR_CARRY_BLOCK),.PRECOMBINE_I(PRECOMBINE_I)) selector(clk,resetn,enabled[1],request_fast,
