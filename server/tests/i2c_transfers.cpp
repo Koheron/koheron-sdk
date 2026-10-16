@@ -24,6 +24,7 @@ bool verify_address = false;
 thread_local int expected_address = -1;
 ssize_t read_result = -2, write_result = -2; // -2 means complete the request
 std::vector<uint8_t> sent;
+std::vector<uint8_t> expected_register{7};
 constexpr auto device = "i2c-regression-device-with-long-name";
 void check(bool ok, const char* message) {
     if (!ok) { std::cerr << message << '\n'; std::abort(); }
@@ -70,7 +71,9 @@ extern "C" int __wrap_ioctl(int fd, unsigned long request, ...) {
         const auto& pointer = transfer->msgs[0]; const auto& data = transfer->msgs[1];
         check(pointer.addr == 42 && data.addr == 42 && pointer.flags == 0 && data.flags == I2C_M_RD,
               "combined address/direction");
-        check(pointer.len == 1 && pointer.buf[0] == 7 && data.len == 4, "combined register/length");
+        check(pointer.len == expected_register.size() &&
+              std::equal(expected_register.begin(), expected_register.end(), pointer.buf) && data.len == 4,
+              "combined register/length");
         std::memset(data.buf, 0xa5, data.len);
         if (combined_result < 0) errno = EIO;
         return combined_result;
@@ -168,6 +171,30 @@ int main(int argc, char** argv) {
         check(dev.read_register(-1, 7, bytes.data(), 4) == -1 &&
               dev.read_register(128, 7, bytes.data(), 4) == -1, "combined address accepted");
         check(combined == before, "invalid combined read touched kernel");
+        combined_result = 2;
+        expected_register = {0x12, 0x34};
+        check(dev.read_register(42, expected_register.data(), expected_register.size(), bytes.data(), bytes.size()) == 4,
+              "multibyte register read");
+        for (const auto result : {-1, 0, 1}) {
+            combined_result = result;
+            const auto calls = combined;
+            check(dev.read_register(42, expected_register.data(), 2, bytes.data(), 4) == -1 && errno == EIO,
+                  "partial multibyte read accepted");
+            check(combined == calls + 1, "multibyte read retried");
+        }
+        const auto calls = combined;
+        for (const auto size : {size_t(0), size_t(8193), std::numeric_limits<size_t>::max()}) {
+            check(dev.read_register(42, expected_register.data(), size, bytes.data(), 4) == -1,
+                  "invalid register length accepted");
+            check(dev.read_register(42, expected_register.data(), 2, bytes.data(), size) == -1,
+                  "invalid receive length accepted");
+        }
+        check(dev.read_register(42, nullptr, 2, bytes.data(), 4) == -1 &&
+              dev.read_register(42, expected_register.data(), 2, nullptr, 4) == -1 &&
+              dev.read_register(-1, expected_register.data(), 2, bytes.data(), 4) == -1 &&
+              dev.read_register(128, expected_register.data(), 2, bytes.data(), 4) == -1,
+              "invalid multibyte arguments accepted");
+        check(combined == calls, "invalid multibyte arguments touched kernel");
     } else if (test == "short_read") {
         for (const ssize_t result : {0, 2, -1}) {
             reads = 0;

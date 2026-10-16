@@ -105,14 +105,20 @@ int I2cDev::read(int32_t addr, uint8_t *buffer, size_t n_bytes) {
 }
 
 int I2cDev::read_register(int32_t addr, uint8_t reg, uint8_t* buffer, size_t n_bytes) {
-    if (addr < 0 || addr > 127 || !buffer || n_bytes == 0 || n_bytes > 8192) {
+    return read_register(addr, &reg, 1, buffer, n_bytes);
+}
+
+int I2cDev::read_register(int32_t addr, const uint8_t* reg, size_t reg_bytes,
+                          uint8_t* buffer, size_t n_bytes) {
+    if (addr < 0 || addr > 127 || !reg || reg_bytes == 0 || reg_bytes > 8192 ||
+        !buffer || n_bytes == 0 || n_bytes > 8192) {
         errno = EINVAL;
         return -1;
     }
     std::lock_guard lock(mutex);
     if (!is_ok()) { errno = EBADF; return -1; }
     i2c_msg messages[] = {
-        {static_cast<__u16>(addr), 0, 1, &reg},
+        {static_cast<__u16>(addr), 0, static_cast<__u16>(reg_bytes), const_cast<uint8_t*>(reg)},
         {static_cast<__u16>(addr), I2C_M_RD, static_cast<__u16>(n_bytes), buffer}
     };
     i2c_rdwr_ioctl_data transfer{messages, 2};
