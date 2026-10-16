@@ -10,11 +10,14 @@
 #include <iostream>
 #include <limits>
 #include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 #include <unistd.h>
 #include <thread>
 
 namespace {
 unsigned entries = 0, opens = 0, reads = 0, writes = 0, addresses = 0;
+unsigned combined = 0;
+int combined_result = 2;
 int device_fd = -1, selected = -1;
 bool reject_open = false, reject_address = false;
 bool verify_address = false;
@@ -56,9 +59,23 @@ extern "C" int __wrap_open64(const char* path, int flags, ...) {
     return __wrap_open(path, flags);
 }
 extern "C" int __wrap_ioctl(int fd, unsigned long request, ...) {
-    check(fd == device_fd && request == I2C_SLAVE_FORCE, "address ioctl");
+    check(fd == device_fd, "ioctl descriptor");
     va_list args;
     va_start(args, request);
+    if (request == I2C_RDWR) {
+        auto* transfer = va_arg(args, i2c_rdwr_ioctl_data*);
+        va_end(args);
+        ++combined;
+        check(transfer->nmsgs == 2, "combined message count");
+        const auto& pointer = transfer->msgs[0]; const auto& data = transfer->msgs[1];
+        check(pointer.addr == 42 && data.addr == 42 && pointer.flags == 0 && data.flags == I2C_M_RD,
+              "combined address/direction");
+        check(pointer.len == 1 && pointer.buf[0] == 7 && data.len == 4, "combined register/length");
+        std::memset(data.buf, 0xa5, data.len);
+        if (combined_result < 0) errno = EIO;
+        return combined_result;
+    }
+    check(request == I2C_SLAVE_FORCE, "address ioctl");
     const int addr = va_arg(args, int);
     va_end(args);
     ++addresses;
@@ -69,6 +86,11 @@ extern "C" int __wrap_ioctl(int fd, unsigned long request, ...) {
 extern "C" int __wrap___ioctl_time64(int fd, unsigned long request, ...) {
     va_list args;
     va_start(args, request);
+    if (request == I2C_RDWR) {
+        auto* transfer = va_arg(args, i2c_rdwr_ioctl_data*);
+        va_end(args);
+        return __wrap_ioctl(fd, request, transfer);
+    }
     const int addr = va_arg(args, int);
     va_end(args);
     return __wrap_ioctl(fd, request, addr);
@@ -128,7 +150,25 @@ int main(int argc, char** argv) {
     auto& dev = manager.get(device);
     check(dev.is_ok(), "initialization");
     std::array<uint8_t, 4> bytes{};
-    if (test == "short_read") {
+    if (test == "register") {
+        check(dev.read_register(42, 7, bytes.data(), bytes.size()) == 4, "combined read result");
+        check(combined == 1 && reads == 0 && writes == 0 && addresses == 0, "combined read was split");
+        check(std::all_of(bytes.begin(), bytes.end(), [](auto value) { return value == 0xa5; }), "combined data");
+        for (const auto result : {-1, 0, 1}) {
+            combined_result = result;
+            const auto before = combined;
+            check(dev.read_register(42, 7, bytes.data(), bytes.size()) == -1 && errno == EIO,
+                  "failed combined transaction accepted");
+            check(combined == before + 1, "failed combined read retried");
+        }
+        const auto before = combined;
+        for (const auto size : {size_t(0), size_t(8193), std::numeric_limits<size_t>::max()})
+            check(dev.read_register(42, 7, bytes.data(), size) == -1, "combined length accepted");
+        check(dev.read_register(42, 7, nullptr, 4) == -1, "combined null accepted");
+        check(dev.read_register(-1, 7, bytes.data(), 4) == -1 &&
+              dev.read_register(128, 7, bytes.data(), 4) == -1, "combined address accepted");
+        check(combined == before, "invalid combined read touched kernel");
+    } else if (test == "short_read") {
         for (const ssize_t result : {0, 2, -1}) {
             reads = 0;
             read_result = result;

@@ -56,6 +56,11 @@ class I2cDev
     // Receive one complete transaction; partial data must not be used on failure.
     int read(int32_t addr, uint8_t *buffer, size_t n_bytes);
 
+    // Select an 8-bit register and read it in one combined kernel transaction.
+    // The repeated start prevents another process from changing the register
+    // pointer between the write and read. Returns n_bytes or -1 on failure.
+    int read_register(int32_t addr, uint8_t reg, uint8_t* buffer, size_t n_bytes);
+
     template<typename T> requires std::is_trivially_copyable_v<T>
     int read(int32_t addr, T& scalar) {
         return read(addr, reinterpret_cast<uint8_t*>(&scalar), sizeof(T));

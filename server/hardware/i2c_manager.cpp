@@ -14,6 +14,7 @@
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 #include <dirent.h>
 
 namespace hw {
@@ -101,6 +102,24 @@ int I2cDev::read(int32_t addr, uint8_t *buffer, size_t n_bytes) {
         return -1;
     }
     return static_cast<int>(received);
+}
+
+int I2cDev::read_register(int32_t addr, uint8_t reg, uint8_t* buffer, size_t n_bytes) {
+    if (addr < 0 || addr > 127 || !buffer || n_bytes == 0 || n_bytes > 8192) {
+        errno = EINVAL;
+        return -1;
+    }
+    std::lock_guard lock(mutex);
+    if (!is_ok()) { errno = EBADF; return -1; }
+    i2c_msg messages[] = {
+        {static_cast<__u16>(addr), 0, 1, &reg},
+        {static_cast<__u16>(addr), I2C_M_RD, static_cast<__u16>(n_bytes), buffer}
+    };
+    i2c_rdwr_ioctl_data transfer{messages, 2};
+    const auto result = ::ioctl(fd, I2C_RDWR, &transfer);
+    if (result < 0) { return -1; }
+    if (result != 2) { errno = EIO; return -1; }
+    return static_cast<int>(n_bytes);
 }
 
 int I2cDev::set_address(int32_t addr) {
