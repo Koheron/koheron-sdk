@@ -8,6 +8,7 @@ class SystemInfoWidget {
                 status.textContent = 'Disconnected · last known readings'; status.title = error;
                 status.dataset.state = 'error'; status.hidden = false;
                 document.getElementById('health-table').dataset.stale = 'true';
+                document.getElementById('cpu-table').dataset.stale = 'true';
                 this.telemetryStatus('Disconnected · last known readings', true);
             });
         }
@@ -15,6 +16,13 @@ class SystemInfoWidget {
 
     private renderHealth(health: any): void {
         this.renderTelemetry(health.telemetry);
+        const policies = Array.isArray(health.cpu?.policies) ? health.cpu.policies.slice(0, 32) : [];
+        this.renderTable('cpu-table', policies.length ? policies.filter((p: any) => typeof p?.label === 'string').map((p: any) => {
+            const frequency = typeof p.frequency_hz === 'number' && Number.isFinite(p.frequency_hz) && p.frequency_hz > 0 ?
+                `${(p.frequency_hz / 1e6).toFixed(0)} MHz (${p.frequency_source === 'hardware' ? 'hardware' : 'requested'})` : 'Unavailable';
+            return [`CPU ${p.affected_cpus || p.label}`, frequency + (p.governor ? ` · ${p.governor}` : '')];
+        }) : [['CPU frequency', 'Unavailable']]);
+        this.document.getElementById('cpu-table').dataset.stale = 'false';
         const table = this.document.getElementById('health-table') as HTMLTableElement;
         const status = this.document.getElementById('health-status');
         status.textContent = 'Live'; status.title = ''; status.hidden = false; status.dataset.state = 'ready';
@@ -47,41 +55,53 @@ class SystemInfoWidget {
         }
     }
 
+    private renderTable(id: string, values: string[][]): void {
+        const table = this.document.getElementById(id) as HTMLTableElement;
+        const signature = JSON.stringify(values);
+        if (table.dataset.signature === signature) return;
+        table.dataset.signature = signature;
+        const body = table.tBodies[0]; body.textContent = '';
+        for (const [label, ...readings] of values) {
+            const row = body.insertRow(), heading = this.document.createElement('th');
+            heading.scope = 'row'; heading.textContent = label; row.appendChild(heading);
+            for (const reading of readings) row.insertCell().textContent = reading;
+        }
+        table.hidden = values.length === 0;
+    }
+
     private telemetryStatus(message: string, stale: boolean): void {
         const status = this.document.getElementById('telemetry-status');
         status.textContent = message; status.dataset.state = stale ? 'error' : 'ready';
-        for (const id of ['supply-table', 'temperature-table', 'voltage-table']) this.document.getElementById(id).dataset.stale = String(stale);
+        for (const id of ['supply-table', 'temperature-table', 'voltage-table', 'sensor-status-table']) this.document.getElementById(id).dataset.stale = String(stale);
     }
 
     private renderTelemetry(telemetry: any): void {
         const supplies = Array.isArray(telemetry?.supplies) ? telemetry.supplies.slice(0, 16) : [];
         const temperatures = Array.isArray(telemetry?.temperatures) ? telemetry.temperatures.slice(0, 16) : [];
         const voltages = Array.isArray(telemetry?.voltages) ? telemetry.voltages.slice(0, 32) : [];
+        const statuses = Array.isArray(telemetry?.statuses) ? telemetry.statuses.slice(0, 16) : [];
         const format = (value: any, decimals: number, unit: string) =>
             typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(decimals)} ${unit}` : '—';
-        const render = (id: string, values: string[][]) => {
-            const table = this.document.getElementById(id) as HTMLTableElement;
-            const signature = JSON.stringify(values);
-            if (table.dataset.signature === signature) return;
-            table.dataset.signature = signature;
-            const body = table.tBodies[0]; body.textContent = '';
-            for (const [label, ...readings] of values) {
-                const row = body.insertRow(), heading = this.document.createElement('th');
-                heading.scope = 'row'; heading.textContent = label; row.appendChild(heading);
-                for (const reading of readings) row.insertCell().textContent = reading;
-            }
-            table.hidden = values.length === 0;
-        };
-        render('supply-table', supplies.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
+        this.renderTable('supply-table', supplies.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
             [value.label, format(value.power_w, 2, 'W'), format(value.voltage_v, 2, 'V'), format(value.current_a, 3, 'A')]));
-        render('temperature-table', temperatures.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
+        this.renderTable('temperature-table', temperatures.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
             [value.label, format(value.celsius, 1, '°C')]));
-        render('voltage-table', voltages.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
+        this.renderTable('voltage-table', voltages.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
             [value.label, format(value.voltage_v, 3, 'V')]));
+        const statusRows = statuses.filter((value: any) => typeof value?.label === 'string');
+        this.renderTable('sensor-status-table', statusRows.map((value: any) => {
+            const prefix = value.state === 'ok' ? 'OK' : value.state === 'warning' ? 'Warning' : value.state === 'fault' ? 'Fault' : 'Unavailable';
+            return [value.label, prefix + (typeof value.message === 'string' && value.message ? ` · ${value.message}` : '')];
+        }));
+        const rows = (this.document.getElementById('sensor-status-table') as HTMLTableElement).tBodies[0].rows;
+        statusRows.forEach((value: any, index: number) => {
+            rows[index].cells[1].dataset.state = value.state === 'fault' ? 'error' : value.state === 'warning' ? 'warning' : '';
+        });
         this.document.getElementById('voltage-details').hidden = this.document.getElementById('voltage-table').hidden;
         const available = supplies.some((value: any) => [value?.power_w, value?.voltage_v, value?.current_a].some(Number.isFinite)) ||
             temperatures.some((value: any) => Number.isFinite(value?.celsius)) ||
-            voltages.some((value: any) => Number.isFinite(value?.voltage_v));
+            voltages.some((value: any) => Number.isFinite(value?.voltage_v)) ||
+            statuses.some((value: any) => ['ok', 'warning', 'fault'].includes(value?.state));
         this.telemetryStatus(telemetry?.state === 'live' ? available ? 'Live' : 'Sensor readings unavailable' :
             telemetry?.state === 'stale' ? 'Stale · last known readings' : 'Telemetry unavailable', telemetry?.state !== 'live');
     }

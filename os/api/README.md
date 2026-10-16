@@ -67,6 +67,26 @@ board services own sensor access and recovery. It never loads an FPGA or starts
 an instrument to collect telemetry. `--telemetry PATH` selects a fixture or a
 different producer path.
 
+An optional `statuses` array carries up to sixteen diagnostic channels. Each
+has a `label` (up to eighty UTF-8 bytes), `state` (`ok`, `warning`, `fault`, or
+`unavailable`) and a `message` (up to 512 UTF-8 bytes). Invalid states become
+`unavailable`. These channels share the snapshot's freshness and connection
+indicators. Status messages are displayed as text; sensor-specific decoding
+belongs to the producer.
+
+System health also includes `cpu.policies`, discovered under
+`/sys/devices/system/cpu/cpufreq/policy*`, with up to thirty-two policies. Each
+contains `label`, `affected_cpus`, `governor`, `frequency_hz` and
+`frequency_source`. The reader prefers `cpuinfo_cur_freq` (`hardware`) and
+falls back to `scaling_cur_freq` (`requested`), converting kHz to Hz. The latter
+can represent the driver's last requested P-state rather than a measured clock.
+Missing or invalid frequency readings remain `null`; systems without CPUFreq
+policies return an empty array. `--sys PATH` selects a sysfs fixture root.
+The reader never changes governors or scaling settings. CPU frequency, existing
+1/5/15-minute load averages, memory, storage and uptime use the same management
+status WebSocket, even with no instrument running. See the
+[Linux CPUFreq ABI](https://www.kernel.org/doc/html/latest/admin-guide/pm/cpufreq.html).
+
 Log entries include microsecond timestamps, message text, priority and a
 truncation flag. The WebSocket and HTTP log endpoints share cursors, so clients
 can resume after reconnecting or fall back to HTTP. An expired cursor returns

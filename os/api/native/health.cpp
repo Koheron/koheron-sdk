@@ -1,10 +1,52 @@
 #include "health.hpp"
 #include "telemetry.hpp"
+#include <algorithm>
+#include <charconv>
 #include <sstream>
 #include <sys/statvfs.h>
 
 namespace koheron::management {
 namespace {
+std::optional<std::string> attribute(const fs::path& path, std::size_t limit = 128) {
+    try {
+        if (const auto value = read_file(path, limit)) return trim(*value);
+    } catch (...) {} // One missing, offline or malformed policy must not hide health.
+    return {};
+}
+std::optional<std::uint64_t> frequency(const fs::path& path) {
+    const auto value = attribute(path);
+    if (!value) return {};
+    std::uint64_t khz = 0;
+    const auto parsed = std::from_chars(value->data(), value->data() + value->size(), khz);
+    if (parsed.ec != std::errc{} || parsed.ptr != value->data() + value->size() || khz == 0 || khz > 1000000000) return {};
+    return khz * 1000;
+}
+Json cpu(const fs::path& sys) {
+    auto result = object(), policies = array();
+    std::vector<fs::path> paths;
+    std::error_code error;
+    const auto root = sys / "devices/system/cpu/cpufreq";
+    for (fs::directory_iterator it(root, error), end; !error && it != end; it.increment(error)) {
+        const auto name = it->path().filename().string();
+        if (!name.starts_with("policy") || name.size() <= 6 || name.size() > 16 ||
+            !std::all_of(name.begin() + 6, name.end(), [](char c) { return c >= '0' && c <= '9'; })) continue;
+        paths.push_back(it->path());
+        if (paths.size() == 32) break;
+    }
+    std::sort(paths.begin(), paths.end());
+    for (const auto& path : paths) {
+        auto policy = object(); add(policy, "label", text(path.filename().string()));
+        auto hz = frequency(path / "cpuinfo_cur_freq");
+        const bool hardware = hz.has_value();
+        if (!hz) hz = frequency(path / "scaling_cur_freq");
+        add(policy, "frequency_hz", hz ? integer(*hz) : Json{});
+        add(policy, "frequency_source", hz ? text(hardware ? "hardware" : "requested") : Json{});
+        add(policy, "governor", text(attribute(path / "scaling_governor", 64).value_or("")));
+        add(policy, "affected_cpus", text(attribute(path / "affected_cpus").value_or("")));
+        append(policies, std::move(policy));
+    }
+    add(result, "policies", std::move(policies)); return result;
+}
 Json storage(fs::path path) {
     auto result = object(); add(result, "path", text(path.string()));
     while (!path.empty() && !fs::exists(path)) path = path.parent_path();
@@ -36,6 +78,7 @@ Json system_health(const Settings& settings, std::uint64_t api_ready, std::uint6
     }
     add(disks, "instruments", storage(settings.instruments)); add(disks, "staging", storage(settings.live.parent_path()));
     add(result, "load_average", std::move(load)); add(result, "memory", std::move(memory)); add(result, "storage", std::move(disks));
+    add(result, "cpu", cpu(settings.sys));
     add(result, "instrument_service", service_status(settings, settings.unit));
     add(result, "telemetry", board_telemetry(settings.telemetry));
     auto timing = object(); add(timing, "api_ready_monotonic_us", integer(api_ready));

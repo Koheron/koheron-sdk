@@ -54,7 +54,7 @@ class NativeTelemetryTest(NativeFixture):
                 self.start_api()
                 try:
                     self.assertEqual(self.status()['health']['telemetry'],
-                                     {'state': 'unavailable', 'supplies': [], 'temperatures': [], 'voltages': []})
+                                     {'state': 'unavailable', 'supplies': [], 'temperatures': [], 'voltages': [], 'statuses': []})
                 finally:
                     self.stop_api()
 
@@ -90,3 +90,23 @@ class NativeTelemetryTest(NativeFixture):
         self.assertEqual(opcode, 1)
         self.assertEqual(json.loads(payload)['health']['telemetry'], telemetry)
         self.assertEqual(telemetry['supplies'], [])
+
+    def test_status_channels_are_typed_bounded_and_streamed(self):
+        self.publish(statuses=[None, {'label': 'x' * 81, 'state': 'ok'},
+            {'label': 'Clock', 'state': 'ok', 'message': 'Locked'},
+            {'label': 'Monitor', 'state': 'fault', 'message': '<img src=x>'},
+            {'label': 'History', 'state': 'warning', 'message': 'Previous unlock'},
+            {'label': 'Unknown', 'state': True, 'message': 1},
+            {'label': 'Long', 'state': 'bogus', 'message': 'x' * 513}] +
+            [{'label': 'Channel', 'state': 'unavailable'}] * 30)
+        self.start_api()
+        telemetry = self.status()['health']['telemetry']
+        self.assertEqual(len(telemetry['statuses']), 14)
+        self.assertEqual(telemetry['statuses'][:5], [
+            {'label': 'Clock', 'state': 'ok', 'message': 'Locked'},
+            {'label': 'Monitor', 'state': 'fault', 'message': '<img src=x>'},
+            {'label': 'History', 'state': 'warning', 'message': 'Previous unlock'},
+            {'label': 'Unknown', 'state': 'unavailable', 'message': ''},
+            {'label': 'Long', 'state': 'unavailable', 'message': ''}])
+        socket = WebSocket(self.port); self.addCleanup(socket.close)
+        self.assertEqual(json.loads(socket.frame()[1])['health']['telemetry'], telemetry)

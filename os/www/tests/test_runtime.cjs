@@ -325,3 +325,48 @@ test('voltage-only sensors have their own table and survive stale and failed rea
     assert.equal(f.doc.querySelector('#voltage-table').dataset.stale, 'true');
     f.w.runtime.dispose();
 });
+
+test('hardware statuses remain explicit across warnings, stale data and disconnects', t => {
+    const f = fixture(t);
+    const telemetry = {state: 'live', statuses: [
+        {label: 'Clock', state: 'ok', message: 'Locked'},
+        {label: 'History', state: 'warning', message: 'Previous unlock'},
+        {label: '<img src=x>', state: 'fault', message: '<b>Fault</b>'},
+        {label: 'Sensor', state: 'unavailable'}]};
+    const update = () => f.sockets[0].reply(status({health: {telemetry}}));
+    update();
+    const table = f.doc.querySelector('#sensor-status-table');
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Live');
+    assert.equal(table.hidden, false);
+    assert.equal(table.tBodies[0].rows[0].textContent, 'ClockOK · Locked');
+    assert.equal(table.tBodies[0].rows[1].cells[1].dataset.state, 'warning');
+    assert.equal(table.tBodies[0].rows[2].cells[1].dataset.state, 'error');
+    assert.equal(table.tBodies[0].rows[3].textContent, 'SensorUnavailable');
+    assert.equal(table.querySelector('img, b'), null);
+    const row = table.tBodies[0].rows[0]; update();
+    assert.equal(table.tBodies[0].rows[0], row);
+    telemetry.state = 'stale'; update(); assert.equal(table.dataset.stale, 'true');
+    f.sockets[0].onclose(); assert.equal(table.dataset.stale, 'true');
+    f.requests.shift().reply(200, status({health: {}}));
+    return f.flush().then(() => assert.equal(table.hidden, true));
+});
+
+test('CPU policies distinguish hardware and requested rates and recover after disconnect', t => {
+    const f = fixture(t);
+    const cpu = {policies: [
+        {label: 'policy0', affected_cpus: '0 1', frequency_hz: 1200000000, frequency_source: 'hardware', governor: 'schedutil'},
+        {label: 'policy2', frequency_hz: 800000000, frequency_source: 'requested', governor: '<b>performance</b>'},
+        {label: 'policy4', frequency_hz: null}]};
+    f.sockets[0].reply(status({health: {cpu}}));
+    const table = f.doc.querySelector('#cpu-table');
+    assert.match(table.textContent, /CPU 0 11200 MHz \(hardware\) · schedutil/);
+    assert.match(table.textContent, /800 MHz \(requested\)/);
+    assert.match(table.textContent, /CPU policy4Unavailable/);
+    assert.equal(table.querySelector('b'), null);
+    f.sockets[0].onclose(); assert.equal(table.dataset.stale, 'true');
+    f.requests.shift().reply(200, status({health: {cpu: {policies: []}}}));
+    return f.flush().then(() => {
+        assert.equal(table.dataset.stale, 'false');
+        assert.match(table.textContent, /CPU frequencyUnavailable/);
+    });
+});
