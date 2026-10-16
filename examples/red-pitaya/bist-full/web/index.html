@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Red Pitaya BIST Full</title>
+<style>
+body{font:16px system-ui,sans-serif;background:#f4f6f8;color:#192832;margin:0}main{max-width:1200px;margin:auto;padding:32px}header,section{background:white;padding:24px;margin-bottom:20px;border-radius:10px}h1{margin:0 0 12px}button,select{font:inherit;padding:9px;margin:6px}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}.pass{color:#06764a}.fail{color:#b82626}.skipped{color:#806000}td:last-child{max-width:600px}dd{overflow-wrap:anywhere;margin:0 0 12px}dt{font-weight:bold}.table{overflow:auto}#state{font-weight:bold}small{color:#526575}
+</style></head><body><main>
+<header><h1>Red Pitaya BIST Full</h1><p>Extended FPGA, memory, DMA, interrupt, UART and converter validation.</p>
+<label>Connected loopbacks <select id="mask"><option value="1">DAC0 → ADC0</option><option value="3">Both channels</option><option value="0">No external cables</option><option value="2">DAC1 → ADC1</option></select></label>
+<button id="start" disabled>Run onboard suite</button><button id="cancel" disabled>Cancel</button><button id="download" disabled>Download report</button>
+<p id="state" role="status">Connecting…</p><small>Results update after completion to keep measurements quiet. The Python client also tests reboot, network protocol and service recovery within a 60-second budget.</small></header>
+<section><h2>Results</h2><p id="summary"></p><div class="table"><table><thead><tr><th>Result</th><th>Group</th><th>Check</th><th>Value</th><th>Details</th></tr></thead><tbody id="checks"></tbody></table></div></section>
+<section><h2>Run identity</h2><dl id="metadata"></dl></section></main><script src="full.js"></script></body></html>
