@@ -57,7 +57,11 @@ The producer atomically replaces this UTF-8 JSON file (maximum 16 KiB):
 ```
 
 `sampled_monotonic_us` uses `CLOCK_MONOTONIC` on the same running system. Each
-array accepts up to sixteen channels with labels of at most eighty UTF-8 bytes.
+of the supply and temperature arrays accepts up to sixteen channels with labels
+of at most eighty UTF-8 bytes.
+An optional `voltages` array holds up to thirty-two voltage-only channels, each
+with `label` and `voltage_v` fields. The home page shows them under **Supply
+voltages**, without implying a current or power measurement.
 Unavailable measurements are `null`. The management API only reads this snapshot;
 board services own sensor access and recovery. It never loads an FPGA or starts
 an instrument to collect telemetry. `--telemetry PATH` selects a fixture or a

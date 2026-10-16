@@ -15,11 +15,11 @@ Json reading(json_object* value, const char* name) {
     const auto number = json_object_get_double(item);
     return std::isfinite(number) ? Json(json_object_new_double(number)) : Json{};
 }
-Json channels(json_object* source, const char* name, std::initializer_list<const char*> fields) {
+Json channels(json_object* source, const char* name, std::initializer_list<const char*> fields, std::size_t limit = 16) {
     auto result = array();
     auto* values = member(source, name);
     if (!values || !json_object_is_type(values, json_type_array)) return result;
-    for (std::size_t i = 0; i < std::min<std::size_t>(json_object_array_length(values), 16); ++i) {
+    for (std::size_t i = 0; i < std::min<std::size_t>(json_object_array_length(values), limit); ++i) {
         auto* value = json_object_array_get_idx(values, i);
         auto* label = member(value, "label");
         if (!label || !json_object_is_type(label, json_type_string) || json_object_get_string_len(label) == 0 ||
@@ -33,7 +33,7 @@ Json channels(json_object* source, const char* name, std::initializer_list<const
 }
 Json board_telemetry(const fs::path& path) {
     auto result = object(); add(result, "state", text("unavailable"));
-    add(result, "supplies", array()); add(result, "temperatures", array());
+    add(result, "supplies", array()); add(result, "temperatures", array()); add(result, "voltages", array());
     Json source;
     try {
         const auto bytes = read_file(path, 16384);
@@ -48,6 +48,7 @@ Json board_telemetry(const fs::path& path) {
     add(result, "sampled_monotonic_us", integer(stamp));
     add(result, "supplies", channels(source.get(), "supplies", {"voltage_v", "current_a", "power_w"}));
     add(result, "temperatures", channels(source.get(), "temperatures", {"celsius"}));
+    add(result, "voltages", channels(source.get(), "voltages", {"voltage_v"}, 32));
     return result;
 }
 }

@@ -303,3 +303,25 @@ test('stale sensors and disconnected transport never claim live readings', t => 
         assert.equal(f.doc.querySelector('#temperature-table').dataset.stale, 'false');
     });
 });
+
+test('voltage-only sensors have their own table and survive stale and failed reads', t => {
+    const f = fixture(t);
+    const telemetry = {state: 'live', supplies: [], temperatures: [], voltages: [
+        {label: 'Core', voltage_v: .85}, {label: 'Auxiliary', voltage_v: null}]};
+    const update = () => f.sockets[0].reply(status({health: {telemetry}}));
+    update();
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Live');
+    assert.equal(f.doc.querySelector('#voltage-details').hidden, false);
+    assert.equal(f.doc.querySelector('#voltage-table').textContent, 'Additional supply voltage measurementsCore0.850 VAuxiliary—');
+    assert.equal(f.doc.querySelector('#supply-table').hidden, true);
+    const details = f.doc.querySelector('#voltage-details'); details.open = true;
+    telemetry.voltages[0].voltage_v = .86; update();
+    assert.equal(details.open, true);
+    assert.match(f.doc.querySelector('#voltage-table').textContent, /0.860 V/);
+    telemetry.state = 'stale'; update();
+    assert.equal(f.doc.querySelector('#voltage-table').dataset.stale, 'true');
+    assert.equal(f.doc.querySelector('#telemetry-status').textContent, 'Stale · last known readings');
+    f.sockets[0].onclose();
+    assert.equal(f.doc.querySelector('#voltage-table').dataset.stale, 'true');
+    f.w.runtime.dispose();
+});

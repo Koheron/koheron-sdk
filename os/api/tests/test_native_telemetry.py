@@ -54,7 +54,7 @@ class NativeTelemetryTest(NativeFixture):
                 self.start_api()
                 try:
                     self.assertEqual(self.status()['health']['telemetry'],
-                                     {'state': 'unavailable', 'supplies': [], 'temperatures': []})
+                                     {'state': 'unavailable', 'supplies': [], 'temperatures': [], 'voltages': []})
                 finally:
                     self.stop_api()
 
@@ -74,3 +74,19 @@ class NativeTelemetryTest(NativeFixture):
         self.assertEqual(value['supplies'][0], {'label': 'Input', 'power_w': None, 'voltage_v': None, 'current_a': None})
         self.assertEqual(len(value['temperatures']), 14)
         self.assertEqual(value['temperatures'][0], {'label': '<img src=x>', 'celsius': -5})
+
+    def test_voltage_only_channels_are_bounded_typed_and_streamed(self):
+        self.publish(supplies=[], temperatures=[], voltages=[
+            {'label': 'Core', 'voltage_v': .85}, {'label': 'Auxiliary', 'voltage_v': None},
+            {'label': 'Reference', 'voltage_v': '1.2'}] + [{'label': 'Rail', 'voltage_v': 1.8}] * 40)
+        self.start_api()
+        telemetry = self.status()['health']['telemetry']
+        self.assertEqual(len(telemetry['voltages']), 32)
+        self.assertEqual(telemetry['voltages'][:3], [
+            {'label': 'Core', 'voltage_v': .85}, {'label': 'Auxiliary', 'voltage_v': None},
+            {'label': 'Reference', 'voltage_v': None}])
+        socket = WebSocket(self.port); self.addCleanup(socket.close)
+        opcode, payload = socket.frame()
+        self.assertEqual(opcode, 1)
+        self.assertEqual(json.loads(payload)['health']['telemetry'], telemetry)
+        self.assertEqual(telemetry['supplies'], [])

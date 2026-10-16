@@ -50,12 +50,13 @@ class SystemInfoWidget {
     private telemetryStatus(message: string, stale: boolean): void {
         const status = this.document.getElementById('telemetry-status');
         status.textContent = message; status.dataset.state = stale ? 'error' : 'ready';
-        for (const id of ['supply-table', 'temperature-table']) this.document.getElementById(id).dataset.stale = String(stale);
+        for (const id of ['supply-table', 'temperature-table', 'voltage-table']) this.document.getElementById(id).dataset.stale = String(stale);
     }
 
     private renderTelemetry(telemetry: any): void {
         const supplies = Array.isArray(telemetry?.supplies) ? telemetry.supplies.slice(0, 16) : [];
         const temperatures = Array.isArray(telemetry?.temperatures) ? telemetry.temperatures.slice(0, 16) : [];
+        const voltages = Array.isArray(telemetry?.voltages) ? telemetry.voltages.slice(0, 32) : [];
         const format = (value: any, decimals: number, unit: string) =>
             typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(decimals)} ${unit}` : '—';
         const render = (id: string, values: string[][]) => {
@@ -75,8 +76,12 @@ class SystemInfoWidget {
             [value.label, format(value.power_w, 2, 'W'), format(value.voltage_v, 2, 'V'), format(value.current_a, 3, 'A')]));
         render('temperature-table', temperatures.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
             [value.label, format(value.celsius, 1, '°C')]));
+        render('voltage-table', voltages.filter((value: any) => typeof value?.label === 'string').map((value: any) =>
+            [value.label, format(value.voltage_v, 3, 'V')]));
+        this.document.getElementById('voltage-details').hidden = this.document.getElementById('voltage-table').hidden;
         const available = supplies.some((value: any) => [value?.power_w, value?.voltage_v, value?.current_a].some(Number.isFinite)) ||
-            temperatures.some((value: any) => Number.isFinite(value?.celsius));
+            temperatures.some((value: any) => Number.isFinite(value?.celsius)) ||
+            voltages.some((value: any) => Number.isFinite(value?.voltage_v));
         this.telemetryStatus(telemetry?.state === 'live' ? available ? 'Live' : 'Sensor readings unavailable' :
             telemetry?.state === 'stale' ? 'Stale · last known readings' : 'Telemetry unavailable', telemetry?.state !== 'live');
     }
