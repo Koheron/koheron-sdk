@@ -14,7 +14,8 @@ module table_corrector #(
     parameter integer PHASE_FRAC=0,
     parameter integer SAMPLE_INTERVAL=1,
     // Tune the gain output adder independently of controller state arithmetic.
-    parameter integer GAIN_CARRY_BLOCK=CARRY_BLOCK
+    parameter integer GAIN_CARRY_BLOCK=CARRY_BLOCK,
+    parameter integer SUM_CARRY_BLOCK=CARRY_BLOCK
 )(
     input wire clk,
     input wire signed [FREQ_WIDTH-1:0] freq_in,
@@ -65,7 +66,7 @@ module table_corrector #(
     wire [31:0] first_next;
     wire [47:0] acc1_next;
     wire [63:0] acc3_next;
-    dpll_carry_adder #(.BLOCK(CARRY_BLOCK)) first_add(p,pi,1'b0,first_next);
+    dpll_carry_adder #(.BLOCK(SUM_CARRY_BLOCK)) first_add(p,pi,1'b0,first_next);
     dpll_carry_adder #(.WIDTH(48),.BLOCK(CARRY_BLOCK)) acc1_add(
         acc1,{{16{first_sum[31]}},first_sum},1'b0,acc1_next);
     dpll_carry_adder #(.WIDTH(64),.BLOCK(CARRY_BLOCK)) acc3_add(acc3,i3,1'b0,acc3_next);

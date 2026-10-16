@@ -291,6 +291,16 @@ with a `sample_valid` pulse for every input sample. State-update strobes follow
 the gain pipelines; the reference capture counts 64 valid input samples. Keep
 the input-domain phase estimator at its declared sampling rate and time all
 clock-domain crossings. Defaults retain one sample per processing clock.
+
+Table gains can select `PIPE_STAGES=6` with `FINAL_CSA_LEVELS>0` and a positive
+`FRACTION_BITS + OUTPUT_LOW`. This registers local carry-zero/carry-one sums
+before the output selection, adding one clock to the five-stage gain. It does
+not change the separate DSP Fast P pipeline. `GAIN_CARRY_BLOCK` tunes table
+adders independently of controller state arithmetic, `SUM_CARRY_BLOCK` selects
+the first controller sum, and `FAST_CARRY_BLOCK` selects the reference/Fast I
+adders. Defaults preserve the existing implementation. Regression scripts accept
+the corresponding `DPLL_*` settings, `DPLL_GAIN_STAGES` and
+`DPLL_CLOCK_HALF_PERIOD`; timing still requires a complete routed build.
 `FAST_GAIN_STAGES=4` enables the Fast P DSP multiplier register; the existing
 two- and three-stage implementations retain their latency. Run
 `tests/run-multirate.sh` for the arithmetic, update-rate and latency regression.

@@ -2,6 +2,7 @@
 module test_multirate_controller_tb #(
     parameter integer CARRY_BLOCK=0,
     parameter integer GAIN_CARRY_BLOCK=CARRY_BLOCK, SELECTOR_CARRY_BLOCK=CARRY_BLOCK,
+    parameter integer GAIN_STAGES=5, SUM_CARRY_BLOCK=CARRY_BLOCK, FAST_CARRY_BLOCK=8,
     parameter real CLOCK_HALF_PERIOD=1.25
 );
     reg clk=0, resetn=0, sample_valid=0;
@@ -15,10 +16,10 @@ module test_multirate_controller_tb #(
     reg signed [15:0] quadrature=0;
     wire [15:0] correction,slow;
     wire [31:0] snapshot,status;
-    manual_p_corrector #(.GAIN_STAGES(5),.FAST_GAIN_STAGES(4),.TAIL_GAIN_STAGES(5),
-        .I2_GAIN_STAGES(5),.FINAL_CSA_LEVELS(2),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),
+    manual_p_corrector #(.GAIN_STAGES(GAIN_STAGES),.FAST_GAIN_STAGES(4),.TAIL_GAIN_STAGES(GAIN_STAGES),
+        .I2_GAIN_STAGES(GAIN_STAGES),.FINAL_CSA_LEVELS(2),.FAST_P_DSP(1),.PIPELINED_REFERENCE(1),
         .PRECOMBINE_I(1),.FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8),.SAMPLE_INTERVAL(2),
-        .CARRY_BLOCK(CARRY_BLOCK),.GAIN_CARRY_BLOCK(GAIN_CARRY_BLOCK),.SELECTOR_CARRY_BLOCK(SELECTOR_CARRY_BLOCK)) dut(
+        .CARRY_BLOCK(CARRY_BLOCK),.GAIN_CARRY_BLOCK(GAIN_CARRY_BLOCK),.SELECTOR_CARRY_BLOCK(SELECTOR_CARRY_BLOCK),.SUM_CARRY_BLOCK(SUM_CARRY_BLOCK),.FAST_CARRY_BLOCK(FAST_CARRY_BLOCK)) dut(
         clk,resetn,25'sd0,40'sd16777216,16'sd4096,quadrature,32'sd0,32'sd166886,
         request,capture_request,enabled,banks,command,data,correction,slow,snapshot,status,sample_valid);
     integer kind,top,address,k,fast_samples,accurate_samples;

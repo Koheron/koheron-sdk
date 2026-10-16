@@ -1,5 +1,5 @@
 `timescale 1 ns / 1 ps
-module test_table_system_tb #(parameter integer GAIN_STAGES=4, SAMPLE_INTERVAL=1, CARRY_BLOCK=0, GAIN_CARRY_BLOCK=CARRY_BLOCK,
+module test_table_system_tb #(parameter integer GAIN_STAGES=4, SAMPLE_INTERVAL=1, CARRY_BLOCK=0, GAIN_CARRY_BLOCK=CARRY_BLOCK, SUM_CARRY_BLOCK=CARRY_BLOCK,
                              parameter real CLOCK_HALF_PERIOD=2.0);
     reg clk=0, resetn=0, program_clk=0;
     always #(CLOCK_HALF_PERIOD) clk=~clk;
@@ -70,7 +70,7 @@ module test_table_system_tb #(parameter integer GAIN_STAGES=4, SAMPLE_INTERVAL=1
     generate for(channel=0;channel<2;channel=channel+1) begin : loop_dut
         wire [2:0] enabled=control[513+32*channel +: 3];
         wire [15:0] fast,slow;
-        table_corrector #(.FUSED(1),.GAIN_STAGES(GAIN_STAGES),.TAIL_GAIN_STAGES(GAIN_STAGES),.I2_GAIN_STAGES(GAIN_STAGES),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(CARRY_BLOCK),.GAIN_CARRY_BLOCK(GAIN_CARRY_BLOCK),
+        table_corrector #(.FUSED(1),.GAIN_STAGES(GAIN_STAGES),.TAIL_GAIN_STAGES(GAIN_STAGES),.I2_GAIN_STAGES(GAIN_STAGES),.FINAL_CSA_LEVELS(2),.CARRY_BLOCK(CARRY_BLOCK),.GAIN_CARRY_BLOCK(GAIN_CARRY_BLOCK),.SUM_CARRY_BLOCK(SUM_CARRY_BLOCK),
                              .SAMPLE_INTERVAL(SAMPLE_INTERVAL),
                              .FREQ_WIDTH(25),.PHASE_WIDTH(40),.PHASE_FRAC(8))
             dut(clk,freq[channel],phase[channel],enabled,banks[4*channel +: 4],
