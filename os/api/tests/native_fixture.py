@@ -109,6 +109,7 @@ class NativeFixture(unittest.TestCase):
         self.process = subprocess.Popen([str(BIN_DIR / 'koheron-api'), '--port', str(self.port),
             '--instruments', str(self.store), '--live', str(self.live), '--systemctl', str(self.systemctl),
             '--manifest', str(self.root / 'manifest'), '--release', str(self.root / 'release'),
+            '--sys', str(self.root / 'sys'),
             *getattr(self, 'api_options', [])],
             env=self.environment, stdout=self.output, stderr=subprocess.STDOUT)
         self.addCleanup(self.stop_api)

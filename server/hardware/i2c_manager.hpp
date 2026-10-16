@@ -61,6 +61,11 @@ class I2cDev
     // pointer between the write and read. Returns n_bytes or -1 on failure.
     int read_register(int32_t addr, uint8_t reg, uint8_t* buffer, size_t n_bytes);
 
+    // Explicit register-address bytes, in the order expected by the device.
+    // Both buffers must be nonempty and at most 8192 bytes.
+    int read_register(int32_t addr, const uint8_t* reg, size_t reg_bytes,
+                      uint8_t* buffer, size_t n_bytes);
+
     template<typename T> requires std::is_trivially_copyable_v<T>
     int read(int32_t addr, T& scalar) {
         return read(addr, reinterpret_cast<uint8_t*>(&scalar), sizeof(T));

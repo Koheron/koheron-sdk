@@ -30,10 +30,31 @@ Json channels(json_object* source, const char* name, std::initializer_list<const
     }
     return result;
 }
+Json statuses(json_object* source) {
+    auto result = array();
+    auto* values = member(source, "statuses");
+    if (!values || !json_object_is_type(values, json_type_array)) return result;
+    for (std::size_t i = 0; i < std::min<std::size_t>(json_object_array_length(values), 16); ++i) {
+        auto* value = json_object_array_get_idx(values, i);
+        auto* label = member(value, "label");
+        if (!label || !json_object_is_type(label, json_type_string) || json_object_get_string_len(label) == 0 ||
+            json_object_get_string_len(label) > 80) continue;
+        auto channel = object(); add(channel, "label", text(json_object_get_string(label)));
+        auto state = field(value, "state");
+        if (state != "ok" && state != "warning" && state != "fault") state = "unavailable";
+        add(channel, "state", text(state));
+        auto* message = member(value, "message");
+        add(channel, "message", message && json_object_is_type(message, json_type_string) &&
+            json_object_get_string_len(message) <= 512 ? text(json_object_get_string(message)) : text(""));
+        append(result, std::move(channel));
+    }
+    return result;
+}
 }
 Json board_telemetry(const fs::path& path) {
     auto result = object(); add(result, "state", text("unavailable"));
     add(result, "supplies", array()); add(result, "temperatures", array()); add(result, "voltages", array());
+    add(result, "statuses", array());
     Json source;
     try {
         const auto bytes = read_file(path, 16384);
@@ -49,6 +70,7 @@ Json board_telemetry(const fs::path& path) {
     add(result, "supplies", channels(source.get(), "supplies", {"voltage_v", "current_a", "power_w"}));
     add(result, "temperatures", channels(source.get(), "temperatures", {"celsius"}));
     add(result, "voltages", channels(source.get(), "voltages", {"voltage_v"}, 32));
+    add(result, "statuses", statuses(source.get()));
     return result;
 }
 }

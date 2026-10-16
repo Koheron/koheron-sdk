@@ -570,6 +570,7 @@ int main(int argc, char** argv) {
             else if (option == "--led-unit") settings.led_unit = value;
             else if (option == "--systemctl") settings.systemctl = value;
             else if (option == "--proc") settings.proc = value;
+            else if (option == "--sys") settings.sys = value;
             else if (option == "--telemetry") settings.telemetry = value;
             else if (option == "--socket") socket_path = value;
             else if (option == "--port") {

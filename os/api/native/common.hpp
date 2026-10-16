@@ -66,6 +66,7 @@ struct Settings {
     std::string systemctl = "/bin/systemctl";
     // Fixture roots also make collection testable without mocking Linux syscalls.
     fs::path proc = "/proc";
+    fs::path sys = "/sys";
     fs::path telemetry = "/run/koheron/telemetry.json";
 };
 
