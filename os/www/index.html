@@ -51,6 +51,18 @@
         </section>
       </div>
       <aside class="system-sidebar" aria-labelledby="system-heading">
+        <section class="board-telemetry" aria-labelledby="telemetry-heading">
+          <div class="section-heading"><h2 id="telemetry-heading">Power and temperature</h2></div>
+          <p id="telemetry-status" class="status-line" role="status">Connecting…</p>
+          <table id="supply-table" hidden><caption class="sr-only">Supply measurements</caption>
+            <thead><tr><th scope="col">Supply</th><th scope="col">Power</th><th scope="col">Voltage</th><th scope="col">Current</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <table id="temperature-table" hidden><caption class="sr-only">Temperature measurements</caption><tbody></tbody></table>
+          <details id="voltage-details" hidden><summary>Supply voltages</summary>
+            <table id="voltage-table" hidden><caption class="sr-only">Additional supply voltage measurements</caption><tbody></tbody></table>
+          </details>
+        </section>
         <div class="section-heading"><h2 id="system-heading">Board health</h2><a id="diagnostics-download" href="/api/system/diagnostics" download="koheron-diagnostics.json">Download diagnostics</a></div>
         <p id="health-status" class="status-line" role="status">Connecting…</p>
         <table id="health-table"><caption class="sr-only">Live board health</caption><tbody>

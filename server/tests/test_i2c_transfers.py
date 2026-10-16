@@ -14,7 +14,7 @@ class I2cTransfersTest(unittest.TestCase):
     def test_cases(self):
         for case in (
             'address', 'concurrent', 'initialization', 'empty', 'bounds', 'short_read',
-            'short_write', 'typed',
+            'short_write', 'typed', 'register',
         ):
             with self.subTest(case=case):
                 run_cpp(self, self.binary, case)

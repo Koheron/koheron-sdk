@@ -66,6 +66,7 @@ struct Settings {
     std::string systemctl = "/bin/systemctl";
     // Fixture roots also make collection testable without mocking Linux syscalls.
     fs::path proc = "/proc";
+    fs::path telemetry = "/run/koheron/telemetry.json";
 };
 
 // posix_spawn avoids running C++ code in a forked, multithreaded HTTP process.

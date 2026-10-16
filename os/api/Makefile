@@ -28,7 +28,7 @@ journal-probe: $(BUILD_DIR)/journal-probe
 $(BUILD_DIR)/journal-probe: $(SOURCE_DIR)/../tests/journal_probe.cpp $(BUILD_DIR)/journal.o $(COMMON) $(BUILD_RULES) $(COMPILER_SETTINGS) $(API_COMPILE_SETTINGS) $(API_LINK_SETTINGS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(filter %.cpp %.o,$^) $(LDFLAGS) $(LDLIBS) -o $@
 
-$(BUILD_DIR)/koheron-api: $(BUILD_DIR)/api_main.o $(BUILD_DIR)/journal.o $(BUILD_DIR)/health.o $(BUILD_DIR)/events.o $(BUILD_DIR)/sha1.o $(COMMON) $(ARCHIVE)
+$(BUILD_DIR)/koheron-api: $(BUILD_DIR)/api_main.o $(BUILD_DIR)/journal.o $(BUILD_DIR)/health.o $(BUILD_DIR)/telemetry.o $(BUILD_DIR)/events.o $(BUILD_DIR)/sha1.o $(COMMON) $(ARCHIVE)
 
 SDK_ROOT := $(abspath $(SOURCE_DIR)/../../..)
 CPPFLAGS += -I$(SDK_ROOT)
