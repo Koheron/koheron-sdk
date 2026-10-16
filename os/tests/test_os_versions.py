@@ -27,18 +27,25 @@ print-os-versions:
                 with self.subTest(board=board, vivado=vivado):
                     values = self.versions(board, vivado)
                     self.assertEqual(values[:3], [
-                        'xilinx-linux-v2026.1',
-                        'https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v2026.1.tar.gz',
+                        'xilinx-linux-c3faafdafc13d2592825d909395b95da390dc2be',
+                        'https://github.com/Xilinx/linux-xlnx/archive/c3faafdafc13d2592825d909395b95da390dc2be.tar.gz',
                         '26.04.1'])
                     self.assertEqual(values[3:5], ['xilinx-uboot-v2026.1', f'xilinx_v{vivado}'])
                     self.assertEqual(values[5], f'arm-trust-v{vivado}' if arch == 'arm64' else '')
                     self.assertEqual(values[6:8], [f'/tools/Xilinx/{vivado}/Vivado', arch])
                     self.assertEqual(values[8], 'https://github.com/Xilinx/u-boot-xlnx/archive/refs/tags/xilinx-v2026.1.tar.gz')
                     checksums = (SDK / 'os/source-checksums.sha256').read_text()
+                    self.assertIn(f'linux-xlnx-{values[0]}.tar.gz', checksums)
                     for archive in (f'u-boot-xlnx-xilinx-uboot-v{vivado}.tar.gz',
                                     f'device-tree-xlnx-xilinx_v{vivado}.tar.gz',
                                     f'arm-trust-xlnx-arm-trust-v{vivado}.tar.gz'):
                         self.assertIn(archive, checksums)
+
+    def test_original_kernel_release_can_be_selected(self):
+        values = self.versions('alpha250/fft', '2025.1', 'LINUX_VERSION=2026.1')
+        self.assertEqual(values[0], 'xilinx-linux-v2026.1')
+        self.assertEqual(values[1],
+                         'https://github.com/Xilinx/linux-xlnx/archive/refs/tags/xilinx-v2026.1.tar.gz')
 
     def test_older_runtime_can_be_selected_with_newer_tools(self):
         values = self.versions('alpha250/fft', '2026.1',
