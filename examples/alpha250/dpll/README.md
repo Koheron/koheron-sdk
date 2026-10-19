@@ -305,6 +305,34 @@ the corresponding `DPLL_*` settings, `DPLL_GAIN_STAGES` and
 two- and three-stage implementations retain their latency. Run
 `tests/run-multirate.sh` for the arithmetic, update-rate and latency regression.
 
+An optional sampled Fast frontend is available through
+`tcl/multirate_frontend.tcl` and `multirate_frontend::create <name>`. Supply a
+processing `clk`, active-low `resetn`, `valid_in`, coherent 32-bit complex
+`data_a`/`data_b` words (signed 16-bit real and imaginary halves), and eight
+`random_round` bits. Input epochs must satisfy timing to the processing clock;
+this capture register is intended for related clocks, not asynchronous CDC.
+Connect `i_filtered`, `q_filtered` and `valid_out` to a controller configured for
+the actual sample interval. The existing Accurate frontend can run separately.
+
+The input capture, four-clock vendor complex multiplier and two-clock moving
+average form seven processing stages. History advances only for valid mixer
+results, so the four taps retain their original sample spacing through bubbles.
+At a 2:1 processing/sample ratio the arithmetic latency falls while the filter
+response and sample-domain group delay remain unchanged. Gain and reference
+capture logic must continue to use the resulting valid epochs.
+
+Run the native simulation from the SDK root with:
+
+```sh
+vivado -nolog -nojournal -notrace -mode batch \
+  -source examples/alpha250/dpll/tests/test_multirate_frontend.tcl \
+  -tclargs tmp/tests/multirate-frontend
+```
+
+It compares exact vendor rounding and four-tap results against a sample-clock
+reference through continuous input, bubbles and resets, then checks the full
+Fast P pipeline, reference capture and once-per-sample integrator enables.
+
 ## Host checks
 
 ```sh
