@@ -333,6 +333,11 @@ It compares exact vendor rounding and four-tap results against a sample-clock
 reference through continuous input, bubbles and resets, then checks the full
 Fast P pipeline, reference capture and once-per-sample integrator enables.
 
+Post-route optimization can move a failing registered DAC output from a
+secondary flip-flop to a free primary flip-flop in the same slice before
+rerouting. This preserves its clock boundary and latency, uses no fixed device
+coordinates, and retains the complete setup/hold checks.
+
 ## Host checks
 
 ```sh
