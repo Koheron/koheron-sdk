@@ -44,7 +44,7 @@ module phase_unwrapper #
   reg signed [DIN_WIDTH+1-1:0] unwrapped_diff;
 
   reg signed [DOUT_WIDTH-1:0] phase_state=0;
-  initial unwrapped_diff = 0;
+  initial if (!(FUSED_DIFFERENCE && CANONICAL_INPUT)) unwrapped_diff = 0;
   initial phase_in0 = 0;
   initial diff = 0;
   initial overflow = 0;
@@ -85,9 +85,17 @@ module phase_unwrapper #
     wire [LOW_WIDTH-1:0] difference=phase_in[LOW_WIDTH-1:0]-phase_in0[LOW_WIDTH-1:0];
     wire positive_pi_tie=~phase_in[LOW_WIDTH-1] && phase_in0[LOW_WIDTH-1] &&
                         phase_in[LOW_WIDTH-2:0]==phase_in0[LOW_WIDTH-2:0];
-    wire difference_sign=difference[LOW_WIDTH-1] && !positive_pi_tie;
-    always @(posedge clk)
-      unwrapped_diff <= {{3{difference_sign}}, difference};
+    reg [LOW_WIDTH-1:0] difference_q=0;
+    reg positive_pi_tie_q=0;
+    always @(posedge clk) begin
+      difference_q <= difference;
+      positive_pi_tie_q <= positive_pi_tie;
+    end
+    // Correct the sign after the existing difference register, removing a
+    // LUT from the subtraction path without delaying phase or frequency.
+    // Keep the internal increment corrected for every history implementation.
+    wire difference_sign=difference_q[LOW_WIDTH-1] && !positive_pi_tie_q;
+    always @* unwrapped_diff={{3{difference_sign}},difference_q};
 `ifndef SYNTHESIS
     always @(posedge clk)
       if(phase_in[DIN_WIDTH-1:LOW_WIDTH] !== {2{phase_in[LOW_WIDTH-1]}})
