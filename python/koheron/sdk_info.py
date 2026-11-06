@@ -17,10 +17,13 @@ def read_settings(stream):
 
 
 def load_settings(sdk_path, cfg, overrides=()):
-    result = subprocess.run(['make', '--no-print-directory', '--silent', 'info',
-                             'FORMAT=json', f'CFG={cfg}', *overrides],
-                            cwd=sdk_path, text=True, capture_output=True, timeout=15,
-                            env={**os.environ, 'MAKEFLAGS': '', 'MFLAGS': ''})
+    try:
+        result = subprocess.run(['make', '--no-print-directory', '--silent', 'info',
+                                 'FORMAT=json', f'CFG={cfg}', *overrides],
+                                cwd=sdk_path, text=True, capture_output=True, timeout=15,
+                                env={**os.environ, 'MAKEFLAGS': '', 'MFLAGS': '', 'MAKEOVERRIDES': ''})
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(f'Make could not resolve CFG: {error}') from error
     if result.returncode:
         raise ValueError(result.stderr.strip() or 'Make could not resolve CFG')
     return read_settings(io.StringIO(result.stdout))
@@ -28,7 +31,7 @@ def load_settings(sdk_path, cfg, overrides=()):
 
 def settings(values):
     variables = dict(value.split('=', 1) for value in values)
-    path_keys = {'SDK_PATH', 'CONFIG_MK', 'BOARD_MK', 'MEMORY_YML', 'BD_TCL',
+    path_keys = {'SDK_PATH', 'CONFIG_MK', 'BOARD_PATH', 'BOARD_MK', 'MEMORY_YML', 'BD_TCL',
                  'VIVADO_PATH', 'VITIS_PATH', 'INSTRUMENT_ZIP', 'BOARD_INSTRUMENT_ZIP',
                  'BITSTREAM', 'SERVER', 'DRIVERS_JSON_OUT', 'RELEASE_ZIP',
                  'MANIFEST_TXT', 'INSTRUMENT_TEST'}

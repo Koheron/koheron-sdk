@@ -70,8 +70,8 @@ include $(SDK_PATH)/make/dependencies.mk
 CFG_OPTIONAL_GOALS := help doctor check status logs list examples clean_all setup python_requirements koheron_python $(PYTHON_REQUIREMENTS_STAMP) $(KOHERON_PYTHON_STAMP)
 
 ifneq ($(MAKECMDGOALS),)
-# validate and copy read CFG without including the full build graph.
-CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS) validate copy,$(MAKECMDGOALS))
+# copy reads the source configuration without including the build graph.
+CFG_REQUIRED_GOALS := $(filter-out $(CFG_OPTIONAL_GOALS) copy,$(MAKECMDGOALS))
 else
 CFG_REQUIRED_GOALS := all
 endif
@@ -307,8 +307,8 @@ endif
 clean_all:
 	$(HOST_PYTHON) $(SDK_PATH)/python/koheron/safe_clean.py --sdk-path $(call build_shell_quote,$(SDK_FULL_PATH)) --root $(call build_shell_quote,$(TMP)) --all
 
-SDK_INFO_VARS := SDK_PATH CONFIG_MK NAME VERSION BOARD BOARD_MK PART ZYNQ_TYPE UBUNTU_ARCH \
-  MEMORY_YML BD_TCL DRIVERS WEB_FILES VIVADO_VERSION VIVADO_PATH VITIS_PATH \
+SDK_INFO_VARS := SDK_PATH CONFIG_MK NAME VERSION BOARD BOARD_PATH BOARD_MK PART ZYNQ_TYPE UBUNTU_ARCH \
+  MEMORY_YML BD_TCL DRIVERS XDC WEB_FILES VIVADO_VERSION VIVADO_PATH VITIS_PATH \
   KOHERON_VERSION GCC_ARCH GCC_VERSION KERNEL_CC UBOOT_CC OS_HOSTCC \
   LINUX_VERSION UBOOT_VERSION UBUNTU_VERSION DOCKER_IMAGE WEB_DOCKER_IMAGE \
   MODE FPGA_SYNTH_MODE ENFORCE_TIMING N_CPUS INSTRUMENT_ZIP BOARD_INSTRUMENT_ZIP \
@@ -337,7 +337,7 @@ logs:
 
 .PHONY: list examples
 list:
-	@python3 "$(SDK_PATH)/python/koheron/list_examples.py" --sdk-path "$(SDK_PATH)"
+	@$(HOST_PYTHON) "$(SDK_PATH)/python/koheron/list_examples.py" --sdk-path "$(SDK_PATH)"
 
 examples: list
 
@@ -359,9 +359,10 @@ doctor:
 
 .PHONY: validate
 validate: $(PYTHON_REQUIREMENTS_STAMP)
-	"$(VENV)/bin/python$(PYTHON_VERSION)" "$(SDK_PATH)/python/koheron/validate_config.py" \
+	@$(SDK_INFO_COMMAND) --format json $(SDK_INFO_ARGS) | \
+		"$(VENV)/bin/python$(PYTHON_VERSION)" "$(SDK_PATH)/python/koheron/validate_config.py" \
 		--sdk-path "$(SDK_PATH)" \
-		--cfg "$(CFG)"
+		--settings-stdin
 
 ###############################################################################
 # PYTHON SETUP
