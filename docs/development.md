@@ -17,6 +17,10 @@ for your board and `HOST` with the board's IP address or hostname.
 `SDK_PATH` is the SDK root; `PROJECT_PATH` contains `config.mk`.
 `make info CFG=... FORMAT=json` reports resolved settings, inputs and artifact
 paths without building.
+`make list` resolves names, versions and board identities through the same
+Make settings, including values inherited from shared fragments. Configuration
+discovery (`python/koheron/list_examples.py --configs`) only lists entry-point
+paths and does not evaluate them.
 Equivalent paths to an instrument inside the SDK share the same build cache.
 An instrument outside the SDK uses `tmp/.external/<path-hash>` so its artifacts
 stay inside the selected `TMP` directory.
@@ -107,6 +111,12 @@ regressions use isolated fixtures. It uses existing host dependencies, without
 synthesis or board access. Install missing Python dependencies with
 `make python_requirements`
 and `make koheron_python`.
+
+`make validate` and `make check CFG=...` validate the resolved configuration,
+including command-line overrides, Make functions and conditional includes.
+Driver and constraint checks use the final file lists, so inputs removed by a
+configuration are no longer checked. Both commands validate the selected
+`MEMORY_YML`; configuration parsing errors come directly from Make.
 
 `HOST_PYTHON=...` selects another prepared interpreter for inspection,
 diagnostics, host checks and management commands.
