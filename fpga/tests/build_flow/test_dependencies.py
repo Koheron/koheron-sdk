@@ -274,6 +274,10 @@ inspect_settings:
                 if board == 'red-pitaya':
                     board_directory += '/stemlab-125-14'
                 cases = {
+                    'make/defaults.mk': True,
+                    'make/config.mk': True,
+                    'make/host.mk': False,
+                    'make/setup.mk': False,
                     'make.py': True,
                     'server/__init__.py': True,
                     'fpga/lib/starting_point.tcl': True,

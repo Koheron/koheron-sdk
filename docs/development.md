@@ -164,8 +164,23 @@ boards/    # Board definitions, boot components and helper makefiles
 docker/    # Reproducible Docker builders
 examples/  # Reference instruments with config.mk and memory.yml
 fpga/      # FPGA cores, IP, Tcl helpers and build logic
+make/      # Shared build configuration, commands and packaging
 os/        # Linux images, board management runtime and web pages
 python/    # Build tools, runners and client library
 server/    # C++ server, drivers and build rules
 web/       # Shared instrument UI components
 ```
+
+The root `Makefile` composes the subsystem builds and instrument workflows.
+Shared build responsibilities live in:
+
+| File | Responsibility |
+| --- | --- |
+| `make/defaults.mk` | Host, toolchain and path defaults, loaded before instrument settings. |
+| `make/config.mk` | CFG requirements, cache paths, instrument inputs and board selection. |
+| `make/host.mk` | Help, inspection, validation, diagnostics and board status/log commands. |
+| `make/setup.mk` | Host installation and Python environment/package stamps. |
+| `make/instrument.mk` | Instrument manifests, ZIP packaging and board archive copies. |
+
+Configuration and defaults participate in FPGA rebuild dependencies. Host
+command and setup recipe edits do not invalidate the FPGA project.
