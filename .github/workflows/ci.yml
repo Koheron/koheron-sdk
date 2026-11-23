@@ -33,3 +33,5 @@ jobs:
         run: make check HOST_PYTHON=python3
       - name: Check C++ client ownership and protocol
         run: CXX=g++ python3 -m unittest discover -s server/tests -p test_cpp_client.py -v
+      - name: Check reference-instrument clients
+        run: python3 -m pytest --import-mode=importlib examples/red-pitaya/bist/tests examples/red-pitaya/bist-full/tests -q
