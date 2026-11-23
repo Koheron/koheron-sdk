@@ -30,7 +30,7 @@ module gain_programmer (
     reg request_ack=0, response_ack=0;
     reg [31:0] pending_ack=0;
     reg rejected=0, commit_requested=0, loop_requested=0;
-    reg [7:0] destinations=0;
+    reg [7:0] commit_enable=0;
     integer k;
     wire request_received, response_received;
     wire request_valid, response_valid;
@@ -103,6 +103,22 @@ module gain_programmer (
     wire [2:0] target=response_word[8:6];
     wire reject_request=response_word[106] ||
         (!response_word[105] && response_word[5]==active_banks[target]);
+    // Decode commit acceptance on the existing F_WAIT edge. The following
+    // F_ACCEPT edge only gates each bank's wide enable with resetn; the FSM,
+    // rejection and target decode no longer sit on the coefficient hold path.
+    // Reset must still cancel a commit on its apply edge while preserving
+    // every previously committed bank and coefficient.
+    always @(posedge clk) begin
+        commit_enable<=0;
+        if (resetn && fast_state==F_WAIT && response_valid &&
+            !reject_request && response_word[105])
+            commit_enable<=8'b1<<target;
+        for(k=0;k<8;k=k+1) if (resetn && commit_enable[k]) begin
+            active_banks[k]<=response_word[5];
+            coefficients[64*k +: 64]<=response_word[95:32];
+        end
+    end
+
     always @(posedge clk) begin
         // One fast-clock write pulse regardless of the slow-clock phase.
         command0[8]<=0;
@@ -130,29 +146,20 @@ module gain_programmer (
                 end
                 F_WAIT: if (response_valid) begin
                     pending_ack<=response_word[31:0] | (reject_request ? 32'h40000000 : 32'd0);
-                    // Register acceptance and the one-hot destination before
-                    // they drive the replicated RAM and coefficient controls.
+                    // Register acceptance before driving the RAM controls.
                     // The handshake holds response_word until F_APPLIED.
                     rejected<=reject_request;
                     commit_requested<=response_word[105];
                     loop_requested<=response_word[8];
-                    destinations<=8'b1<<target;
                     fast_state<=F_ACCEPT;
                 end
                 F_ACCEPT: begin
-                    if (!rejected) begin
-                        if (commit_requested) begin
-                            for(k=0;k<8;k=k+1) if(destinations[k]) begin
-                                active_banks[k]<=response_word[5];
-                                coefficients[64*k +: 64]<=response_word[95:32];
-                            end
-                        end else begin
-                            data<=response_word[95:32];
-                            // Hold payload/address before asserting the write
-                            // strobe, providing three complete setup clocks.
-                            if (loop_requested) command1<={1'b0,response_word[103:96]};
-                            else command0<={1'b0,response_word[103:96]};
-                        end
+                    if (!rejected && !commit_requested) begin
+                        data<=response_word[95:32];
+                        // Hold payload/address before asserting the write
+                        // strobe, providing three complete setup clocks.
+                        if (loop_requested) command1<={1'b0,response_word[103:96]};
+                        else command0<={1'b0,response_word[103:96]};
                     end
                     fast_state<=(!rejected && !commit_requested) ? F_SETUP : F_APPLIED;
                 end

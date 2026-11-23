@@ -15,5 +15,5 @@ xvlog --sv "$repo/fpga/cores/phase_unwrapper_v1_0/phase_unwrapper.v" "$here/test
 xelab -L unisims_ver work.test_phase_unwrapper_tb work.glbl -s test_phase_unwrapper_tb > elaborate.log 2>&1
 xsim test_phase_unwrapper_tb -runall > simulation.log 2>&1
 rg 'checks passed|Fatal:|ERROR:|FATAL:' simulation.log || true
-[[ $(rg -c 'Unwrapper checks passed' simulation.log) == 3 ]]
+[[ $(rg -c 'Unwrapper checks passed' simulation.log) == 5 ]]
 if rg -q 'Fatal:|ERROR:|FATAL:' simulation.log; then exit 1; fi
