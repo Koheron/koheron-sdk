@@ -1,0 +1,6 @@
+&axi_quad_spi_0 {
+    compatible = "generic-uio";
+    status = "okay";
+    linux,uio-name = "libmetal-spi";
+    linux,driver-override = "uio_pdrv_genirq";
+};
