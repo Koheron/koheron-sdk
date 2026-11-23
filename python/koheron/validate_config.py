@@ -7,186 +7,48 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Any
 
 if __package__:
     from .diagnostics import Reporter
     from .memory_schema import parse_int, parse_range
+    from .sdk_info import load_settings, read_settings
 else:
     # Direct script execution and importlib-based SDK fixtures avoid loading
     # the client package and its unrelated runtime dependencies.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from diagnostics import Reporter
     from memory_schema import parse_int, parse_range
+    from sdk_info import load_settings, read_settings
 
 try:
     import yaml  # type: ignore
 except ImportError:  # pragma: no cover - PyYAML is listed in SDK requirements.
     yaml = None
 
-ASSIGN_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*([:+?]?=)\s*(.*)$")
-INCLUDE_RE = re.compile(r"^-?include\s+(.+)$")
 ARRAY_RE = re.compile(r"\[\s*([^\]]+)\s*\]")
 
 
-def strip_comment(line: str) -> str:
-    escaped = False
-    out = []
-    for char in line:
-        if char == "#" and not escaped:
-            break
-        out.append(char)
-        escaped = char == "\\" and not escaped
-        if char != "\\":
-            escaped = False
-    return "".join(out).strip()
-
-
-def join_make_lines(text: str) -> list[str]:
-    lines: list[str] = []
-    current = ""
-    for raw in text.splitlines():
-        line = raw.rstrip()
-        if line.endswith("\\"):
-            current += line[:-1] + " "
-        else:
-            lines.append(current + line)
-            current = ""
-    if current:
-        lines.append(current)
-    return lines
-
-
-class MakeConfig:
-    def __init__(self, sdk_path: Path, config_mk: Path) -> None:
-        self.sdk_path = sdk_path
-        self.config_mk = config_mk
-        self.project_path = config_mk.parent
-        self.variables: dict[str, str] = {
-            "SDK_PATH": str(sdk_path),
-            "PROJECT_PATH": str(self.project_path),
-        }
-        self.assignments: dict[str, list[tuple[Path, str]]] = {}
-        self.includes: list[tuple[Path, str]] = []
-
-    def parse(self) -> None:
-        self._parse_file(self.config_mk, set())
-
-    def _parse_file(self, path: Path, seen: set[Path]) -> None:
-        path = path.resolve()
-        if path in seen or not path.exists():
-            return
-        seen.add(path)
-        try:
-            lines = join_make_lines(path.read_text(encoding="utf-8"))
-        except OSError:
-            return
-        for raw in lines:
-            line = strip_comment(raw)
-            if not line:
-                continue
-            include_match = INCLUDE_RE.match(line)
-            if include_match:
-                include_expr = include_match.group(1).strip()
-                self.includes.append((path, include_expr))
-                include_path = self.resolve_path(include_expr, path.parent)
-                if include_path and include_path.exists():
-                    self._parse_file(include_path, seen)
-                continue
-            assignment = ASSIGN_RE.match(line)
-            if assignment:
-                key, op, value = assignment.groups()
-                value = value.strip()
-                self.assignments.setdefault(key, []).append((path, value))
-                old = self.variables.get(key, "")
-                expanded = self.expand(value)
-                if op == "+=":
-                    self.variables[key] = f"{old} {expanded}".strip()
-                elif op == "?=":
-                    self.variables.setdefault(key, expanded)
-                else:
-                    self.variables[key] = expanded
-
-    def expand(self, value: str) -> str:
-        pattern = re.compile(r"\$\(([^)]+)\)|\$\{([^}]+)\}")
-
-        def repl(match: re.Match[str]) -> str:
-            name = match.group(1) or match.group(2)
-            return self.variables.get(name, match.group(0))
-
-        previous = None
-        while previous != value:
-            previous = value
-            value = pattern.sub(repl, value)
-        return value
-
-    def resolve_path(self, value: str, base: Path | None = None) -> Path | None:
-        expanded = self.expand(value).strip().strip('"\'')
-        words = expanded.split()
-        if len(words) != 1 or not is_plain_path(expanded):
-            return None
-        path = Path(expanded)
+def validate_config(reporter: Reporter, values: dict[str, str], sdk_path: Path) -> None:
+    """Check the final inputs selected by Make, including command-line overrides."""
+    def check_path(label: str, value: str) -> None:
+        path = Path(value)
         if not path.is_absolute():
-            path = (base or self.sdk_path) / path
-        return path.resolve()
+            path = sdk_path / path
+        if value and path.exists():
+            reporter.ok(f"{label} exists: {path}")
+        else:
+            reporter.err(f"{label} missing: {value or '(unset)'}")
 
-
-def is_plain_path(value: str) -> bool:
-    return not any(token in value for token in ("$", "*", "?", "[", "]", "`", "|", ";")) and not value.startswith("$(shell")
-
-
-def resolve_assignment_path(cfg: MakeConfig, source: Path, raw_entry: str) -> Path:
-    expanded = cfg.expand(raw_entry).strip().strip("\"'")
-    path = Path(expanded)
-    if path.is_absolute():
-        return path.resolve()
-    if "$(SDK_PATH)" in raw_entry or "${SDK_PATH}" in raw_entry:
-        return (cfg.sdk_path / path).resolve()
-    if "$(PROJECT_PATH)" in raw_entry or "${PROJECT_PATH}" in raw_entry:
-        return path.resolve()
-    if source.resolve() == cfg.config_mk.resolve():
-        return (cfg.sdk_path / path).resolve()
-    return (source.parent / path).resolve()
-
-
-def validate_config(reporter: Reporter, cfg: MakeConfig) -> None:
-    reporter.ok(f"CFG exists: {cfg.config_mk}")
-    for name in ("NAME", "VERSION", "BOARD_PATH"):
-        if cfg.variables.get(name, "").strip():
+    check_path('CFG', values['CONFIG_MK'])
+    for name in ('NAME', 'VERSION', 'BOARD_PATH'):
+        if values.get(name, '').strip():
             reporter.ok(f"{name} is defined")
         else:
             reporter.err(f"{name} is missing or empty")
-
-    board_path_value = cfg.variables.get("BOARD_PATH", "")
-    if board_path_value:
-        board_path = Path(board_path_value)
-        if not board_path.is_absolute():
-            board_path = cfg.sdk_path / board_path
-        board_mk = board_path / "board.mk"
-        if board_mk.exists():
-            reporter.ok(f"BOARD_PATH/board.mk exists: {board_mk}")
-        else:
-            reporter.err(f"BOARD_PATH/board.mk missing: {board_mk}")
-
-    for source, include_expr in cfg.includes:
-        include_path = cfg.resolve_path(include_expr, source.parent)
-        if include_path:
-            if include_path.exists():
-                reporter.ok(f"include exists: {include_path}")
-            else:
-                reporter.err(f"include missing: {include_expr} from {source}")
-
-    for var in ("DRIVERS", "XDC"):
-        for source, value in cfg.assignments.get(var, []):
-            for raw_entry in value.split():
-                expanded_entry = cfg.expand(raw_entry).strip().strip("\"'")
-                if not is_plain_path(expanded_entry):
-                    continue
-                path = resolve_assignment_path(cfg, source, raw_entry)
-                if path.exists():
-                    reporter.ok(f"{var} file exists: {path}")
-                else:
-                    reporter.err(f"{var} file missing: {expanded_entry} from {source}")
+    check_path('BOARD_MK', values.get('BOARD_MK', ''))
+    for name in ('DRIVERS', 'XDC'):
+        for value in values.get(name, '').split():
+            check_path(f'{name} file', value)
 
 
 def validate_memory(reporter: Reporter, memory_yml: Path) -> None:
@@ -289,33 +151,26 @@ def validate_memory(reporter: Reporter, memory_yml: Path) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate one Koheron instrument CFG and memory.yml.")
     parser.add_argument("--sdk-path", default=".", help="Path to the Koheron SDK repository")
-    parser.add_argument("--cfg", required=True, help="Path to an instrument config.mk")
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--cfg", help="Path to an instrument config.mk")
+    selection.add_argument('--settings-stdin', action='store_true',
+                           help='Validate settings already resolved by Make')
     parser.add_argument('--memory-yml', type=Path, help='Resolved MEMORY_YML override')
     parser.add_argument("--no-color", action="store_true", help="Disable colored status labels")
     args = parser.parse_args(argv)
 
     reporter = Reporter(color=sys.stdout.isatty() and not args.no_color)
     sdk_path = Path(args.sdk_path).resolve()
-    config_mk = Path(args.cfg)
-    if not config_mk.is_absolute():
-        config_mk = sdk_path / config_mk
-    config_mk = config_mk.resolve()
-    if not config_mk.exists():
-        reporter.err(f"CFG does not exist: {config_mk}")
+    try:
+        values = read_settings(sys.stdin) if args.settings_stdin else load_settings(sdk_path, args.cfg)
+    except ValueError as error:
+        reporter.err(f'Cannot resolve configuration: {error}')
         return 1
-
-    cfg = MakeConfig(sdk_path, config_mk)
-    cfg.parse()
-    validate_config(reporter, cfg)
-    if args.memory_yml is not None:
-        validate_memory(reporter, args.memory_yml)
-    else:
-        memory_value = cfg.variables.get('MEMORY_YML', str(config_mk.parent / 'memory.yml'))
-        memory_yml = cfg.resolve_path(memory_value)
-        if memory_yml is None:
-            reporter.err(f'Cannot resolve MEMORY_YML: {memory_value}')
-        else:
-            validate_memory(reporter, memory_yml)
+    validate_config(reporter, values, sdk_path)
+    memory_yml = args.memory_yml if args.memory_yml is not None else Path(values['MEMORY_YML'])
+    if not memory_yml.is_absolute():
+        memory_yml = sdk_path / memory_yml
+    validate_memory(reporter, memory_yml)
     return 1 if reporter.errors else 0
 
 

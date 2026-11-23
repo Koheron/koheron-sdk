@@ -133,14 +133,17 @@ class LocalCheckTest(unittest.TestCase):
 
     def test_config_override_and_host_suites_do_not_call_hardware_tests(self):
         stream = io.StringIO()
-        settings = {'CONFIG_MK': str(SDK / CFG), 'MEMORY_YML': '/selected/map.yml'}
+        settings = {'CONFIG_MK': str(SDK / CFG), 'MEMORY_YML': '/selected/map.yml',
+                    'DRIVERS': '/selected/driver.hpp', 'XDC': '/selected/ports.xdc',
+                    'VERSION': 'custom'}
         with contextlib.redirect_stdout(stream), patch.object(sys, 'stdin', io.StringIO(json.dumps({'settings': settings}))), \
              patch.object(check, 'run_check') as run:
             self.assertEqual(check.main(['--sdk-path', str(SDK), '--format', 'json', '--settings-stdin']), 0)
         value = json.loads(stream.getvalue())
         self.assertFalse(value['hardware_tests'])
         commands = [call.args[2] for call in run.call_args_list]
-        self.assertIn('/selected/map.yml', commands[0])
+        self.assertIn('--settings-stdin', commands[0])
+        self.assertEqual(json.loads(run.call_args_list[0].kwargs['input_text'])['settings'], settings)
         self.assertEqual(len(commands), 1 + len(check.SUITES))
         self.assertTrue(all('-m' in command and 'unittest' in command for command in commands[1:]))
 

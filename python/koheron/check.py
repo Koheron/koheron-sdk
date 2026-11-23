@@ -1,6 +1,7 @@
 """Run configuration and host regressions without board or Xilinx tools."""
 import argparse
 import importlib.util
+import json
 import os
 from pathlib import Path
 import re
@@ -26,7 +27,7 @@ SUITES = (('python/tests', 'test_*.py'), ('make/tests', 'test_*.py'),
           ('server/tests', 'test_build_make.py'), ('web/tests', 'test_build.py'))
 
 
-def run_check(reporter, label, command, sdk_path):
+def run_check(reporter, label, command, sdk_path, *, input_text=None):
     started = time.monotonic()
     # Fixture commands choose their own board, configuration and run options.
     env = {**os.environ, 'PYTHONPATH': str(sdk_path / 'python')}
@@ -35,7 +36,7 @@ def run_check(reporter, label, command, sdk_path):
         env.pop(key, None)
     try:
         result = subprocess.run(command, cwd=sdk_path, env=env, text=True,
-                                capture_output=True, timeout=120)
+                                capture_output=True, timeout=120, input=input_text)
         output = (result.stdout + result.stderr).strip()
         if result.returncode:
             record = reporter.err(label)
@@ -73,17 +74,16 @@ def main(argv=None):
         except ValueError as error:
             reporter.err(f'Cannot read resolved configuration: {error}')
             return reporter.finish(scope='host', hardware_tests=False, configurations=0, tests=0)
-        configs = [(values['CONFIG_MK'], values['MEMORY_YML'])]
+        configs = [(values['CONFIG_MK'], json.dumps({'settings': values}))]
     else:
         configs = [(str(path), None) for path in find_configs(sdk_path)]
         if not configs:
             reporter.err('No example configurations found')
     validator = sdk_path / 'python/koheron/validate_config.py'
-    for cfg, memory in configs:
-        command = [sys.executable, str(validator), '--sdk-path', str(sdk_path), '--cfg', cfg, '--no-color']
-        if memory:
-            command += ['--memory-yml', memory]
-        run_check(reporter, f'Configuration: {cfg}', command, sdk_path)
+    for cfg, resolved in configs:
+        command = [sys.executable, str(validator), '--sdk-path', str(sdk_path), '--no-color']
+        command += ['--settings-stdin'] if resolved is not None else ['--cfg', cfg]
+        run_check(reporter, f'Configuration: {cfg}', command, sdk_path, input_text=resolved)
     for directory, pattern in SUITES:
         run_check(reporter, f'Host tests: {directory} ({pattern})',
                   [sys.executable, '-m', 'unittest', 'discover', '-s', directory, '-p', pattern], sdk_path)
