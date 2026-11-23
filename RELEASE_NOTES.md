@@ -146,7 +146,7 @@ component to the same Xilinx release.
 | Vivado/Vitis selection | Vivado 2017.2 | Vivado/Vitis 2025.1 |
 | Docker compiler image | `gnu-gcc-9.5` | `cross-armhf:26.04` |
 | Ubuntu Base for image builds | 22.04.4 | 26.04.1 |
-| Linux and U-Boot selection | Koheron forks, selected using the Vivado release | Xilinx 2026.1 sources, with independent version settings |
+| Linux and U-Boot selection | Koheron forks, selected using the Vivado release | Pinned Xilinx 2026.1 Linux LTS update (6.18.40) and U-Boot 2026.1, with independent version settings |
 | Web build | Host npm/TypeScript tools | Node 24 Docker builder and locked npm dependencies |
 
 - The reference host is Ubuntu 24.04. `make setup` installs the other build
