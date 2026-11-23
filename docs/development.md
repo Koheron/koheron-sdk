@@ -131,6 +131,21 @@ make -j CFG=examples/alpha250/my-instrument/config.mk
 and shared references. It does not rewrite the API class or client names such
 as `connect(host, 'fft')`.
 
+Keep common dependencies in shared fragments. For ALPHA250 instruments,
+include `$(SDK_PATH)/boards/alpha250/instrument.mk` after setting `BOARD_PATH` to
+`$(SDK_PATH)/boards/alpha250`. It supplies the standard port constraints,
+FPGA cores and board drivers; append the instrument's own cores and drivers
+afterward. See the compact [ADC/DAC BRAM config](../examples/alpha250/adc-dac-bram/config.mk).
+The default memory map is already `$(PROJECT_PATH)/memory.yml`.
+
+For a web interface, include shared components first, then
+`$(SDK_PATH)/web/project.mk`. This adds `.ts`, `.html` and `.css` files recursively
+from the instrument's `web/` directory and places its `app.ts` after the other
+local scripts. Include it once, after shared scripts needed by the application.
+Instruments needing a custom script order or other asset types can continue
+to list `WEB_FILES` explicitly. [FFT](../examples/alpha250/fft/config.mk) shows
+the board and web fragments together.
+
 ## Instrument packages
 
 For an SDK instrument, the ZIP is `tmp/<project>/<NAME>.zip`, also copied to
